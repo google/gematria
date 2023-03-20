@@ -1,0 +1,50 @@
+// Copyright 2022 Google Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package gematria;
+
+import "gematria/proto/canonicalized_instruction.proto";
+
+// Contains the data of a basic block.
+message BasicBlockProto {
+  // The list of machine instruction data. This field is optional, and it is
+  // used when extracting instructions from a binary file.
+  repeated MachineInstruction machine_instructions = 1;
+
+  // The list of canonicalized instructions of the basic block. This field is
+  // optional and parallel to 'instructions'. When non-empty, it has to have the
+  // same number of values and the value at any given index corresponds to the
+  // same instruction.
+  repeated CanonicalizedInstructionProto canonicalized_instructions = 2;
+
+  // The fingerprint-id of this basic block. Might be empty.
+  string fingerprint = 3;
+}
+
+// Represents a raw instruction extracted from binary code.
+message MachineInstruction {
+  // Optional. The address of the instruction when the binary is loaded into
+  // memory. The addresses of all instructions must be relative to the same base
+  // address.
+  uint64 address = 1;
+
+  // Optional. The assembly code of the instruction, e.g. "mov $123, %eax".
+  string assembly = 2;
+
+  // Optional. The binary code of the instruction, e.g.
+  // {0xB8, 0x7B, 0x0, 0x0, 0x0}.
+  bytes machine_code = 3;
+}

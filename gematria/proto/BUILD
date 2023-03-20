@@ -1,0 +1,26 @@
+load("//:proto.bzl", "gematria_proto_library")
+
+package(
+    default_visibility = ["//:external_users"],
+)
+
+gematria_proto_library(
+    name = "basic_block_proto",
+    srcs = ["basic_block.proto"],
+    deps = [
+        ":canonicalized_instruction_proto",
+    ],
+)
+
+gematria_proto_library(
+    name = "canonicalized_instruction_proto",
+    srcs = ["canonicalized_instruction.proto"],
+)
+
+gematria_proto_library(
+    name = "throughput_proto",
+    srcs = ["throughput.proto"],
+    deps = [
+        ":basic_block_proto",
+    ],
+)

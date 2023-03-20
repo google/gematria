@@ -1,0 +1,224 @@
+load("//:python.bzl", "gematria_py_library", "gematria_py_test", "gematria_pybind_extension")
+
+package(
+    default_visibility = ["//visibility:private"],
+)
+
+gematria_py_library(
+    name = "inference",
+    srcs = ["inference.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        ":model_base",
+        ":training",
+        "//gematria/basic_block/python:throughput_protos",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+)
+
+gematria_py_test(
+    name = "inference_test",
+    size = "small",
+    srcs = ["inference_test.py"],
+    deps = [
+        ":inference",
+        ":model_base",
+        "//gematria/proto:throughput_py_pb2",
+        "//gematria/testing/python:model_test",
+    ],
+)
+
+gematria_py_library(
+    name = "loss_utils",
+    srcs = ["loss_utils.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        ":options",
+    ],
+)
+
+gematria_py_test(
+    name = "loss_utils_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["loss_utils_test.py"],
+    deps = [
+        ":loss_utils",
+        ":options",
+    ],
+)
+
+gematria_py_library(
+    name = "main_function",
+    srcs = ["main_function.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        ":inference",
+        ":model_base",
+        ":options",
+        ":training",
+        "//gematria/basic_block/python:throughput",
+        "//gematria/basic_block/python:throughput_protos",
+        "//gematria/io/python:gfile_copy",
+        "//gematria/io/python:options",
+        "//gematria/io/python:tfrecord",
+        "//gematria/io/python:utils",
+        "//gematria/proto:throughput_py_pb2",
+        "//gematria/utils/python:timer",
+    ],
+)
+
+gematria_py_test(
+    name = "main_function_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["main_function_test.py"],
+    deps = [
+        ":inference",
+        ":main_function",
+        ":model_base",
+        ":options",
+        "//gematria/basic_block/python:throughput_protos",
+        "//gematria/io/python:options",
+        "//gematria/io/python:tfrecord",
+        "//gematria/io/python:utils",
+        "//gematria/proto:throughput_py_pb2",
+        "//gematria/testing/python:matchers",
+        "//gematria/testing/python:model_test",
+    ],
+)
+
+gematria_py_library(
+    name = "model_base",
+    srcs = ["model_base.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        ":loss_utils",
+        ":options",
+        ":training",
+        "//gematria/basic_block/python:basic_block",
+        "//gematria/basic_block/python:throughput",
+        "//gematria/utils/python:timer",
+    ],
+)
+
+gematria_py_test(
+    name = "model_base_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["model_base_test.py"],
+    deps = [
+        ":model_base",
+        ":options",
+        "//gematria/basic_block/python:throughput",
+        "//gematria/testing/python:model_test",
+    ],
+)
+
+gematria_py_library(
+    name = "model_blocks",
+    srcs = ["model_blocks.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "@sonnet_repo//sonnet",
+    ],
+)
+
+gematria_py_test(
+    name = "model_blocks_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["model_blocks_test.py"],
+    deps = [
+        ":model_blocks",
+    ],
+)
+
+gematria_pybind_extension(
+    name = "oov_token_behavior",
+    srcs = ["oov_token_behavior.cc"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/model:oov_token_behavior",
+    ],
+)
+
+gematria_py_test(
+    name = "oov_token_behavior_test",
+    size = "small",
+    srcs = ["oov_token_behavior_test.py"],
+    deps = [
+        ":oov_token_behavior",
+    ],
+)
+
+gematria_py_library(
+    name = "options",
+    srcs = ["options.py"],
+    visibility = ["//:internal_users"],
+)
+
+gematria_py_library(
+    name = "token_model",
+    srcs = ["token_model.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        ":model_base",
+        ":oov_token_behavior",
+        "//gematria/basic_block/python:basic_block",
+    ],
+)
+
+gematria_py_test(
+    name = "token_model_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["token_model_test.py"],
+    deps = [
+        ":oov_token_behavior",
+        ":token_model",
+        "//gematria/basic_block/python:basic_block",
+        "//gematria/basic_block/python:throughput",
+        "//gematria/basic_block/python:tokens",
+        "//gematria/testing/python:model_test",
+    ],
+)
+
+gematria_py_library(
+    name = "token_model_flags",
+    srcs = ["token_model_flags.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        ":oov_token_behavior",
+        "//gematria/utils/python:flag_utils",
+    ],
+)
+
+gematria_py_test(
+    name = "token_model_flags_test",
+    size = "small",
+    srcs = ["token_model_flags_test.py"],
+    deps = [
+        ":token_model_flags",
+    ],
+)
+
+gematria_py_library(
+    name = "training",
+    srcs = ["training.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/basic_block/python:basic_block",
+        "//gematria/basic_block/python:throughput",
+    ],
+)
+
+gematria_py_test(
+    name = "training_test",
+    size = "small",
+    srcs = ["training_test.py"],
+    deps = [
+        ":training",
+        "//gematria/testing/python:basic_blocks_with_throughput",
+    ],
+)

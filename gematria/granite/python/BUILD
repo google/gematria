@@ -1,0 +1,181 @@
+load("//:python.bzl", "gematria_py_binary", "gematria_py_library", "gematria_py_test", "gematria_pybind_extension")
+load(
+    "@pypi//:requirements.bzl",
+    "requirement",
+)
+
+package(
+    default_visibility = ["//visibility:private"],
+)
+
+gematria_py_library(
+    name = "gnn_model_base",
+    srcs = ["gnn_model_base.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/model/python:model_base",
+        "//gematria/model/python:model_blocks",
+        "//gematria/model/python:options",
+        "@graph_nets_repo//:graph_nets",
+        "@sonnet_repo//sonnet",
+    ],
+)
+
+gematria_py_test(
+    name = "gnn_model_base_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["gnn_model_base_test.py"],
+    shard_count = 15,
+    deps = [
+        ":gnn_model_base",
+        "//gematria/model/python:options",
+        "//gematria/testing/python:model_test",
+        "@graph_nets_repo//:graph_nets",
+        requirement("networkx"),
+        "@sonnet_repo//sonnet",
+    ],
+)
+
+gematria_py_library(
+    name = "granite_flags",
+    srcs = ["granite_flags.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/model/python:options",
+        "//gematria/utils/python:flag_utils",
+    ],
+)
+
+gematria_pybind_extension(
+    name = "graph_builder",
+    srcs = ["graph_builder.cc"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/granite:graph_builder",
+        "//gematria/model:oov_token_behavior",
+        "//gematria/proto:canonicalized_instruction_cc_proto",
+        "@com_google_absl//absl/strings",
+        "@com_google_pybind11_protobuf//pybind11_protobuf:native_proto_caster",
+    ],
+)
+
+gematria_py_test(
+    name = "graph_builder_test",
+    size = "small",
+    srcs = ["graph_builder_test.py"],
+    deps = [
+        ":graph_builder",
+        "//gematria/basic_block/python:tokens",
+        "//gematria/model/python:oov_token_behavior",
+        "//gematria/testing/python:basic_blocks_with_throughput",
+    ],
+)
+
+gematria_py_library(
+    name = "graph_builder_model_base",
+    srcs = ["graph_builder_model_base.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        ":gnn_model_base",
+        ":graph_builder",
+        "//gematria/basic_block/python:basic_block",
+        "//gematria/model/python:model_base",
+        "//gematria/model/python:oov_token_behavior",
+        "//gematria/model/python:token_model",
+        "@graph_nets_repo//:graph_nets",
+    ],
+)
+
+gematria_py_test(
+    name = "graph_builder_model_base_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["graph_builder_model_base_test.py"],
+    deps = [
+        ":gnn_model_base",
+        ":graph_builder",
+        ":graph_builder_model_base",
+        "//gematria/basic_block/python:basic_block",
+        "//gematria/basic_block/python:throughput",
+        "//gematria/basic_block/python:tokens",
+        "//gematria/model/python:model_blocks",
+        "//gematria/model/python:oov_token_behavior",
+        "//gematria/model/python:options",
+        "//gematria/model/python:token_model",
+        "//gematria/testing/python:model_test",
+        "@graph_nets_repo//:graph_nets",
+        "@sonnet_repo//sonnet",
+    ],
+)
+
+gematria_py_library(
+    name = "rnn_token_model",
+    srcs = ["rnn_token_model.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        ":token_graph_builder_model",
+        "//gematria/model/python:options",
+    ],
+)
+
+gematria_py_test(
+    name = "rnn_token_model_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["rnn_token_model_test.py"],
+    shard_count = 18,
+    deps = [
+        ":rnn_token_model",
+        "//gematria/basic_block/python:tokens",
+        "//gematria/model/python:oov_token_behavior",
+        "//gematria/model/python:options",
+        "//gematria/testing/python:model_test",
+    ],
+)
+
+gematria_py_binary(
+    name = "run_granite_model",
+    srcs = ["run_granite_model.py"],
+    deps = [
+        ":granite_flags",
+        ":rnn_token_model",
+        ":token_graph_builder_model",
+        "//gematria/basic_block/python:tokens",
+        "//gematria/model/python:main_function",
+        "//gematria/model/python:options",
+        "//gematria/model/python:token_model_flags",
+        "//gematria/utils/python:flag_utils",
+    ],
+)
+
+gematria_py_library(
+    name = "token_graph_builder_model",
+    srcs = ["token_graph_builder_model.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        ":gnn_model_base",
+        ":graph_builder",
+        ":graph_builder_model_base",
+        "//gematria/model/python:model_blocks",
+        "//gematria/model/python:options",
+        "@graph_nets_repo//:graph_nets",
+        "@sonnet_repo//sonnet",
+    ],
+)
+
+gematria_py_test(
+    name = "token_graph_builder_model_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["token_graph_builder_model_test.py"],
+    shard_count = 26,
+    deps = [
+        ":token_graph_builder_model",
+        "//gematria/basic_block/python:tokens",
+        "//gematria/model/python:model_base",
+        "//gematria/model/python:model_blocks",
+        "//gematria/model/python:oov_token_behavior",
+        "//gematria/testing/python:model_test",
+    ],
+)

@@ -1,0 +1,58 @@
+load("//:python.bzl", "gematria_py_library", "gematria_py_test")
+
+package(
+    default_visibility = ["//visibility:private"],
+)
+
+gematria_py_library(
+    name = "basic_blocks_with_throughput",
+    testonly = True,
+    srcs = ["basic_blocks_with_throughput.py"],
+    data = ["//gematria/testing/testdata:basic_blocks_with_throughput.pbtxt"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/basic_block/python:basic_block",
+        "//gematria/basic_block/python:throughput",
+        "//gematria/basic_block/python:throughput_protos",
+        "//gematria/basic_block/python:tokens",
+        "//gematria/proto:throughput_py_pb2",
+        "@rules_python//python/runfiles",
+    ],
+)
+
+gematria_py_test(
+    name = "basic_blocks_with_throughput_test",
+    size = "small",
+    srcs = ["basic_blocks_with_throughput_test.py"],
+    deps = [
+        ":basic_blocks_with_throughput",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+)
+
+gematria_py_library(
+    name = "matchers",
+    testonly = True,
+    srcs = ["matchers.py"],
+    visibility = ["//:internal_users"],
+)
+
+gematria_py_test(
+    name = "matchers_test",
+    size = "small",
+    srcs = ["matchers_test.py"],
+    deps = [
+        ":matchers",
+    ],
+)
+
+gematria_py_library(
+    name = "model_test",
+    testonly = True,
+    srcs = ["model_test.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        ":basic_blocks_with_throughput",
+        "//gematria/model/python:options",
+    ],
+)

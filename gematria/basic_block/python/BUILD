@@ -1,0 +1,89 @@
+load(
+    "//:python.bzl",
+    "gematria_py_library",
+    "gematria_py_test",
+    "gematria_pybind_extension",
+)
+
+package(
+    default_visibility = ["//visibility:private"],
+)
+
+gematria_pybind_extension(
+    name = "basic_block",
+    srcs = ["basic_block.cc"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/basic_block",
+    ],
+)
+
+gematria_py_test(
+    name = "basic_block_test",
+    size = "small",
+    srcs = ["basic_block_test.py"],
+    deps = [
+        ":basic_block",
+        ":tokens",
+    ],
+)
+
+gematria_pybind_extension(
+    name = "basic_block_protos",
+    srcs = ["basic_block_protos.cc"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/basic_block:basic_block_protos",
+        "//gematria/proto:canonicalized_instruction_cc_proto",
+        "@com_google_pybind11_protobuf//pybind11_protobuf:native_proto_caster",
+    ],
+)
+
+gematria_py_test(
+    name = "basic_block_protos_test",
+    size = "small",
+    srcs = ["basic_block_protos_test.py"],
+    deps = [
+        ":basic_block",
+        ":basic_block_protos",
+        "//gematria/proto:basic_block_py_pb2",
+        "//gematria/proto:canonicalized_instruction_py_pb2",
+    ],
+)
+
+gematria_py_library(
+    name = "throughput",
+    srcs = ["throughput.py"],
+    visibility = ["//:internal_users"],
+    deps = [":basic_block"],
+)
+
+gematria_py_library(
+    name = "throughput_protos",
+    srcs = ["throughput_protos.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        ":basic_block_protos",
+        ":throughput",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+)
+
+gematria_py_test(
+    name = "throughput_protos_test",
+    size = "small",
+    srcs = ["throughput_protos_test.py"],
+    deps = [
+        ":basic_block",
+        ":throughput_protos",
+        "//gematria/proto:basic_block_py_pb2",
+        "//gematria/proto:canonicalized_instruction_py_pb2",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+)
+
+gematria_py_library(
+    name = "tokens",
+    srcs = ["tokens.py"],
+    visibility = ["//:internal_users"],
+)

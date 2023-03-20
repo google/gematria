@@ -1,0 +1,69 @@
+load("//:python.bzl", "gematria_py_binary", "gematria_py_library", "gematria_py_test")
+
+package(
+    default_visibility = ["//visibility:private"],
+)
+
+gematria_py_binary(
+    name = "run_sequence_model",
+    srcs = ["run_sequence_model.py"],
+    deps = [
+        ":sequence_model_hlstm",
+        "//gematria/basic_block/python:tokens",
+        "//gematria/model/python:main_function",
+        "//gematria/model/python:oov_token_behavior",
+        "//gematria/model/python:token_model_flags",
+        "//gematria/utils/python:flag_utils",
+    ],
+)
+
+gematria_py_library(
+    name = "sequence_model",
+    srcs = ["sequence_model.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/basic_block/python:basic_block",
+        "//gematria/model/python:model_base",
+        "//gematria/model/python:oov_token_behavior",
+        "//gematria/model/python:token_model",
+    ],
+)
+
+gematria_py_test(
+    name = "sequence_model_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["sequence_model_test.py"],
+    shard_count = 10,
+    deps = [
+        ":sequence_model",
+        "//gematria/basic_block/python:basic_block",
+        "//gematria/basic_block/python:tokens",
+        "//gematria/model/python:oov_token_behavior",
+        "//gematria/model/python:token_model",
+        "//gematria/testing/python:model_test",
+    ],
+)
+
+gematria_py_library(
+    name = "sequence_model_hlstm",
+    srcs = ["sequence_model_hlstm.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        ":sequence_model",
+        "//gematria/model/python:model_base",
+    ],
+)
+
+gematria_py_test(
+    name = "sequence_model_hlstm_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["sequence_model_hlstm_test.py"],
+    shard_count = 15,
+    deps = [
+        ":sequence_model_hlstm",
+        "//gematria/model/python:oov_token_behavior",
+        "//gematria/testing/python:model_test",
+    ],
+)

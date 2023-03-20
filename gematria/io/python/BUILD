@@ -1,0 +1,68 @@
+load("//:python.bzl", "gematria_py_library", "gematria_py_test")
+
+package(
+    default_visibility = ["//visibility:private"],
+)
+
+gematria_py_library(
+    name = "gfile_copy",
+    srcs = ["gfile_copy.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+    ],
+)
+
+gematria_py_test(
+    name = "gfile_copy_test",
+    size = "small",
+    srcs = ["gfile_copy_test.py"],
+    deps = [
+        ":gfile_copy",
+    ],
+)
+
+gematria_py_library(
+    name = "options",
+    srcs = ["options.py"],
+    visibility = ["//:internal_users"],
+)
+
+gematria_py_library(
+    name = "tfrecord",
+    srcs = ["tfrecord.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+    ],
+)
+
+gematria_py_test(
+    name = "tfrecord_test",
+    size = "small",
+    srcs = ["tfrecord_test.py"],
+    deps = [
+        ":tfrecord",
+        "//gematria/proto:canonicalized_instruction_py_pb2",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+)
+
+gematria_py_library(
+    name = "utils",
+    srcs = ["utils.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        ":options",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+)
+
+gematria_py_test(
+    name = "utils_test",
+    size = "small",
+    srcs = ["utils_test.py"],
+    deps = [
+        ":options",
+        ":utils",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+)

@@ -1,9 +1,74 @@
 # Gematria - machine learning for machine code
 
-This repository will contain sources of Gematria, a framework for machine
-learning on machine code, including source code of the [GRANITE
-model](https://arxiv.org/abs/2210.03894) for learning inverse throughput of
-basic blocks.
+Contains sources of Gematria, a framework for machine learning on machine code.
+It includes implementations of the
+[GRANITE model](https://arxiv.org/abs/2210.03894) and the
+[Ithemal hierarchical LSTM model](https://arxiv.org/abs/1808.07412) for learning
+inverse throughput of basic blocks.
 
-We're still working on cleaning up the code. Please check again soon or follow
-the repository to get a notification.
+[TOC]
+
+## Installation
+
+### Requirements and installation
+
+Our models are built on top of TensorFlow 2.x (using the TensorFlow 1.x
+compatibility layer) in a mix of C++ and Python. Most of the training code is
+written in Python; we use C++ for the more demanding parts of the code like
+graph construction. We use [pybind11](https://github.com/pybind/pybind11) to
+make C++ APIs available in Python.
+
+Basic requirements that need to be installed before starting:
+
+*   [Bazel 6.0](https://bazel.build) or newer.
+*   A C++ compiler supported by Bazel that compiles C++20. Recent versions of
+    GCC and Clang on Linux both fit the bill.
+*   Python 3.10 or newer.
+*   Git.
+*   [PIP](https://pypi.org/project/pip/).
+
+Additional dependencies, including TensorFlow, Protocol buffers, and different
+Python libraries are installed through PIP and through Bazel's `WORKSPACE` file.
+We strongly recommend using
+[virtualenv](https://pypi.org/project/virtualenv/) to install Python packages to
+avoid dependency version conflicts with other libraries.
+
+```shell
+# Get the source code.
+$ git clone https://github.com/google/gematria.git
+$ cd gematria
+
+# Set up virtualenv.
+$ pip install virtualenv
+$ virtualenv env
+$ . env/bin/activate
+
+# Install Python dependencies.
+$ pip install -r requirements.txt
+
+# Build the project, run tests, ...
+$ bazel build ...
+$ bazel test ...
+```
+
+### Platform Support
+
+We develop and test our code on Linux and x86-64. While we did not test it, we
+expect it to work also on other architectures that run TensorFlow with minimal
+changes.
+
+## Using the models
+
+See the [training](g3doc/training.md) and [inference](g3doc/inference-api.md)
+guides.
+
+## Repository structure
+
+See the [separate document](g3doc/code-structure.md).
+
+## Get Involved
+
+*   Issue tracker: https://github.com/google/Gematria/issues
+
+We welcome patches -- see [CONTRIBUTING](CONTRIBUTING) for more information on
+how to submit a patch.

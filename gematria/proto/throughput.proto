@@ -1,0 +1,64 @@
+// Copyright 2022 Google Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package gematria;
+
+import "gematria/proto/basic_block.proto";
+
+// Represents the inverse throughput of a basic block along with a name of the
+// source of the throughput.
+message ThroughputWithSourceProto {
+  // The source of the inverse throughput. The name should use the format
+  // 'method: specification', where 'method' is a general name of measurement or
+  // prediction method, e.g. 'llvm-exegesis', 'llvm-mca', 'llvm_sim' or
+  // 'hierarchical-lstm' and 'specification' is a method-dependent string that
+  // further specifies how the measurement was done, e.g. the type and
+  // hyperparameters of the machine learning model used to compute the value.
+  string source = 1;
+
+  // The inverse throughput of the basic block. Methods that are based on
+  // sampling, e.g. measurements on the actual hardware, can provide multiple
+  // values to better represent their distribution.
+  repeated double inverse_throughput_cycles = 2;
+
+  // The inverse throughput of the prefix of the basic block. The field is
+  // repeated to allow storing multiple values from different runs.
+  message PrefixThroughputProto {
+    repeated double inverse_throughput_cycles = 1;
+  }
+  // The inverse throughput on each prefix. Example: for sequence of source
+  // [op1, op2, op3] prefix_throughputs[0] is an inverse throughput of [op1],
+  // prefix_throughputs[1] is an inverse throughput of [op1, op2],
+  // prefix_throughputs[2] is an inverse throughput of [op1, op2, op3] and is
+  // equal to inverse_throughput_cycles.
+  repeated PrefixThroughputProto prefix_inverse_throughputs = 3;
+}
+
+// Represents a basic block along with the throughput of the basic block.
+message BasicBlockWithThroughputProto {
+  // The basic block. At least 'machine', 'instructions', and 'dependency_graph'
+  // must be filled in.
+  BasicBlockProto basic_block = 1;
+
+  // The inverse throughput of the basic block. This field allows aggregating
+  // inverse throughput from different sources in the same message.
+  repeated ThroughputWithSourceProto inverse_throughputs = 2;
+}
+
+// Represents a list of basic blocks with the throughput information.
+message BasicBlockWithThroughputListProto {
+  repeated BasicBlockWithThroughputProto basic_blocks = 1;
+}
