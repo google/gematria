@@ -43,8 +43,15 @@ $ pip install virtualenv
 $ virtualenv env
 $ . env/bin/activate
 
+# Compile the requirements file.
+$ bazel run :requirements.update
+
 # Install Python dependencies.
 $ pip install -r requirements.txt
+
+# On OS X only. The dependencies of tensorflow-ranking are not set up correctly
+# and it needs to be installed manually.
+$ pip install --no-deps tensorflow-ranking.
 
 # Build the project, run tests, ...
 $ bazel build ...
@@ -53,9 +60,9 @@ $ bazel test ...
 
 ### Platform Support
 
-We develop and test our code on Linux and x86-64. While we did not test it, we
-expect it to work also on other architectures that run TensorFlow with minimal
-changes.
+We develop and test our code on Linux and x86-64, and we test it on Mac OS X and
+ARM. While we did not test it, we expect it to work with minimal changes also on
+other architectures and platforms that run TensorFlow.
 
 ## Using the models
 
