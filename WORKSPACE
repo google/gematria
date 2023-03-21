@@ -26,12 +26,10 @@ git_repository(
     tag = "20230125.0",
 )
 
-# TODO(ondrasej): Import the pybind11 patch directly to this repository or
-# move back to https://github.com/Mizux/bazel-pybind11.git if possible.
 git_repository(
     name = "org_mizux_bazelpybind11",
-    commit = "a76a8444cfe0a3e3dd62960438aeb50235600eb2",
-    remote = "https://github.com/ondrasej/bazel-pybind11.git",
+    commit = "cebceda1061d0a1eb5692a5cae615012f4bba228",
+    remote = "https://github.com/Mizux/bazel-pybind11.git",
 )
 
 git_repository(
