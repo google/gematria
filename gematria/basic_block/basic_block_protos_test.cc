@@ -17,19 +17,13 @@
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/proto/basic_block.pb.h"
 #include "gematria/proto/canonicalized_instruction.pb.h"
+#include "gematria/testing/matchers.h"
 #include "gematria/testing/parse_proto.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace gematria {
 namespace {
-
-using ::gematria::AddressTuple;
-using ::gematria::BasicBlock;
-using ::gematria::CanonicalizedInstructionProto;
-using ::gematria::CanonicalizedOperandProto;
-using ::gematria::Instruction;
-using ::gematria::InstructionOperand;
-using ::gematria::OperandType;
 
 TEST(AddressTupleFromProtoTest, AllFields) {
   const CanonicalizedOperandProto::AddressTuple proto = ParseTextProto(R"pb(
@@ -45,6 +39,22 @@ TEST(AddressTupleFromProtoTest, AllFields) {
   EXPECT_EQ(address_tuple.displacement, -16);
   EXPECT_EQ(address_tuple.scaling, 2);
   EXPECT_EQ(address_tuple.segment_register, "FS");
+}
+
+TEST(ProtoFromAddressTupleTest, AllFields) {
+  const AddressTuple address_tuple(
+      /*base_register=*/"RAX",
+      /*displacement=*/-32,
+      /*index_register=*/"RSI",
+      /*scaling=*/2,
+      /*segment_register=*/"FS");
+  EXPECT_THAT(ProtoFromAddressTuple(address_tuple), EqualsProto(R"pb(
+                base_register: 'RAX'
+                displacement: -32
+                index_register: 'RSI'
+                scaling: 2
+                segment: 'FS'
+              )pb"));
 }
 
 TEST(InstructionOperandFromProtoTest, Register) {
@@ -95,6 +105,45 @@ TEST(InstructionOperandFromProtoTest, Memory) {
   EXPECT_EQ(operand, InstructionOperand::MemoryLocation(123));
 }
 
+TEST(ProtoFromInstructionOperandTest, Register) {
+  EXPECT_THAT(ProtoFromInstructionOperand(InstructionOperand::Register("RAX")),
+              EqualsProto(R"pb(register_name: "RAX")pb"));
+}
+
+TEST(ProtoFromInstructionOperandTest, ImmediateValue) {
+  EXPECT_THAT(
+      ProtoFromInstructionOperand(InstructionOperand::ImmediateValue(12345)),
+      EqualsProto(R"pb(immediate_value: 12345)pb"));
+}
+
+TEST(ProtoFromInstructionOperandTest, FpImmediateValue) {
+  EXPECT_THAT(
+      ProtoFromInstructionOperand(InstructionOperand::FpImmediateValue(12.34)),
+      EqualsProto(R"pb(fp_immediate_value: 12.34)pb"));
+}
+
+TEST(ProtoFromInstructionOperandTest, Address) {
+  EXPECT_THAT(ProtoFromInstructionOperand(InstructionOperand::Address(
+                  /*base_register=*/"RAX", /*displacement=*/33,
+                  /*index_register=*/"RCX",
+                  /*scaling=*/1, /*segment_register=*/"ES"
+
+                  )),
+              EqualsProto(R"pb(address {
+                                 base_register: 'RAX'
+                                 displacement: 33
+                                 index_register: 'RCX'
+                                 scaling: 1
+                                 segment: 'ES'
+                               })pb"));
+}
+
+TEST(ProtoFromInstructionOperandTest, Memory) {
+  EXPECT_THAT(
+      ProtoFromInstructionOperand(InstructionOperand::MemoryLocation(123)),
+      EqualsProto(R"pb(memory { alias_group_id: 123 })pb"));
+}
+
 TEST(InstructionFromProtoTest, AllFields) {
   const CanonicalizedInstructionProto proto = ParseTextProto(R"pb(
     mnemonic: "ADC"
@@ -121,6 +170,32 @@ TEST(InstructionFromProtoTest, AllFields) {
                   /* output_operands = */ {InstructionOperand::Register("RAX")},
                   /* implicit_output_operands = */
                   {InstructionOperand::Register("EFLAGS")}));
+}
+
+TEST(ProtoFromInstructionTest, AllFields) {
+  EXPECT_THAT(ProtoFromInstruction(Instruction(
+                  /* mnemonic = */ "ADC", /* llvm_mnemonic = */ "ADC32rr",
+                  /* prefixes = */ {"LOCK", "REP"}, /* input_operands = */
+                  {InstructionOperand::Register("RAX"),
+                   InstructionOperand::Register("RDI")},
+                  /* implicit_input_operands = */
+                  {InstructionOperand::Register("EFLAGS"),
+                   InstructionOperand::ImmediateValue(1)},
+                  /* output_operands = */ {InstructionOperand::Register("RAX")},
+                  /* implicit_output_operands = */
+                  {InstructionOperand::Register("EFLAGS")})),
+              EqualsProto(R"pb(
+                mnemonic: "ADC"
+                prefixes: "LOCK"
+                prefixes: "REP"
+                llvm_mnemonic: "ADC32rr"
+                output_operands { register_name: "RAX" }
+                input_operands { register_name: "RAX" }
+                input_operands { register_name: "RDI" }
+                implicit_output_operands { register_name: "EFLAGS" }
+                implicit_input_operands { register_name: "EFLAGS" }
+                implicit_input_operands { immediate_value: 1 }
+              )pb"));
 }
 
 TEST(BasicBlockFromProtoTest, SomeInstructions) {

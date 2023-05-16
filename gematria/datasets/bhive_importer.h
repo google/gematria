@@ -1,0 +1,85 @@
+// Copyright 2023 Google Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Contains a parser for the basic block data set from the BHive repository:
+// https://github.com/ithemal/bhive/tree/master/benchmark/throughput.
+
+#ifndef THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_BHIVE_IMPORTER_H_
+#define THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_BHIVE_IMPORTER_H_
+
+#include <cstdint>
+#include <memory>
+#include <string_view>
+
+#include "absl/status/statusor.h"
+#include "absl/types/span.h"
+#include "gematria/llvm/canonicalizer.h"
+#include "gematria/proto/basic_block.pb.h"
+#include "gematria/proto/throughput.pb.h"
+#include "llvm/include/llvm/MC/MCContext.h"
+#include "llvm/include/llvm/MC/MCDisassembler/MCDisassembler.h"
+#include "llvm/include/llvm/MC/MCInstPrinter.h"
+#include "llvm/include/llvm/Target/TargetMachine.h"
+
+namespace gematria {
+
+// Parser for BHive CSV files.
+class BHiveImporter {
+ public:
+  // Creates a new BHive importer from a given canonicalizer. The canonicalizer
+  // must be for the architecture/microarchitecture of the data set.
+  // Does not take ownership of the canonicalizer.
+  explicit BHiveImporter(const Canonicalizer* canonicalizer);
+
+  // Creates a basic block from the given block of machine code. `machine_code`
+  // must contain machine code of the instructions to include in the basic
+  // block. Expects that the `machine_code.begin()` is the first byte of the
+  // first instruction, and `machine_code.rbegin()` is the last byte of the last
+  // instruction. Uses `base_address` as the address of the first instruction;
+  // the addresses of following instructions are derived from `base_address` and
+  // the sizes of the instructions that preceded it.
+  // Returns an error when parts of `machine_code` do not disassemble using the
+  // provided canonicalizer.
+
+  absl::StatusOr<BasicBlockProto> BasicBlockProtoFromMachineCode(
+      absl::Span<const uint8_t> machine_code, uint64_t base_address = 0);
+  // A version of BasicBlockProtoFromMachineCode() where the machine code bytes
+  // are provided in the form of a sequence of hex digits, two digits per byte,
+  // with no separators between them. For example, the string "AABB11"
+  // corresponds to a three-byte sequence {0xAA, 0xBB, 0x11}.
+  absl::StatusOr<BasicBlockProto> BasicBlockProtoFromMachineCodeHex(
+      std::string_view machine_code_hex, uint64_t base_address = 0);
+
+  // Parses a basic block with throughput from one BHive CSV line. Expects that
+  // the line has the format "{machine_code},{throughput}" where {machine_code}
+  // is the machine code of the basic block in the hex format accepted by
+  // ParseBasicBlockFromMachineCodeHex(), and {throughput} is the inverse
+  // throughput of the basic block in text format.
+  // Optionally applies `throughput_scaling` to the throughput value, and uses
+  // `base_address` as the address of the first instruction in the basic block.
+  absl::StatusOr<BasicBlockWithThroughputProto> ParseBHiveCsvLine(
+      std::string_view source_name, std::string_view line,
+      double throughput_scaling = 1.0, uint64_t base_address = 0);
+
+ private:
+  const Canonicalizer& canonicalizer_;
+  const llvm::TargetMachine& target_machine_;
+  std::unique_ptr<llvm::MCContext> context_;
+  std::unique_ptr<llvm::MCDisassembler> disassembler_;
+  std::unique_ptr<llvm::MCInstPrinter> mc_inst_printer_;
+};
+
+}  // namespace gematria
+
+#endif  // THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_BHIVE_IMPORTER_H_

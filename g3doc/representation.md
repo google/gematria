@@ -20,7 +20,7 @@ the models add their own predictions as a new value at the end of the
 
 The representations of instructions in the proto are
 
-1.  `MachineInstruction` for raw instructions, and
+1.  `MachineInstructionProto` for raw instructions, and
 2.  `CanonicalizedInstructionProto` for canonicalized (assembly-style)
     instructions.
 

@@ -22,7 +22,7 @@ import "gematria/proto/canonicalized_instruction.proto";
 message BasicBlockProto {
   // The list of machine instruction data. This field is optional, and it is
   // used when extracting instructions from a binary file.
-  repeated MachineInstruction machine_instructions = 1;
+  repeated MachineInstructionProto machine_instructions = 1;
 
   // The list of canonicalized instructions of the basic block. This field is
   // optional and parallel to 'instructions'. When non-empty, it has to have the
@@ -35,7 +35,7 @@ message BasicBlockProto {
 }
 
 // Represents a raw instruction extracted from binary code.
-message MachineInstruction {
+message MachineInstructionProto {
   // Optional. The address of the instruction when the binary is loaded into
   // memory. The addresses of all instructions must be relative to the same base
   // address.

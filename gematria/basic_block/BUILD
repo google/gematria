@@ -45,6 +45,7 @@ cc_test(
         ":basic_block_protos",
         "//gematria/proto:basic_block_cc_proto",
         "//gematria/proto:canonicalized_instruction_cc_proto",
+        "//gematria/testing:matchers",
         "//gematria/testing:parse_proto",
         "@com_google_googletest//:gtest_main",
     ],

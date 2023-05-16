@@ -21,7 +21,7 @@
 
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/proto/canonicalized_instruction.pb.h"
-#include "google/protobuf/repeated_field.h"
+#include "google/protobuf/repeated_ptr_field.h"
 
 namespace gematria {
 
@@ -33,6 +33,17 @@ AddressTuple AddressTupleFromProto(
       /* index_register = */ proto.index_register(),
       /* scaling = */ proto.scaling(),
       /* segment_register = */ proto.segment());
+}
+
+CanonicalizedOperandProto::AddressTuple ProtoFromAddressTuple(
+    const AddressTuple& address_tuple) {
+  CanonicalizedOperandProto::AddressTuple proto;
+  proto.set_base_register(address_tuple.base_register);
+  proto.set_displacement(address_tuple.displacement);
+  proto.set_index_register(address_tuple.index_register);
+  proto.set_scaling(address_tuple.scaling);
+  proto.set_segment(address_tuple.segment_register);
+  return proto;
 }
 
 InstructionOperand InstructionOperandFromProto(
@@ -55,6 +66,31 @@ InstructionOperand InstructionOperandFromProto(
   }
 }
 
+CanonicalizedOperandProto ProtoFromInstructionOperand(
+    const InstructionOperand& operand) {
+  CanonicalizedOperandProto proto;
+  switch (operand.type()) {
+    case OperandType::kRegister:
+      proto.set_register_name(operand.register_name());
+      break;
+    case OperandType::kImmediateValue:
+      proto.set_immediate_value(operand.immediate_value());
+      break;
+    case OperandType::kFpImmediateValue:
+      proto.set_fp_immediate_value(operand.fp_immediate_value());
+      break;
+    case OperandType::kAddress:
+      *proto.mutable_address() = ProtoFromAddressTuple(operand.address());
+      break;
+    case OperandType::kMemory:
+      proto.mutable_memory()->set_alias_group_id(operand.alias_group_id());
+      break;
+    case OperandType::kUnknown:
+      break;
+  }
+  return proto;
+}
+
 namespace {
 
 std::vector<InstructionOperand> ToVector(
@@ -64,6 +100,16 @@ std::vector<InstructionOperand> ToVector(
   std::transform(protos.begin(), protos.end(), result.begin(),
                  InstructionOperandFromProto);
   return result;
+}
+
+void ToRepeatedPtrField(
+    const std::vector<InstructionOperand>& operands,
+    google::protobuf::RepeatedPtrField<CanonicalizedOperandProto>*
+        repeated_field) {
+  repeated_field->Reserve(operands.size());
+  std::transform(operands.begin(), operands.end(),
+                 google::protobuf::RepeatedFieldBackInserter(repeated_field),
+                 ProtoFromInstructionOperand);
 }
 
 }  // namespace
@@ -80,6 +126,24 @@ Instruction InstructionFromProto(const CanonicalizedInstructionProto& proto) {
       /* output_operands = */ ToVector(proto.output_operands()),
       /* implicit_output_operands = */
       ToVector(proto.implicit_output_operands()));
+}
+
+CanonicalizedInstructionProto ProtoFromInstruction(
+    const Instruction& instruction) {
+  CanonicalizedInstructionProto proto;
+  proto.set_mnemonic(instruction.mnemonic);
+  proto.set_llvm_mnemonic(instruction.llvm_mnemonic);
+  proto.mutable_prefixes()->Assign(instruction.prefixes.begin(),
+                                   instruction.prefixes.end());
+  ToRepeatedPtrField(instruction.input_operands,
+                     proto.mutable_input_operands());
+  ToRepeatedPtrField(instruction.implicit_input_operands,
+                     proto.mutable_implicit_input_operands());
+  ToRepeatedPtrField(instruction.output_operands,
+                     proto.mutable_output_operands());
+  ToRepeatedPtrField(instruction.implicit_output_operands,
+                     proto.mutable_implicit_output_operands());
+  return proto;
 }
 
 namespace {

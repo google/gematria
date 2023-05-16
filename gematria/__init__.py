@@ -31,6 +31,7 @@ import sys
 
 _THIRD_PARTY_REPOS = (
     'graph_nets',
+    'pybind11_abseil',
     'sonnet',
 )
 

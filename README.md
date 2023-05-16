@@ -6,8 +6,6 @@ It includes implementations of the
 [Ithemal hierarchical LSTM model](https://arxiv.org/abs/1808.07412) for learning
 inverse throughput of basic blocks.
 
-[TOC]
-
 ## Installation
 
 ### Requirements and installation
@@ -79,3 +77,14 @@ See the [separate document](g3doc/code-structure.md).
 
 We welcome patches -- see [CONTRIBUTING](CONTRIBUTING) for more information on
 how to submit a patch.
+
+## Cite us
+
+```
+@inproceedings{granite:iiswc:2022,
+  author = {O. Sykora and P. Phothilimthana and C. Mendis and A. Yazdanbakhsh},
+  booktitle = {2022 IEEE International Symposium on Workload Characterization (IISWC)},
+  title = {{GRANITE: A Graph Neural Network Model for Basic Block Throughput Estimation}},
+  year = {2022},
+}
+```

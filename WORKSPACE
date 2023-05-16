@@ -1,6 +1,17 @@
 workspace(name = "com_google_gematria")
 
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+SKYLIB_VERSION = "1.3.0"
+
+http_archive(
+    name = "bazel_skylib",
+    sha256 = "74d544d96f4a5bb630d465ca8bbcfe231e3594e5aae57e1edbf17a6eb3ca2506",
+    urls = [
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/{version}/bazel-skylib-{version}.tar.gz".format(version = SKYLIB_VERSION),
+    ],
+)
 
 git_repository(
     name = "com_google_protobuf",
@@ -28,7 +39,7 @@ git_repository(
 
 git_repository(
     name = "org_mizux_bazelpybind11",
-    commit = "cebceda1061d0a1eb5692a5cae615012f4bba228",
+    commit = "27da411499fe62f7c0969ac2665d343ce162b6a9",
     remote = "https://github.com/Mizux/bazel-pybind11.git",
 )
 
@@ -78,6 +89,16 @@ new_git_repository(
 )
 
 git_repository(
+    # We can't use the name "pybind11_abseil" for the repository, as this would
+    # break the `sys.path` hack that we use for importing third-party Python
+    # modules. See the comment under "Python libraries" below for a detailed
+    # explanation.
+    name = "pybind11_abseil_repo",
+    commit = "1caf1890443e8e303bf88850d3c27d5422903168",
+    remote = "https://github.com/pybind/pybind11_abseil.git",
+)
+
+git_repository(
     name = "com_google_pybind11_protobuf",
     commit = "6128db54998e52f4003c0e04f472aba7a3dbe835",
     remote = "https://github.com/pybind/pybind11_protobuf.git",
@@ -113,4 +134,43 @@ new_git_repository(
     build_file = "@//:graph_nets.BUILD",
     commit = "adf25162ba21bb0ae176c35483a74fb0c9dff576",
     remote = "https://github.com/deepmind/graph_nets.git",
+)
+
+# LLVM and its dependencies
+
+LLVM_COMMIT = "868591501c61bc1aa56da537bab85cc67439f16d"
+LLVM_SHA256 = "7790344f8245cb6a60ec8cbdadd46640ef8cc217c8cadc6b4481da473292f77b"
+
+http_archive(
+    name = "llvm-raw",
+    build_file_content = "# empty",
+    sha256 = LLVM_SHA256,
+    strip_prefix = "llvm-project-" + LLVM_COMMIT,
+    urls = ["https://github.com/llvm/llvm-project/archive/{commit}.zip".format(commit = LLVM_COMMIT)],
+)
+
+load("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure", "llvm_disable_optional_support_deps")
+
+llvm_configure(name = "llvm-project")
+llvm_disable_optional_support_deps()
+
+http_archive(
+    name = "llvm_zlib",
+    build_file = "@llvm-raw//utils/bazel/third_party_build:zlib.BUILD",
+    sha256 = "91844808532e5ce316b3c010929493c0244f3d37593afd6de04f71821d5136d9",
+    strip_prefix = "zlib-1.2.12",
+    urls = [
+        "https://storage.googleapis.com/mirror.tensorflow.org/zlib.net/zlib-1.2.12.tar.gz",
+        "https://zlib.net/zlib-1.2.12.tar.gz",
+    ],
+)
+
+http_archive(
+    name = "llvm_zstd",
+    build_file = "@llvm-raw//utils/bazel/third_party_build:zstd.BUILD",
+    sha256 = "7c42d56fac126929a6a85dbc73ff1db2411d04f104fae9bdea51305663a83fd0",
+    strip_prefix = "zstd-1.5.2",
+    urls = [
+        "https://github.com/facebook/zstd/releases/download/v1.5.2/zstd-1.5.2.tar.gz",
+    ],
 )

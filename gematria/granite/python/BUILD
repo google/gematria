@@ -32,7 +32,6 @@ gematria_py_test(
         "//gematria/model/python:options",
         "//gematria/testing/python:model_test",
         "@graph_nets_repo//:graph_nets",
-        requirement("networkx"),
         "@sonnet_repo//sonnet",
     ],
 )

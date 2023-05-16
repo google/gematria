@@ -1,3 +1,4 @@
+# `repo_env` is required for the LLVM bazel build.
 build \
   --copt=-Wno-parentheses \
   --copt=-Wno-sign-compare \
@@ -5,4 +6,5 @@ build \
   --copt=-Wno-narrowing \
   --strict_proto_deps=off \
   --cxxopt=-std=c++20 \
-  --host_cxxopt=-std=c++20
+  --host_cxxopt=-std=c++20 \
+  --repo_env=CC=clang

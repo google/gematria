@@ -1,8 +1,4 @@
 load("//:python.bzl", "gematria_py_library", "gematria_py_test")
-load(
-    "@pypi//:requirements.bzl",
-    "requirement",
-)
 
 package(
     default_visibility = ["//visibility:private"],
@@ -27,7 +23,8 @@ gematria_py_library(
     name = "timer",
     srcs = ["timer.py"],
     visibility = ["//:internal_users"],
-    deps = [requirement("absl-py")],
+    deps = [
+    ],
 )
 
 gematria_py_test(
@@ -37,4 +34,14 @@ gematria_py_test(
     deps = [
         ":timer",
     ],
+)
+
+# The following is a dummy helper rule that allows us to use the pybind11-generated
+# Python library as a regualar Python dependency throughout the code base.
+gematria_py_library(
+    name = "pybind11_abseil_status",
+    data = [
+        "@pybind11_abseil_repo//pybind11_abseil:status.so",
+    ],
+    visibility = ["//:internal_users"],
 )

@@ -29,12 +29,24 @@ namespace gematria {
 AddressTuple AddressTupleFromProto(
     const CanonicalizedOperandProto::AddressTuple& proto);
 
+// Creates a proto representing the given address tuple.
+CanonicalizedOperandProto::AddressTuple ProtoFromAddressTuple(
+    const AddressTuple& address_tuple);
+
 // Creates an instruction operand data structure from a proto.
 InstructionOperand InstructionOperandFromProto(
     const CanonicalizedOperandProto& proto);
 
+// Creates a proto representing the given instruction operand.
+CanonicalizedOperandProto ProtoFromInstructionOperand(
+    const InstructionOperand& operand);
+
 // Creates an instruction data structure from a proto.
 Instruction InstructionFromProto(const CanonicalizedInstructionProto& proto);
+
+// Creates a proto representing the given instruction.
+CanonicalizedInstructionProto ProtoFromInstruction(
+    const Instruction& instruction);
 
 // Creates a basic block data structure from a proto.
 BasicBlock BasicBlockFromProto(const BasicBlockProto& proto);

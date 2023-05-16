@@ -3,6 +3,57 @@ package(
 )
 
 cc_library(
+    name = "llvm",
+    testonly = True,
+    srcs = ["llvm.cc"],
+    hdrs = ["llvm.h"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "@com_google_googletest//:gtest",
+        "@llvm-project//llvm:MC",
+    ],
+)
+
+cc_test(
+    name = "llvm_test",
+    size = "small",
+    srcs = ["llvm_test.cc"],
+    deps = [
+        ":llvm",
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:MC",
+        "@llvm-project//llvm:X86UtilsAndDesc",
+    ],
+)
+
+cc_library(
+    name = "matchers",
+    testonly = True,
+    srcs = ["matchers.cc"],
+    hdrs = ["matchers.h"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_googletest//:gtest",
+        "@com_google_protobuf//:protobuf",
+    ],
+)
+
+cc_test(
+    name = "matchers_test",
+    size = "small",
+    srcs = ["matchers_test.cc"],
+    deps = [
+        ":matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "parse_proto",
     testonly = True,
     hdrs = ["parse_proto.h"],
