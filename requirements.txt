@@ -1,1 +1,0 @@
-# Run `bazel run :requirements.update` to generate this file.
