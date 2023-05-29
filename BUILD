@@ -1,3 +1,5 @@
+load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+
 package(
     default_visibility = ["//visibility:private"],
 )
@@ -16,5 +18,17 @@ package_group(
     packages = [
         # Gematria code base.
         "//gematria/...",
+        "//tools/...",
     ],
 )
+
+# A target to create a copy of pybind11_abseil's status.so so that it can be
+# placed in the right path while building a pip package.
+copy_file(
+    name = "package_pybind11_abseil_status",
+    src = "@pybind11_abseil_repo//pybind11_abseil:status.so",
+    out = "pybind11_abseil/status.so",
+    visibility = ["//:internal_users"],
+)
+
+exports_files(["requirements.in"])
