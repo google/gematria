@@ -18,6 +18,7 @@ gematria_pybind_extension(
         "//gematria/proto:canonicalized_instruction_py_pb2",
         "//gematria/proto:throughput_py_pb2",
     ],
+    visibility = ["//:internal_users"],
     deps = [
         "//gematria/basic_block:basic_block_protos",
         "//gematria/datasets:bhive_importer",
