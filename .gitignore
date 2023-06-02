@@ -1,6 +1,3 @@
 # Bazel directories.
 /bazel-*
 
-# requirements.txt is built from requirements.in via
-# bazel run :requirements.update.
-/requirements.txt

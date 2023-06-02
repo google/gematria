@@ -41,9 +41,6 @@ $ pip install virtualenv
 $ virtualenv env
 $ . env/bin/activate
 
-# Compile the requirements file.
-$ bazel run :requirements.update
-
 # Install Python dependencies.
 $ pip install -r requirements.txt
 
@@ -54,6 +51,17 @@ $ pip install --no-deps tensorflow-ranking.
 # Build the project, run tests, ...
 $ bazel build ...
 $ bazel test ...
+```
+
+### Updating Dependencies
+
+If you are adding a new python dependency, make sure to add it along with relevant
+version information to the `requirements.in` file. Then regenerated the
+`requirements.txt` using Bazel and install the new dependencies with `pip`:
+
+```shell
+$ bazel run :requirements.update
+$ pip install -r requirements.txt
 ```
 
 ### Platform Support
