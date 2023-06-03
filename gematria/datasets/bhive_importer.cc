@@ -14,6 +14,7 @@
 
 #include "gematria/datasets/bhive_importer.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <string_view>
@@ -25,7 +26,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/numbers.h"
-#include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/str_split.h"
 #include "absl/types/span.h"
 #include "gematria/basic_block/basic_block_protos.h"
@@ -95,16 +96,26 @@ BHiveImporter::BasicBlockProtoFromMachineCodeHex(
 
 absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseBHiveCsvLine(
     std::string_view source_name, std::string_view line,
+    size_t machine_code_hex_column_index, size_t throughput_column_index,
     double throughput_scaling /*= 1.0*/, uint64_t base_address /*= 0*/) {
   const absl::InlinedVector<std::string_view, 2> columns =
       absl::StrSplit(line, ',');
-  if (columns.size() != 2) {
-    return absl::InvalidArgumentError(
-        absl::StrCat("Expected `line` to have 2 columns, found ",
-                     columns.size(), ": '", line, "'"));
+  const int min_required_num_columns =
+      std::max(machine_code_hex_column_index, throughput_column_index) + 1;
+  if (columns.size() < min_required_num_columns) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "Expected `line` to have at least %d columns, found %d: %s",
+        min_required_num_columns, columns.size(), line));
   }
-  const std::string_view machine_code_hex = columns[0];
-  const std::string_view throughput_str = columns[1];
+  if (machine_code_hex_column_index == throughput_column_index) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "Expected machine code column and throughput column indices to be "
+        "different for `line`, but were both %d: %s",
+        machine_code_hex_column_index, line));
+  }
+  const std::string_view machine_code_hex =
+      columns[machine_code_hex_column_index];
+  const std::string_view throughput_str = columns[throughput_column_index];
 
   BasicBlockWithThroughputProto proto;
   absl::StatusOr<BasicBlockProto> block_proto_or_status =

@@ -66,6 +66,16 @@ _LLVM_TRIPLE = flags.DEFINE_string(
     'x86_64',
     'The LLVM triple used for disassembling the instructions in the data set.',
 )
+_MACHINE_CODE_HEX_COLUMN_INDEX = flags.DEFINE_integer(
+    'machine_code_hex_column_index',
+    '0',
+    'The index of the the machine code hex column in the input CSV file.',
+)
+_THROUGHPUT_COLUMN_INDEX = flags.DEFINE_integer(
+    'throughput_column_index',
+    '1',
+    'The index of the throughput value column in the input CSV file.',
+)
 
 
 def main(argv: Sequence[str]) -> None:
@@ -105,6 +115,8 @@ def main(argv: Sequence[str]) -> None:
         block_proto = importer.basic_block_with_throughput_proto_from_csv_line(
             source_name=_SOURCE_NAME.value,
             line=line,
+            machine_code_hex_column_index=_MACHINE_CODE_HEX_COLUMN_INDEX.value,
+            throughput_column_index=_THROUGHPUT_COLUMN_INDEX,
             throughput_scaling=_THROUGHPUT_SCALING.value,
         )
       except status.StatusNotOk:

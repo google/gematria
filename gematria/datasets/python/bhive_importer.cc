@@ -102,7 +102,9 @@ PYBIND11_MODULE(bhive_importer, m) {
       .def(  //
           "basic_block_with_throughput_proto_from_csv_line",
           &BHiveImporter::ParseBHiveCsvLine, py::arg("source_name"),
-          py::arg("line"), py::arg("throughput_scaling") = 1.0,
+          py::arg("line"), py::arg("machine_code_hex_column_index") = 0,
+          py::arg("throughput_column_index") = 1,
+          py::arg("throughput_scaling") = 1.0,
           py::arg("base_address") = uint64_t{0},
           R"(Creates a BasicBlockWithThroughputProto from a BHive CSV line.
 
