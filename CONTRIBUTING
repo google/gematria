@@ -65,3 +65,13 @@ To format the code, run:
 ```bash
 buildifier -r .
 ```
+
+## Developer tool support
+
+Most C++ IDE tooling such as clangd works with a compile_commands.json file. If
+your environment needs a compile_commands.json file, you can generate it using
+the following bazel invocation (after building the project):
+
+```bash
+bazel run @hedron_compile_commands//:refresh_all
+```
