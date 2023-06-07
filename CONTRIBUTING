@@ -30,3 +30,13 @@ All contributions must follow the Google's
 Contributions made by corporations are covered by a different agreement than
 the one above, the
 [Software Grant and Corporate Contributor License Agreement](https://cla.developers.google.com/about/google-corporate).
+
+## Code formatting
+
+All C++ code in this repository is formatted using `clang-format` in the Google
+style. Formatting a file can either be done by your IDE through `clangd`
+integration or manually by directly calling `clang-format`:
+
+```bash
+clang-format -i <path to .cc file>
+```
