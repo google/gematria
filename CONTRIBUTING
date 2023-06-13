@@ -33,6 +33,8 @@ the one above, the
 
 ## Code formatting
 
+### C++ code
+
 All C++ code in this repository is formatted using `clang-format` in the Google
 style. Formatting a file can either be done by your IDE through `clangd`
 integration or manually by directly calling `clang-format`:
@@ -40,3 +42,16 @@ integration or manually by directly calling `clang-format`:
 ```bash
 clang-format -i <path to .cc file>
 ```
+
+### Python code
+
+All Python code in this repository is formatted using
+[Pyink](https://github.com/google/pyink) with settings in `pyproject.toml`. To
+format the code, run:
+
+```bash
+pyink .
+```
+
+See the Pyink and [Black](https://github.com/psf/black) documentation for IDE
+integrations.
