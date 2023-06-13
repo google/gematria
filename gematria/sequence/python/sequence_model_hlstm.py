@@ -168,16 +168,14 @@ class HierarchicalLstmModel(sequence_model.SequenceModelBase):
   # @Override
   def _make_model_name(self):
     """See base class."""
-    return (
-        'HierarchicalLSTM:'
-        f' use_deltas={self._use_deltas}'
-        f' token_embedding_size={self._token_embedding_size},'
-        f' instruction_embedding_size={self._instruction_embedding_size},'
-        f' block_embedding_size={self._block_embedding_size},'
-        f' bidirectional={self._bidirectional},'
-        f' output_layers={self._output_layers!r},'
-        f' task_output_layers={self._task_output_layers!r}'
-    )
+    return ('HierarchicalLSTM:'
+            f' use_deltas={self._use_deltas}'
+            f' token_embedding_size={self._token_embedding_size},'
+            f' instruction_embedding_size={self._instruction_embedding_size},'
+            f' block_embedding_size={self._block_embedding_size},'
+            f' bidirectional={self._bidirectional},'
+            f' output_layers={self._output_layers!r},'
+            f' task_output_layers={self._task_output_layers!r}')
 
 
 class _HierarchicalLstmKerasModel(tf.keras.Model):
@@ -243,13 +241,10 @@ class _HierarchicalLstmKerasModel(tf.keras.Model):
     if instruction_embedding_size <= 0 or instruction_embedding_size % 2 == 1:
       raise ValueError(
           'instruction_embedding_size must be a positive even number, is'
-          f' {instruction_embedding_size}'
-      )
+          f' {instruction_embedding_size}')
     if block_embedding_size <= 0 or block_embedding_size % 2 == 1:
-      raise ValueError(
-          'block_embedding_size must be a positive even number, is'
-          f' {block_embedding_size}'
-      )
+      raise ValueError('block_embedding_size must be a positive even number, is'
+                       f' {block_embedding_size}')
 
     super().__init__(name=name, **kwargs)
 
@@ -273,8 +268,7 @@ class _HierarchicalLstmKerasModel(tf.keras.Model):
     )
 
     self._instruction_lstm = tf.keras.layers.LSTM(
-        units=instruction_embedding_size // 2, return_state=True, dtype=dtype
-    )
+        units=instruction_embedding_size // 2, return_state=True, dtype=dtype)
 
     self._block_lstm = tf.keras.layers.LSTM(
         units=block_embedding_size // 2,
@@ -293,8 +287,7 @@ class _HierarchicalLstmKerasModel(tf.keras.Model):
               activation=tf.keras.activations.relu,
               dtype=dtype,
               bias_initializer='glorot_normal',
-          )
-      )
+          ))
 
     # Create each output head as an independent layers, so that training for one
     # task does not affect the others.
@@ -308,8 +301,7 @@ class _HierarchicalLstmKerasModel(tf.keras.Model):
                 activation=tf.keras.activations.relu,
                 dtype=dtype,
                 bias_initializer='glorot_normal',
-            )
-        )
+            ))
       head.add(
           tf.keras.layers.Dense(
               1,
@@ -317,8 +309,7 @@ class _HierarchicalLstmKerasModel(tf.keras.Model):
               use_bias=False,
               dtype=dtype,
               name=f'output_{task_name}',
-          )
-      )
+          ))
       self._output_heads.append(head)
 
   def call(
@@ -348,17 +339,14 @@ class _HierarchicalLstmKerasModel(tf.keras.Model):
     ) = inputs
 
     embedded_tokens = self._token_embedding(token_sequence)
-    instructions = self._ragged_from_row_lengths(
-        embedded_tokens, num_tokens_per_instruction
-    )
+    instructions = self._ragged_from_row_lengths(embedded_tokens,
+                                                 num_tokens_per_instruction)
     instruction_lstm_outputs = self._instruction_lstm(instructions)
     embedded_instructions = self._concatenate_outputs(
-        (instruction_lstm_outputs[1], instruction_lstm_outputs[2])
-    )
+        (instruction_lstm_outputs[1], instruction_lstm_outputs[2]))
 
-    blocks = self._ragged_from_row_lengths(
-        embedded_instructions, num_instructions_per_block
-    )
+    blocks = self._ragged_from_row_lengths(embedded_instructions,
+                                           num_instructions_per_block)
     block_lstm_outputs = self._block_lstm(blocks)
 
     if self._use_deltas:
@@ -371,17 +359,13 @@ class _HierarchicalLstmKerasModel(tf.keras.Model):
       #   2. the hidden states of the last basic-block level LSTM cell.
       #   3. the outputs of the last basic-block level LSTM cell (again).
       output_embedding = self._concatenate_outputs(
-          (block_lstm_outputs[1], block_lstm_outputs[2])
-      )
+          (block_lstm_outputs[1], block_lstm_outputs[2]))
 
     outputs = tuple(
-        output_head(output_embedding) for output_head in self._output_heads
-    )
+        output_head(output_embedding) for output_head in self._output_heads)
     output_name = (
         model_base.ModelBase.OUTPUT_TENSOR_DELTAS_NAME
-        if self._use_deltas
-        else model_base.ModelBase.OUTPUT_TENSOR_NAME
-    )
+        if self._use_deltas else model_base.ModelBase.OUTPUT_TENSOR_NAME)
     return tf.keras.layers.concatenate(outputs, axis=1, name=output_name)
 
 
@@ -391,8 +375,7 @@ class _RaggedFromRowLengths(tf.keras.layers.Layer):
   def call(self, values, row_lengths):
     """Applies the layer to a values tensor and a row lengths tensor."""
     return tf.RaggedTensor.from_row_lengths(
-        values=values, row_lengths=row_lengths
-    )
+        values=values, row_lengths=row_lengths)
 
 
 class _RaggedTensorValues(tf.keras.layers.Layer):

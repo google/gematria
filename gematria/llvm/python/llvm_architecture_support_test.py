@@ -22,23 +22,19 @@ class LlvmArchitectureSupportTest(absltest.TestCase):
 
   def test_from_triple_x86_64(self):
     llvm = llvm_architecture_support.LlvmArchitectureSupport.from_triple(
-        llvm_triple="x86_64"
-    )
-    self.assertIsInstance(
-        llvm, llvm_architecture_support.LlvmArchitectureSupport
-    )
+        llvm_triple="x86_64")
+    self.assertIsInstance(llvm,
+                          llvm_architecture_support.LlvmArchitectureSupport)
 
   def test_from_triple_invalid(self):
     with self.assertRaises(status.StatusNotOk):
       llvm_architecture_support.LlvmArchitectureSupport.from_triple(
-          llvm_triple="not_really_an_architecture"
-      )
+          llvm_triple="not_really_an_architecture")
 
   def test_x86_64(self):
     llvm = llvm_architecture_support.LlvmArchitectureSupport.x86_64()
-    self.assertIsInstance(
-        llvm, llvm_architecture_support.LlvmArchitectureSupport
-    )
+    self.assertIsInstance(llvm,
+                          llvm_architecture_support.LlvmArchitectureSupport)
 
 
 if __name__ == "__main__":

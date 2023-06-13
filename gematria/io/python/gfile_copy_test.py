@@ -60,8 +60,7 @@ class CopyDirTest(tf.test.TestCase):
     for filename in filenames:
       dst_file = path.join(to_dir.full_path, filename)
       self.assertTrue(
-          tf.io.gfile.exists(dst_file), f'File does not exist: {dst_file}'
-      )
+          tf.io.gfile.exists(dst_file), f'File does not exist: {dst_file}')
       with tf.io.gfile.GFile(dst_file, 'r') as f:
         contents = f.read()
       self.assertEqual(contents, path.join(from_dir.full_path, filename))

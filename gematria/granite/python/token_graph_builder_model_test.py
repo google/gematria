@@ -28,15 +28,13 @@ from gematria.testing.python import model_test
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 
 _RESIDUAL_CONNECTION_LAYER_CLASS = (
-    'gematria.model.python.model_blocks.ResidualConnectionLayer'
-)
+    'gematria.model.python.model_blocks.ResidualConnectionLayer')
 
 
 class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_train_seq2num(self, loss_type, loss_normalization):
     num_message_passing_iterations = 1
     node_embedding_size = 14
@@ -88,8 +86,7 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_train_seq2seq(self, loss_type, loss_normalization):
     num_message_passing_iterations = 1
     node_embedding_size = 14
@@ -130,8 +127,7 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_traing_seq2seq_multi_task(self, loss_type, loss_normalization):
     num_message_passing_iterations = 1
     node_embedding_size = 14
@@ -226,16 +222,13 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
     ) as keras_layer_norm:
       model.initialize()
     keras_layer_norm.assert_called_once_with(
-        name='readout_input_layer_normalization'
-    )
+        name='readout_input_layer_normalization')
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
-  def test_train_seq2seq_task_readout_layer_norm(
-      self, loss_type, loss_normalization
-  ):
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
+  def test_train_seq2seq_task_readout_layer_norm(self, loss_type,
+                                                 loss_normalization):
     num_message_passing_iterations = 1
     node_embedding_size = 14
     edge_embedding_size = 16
@@ -277,8 +270,7 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
     ) as keras_layer_norm:
       model.initialize()
     keras_layer_norm.assert_called_once_with(
-        name='task_readout_input_layer_normalization'
-    )
+        name='task_readout_input_layer_normalization')
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
   def test_train_seq2seq_graph_module_layer_norm(self):
@@ -503,8 +495,7 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
         address_token=tokens.ADDRESS,
         memory_token=tokens.MEMORY,
         out_of_vocabulary_behavior=(
-            _OutOfVocabularyTokenBehavior.replace_with_token(tokens.UNKNOWN)
-        ),
+            _OutOfVocabularyTokenBehavior.replace_with_token(tokens.UNKNOWN)),
         use_deltas=True,
         use_delta_loss=False,
         learning_rate=0.01,

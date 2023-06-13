@@ -22,11 +22,9 @@ from gematria.proto import canonicalized_instruction_pb2
 from gematria.proto import throughput_pb2
 
 _CanonicalizedInstructionProto = (
-    canonicalized_instruction_pb2.CanonicalizedInstructionProto
-)
+    canonicalized_instruction_pb2.CanonicalizedInstructionProto)
 _CanonicalizedOperandProto = (
-    canonicalized_instruction_pb2.CanonicalizedOperandProto
-)
+    canonicalized_instruction_pb2.CanonicalizedOperandProto)
 
 _TEST_INSTRUCTIONS = (
     _CanonicalizedInstructionProto(
@@ -40,16 +38,11 @@ _TEST_INSTRUCTIONS = (
                     displacement=123,
                     scaling=2,
                     segment='FS',
-                )
-            ),
+                )),
         ),
-        output_operands=(
-            _CanonicalizedOperandProto(
-                memory=_CanonicalizedOperandProto.MemoryLocation(
-                    alias_group_id=1
-                )
-            ),
-        ),
+        output_operands=(_CanonicalizedOperandProto(
+            memory=_CanonicalizedOperandProto.MemoryLocation(
+                alias_group_id=1)),),
     ),
     _CanonicalizedInstructionProto(mnemonic='ADD'),
     _CanonicalizedInstructionProto(mnemonic='NOP'),
@@ -69,8 +62,7 @@ class WriteProtosTest(tf.test.TestCase):
     loaded_instructions = []
     for raw_record in dataset:
       loaded_instructions.append(
-          _CanonicalizedInstructionProto.FromString(raw_record.numpy())
-      )
+          _CanonicalizedInstructionProto.FromString(raw_record.numpy()))
     self.assertSequenceEqual(loaded_instructions, _TEST_INSTRUCTIONS)
 
   def test_write_to_a_file(self):
@@ -81,9 +73,8 @@ class WriteProtosTest(tf.test.TestCase):
 
   def test_write_to_directories_that_do_not_exist(self):
     output_dir = self.create_tempdir()
-    output_filename = path.join(
-        output_dir.full_path, 'foo', 'bar', 'output.tfrecord'
-    )
+    output_filename = path.join(output_dir.full_path, 'foo', 'bar',
+                                'output.tfrecord')
 
     self._check_write_and_read_again(output_filename)
 
@@ -106,8 +97,7 @@ class ReadProtosTest(tf.test.TestCase):
     tfrecord.write_protos(input_filename, _TEST_INSTRUCTIONS)
 
     loaded_protos = tuple(
-        tfrecord.read_protos(input_filename, _CanonicalizedInstructionProto)
-    )
+        tfrecord.read_protos(input_filename, _CanonicalizedInstructionProto))
     self.assertSequenceEqual(loaded_protos, _TEST_INSTRUCTIONS)
 
   def test_read_multiple_files(self):
@@ -120,8 +110,7 @@ class ReadProtosTest(tf.test.TestCase):
       tfrecord.write_protos(input_filename, (proto,))
 
     loaded_protos = tuple(
-        tfrecord.read_protos(input_filenames, _CanonicalizedInstructionProto)
-    )
+        tfrecord.read_protos(input_filenames, _CanonicalizedInstructionProto))
     self.assertSequenceEqual(loaded_protos, _TEST_INSTRUCTIONS)
 
   def test_read_file_that_does_not_exist(self):
@@ -130,8 +119,7 @@ class ReadProtosTest(tf.test.TestCase):
 
     with self.assertRaises(tf.errors.NotFoundError):
       _ = tuple(
-          tfrecord.read_protos(input_filename, _CanonicalizedInstructionProto)
-      )
+          tfrecord.read_protos(input_filename, _CanonicalizedInstructionProto))
 
   def test_read_wrong_proto_calss(self):
     input_dir = self.create_tempdir()
@@ -140,10 +128,8 @@ class ReadProtosTest(tf.test.TestCase):
 
     with self.assertRaises(message.DecodeError):
       _ = tuple(
-          tfrecord.read_protos(
-              input_filename, throughput_pb2.BasicBlockWithThroughputProto
-          )
-      )
+          tfrecord.read_protos(input_filename,
+                               throughput_pb2.BasicBlockWithThroughputProto))
 
 
 if __name__ == '__main__':

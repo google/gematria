@@ -40,9 +40,8 @@ class ResidualConnectionLayer(tf.keras.layers.Layer):
   """
 
   # @Override
-  def build(
-      self, layer_input_shapes: tuple[tf.TensorShape, tf.TensorShape]
-  ) -> None:
+  def build(self, layer_input_shapes: tuple[tf.TensorShape,
+                                            tf.TensorShape]) -> None:
     output_shape, residual_shape = layer_input_shapes
     if output_shape.rank != 2:
       # NOTE(ondrasej): For simplicity, we require that the output has shape
@@ -51,8 +50,7 @@ class ResidualConnectionLayer(tf.keras.layers.Layer):
       # vectors are one-dimensional.
       raise ValueError(
           'The rank of the output tensor must be 2, including the batch'
-          f' dimension. Actual shape: {output_shape!r}'
-      )
+          f' dimension. Actual shape: {output_shape!r}')
     if not output_shape.is_compatible_with(residual_shape):
       # When the shapes of the input and the output of the subnetwork differ, we
       # add a learned linear transformation layer to match them.
@@ -78,9 +76,9 @@ class ResidualConnectionLayer(tf.keras.layers.Layer):
     return tf.math.add(output_part, residual_part, name=self.name)
 
 
-def add_residual_connection(
-    output_part: tf.Tensor, residual_part: tf.Tensor, name: Optional[str] = None
-) -> tf.Tensor:
+def add_residual_connection(output_part: tf.Tensor,
+                            residual_part: tf.Tensor,
+                            name: Optional[str] = None) -> tf.Tensor:
   """Adds a residual connection to the output of a subnetwork.
 
   When the shape of `output_part` and `residual_part` are the same, then they

@@ -39,8 +39,7 @@ class ApplyFiltersTest(absltest.TestCase):
     input_sequence = range(10)
     filters = (functools.partial(_filter_multiples, 2), _double)
     self.assertSequenceEqual(
-        tuple(utils.apply_filters(input_sequence, filters)), (0, 4, 8, 12, 16)
-    )
+        tuple(utils.apply_filters(input_sequence, filters)), (0, 4, 8, 12, 16))
 
   def test_apply_filters_transform_then_filter(self):
     input_sequence = range(10)
@@ -65,31 +64,26 @@ class ApplyFiltersTest(absltest.TestCase):
         functools.partial(_filter_multiples, 3),
     )
     self.assertSequenceEqual(
-        tuple(utils.apply_filters(input_sequence, filters)), (0, 6, 12, 18)
-    )
+        tuple(utils.apply_filters(input_sequence, filters)), (0, 6, 12, 18))
 
 
 # Type alias to make construction of protos in test shorter.
 PrefixThroughputProto = (
-    throughput_pb2.ThroughputWithSourceProto.PrefixThroughputProto
-)
+    throughput_pb2.ThroughputWithSourceProto.PrefixThroughputProto)
 
 
 class AggregateThroughputsTest(parameterized.TestCase):
   _ALL_THROUGHPUT_SELECTION_OPTIONS = tuple(
-      (selection,) for selection in options.ThroughputSelection
-  )
+      (selection,) for selection in options.ThroughputSelection)
 
   @parameterized.parameters(*_ALL_THROUGHPUT_SELECTION_OPTIONS)
   def test_with_empty_proto(self, throughput_selection):
     input_proto = throughput_pb2.BasicBlockWithThroughputProto()
-    output_proto = utils.aggregate_throughputs(
-        throughput_selection, input_proto
-    )
+    output_proto = utils.aggregate_throughputs(throughput_selection,
+                                               input_proto)
     self.assertIs(input_proto, output_proto)
-    self.assertEqual(
-        output_proto, throughput_pb2.BasicBlockWithThroughputProto()
-    )
+    self.assertEqual(output_proto,
+                     throughput_pb2.BasicBlockWithThroughputProto())
 
   def test_keep_random(self):
     # The "randomization" of the throughput value is done at the time of batch
@@ -99,23 +93,18 @@ class AggregateThroughputsTest(parameterized.TestCase):
     input_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(1.0, 1.1, 1.2)
-            ),
+                source='skylake', inverse_throughput_cycles=(1.0, 1.1, 1.2)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='ivybridge', inverse_throughput_cycles=(3.0, 3.1, 3.2)
-            ),
+                source='ivybridge', inverse_throughput_cycles=(3.0, 3.1, 3.2)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='haswell', inverse_throughput_cycles=(2.0, 2.1, 2.2)
-            ),
-        )
-    )
+                source='haswell', inverse_throughput_cycles=(2.0, 2.1, 2.2)),
+        ))
     # utils.aggregate_throughputs() modifies the proto in place. We need to make
     # a copy so that we can compare the output to the original input.
     expected_output_proto = throughput_pb2.BasicBlockWithThroughputProto()
     expected_output_proto.CopyFrom(input_proto)
     output_proto = utils.aggregate_throughputs(
-        options.ThroughputSelection.RANDOM, input_proto
-    )
+        options.ThroughputSelection.RANDOM, input_proto)
     self.assertIs(input_proto, output_proto)
     self.assertEqual(input_proto, expected_output_proto)
 
@@ -125,33 +114,28 @@ class AggregateThroughputsTest(parameterized.TestCase):
             throughput_pb2.ThroughputWithSourceProto(
                 source='skylake',
                 inverse_throughput_cycles=(1.0,),
-                prefix_inverse_throughputs=(
-                    PrefixThroughputProto(inverse_throughput_cycles=(0.3, 0.7)),
-                ),
+                prefix_inverse_throughputs=(PrefixThroughputProto(
+                    inverse_throughput_cycles=(0.3, 0.7)),),
             ),
             throughput_pb2.ThroughputWithSourceProto(
                 source='ivybridge',
                 inverse_throughput_cycles=(3.0,),
-                prefix_inverse_throughputs=(
-                    PrefixThroughputProto(inverse_throughput_cycles=(1.0, 2.0)),
-                ),
+                prefix_inverse_throughputs=(PrefixThroughputProto(
+                    inverse_throughput_cycles=(1.0, 2.0)),),
             ),
             throughput_pb2.ThroughputWithSourceProto(
                 source='haswell',
                 inverse_throughput_cycles=(2.0,),
-                prefix_inverse_throughputs=(
-                    PrefixThroughputProto(inverse_throughput_cycles=(0.5, 1.5)),
-                ),
+                prefix_inverse_throughputs=(PrefixThroughputProto(
+                    inverse_throughput_cycles=(0.5, 1.5)),),
             ),
-        )
-    )
+        ))
     # utils.aggregate_throughputs() modifies the proto in place. We need to make
     # a copy so that we can compare the output to the original input.
     expected_output_proto = throughput_pb2.BasicBlockWithThroughputProto()
     expected_output_proto.CopyFrom(input_proto)
     output_proto = utils.aggregate_throughputs(
-        options.ThroughputSelection.RANDOM, input_proto
-    )
+        options.ThroughputSelection.RANDOM, input_proto)
     self.assertIs(input_proto, output_proto)
     self.assertEqual(input_proto, expected_output_proto)
 
@@ -159,32 +143,23 @@ class AggregateThroughputsTest(parameterized.TestCase):
     input_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(1.0, 1.1, 1.2)
-            ),
+                source='skylake', inverse_throughput_cycles=(1.0, 1.1, 1.2)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='ivybridge', inverse_throughput_cycles=(3.0, 3.1, 3.2)
-            ),
+                source='ivybridge', inverse_throughput_cycles=(3.0, 3.1, 3.2)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='haswell', inverse_throughput_cycles=(2.0, 2.1, 2.2)
-            ),
-        )
-    )
+                source='haswell', inverse_throughput_cycles=(2.0, 2.1, 2.2)),
+        ))
     expected_output_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(1.0,)
-            ),
+                source='skylake', inverse_throughput_cycles=(1.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='ivybridge', inverse_throughput_cycles=(3.0,)
-            ),
+                source='ivybridge', inverse_throughput_cycles=(3.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='haswell', inverse_throughput_cycles=(2.0,)
-            ),
-        )
-    )
+                source='haswell', inverse_throughput_cycles=(2.0,)),
+        ))
     output_proto = utils.aggregate_throughputs(
-        options.ThroughputSelection.FIRST, input_proto
-    )
+        options.ThroughputSelection.FIRST, input_proto)
     self.assertIs(input_proto, output_proto)
     self.assertEqual(input_proto, expected_output_proto)
 
@@ -197,8 +172,7 @@ class AggregateThroughputsTest(parameterized.TestCase):
                 prefix_inverse_throughputs=(
                     PrefixThroughputProto(inverse_throughput_cycles=(0.3, 0.7)),
                     PrefixThroughputProto(
-                        inverse_throughput_cycles=(0.31, 0.71)
-                    ),
+                        inverse_throughput_cycles=(0.31, 0.71)),
                 ),
             ),
             throughput_pb2.ThroughputWithSourceProto(
@@ -207,8 +181,7 @@ class AggregateThroughputsTest(parameterized.TestCase):
                 prefix_inverse_throughputs=(
                     PrefixThroughputProto(inverse_throughput_cycles=(1.0, 2.0)),
                     PrefixThroughputProto(
-                        inverse_throughput_cycles=(1.01, 2.01)
-                    ),
+                        inverse_throughput_cycles=(1.01, 2.01)),
                 ),
             ),
             throughput_pb2.ThroughputWithSourceProto(
@@ -217,12 +190,10 @@ class AggregateThroughputsTest(parameterized.TestCase):
                 prefix_inverse_throughputs=(
                     PrefixThroughputProto(inverse_throughput_cycles=(0.5, 1.5)),
                     PrefixThroughputProto(
-                        inverse_throughput_cycles=(0.51, 1.51)
-                    ),
+                        inverse_throughput_cycles=(0.51, 1.51)),
                 ),
             ),
-        )
-    )
+        ))
     expected_output_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
@@ -249,12 +220,10 @@ class AggregateThroughputsTest(parameterized.TestCase):
                     PrefixThroughputProto(inverse_throughput_cycles=(0.51,)),
                 ),
             ),
-        )
-    )
+        ))
     self.assertEqual(
-        utils.aggregate_throughputs(
-            options.ThroughputSelection.FIRST, input_proto
-        ),
+        utils.aggregate_throughputs(options.ThroughputSelection.FIRST,
+                                    input_proto),
         expected_output_proto,
     )
 
@@ -262,32 +231,24 @@ class AggregateThroughputsTest(parameterized.TestCase):
     input_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(10.0, 11.0, 12.0)
-            ),
+                source='skylake', inverse_throughput_cycles=(10.0, 11.0, 12.0)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='ivybridge', inverse_throughput_cycles=(30.0, 31.0, 32.0)
-            ),
+                source='ivybridge',
+                inverse_throughput_cycles=(30.0, 31.0, 32.0)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='haswell', inverse_throughput_cycles=(20.0, 21.0, 22.0)
-            ),
-        )
-    )
+                source='haswell', inverse_throughput_cycles=(20.0, 21.0, 22.0)),
+        ))
     expected_output_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(11.0,)
-            ),
+                source='skylake', inverse_throughput_cycles=(11.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='ivybridge', inverse_throughput_cycles=(31.0,)
-            ),
+                source='ivybridge', inverse_throughput_cycles=(31.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='haswell', inverse_throughput_cycles=(21.0,)
-            ),
-        )
-    )
-    output_proto = utils.aggregate_throughputs(
-        options.ThroughputSelection.MEAN, input_proto
-    )
+                source='haswell', inverse_throughput_cycles=(21.0,)),
+        ))
+    output_proto = utils.aggregate_throughputs(options.ThroughputSelection.MEAN,
+                                               input_proto)
     self.assertIs(input_proto, output_proto)
     self.assertEqual(
         input_proto,
@@ -304,8 +265,7 @@ class AggregateThroughputsTest(parameterized.TestCase):
                 prefix_inverse_throughputs=(
                     PrefixThroughputProto(inverse_throughput_cycles=(1.0, 2.0)),
                     PrefixThroughputProto(
-                        inverse_throughput_cycles=(2.0, 3.0, 1.0)
-                    ),
+                        inverse_throughput_cycles=(2.0, 3.0, 1.0)),
                 ),
             ),
             throughput_pb2.ThroughputWithSourceProto(
@@ -313,11 +273,9 @@ class AggregateThroughputsTest(parameterized.TestCase):
                 inverse_throughput_cycles=(30.0, 40.0, 50.0),
                 prefix_inverse_throughputs=(
                     PrefixThroughputProto(
-                        inverse_throughput_cycles=(10.0, 20.0)
-                    ),
+                        inverse_throughput_cycles=(10.0, 20.0)),
                     PrefixThroughputProto(
-                        inverse_throughput_cycles=(15.0, 16.0, 17.0)
-                    ),
+                        inverse_throughput_cycles=(15.0, 16.0, 17.0)),
                 ),
             ),
             throughput_pb2.ThroughputWithSourceProto(
@@ -325,15 +283,12 @@ class AggregateThroughputsTest(parameterized.TestCase):
                 inverse_throughput_cycles=(20.0, 21.0, 22.0),
                 prefix_inverse_throughputs=(
                     PrefixThroughputProto(
-                        inverse_throughput_cycles=(5.0, 15.0)
-                    ),
+                        inverse_throughput_cycles=(5.0, 15.0)),
                     PrefixThroughputProto(
-                        inverse_throughput_cycles=(5.0, 6.0, 7.0)
-                    ),
+                        inverse_throughput_cycles=(5.0, 6.0, 7.0)),
                 ),
             ),
-        )
-    )
+        ))
     expected_output_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
@@ -360,11 +315,9 @@ class AggregateThroughputsTest(parameterized.TestCase):
                     PrefixThroughputProto(inverse_throughput_cycles=(6.0,)),
                 ),
             ),
-        )
-    )
-    output_proto = utils.aggregate_throughputs(
-        options.ThroughputSelection.MEAN, input_proto
-    )
+        ))
+    output_proto = utils.aggregate_throughputs(options.ThroughputSelection.MEAN,
+                                               input_proto)
     self.assertEqual(
         output_proto,
         expected_output_proto,
@@ -375,32 +328,23 @@ class AggregateThroughputsTest(parameterized.TestCase):
     input_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(1.5, 1.1, 1.2)
-            ),
+                source='skylake', inverse_throughput_cycles=(1.5, 1.1, 1.2)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='ivybridge', inverse_throughput_cycles=(3.0, 3.1, 3.2)
-            ),
+                source='ivybridge', inverse_throughput_cycles=(3.0, 3.1, 3.2)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='haswell', inverse_throughput_cycles=(2.7, 2.1, 2.2)
-            ),
-        )
-    )
+                source='haswell', inverse_throughput_cycles=(2.7, 2.1, 2.2)),
+        ))
     expected_output_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(1.1,)
-            ),
+                source='skylake', inverse_throughput_cycles=(1.1,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='ivybridge', inverse_throughput_cycles=(3.0,)
-            ),
+                source='ivybridge', inverse_throughput_cycles=(3.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='haswell', inverse_throughput_cycles=(2.1,)
-            ),
-        )
-    )
-    output_proto = utils.aggregate_throughputs(
-        options.ThroughputSelection.MIN, input_proto
-    )
+                source='haswell', inverse_throughput_cycles=(2.1,)),
+        ))
+    output_proto = utils.aggregate_throughputs(options.ThroughputSelection.MIN,
+                                               input_proto)
     self.assertIs(input_proto, output_proto)
     self.assertEqual(
         input_proto,
@@ -417,8 +361,7 @@ class AggregateThroughputsTest(parameterized.TestCase):
                 prefix_inverse_throughputs=(
                     PrefixThroughputProto(inverse_throughput_cycles=(0.3, 0.7)),
                     PrefixThroughputProto(
-                        inverse_throughput_cycles=(0.731, 0.71)
-                    ),
+                        inverse_throughput_cycles=(0.731, 0.71)),
                 ),
             ),
             throughput_pb2.ThroughputWithSourceProto(
@@ -427,8 +370,7 @@ class AggregateThroughputsTest(parameterized.TestCase):
                 prefix_inverse_throughputs=(
                     PrefixThroughputProto(inverse_throughput_cycles=(1.0, 2.0)),
                     PrefixThroughputProto(
-                        inverse_throughput_cycles=(3.01, 2.01)
-                    ),
+                        inverse_throughput_cycles=(3.01, 2.01)),
                 ),
             ),
             throughput_pb2.ThroughputWithSourceProto(
@@ -437,12 +379,10 @@ class AggregateThroughputsTest(parameterized.TestCase):
                 prefix_inverse_throughputs=(
                     PrefixThroughputProto(inverse_throughput_cycles=(0.5, 1.5)),
                     PrefixThroughputProto(
-                        inverse_throughput_cycles=(0.51, 1.51)
-                    ),
+                        inverse_throughput_cycles=(0.51, 1.51)),
                 ),
             ),
-        )
-    )
+        ))
     expected_output_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
@@ -469,11 +409,9 @@ class AggregateThroughputsTest(parameterized.TestCase):
                     PrefixThroughputProto(inverse_throughput_cycles=(0.51,)),
                 ),
             ),
-        )
-    )
-    output_proto = utils.aggregate_throughputs(
-        options.ThroughputSelection.MIN, input_proto
-    )
+        ))
+    output_proto = utils.aggregate_throughputs(options.ThroughputSelection.MIN,
+                                               input_proto)
     self.assertIs(input_proto, output_proto)
     self.assertEqual(
         output_proto,
@@ -492,37 +430,28 @@ class ScaleThroughputs(absltest.TestCase):
     input_proto = throughput_pb2.BasicBlockWithThroughputProto()
     output_proto = utils.scale_throughputs(1.1, input_proto)
     self.assertIs(input_proto, output_proto)
-    self.assertEqual(
-        output_proto, throughput_pb2.BasicBlockWithThroughputProto()
-    )
+    self.assertEqual(output_proto,
+                     throughput_pb2.BasicBlockWithThroughputProto())
 
   def test_with_throughputs(self):
     input_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(1.0,)
-            ),
+                source='skylake', inverse_throughput_cycles=(1.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='ivybridge', inverse_throughput_cycles=(3.0,)
-            ),
+                source='ivybridge', inverse_throughput_cycles=(3.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='haswell', inverse_throughput_cycles=(2.0,)
-            ),
-        )
-    )
+                source='haswell', inverse_throughput_cycles=(2.0,)),
+        ))
     expected_output_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(1.5,)
-            ),
+                source='skylake', inverse_throughput_cycles=(1.5,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='ivybridge', inverse_throughput_cycles=(4.5,)
-            ),
+                source='ivybridge', inverse_throughput_cycles=(4.5,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='haswell', inverse_throughput_cycles=(3.0,)
-            ),
-        )
-    )
+                source='haswell', inverse_throughput_cycles=(3.0,)),
+        ))
     output_proto = utils.scale_throughputs(1.5, input_proto)
     self.assertEqual(
         output_proto,
@@ -536,51 +465,43 @@ class ScaleThroughputs(absltest.TestCase):
             throughput_pb2.ThroughputWithSourceProto(
                 source='skylake',
                 inverse_throughput_cycles=(1.0,),
-                prefix_inverse_throughputs=(
-                    PrefixThroughputProto(inverse_throughput_cycles=(0.3, 0.7)),
-                ),
+                prefix_inverse_throughputs=(PrefixThroughputProto(
+                    inverse_throughput_cycles=(0.3, 0.7)),),
             ),
             throughput_pb2.ThroughputWithSourceProto(
                 source='ivybridge',
                 inverse_throughput_cycles=(3.0,),
-                prefix_inverse_throughputs=(
-                    PrefixThroughputProto(inverse_throughput_cycles=(1.0, 2.0)),
-                ),
+                prefix_inverse_throughputs=(PrefixThroughputProto(
+                    inverse_throughput_cycles=(1.0, 2.0)),),
             ),
             throughput_pb2.ThroughputWithSourceProto(
                 source='haswell',
                 inverse_throughput_cycles=(2.0,),
-                prefix_inverse_throughputs=(
-                    PrefixThroughputProto(inverse_throughput_cycles=(0.5, 1.5)),
-                ),
+                prefix_inverse_throughputs=(PrefixThroughputProto(
+                    inverse_throughput_cycles=(0.5, 1.5)),),
             ),
-        )
-    )
+        ))
     expected_output_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
                 source='skylake',
                 inverse_throughput_cycles=(2.0,),
-                prefix_inverse_throughputs=(
-                    PrefixThroughputProto(inverse_throughput_cycles=(0.6, 1.4)),
-                ),
+                prefix_inverse_throughputs=(PrefixThroughputProto(
+                    inverse_throughput_cycles=(0.6, 1.4)),),
             ),
             throughput_pb2.ThroughputWithSourceProto(
                 source='ivybridge',
                 inverse_throughput_cycles=(6.0,),
-                prefix_inverse_throughputs=(
-                    PrefixThroughputProto(inverse_throughput_cycles=(2.0, 4.0)),
-                ),
+                prefix_inverse_throughputs=(PrefixThroughputProto(
+                    inverse_throughput_cycles=(2.0, 4.0)),),
             ),
             throughput_pb2.ThroughputWithSourceProto(
                 source='haswell',
                 inverse_throughput_cycles=(4.0,),
-                prefix_inverse_throughputs=(
-                    PrefixThroughputProto(inverse_throughput_cycles=(1.0, 3.0)),
-                ),
+                prefix_inverse_throughputs=(PrefixThroughputProto(
+                    inverse_throughput_cycles=(1.0, 3.0)),),
             ),
-        )
-    )
+        ))
     output_proto = utils.scale_throughputs(2.0, input_proto)
     self.assertEqual(
         output_proto,
@@ -598,9 +519,8 @@ class SelectThroughputsTest(absltest.TestCase):
 
   def test_with_empty_proto(self):
     input_proto = throughput_pb2.BasicBlockWithThroughputProto()
-    expected_output_proto = utils.select_throughputs(
-        self._SOURCE_FILTERS, input_proto
-    )
+    expected_output_proto = utils.select_throughputs(self._SOURCE_FILTERS,
+                                                     input_proto)
     self.assertIs(input_proto, expected_output_proto)
     self.assertEqual(
         expected_output_proto,
@@ -609,37 +529,28 @@ class SelectThroughputsTest(absltest.TestCase):
                 throughput_pb2.ThroughputWithSourceProto(),
                 throughput_pb2.ThroughputWithSourceProto(),
                 throughput_pb2.ThroughputWithSourceProto(),
-            )
-        ),
+            )),
     )
 
   def test_reorder_throughputs(self):
     input_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(1.0,)
-            ),
+                source='skylake', inverse_throughput_cycles=(1.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='ivybridge', inverse_throughput_cycles=(3.0,)
-            ),
+                source='ivybridge', inverse_throughput_cycles=(3.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='haswell', inverse_throughput_cycles=(2.0,)
-            ),
-        )
-    )
+                source='haswell', inverse_throughput_cycles=(2.0,)),
+        ))
     expected_output_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
-                source='ivybridge', inverse_throughput_cycles=(3.0,)
-            ),
+                source='ivybridge', inverse_throughput_cycles=(3.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='haswell', inverse_throughput_cycles=(2.0,)
-            ),
+                source='haswell', inverse_throughput_cycles=(2.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(1.0,)
-            ),
-        )
-    )
+                source='skylake', inverse_throughput_cycles=(1.0,)),
+        ))
     self.assertEqual(
         expected_output_proto,
         utils.select_throughputs(self._SOURCE_FILTERS, input_proto),
@@ -649,25 +560,19 @@ class SelectThroughputsTest(absltest.TestCase):
     input_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(1.0,)
-            ),
+                source='skylake', inverse_throughput_cycles=(1.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(3.0,)
-            ),
+                source='skylake', inverse_throughput_cycles=(3.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(2.0,)
-            ),
-        )
-    )
+                source='skylake', inverse_throughput_cycles=(2.0,)),
+        ))
     expected_output_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(),
             throughput_pb2.ThroughputWithSourceProto(),
             throughput_pb2.ThroughputWithSourceProto(
-                source='skylake', inverse_throughput_cycles=(1.0,)
-            ),
-        )
-    )
+                source='skylake', inverse_throughput_cycles=(1.0,)),
+        ))
     self.assertEqual(
         expected_output_proto,
         utils.select_throughputs(self._SOURCE_FILTERS, input_proto),
@@ -677,25 +582,19 @@ class SelectThroughputsTest(absltest.TestCase):
     input_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
-                source='haswell', inverse_throughput_cycles=(1.0,)
-            ),
+                source='haswell', inverse_throughput_cycles=(1.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='foobar', inverse_throughput_cycles=(3.0,)
-            ),
+                source='foobar', inverse_throughput_cycles=(3.0,)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='foobar2', inverse_throughput_cycles=(2.0,)
-            ),
-        )
-    )
+                source='foobar2', inverse_throughput_cycles=(2.0,)),
+        ))
     expected_output_proto = throughput_pb2.BasicBlockWithThroughputProto(
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(),
             throughput_pb2.ThroughputWithSourceProto(
-                source='haswell', inverse_throughput_cycles=(1.0,)
-            ),
+                source='haswell', inverse_throughput_cycles=(1.0,)),
             throughput_pb2.ThroughputWithSourceProto(),
-        )
-    )
+        ))
     self.assertEqual(
         expected_output_proto,
         utils.select_throughputs(self._SOURCE_FILTERS, input_proto),

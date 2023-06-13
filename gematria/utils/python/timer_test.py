@@ -35,9 +35,8 @@ class TimerTest(absltest.TestCase):
 
   @mock.patch('absl.logging.info')
   @mock.patch('time.time', side_effect=[10, 15])
-  def test_timer_one_iteration_custom_log_function(
-      self, mock_time, mock_logging_info
-  ):
+  def test_timer_one_iteration_custom_log_function(self, mock_time,
+                                                   mock_logging_info):
     del mock_time  # Unused
     timer_name = 'My other timer'
     mock_log_function = mock.MagicMock()

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for basic basic block proto import functions."""
 
 from absl.testing import absltest
@@ -22,11 +21,9 @@ from gematria.proto import basic_block_pb2
 from gematria.proto import canonicalized_instruction_pb2
 
 _CanonicalizedOperandProto = (
-    canonicalized_instruction_pb2.CanonicalizedOperandProto
-)
+    canonicalized_instruction_pb2.CanonicalizedOperandProto)
 _CanonicalizedInstructionProto = (
-    canonicalized_instruction_pb2.CanonicalizedInstructionProto
-)
+    canonicalized_instruction_pb2.CanonicalizedInstructionProto)
 
 
 class AddressTupleTest(absltest.TestCase):
@@ -88,9 +85,7 @@ class InstructionOperandFromProtoTest(absltest.TestCase):
   def test_address(self):
     proto = _CanonicalizedOperandProto(
         address=_CanonicalizedOperandProto.AddressTuple(
-            base_register='RBX', displacement=-8
-        )
-    )
+            base_register='RBX', displacement=-8))
     operand = basic_block_protos.instruction_operand_from_proto(proto)
 
     self.assertEqual(operand.type, basic_block.OperandType.ADDRESS)
@@ -104,8 +99,7 @@ class InstructionOperandFromProtoTest(absltest.TestCase):
 
   def test_memory(self):
     proto = _CanonicalizedOperandProto(
-        memory=_CanonicalizedOperandProto.MemoryLocation(alias_group_id=123)
-    )
+        memory=_CanonicalizedOperandProto.MemoryLocation(alias_group_id=123))
     operand = basic_block_protos.instruction_operand_from_proto(proto)
 
     self.assertEqual(operand.type, basic_block.OperandType.MEMORY)
@@ -128,13 +122,11 @@ class InstructionFromProtoTest(absltest.TestCase):
             _CanonicalizedOperandProto(register_name='RAX'),
             _CanonicalizedOperandProto(register_name='RBX'),
         ),
-        implicit_output_operands=(
-            _CanonicalizedOperandProto(register_name='EFLAGS'),
-        ),
+        implicit_output_operands=(_CanonicalizedOperandProto(
+            register_name='EFLAGS'),),
         output_operands=(_CanonicalizedOperandProto(register_name='RBX'),),
-        implicit_input_operands=(
-            _CanonicalizedOperandProto(register_name='EFLAGS'),
-        ),
+        implicit_input_operands=(_CanonicalizedOperandProto(
+            register_name='EFLAGS'),),
     )
     instruction = basic_block_protos.instruction_from_proto(proto)
     self.assertEqual(instruction.mnemonic, 'ADC')
@@ -169,12 +161,10 @@ class BasicBlockFromProtoTest(absltest.TestCase):
             _CanonicalizedInstructionProto(
                 mnemonic='MOV',
                 llvm_mnemonic='MOV32rr',
-                input_operands=(
-                    _CanonicalizedOperandProto(register_name='RSI'),
-                ),
-                output_operands=(
-                    _CanonicalizedOperandProto(register_name='RCX'),
-                ),
+                input_operands=(_CanonicalizedOperandProto(
+                    register_name='RSI'),),
+                output_operands=(_CanonicalizedOperandProto(
+                    register_name='RCX'),),
             ),
             _CanonicalizedInstructionProto(
                 mnemonic='MOVSB',
@@ -185,34 +175,27 @@ class BasicBlockFromProtoTest(absltest.TestCase):
                     _CanonicalizedOperandProto(register_name='RDI'),
                     _CanonicalizedOperandProto(
                         memory=_CanonicalizedOperandProto.MemoryLocation(
-                            alias_group_id=1
-                        )
-                    ),
+                            alias_group_id=1)),
                 ),
                 implicit_output_operands=(
                     _CanonicalizedOperandProto(register_name='RSI'),
                     _CanonicalizedOperandProto(register_name='RDI'),
                     _CanonicalizedOperandProto(
                         memory=_CanonicalizedOperandProto.MemoryLocation(
-                            alias_group_id=2
-                        )
-                    ),
+                            alias_group_id=2)),
                 ),
             ),
-        )
-    )
+        ))
     block = basic_block_protos.basic_block_from_proto(proto)
 
     expected = (
         basic_block.Instruction(
             mnemonic='MOV',
             llvm_mnemonic='MOV32rr',
-            input_operands=basic_block.InstructionOperandList((
-                basic_block.InstructionOperand.from_register('RSI'),
-            )),
-            output_operands=basic_block.InstructionOperandList((
-                basic_block.InstructionOperand.from_register('RCX'),
-            )),
+            input_operands=basic_block.InstructionOperandList(
+                (basic_block.InstructionOperand.from_register('RSI'),)),
+            output_operands=basic_block.InstructionOperandList(
+                (basic_block.InstructionOperand.from_register('RCX'),)),
         ),
         basic_block.Instruction(
             mnemonic='MOVSB',

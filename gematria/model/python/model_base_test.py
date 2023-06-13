@@ -56,15 +56,13 @@ class TestModel(model_base.ModelBase):
       if self.use_custom_output_names:
         output_name = 'TestModel.output_tensor'
       self._output_tensor = tf.placeholder(
-          self.dtype, (None, self.num_tasks), name=output_name
-      )
+          self.dtype, (None, self.num_tasks), name=output_name)
     else:
       output_deltas_name = model_base.ModelBase.OUTPUT_TENSOR_DELTAS_NAME
       if self.use_custom_output_names:
         output_deltas_name = 'TestModel.output_tensor_deltas'
       self._output_tensor_deltas = tf.placeholder(
-          self.dtype, (None, self.num_tasks), name=output_deltas_name
-      )
+          self.dtype, (None, self.num_tasks), name=output_deltas_name)
 
   # @Override
   def _create_optimizer(self):
@@ -86,13 +84,11 @@ class TestModel(model_base.ModelBase):
     self.num_scheduled_instructions += num_instructions
     if not self._use_deltas:
       self._batch_collected_outputs.append(
-          [self.num_visited_blocks + i for i in range(self.num_tasks)]
-      )
+          [self.num_visited_blocks + i for i in range(self.num_tasks)])
     else:
       self._batch_collected_outputs.extend(
-          [self.num_visited_blocks + i for i in range(self.num_tasks)]
-          * num_instructions
-      )
+          [self.num_visited_blocks + i for i in range(self.num_tasks)] *
+          num_instructions)
 
   # @Override
   def _start_batch(self):
@@ -102,12 +98,11 @@ class TestModel(model_base.ModelBase):
   # @Override
   def _make_batch_feed_dict(self):
     output_tensor = (
-        self._output_tensor_deltas if self._use_deltas else self._output_tensor
-    )
+        self._output_tensor_deltas if self._use_deltas else self._output_tensor)
     return {
-        output_tensor: np.array(
-            self._batch_collected_outputs, dtype=self.numpy_dtype
-        ).reshape((-1, self.num_tasks)),
+        output_tensor:
+            np.array(self._batch_collected_outputs,
+                     dtype=self.numpy_dtype).reshape((-1, self.num_tasks)),
     }
 
   # @Override
@@ -131,8 +126,7 @@ class TestModelWithVarGroups(model_base.ModelBase):
   def _create_tf_graph(self):
     assert not self._use_deltas, 'This model does not support seq2seq.'
     self._input_tensor = tf.placeholder(
-        self.dtype, (None, 1), name='TestModelWithVarGroups._input_tensor'
-    )
+        self.dtype, (None, 1), name='TestModelWithVarGroups._input_tensor')
     output_parts = []
     # NOTE(ondrasej): The weights are initialized to 0.5, and the biases are
     # initialized to -0.5. These initial values are intentionally chosen because
@@ -168,9 +162,9 @@ class TestModelWithVarGroups(model_base.ModelBase):
 
   def _make_batch_feed_dict(self):
     return {
-        self._input_tensor: np.array(
-            self._batch_block_sizes, dtype=self.numpy_dtype
-        ).reshape((-1, 1)),
+        self._input_tensor:
+            np.array(self._batch_block_sizes, dtype=self.numpy_dtype).reshape(
+                (-1, 1)),
     }
 
 
@@ -193,8 +187,7 @@ class ModelBaseTest(model_test.TestCase):
     for use_custom_names in [True, False]:
       with tf.Graph().as_default():
         model = TestModel(
-            dtype=tf.dtypes.float32, use_custom_output_names=use_custom_names
-        )
+            dtype=tf.dtypes.float32, use_custom_output_names=use_custom_names)
         model.initialize()
         # NOTE(ondrasej): TensorFlow adds a ":\d+" to all tensor names. The
         # number is the index of the tensor in the list of outputs of the op
@@ -205,9 +198,8 @@ class ModelBaseTest(model_test.TestCase):
             model_base.ModelBase.OUTPUT_TENSOR_NAME + ':0',
         )
 
-        with self.assertRaisesRegex(
-            AttributeError, 'output_tensor_deltas is available only'
-        ):
+        with self.assertRaisesRegex(AttributeError,
+                                    'output_tensor_deltas is available only'):
           _ = model.output_tensor_deltas
 
   def test_output_tensor_names_seq2seq(self):
@@ -237,15 +229,13 @@ class ModelBaseTest(model_test.TestCase):
     full_schedule = model.schedule_batch(self.blocks_with_throughput)
     self.assertLen(self.blocks_with_throughput, model.num_visited_blocks)
     expected_outputs = full_schedule[model._expected_outputs]
-    self.assertEqual(
-        expected_outputs.shape, (len(self.blocks_with_throughput), 1)
-    )
+    self.assertEqual(expected_outputs.shape,
+                     (len(self.blocks_with_throughput), 1))
 
     batch_size = 3
     model.num_visited_blocks = 0
     block_batch_schedule = model.schedule_batch(
-        self.blocks_with_throughput, max_blocks_in_batch=batch_size
-    )
+        self.blocks_with_throughput, max_blocks_in_batch=batch_size)
     self.assertEqual(model.num_visited_blocks, batch_size)
     expected_outputs = block_batch_schedule[model._expected_outputs]
     self.assertEqual(expected_outputs.shape, (batch_size, 1))
@@ -253,8 +243,7 @@ class ModelBaseTest(model_test.TestCase):
     with self.session() as sess:
       output = sess.run(model.output_tensor, feed_dict=full_schedule)
       self.assertAllEqual(
-          output, [[x + 1] for x in range(len(self.blocks_with_throughput))]
-      )
+          output, [[x + 1] for x in range(len(self.blocks_with_throughput))])
 
       output = sess.run(model.output_tensor, feed_dict=block_batch_schedule)
       self.assertAllEqual(output, [[x + 1] for x in range(batch_size)])
@@ -268,35 +257,28 @@ class ModelBaseTest(model_test.TestCase):
     self.assertLen(self.blocks_with_throughput, model.num_visited_blocks)
     expected_outputs = full_schedule[model._expected_outputs]
 
-    self.assertEqual(
-        expected_outputs.shape, (len(self.blocks_with_throughput), 1)
-    )
+    self.assertEqual(expected_outputs.shape,
+                     (len(self.blocks_with_throughput), 1))
     expected_outputs_prefixes = full_schedule[model._expected_outputs_deltas]
     expected_num_prefixes = sum(
-        len(block.instructions) for block in self.blocks
-    )
-    self.assertEqual(
-        expected_outputs_prefixes.shape, (expected_num_prefixes, 1)
-    )
+        len(block.instructions) for block in self.blocks)
+    self.assertEqual(expected_outputs_prefixes.shape,
+                     (expected_num_prefixes, 1))
 
     batch_size = 3
     model.num_visited_blocks = 0
     block_batch_schedule = model.schedule_batch(
-        self.blocks_with_throughput, max_blocks_in_batch=batch_size
-    )
+        self.blocks_with_throughput, max_blocks_in_batch=batch_size)
     self.assertEqual(model.num_visited_blocks, batch_size)
     expected_outputs = block_batch_schedule[model._expected_outputs]
     self.assertEqual(expected_outputs.shape, (batch_size, 1))
 
     expected_outputs_prefixes = block_batch_schedule[
-        model._expected_outputs_deltas
-    ]
+        model._expected_outputs_deltas]
     expected_len_prefixes = sum(
-        len(block.instructions) for block in self.blocks[:batch_size]
-    )
-    self.assertEqual(
-        expected_outputs_prefixes.shape, (expected_len_prefixes, 1)
-    )
+        len(block.instructions) for block in self.blocks[:batch_size])
+    self.assertEqual(expected_outputs_prefixes.shape,
+                     (expected_len_prefixes, 1))
 
     with self.session() as sess:
       output_blocks, output_deltas = sess.run(
@@ -351,9 +333,8 @@ class ModelBaseTest(model_test.TestCase):
     blocks[1].throughputs = (None, blocks[1].throughputs[1])
 
     feed_dict = model.schedule_batch(blocks)
-    self.assertAllEqual(
-        feed_dict[model._output_mask], ((True, False), (False, True))
-    )
+    self.assertAllEqual(feed_dict[model._output_mask],
+                        ((True, False), (False, True)))
 
     with self.session() as sess:
       self.check_training_model(
@@ -374,21 +355,18 @@ class ModelBaseTest(model_test.TestCase):
       expected_output_deltas = schedule[model._expected_outputs_deltas]
 
       self.assertEqual(expected_outputs.shape, (1, 1))
-      self.assertEqual(
-          expected_output_deltas.shape, (len(block.block.instructions), 1)
-      )
+      self.assertEqual(expected_output_deltas.shape,
+                       (len(block.block.instructions), 1))
 
       # Check that the expected (aggregate) output is what we have in the proto.
-      self.assertEqual(
-          expected_outputs[0], block.throughputs[0].inverse_throughput_cycles[0]
-      )
+      self.assertEqual(expected_outputs[0],
+                       block.throughputs[0].inverse_throughput_cycles[0])
       # Check that the expected deltas sum up to the expected output. Note that
       # this holds for data coming from the simulator; data coming from real
       # measurement will also contain additional difference coming from
       # measurement noise.
       self.assertNear(
-          np.sum(expected_output_deltas), expected_outputs[0], _TOLERANCE
-      )
+          np.sum(expected_output_deltas), expected_outputs[0], _TOLERANCE)
 
   def test_randomized_expected_outputs_delta(self):
     model = TestModel(dtype=tf.dtypes.float32, use_deltas=True)
@@ -400,15 +378,13 @@ class ModelBaseTest(model_test.TestCase):
       expected_output_deltas = schedule[model._expected_outputs_deltas]
 
       self.assertEqual(expected_outputs.shape, (1, 1))
-      self.assertEqual(
-          expected_output_deltas.shape, (len(block.block.instructions), 1)
-      )
+      self.assertEqual(expected_output_deltas.shape,
+                       (len(block.block.instructions), 1))
 
       # Check that the expected output is one of the values from the proto.
       inverse_throughputs = block.throughputs[0]
-      self.assertIn(
-          expected_outputs[0], inverse_throughputs.inverse_throughput_cycles
-      )
+      self.assertIn(expected_outputs[0],
+                    inverse_throughputs.inverse_throughput_cycles)
       # Check that the expected deltas sum up to the expected output. In the
       # randomized mode, the expected output is a difference between a randomly
       # chosen throughput for the current prefix and a randomly chosen
@@ -417,8 +393,7 @@ class ModelBaseTest(model_test.TestCase):
       # expected value is in this set.
       previous_prefix_throughputs = [0.0]
       for i, prefix_throughputs in enumerate(
-          inverse_throughputs.prefix_inverse_throughput_cycles
-      ):
+          inverse_throughputs.prefix_inverse_throughput_cycles):
         expected_output_delta = float(expected_output_deltas[i])
         possible_deltas = set()
         for prefix_throughput in prefix_throughputs:
@@ -447,8 +422,7 @@ class ModelBaseTest(model_test.TestCase):
       self.assertGreater(model.num_visited_blocks, 0)
 
     model = TestModel(
-        dtype=tf.dtypes.float32, loss_type=options.LossType.MEAN_SQUARED_ERROR
-    )
+        dtype=tf.dtypes.float32, loss_type=options.LossType.MEAN_SQUARED_ERROR)
     model.initialize()
 
     with self.session() as sess:
@@ -524,13 +498,11 @@ class ModelBaseTest(model_test.TestCase):
               self.blocks,
               max_blocks_in_batch=max_blocks_in_batch,
               max_instructions_in_batch=max_instructions_in_batch,
-          )
-      )
+          ))
       self.assertEqual(model.batch_sizes, expected_batch_sizes)
       self.assertLen(output_blocks, len(self.blocks_with_throughput))
-      for index, (in_block, out_block) in enumerate(
-          zip(self.blocks, output_blocks)
-      ):
+      for index, (in_block,
+                  out_block) in enumerate(zip(self.blocks, output_blocks)):
         # The prediction of the model is the number of calls to
         # model._add_basic_block_to_batch(). There is one call per basic block,
         # so we can get the expected value from the index of the basic block.
@@ -543,9 +515,8 @@ class ModelBaseTest(model_test.TestCase):
             throughput.inverse_throughput_cycles
             for throughput in out_block.throughputs
         ]
-        self.assertSequenceEqual(
-            predicted_throughputs, expected_inverse_throughputs
-        )
+        self.assertSequenceEqual(predicted_throughputs,
+                                 expected_inverse_throughputs)
 
   def test_predict_single_batch(self):
     model = TestModel(dtype=tf.dtypes.float32)
@@ -572,9 +543,8 @@ class ModelBaseTest(model_test.TestCase):
     # Lengths of blocks in self.blocks_with_throughput are:
     # [1, 5, 1, 8, 3, 4, 1, 2, 9, 4].
     expected_batch_sizes = [3, 1, 4, 1, 1]
-    self.check_predict(
-        model, None, max_instructions_in_batch, expected_batch_sizes
-    )
+    self.check_predict(model, None, max_instructions_in_batch,
+                       expected_batch_sizes)
 
   def test_predict_with_both_limits(self):
     model = TestModel(dtype=tf.dtypes.float32)
@@ -585,18 +555,16 @@ class ModelBaseTest(model_test.TestCase):
     # Lengths of blocks in self.blocks_with_throughput are:
     # [1, 5, 1, 8, 3, 4, 1, 2, 9, 4].
     expected_batch_sizes = [3, 1, 3, 1, 1, 1]
-    self.check_predict(
-        model, batch_size, max_instructions_in_batch, expected_batch_sizes
-    )
+    self.check_predict(model, batch_size, max_instructions_in_batch,
+                       expected_batch_sizes)
 
   def check_predict_deltas(self, model):
     with self.session() as sess:
       output_blocks = tuple(model.predict(sess, self.blocks))
       self.assertLen(output_blocks, len(self.blocks))
 
-      for index, (in_block, out_block) in enumerate(
-          zip(self.blocks, output_blocks)
-      ):
+      for index, (in_block,
+                  out_block) in enumerate(zip(self.blocks, output_blocks)):
         # Sum up delta predictions for the model with deltas.
         # predictions.
         num_instructions = len(in_block.instructions)
@@ -608,13 +576,11 @@ class ModelBaseTest(model_test.TestCase):
 
           expected_throughputs.append(
               throughput.BasicBlockThroughput(
-                  inverse_throughput_cycles=(
-                      num_instructions * (index + 1 + task_index),
-                  ),
-                  prefix_inverse_throughput_cycles=(pref_inv_throughputs,)
-                  * num_instructions,
-              )
-          )
+                  inverse_throughput_cycles=(num_instructions *
+                                             (index + 1 + task_index),),
+                  prefix_inverse_throughput_cycles=(pref_inv_throughputs,) *
+                  num_instructions,
+              ))
 
         self.assertEqual(in_block, out_block.block)
         self.assertLen(out_block.throughputs, model.num_tasks)
@@ -636,8 +602,7 @@ class ModelBaseTest(model_test.TestCase):
   def test_predict_deltas_multi_task(self):
     task_list = ('task_1', 'task_2', 'task_3')
     model = TestModel(
-        dtype=tf.dtypes.float32, task_list=task_list, use_deltas=True
-    )
+        dtype=tf.dtypes.float32, task_list=task_list, use_deltas=True)
     model.initialize()
 
     self.check_predict_deltas(model)
@@ -653,15 +618,13 @@ class ModelBaseTest(model_test.TestCase):
     full_schedule = model.schedule_batch(self.blocks_with_throughput)
     self.assertLen(self.blocks_with_throughput, model.num_visited_blocks)
     expected_outputs = full_schedule[model._expected_outputs]
-    self.assertEqual(
-        expected_outputs.shape, (len(self.blocks_with_throughput), num_tasks)
-    )
+    self.assertEqual(expected_outputs.shape,
+                     (len(self.blocks_with_throughput), num_tasks))
 
     batch_size = 3
     model.num_visited_blocks = 0
     block_batch_schedule = model.schedule_batch(
-        self.blocks_with_throughput, max_blocks_in_batch=batch_size
-    )
+        self.blocks_with_throughput, max_blocks_in_batch=batch_size)
     self.assertEqual(model.num_visited_blocks, batch_size)
     expected_outputs = block_batch_schedule[model._expected_outputs]
     self.assertEqual(expected_outputs.shape, (batch_size, num_tasks))
@@ -694,11 +657,9 @@ class ModelBaseTest(model_test.TestCase):
     self.assertEqual(expected_outputs.shape, (len(blocks), num_tasks))
     expected_outputs_prefixes = full_schedule[model._expected_outputs_deltas]
     expected_num_prefixes = sum(
-        len(block.block.instructions) for block in blocks
-    )
-    self.assertEqual(
-        expected_outputs_prefixes.shape, (expected_num_prefixes, num_tasks)
-    )
+        len(block.block.instructions) for block in blocks)
+    self.assertEqual(expected_outputs_prefixes.shape,
+                     (expected_num_prefixes, num_tasks))
 
     with self.session() as sess:
       output_blocks, output_deltas = sess.run(
@@ -712,13 +673,11 @@ class ModelBaseTest(model_test.TestCase):
         block_expected_output = []
         for task in range(num_tasks):
           block_expected_output.append(
-              (i + 1 + task) * len(block.block.instructions)
-          )
+              (i + 1 + task) * len(block.block.instructions))
         expected_output_blocks.append(block_expected_output)
         for _ in block.block.instructions:
           expected_output_deltas.append(
-              [i + 1 + task for task in range(num_tasks)]
-          )
+              [i + 1 + task for task in range(num_tasks)])
 
       self.assertAllEqual(output_blocks, expected_output_blocks)
       self.assertAllEqual(output_deltas, expected_output_deltas)

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for basic block data structure wrappers."""
 
 from absl.testing import absltest
@@ -63,8 +62,7 @@ class AddressTupleTest(absltest.TestCase):
     self.assertEqual(address.segment_register, '')
 
     address = basic_block.AddressTuple(
-        index_register='R12', scaling=2, segment_register='FS'
-    )
+        index_register='R12', scaling=2, segment_register='FS')
     self.assertEqual(address.base_register, '')
     self.assertEqual(address.displacement, 0)
     self.assertEqual(address.index_register, 'R12')
@@ -79,8 +77,7 @@ class AddressTupleTest(absltest.TestCase):
     self.assertEqual(address_1, address_1a)
 
     address_2 = basic_block.AddressTuple(
-        base_register='RCX', displacement=123, index_register='RDI'
-    )
+        base_register='RCX', displacement=123, index_register='RDI')
     self.assertEqual(address_2, address_2)
     self.assertNotEqual(address_1, address_2)
 
@@ -108,8 +105,7 @@ class InstructionOperandTest(absltest.TestCase):
 
   def test_initialize_immediate(self):
     operand = basic_block.InstructionOperand.from_immediate_value(
-        immediate_value=321
-    )
+        immediate_value=321)
     self.assertEqual(operand.type, basic_block.OperandType.IMMEDIATE_VALUE)
     self.assertEqual(operand.immediate_value, 321)
 
@@ -120,8 +116,7 @@ class InstructionOperandTest(absltest.TestCase):
 
   def test_initialize_fp_immediate(self):
     operand = basic_block.InstructionOperand.from_fp_immediate_value(
-        fp_immediate_value=1.23
-    )
+        fp_immediate_value=1.23)
     self.assertEqual(operand.type, basic_block.OperandType.FP_IMMEDIATE_VALUE)
     self.assertEqual(operand.fp_immediate_value, 1.23)
 
@@ -133,9 +128,7 @@ class InstructionOperandTest(absltest.TestCase):
   def test_initialize_address(self):
     operand = basic_block.InstructionOperand.from_address(
         address_tuple=basic_block.AddressTuple(
-            base_register='RCX', displacement=-8
-        )
-    )
+            base_register='RCX', displacement=-8))
     self.assertEqual(operand.type, basic_block.OperandType.ADDRESS)
     self.assertEqual(operand.address.base_register, 'RCX')
     self.assertEqual(operand.address.displacement, -8)
@@ -168,8 +161,7 @@ class InstructionOperandTest(absltest.TestCase):
         ),
         (
             basic_block.InstructionOperand.from_address(
-                base_register='RCX', index_register='RDX', displacement=-8
-            ),
+                base_register='RCX', index_register='RDX', displacement=-8),
             (tokens.ADDRESS, 'RCX', 'RDX', tokens.DISPLACEMENT),
         ),
         (
@@ -178,9 +170,8 @@ class InstructionOperandTest(absltest.TestCase):
         ),
     )
     for operand, expected_token_list in test_cases:
-      self.assertSequenceEqual(
-          operand.as_token_list(), expected_token_list, f'operand = {operand!r}'
-      )
+      self.assertSequenceEqual(operand.as_token_list(), expected_token_list,
+                               f'operand = {operand!r}')
 
 
 class InstructionTest(absltest.TestCase):
@@ -193,15 +184,12 @@ class InstructionTest(absltest.TestCase):
             basic_block.InstructionOperand.from_register('RCX'),
             basic_block.InstructionOperand.from_register('RDX'),
         )),
-        implicit_input_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('EFLAGS'),
-        )),
-        output_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RDX'),
-        )),
-        implicit_output_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('EFLAGS'),
-        )),
+        implicit_input_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('EFLAGS'),)),
+        output_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('RDX'),)),
+        implicit_output_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('EFLAGS'),)),
     )
     self.assertEqual(instruction.mnemonic, 'ADC')
     self.assertEqual(instruction.llvm_mnemonic, 'ADC32rr')
@@ -227,8 +215,7 @@ class InstructionTest(absltest.TestCase):
     )
 
     instruction = basic_block.Instruction(
-        mnemonic='NOP', prefixes=basic_block.StringList(('LOCK',))
-    )
+        mnemonic='NOP', prefixes=basic_block.StringList(('LOCK',)))
     self.assertEqual(instruction.mnemonic, 'NOP')
     self.assertEqual(instruction.llvm_mnemonic, '')
     self.assertSequenceEqual(instruction.prefixes, ('LOCK',))
@@ -241,8 +228,7 @@ class InstructionTest(absltest.TestCase):
     instruction_a1 = basic_block.Instruction(mnemonic='NOP')
     instruction_a2 = basic_block.Instruction(mnemonic='NOP')
     instruction_a3 = basic_block.Instruction(
-        mnemonic='NOP', llvm_mnemonic='NOP'
-    )
+        mnemonic='NOP', llvm_mnemonic='NOP')
     self.assertEqual(instruction_a1, instruction_a1)
     self.assertEqual(instruction_a1, instruction_a2)
     # The two instructions differ by their llvm_mnemonic.
@@ -251,32 +237,26 @@ class InstructionTest(absltest.TestCase):
     instruction_b1 = basic_block.Instruction(
         mnemonic='MOV',
         llvm_mnemonic='MOV32rrr',
-        input_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RCX'),
-        )),
-        output_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RDX'),
-        )),
+        input_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('RCX'),)),
+        output_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('RDX'),)),
     )
     instruction_b2 = basic_block.Instruction(
         mnemonic='MOV',
         llvm_mnemonic='MOV32rrr',
-        input_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RCX'),
-        )),
-        output_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RDX'),
-        )),
+        input_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('RCX'),)),
+        output_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('RDX'),)),
     )
     instruction_b3 = basic_block.Instruction(
         mnemonic='MOV',
         llvm_mnemonic='MOV32rrr',
-        input_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RSI'),
-        )),
-        output_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RDI'),
-        )),
+        input_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('RSI'),)),
+        output_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('RDI'),)),
     )
     self.assertEqual(instruction_b1, instruction_b2)
     self.assertNotEqual(instruction_a1, instruction_b2)
@@ -296,8 +276,7 @@ class InstructionTest(absltest.TestCase):
   def test_modify_input_operands(self):
     instruction = basic_block.Instruction()
     instruction.input_operands.append(
-        basic_block.InstructionOperand.from_register('RBX')
-    )
+        basic_block.InstructionOperand.from_register('RBX'))
     self.assertSequenceEqual(
         instruction.input_operands,
         (basic_block.InstructionOperand.from_register('RBX'),),
@@ -309,8 +288,7 @@ class InstructionTest(absltest.TestCase):
   def test_modify_output_operands(self):
     instruction = basic_block.Instruction()
     instruction.output_operands.append(
-        basic_block.InstructionOperand.from_register('RCX')
-    )
+        basic_block.InstructionOperand.from_register('RCX'))
     self.assertSequenceEqual(
         instruction.output_operands,
         (basic_block.InstructionOperand.from_register('RCX'),),
@@ -320,40 +298,35 @@ class InstructionTest(absltest.TestCase):
     self.assertEmpty(instruction.output_operands)
 
   def test_as_token_list(self):
-    test_cases = (
-        (
-            basic_block.Instruction(
-                mnemonic='ADD',
-                llvm_mnemonic='ADD32rr',
-                prefixes=basic_block.StringList(('LOCK',)),
-                input_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RAX'),
-                    basic_block.InstructionOperand.from_register('RBX'),
-                )),
-                implicit_input_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('EFLAGS'),
-                )),
-                output_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RBX'),
-                )),
-                implicit_output_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('EFLAGS'),
-                )),
-            ),
-            (
-                'LOCK',
-                'ADD',
-                tokens.DELIMITER,
-                'RBX',
-                'EFLAGS',
-                tokens.DELIMITER,
-                'RAX',
-                'RBX',
-                'EFLAGS',
-                tokens.DELIMITER,
-            ),
+    test_cases = ((
+        basic_block.Instruction(
+            mnemonic='ADD',
+            llvm_mnemonic='ADD32rr',
+            prefixes=basic_block.StringList(('LOCK',)),
+            input_operands=basic_block.InstructionOperandList((
+                basic_block.InstructionOperand.from_register('RAX'),
+                basic_block.InstructionOperand.from_register('RBX'),
+            )),
+            implicit_input_operands=basic_block.InstructionOperandList(
+                (basic_block.InstructionOperand.from_register('EFLAGS'),)),
+            output_operands=basic_block.InstructionOperandList(
+                (basic_block.InstructionOperand.from_register('RBX'),)),
+            implicit_output_operands=basic_block.InstructionOperandList(
+                (basic_block.InstructionOperand.from_register('EFLAGS'),)),
         ),
-    )
+        (
+            'LOCK',
+            'ADD',
+            tokens.DELIMITER,
+            'RBX',
+            'EFLAGS',
+            tokens.DELIMITER,
+            'RAX',
+            'RBX',
+            'EFLAGS',
+            tokens.DELIMITER,
+        ),
+    ),)
     for instruction, expected_token_list in test_cases:
       token_list = instruction.as_token_list()
       self.assertSequenceEqual(token_list, expected_token_list)
@@ -368,11 +341,9 @@ class BasicBlockTest(absltest.TestCase):
                 mnemonic='MOV',
                 llvm_mnemonic='MOV32rr',
                 input_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RSI'),
-                )),
+                    basic_block.InstructionOperand.from_register('RSI'),)),
                 output_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RCX'),
-                )),
+                    basic_block.InstructionOperand.from_register('RCX'),)),
             ),
             basic_block.Instruction(
                 mnemonic='MOVSB',
@@ -389,19 +360,16 @@ class BasicBlockTest(absltest.TestCase):
                     basic_block.InstructionOperand.from_memory(2),
                 )),
             ),
-        ))
-    )
+        )))
     block_1b = basic_block.BasicBlock(
         instructions=basic_block.InstructionList((
             basic_block.Instruction(
                 mnemonic='MOV',
                 llvm_mnemonic='MOV32rr',
                 input_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RSI'),
-                )),
+                    basic_block.InstructionOperand.from_register('RSI'),)),
                 output_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RCX'),
-                )),
+                    basic_block.InstructionOperand.from_register('RCX'),)),
             ),
             basic_block.Instruction(
                 mnemonic='MOVSB',
@@ -418,25 +386,19 @@ class BasicBlockTest(absltest.TestCase):
                     basic_block.InstructionOperand.from_memory(2),
                 )),
             ),
-        ))
-    )
+        )))
     self.assertEqual(block_1a, block_1a)
     self.assertEqual(block_1a, block_1b)
 
     block_2 = basic_block.BasicBlock(
-        instructions=basic_block.InstructionList((
-            basic_block.Instruction(
-                mnemonic='MOV',
-                llvm_mnemonic='MOV32rr',
-                input_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RSI'),
-                )),
-                output_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RCX'),
-                )),
-            ),
-        ))
-    )
+        instructions=basic_block.InstructionList((basic_block.Instruction(
+            mnemonic='MOV',
+            llvm_mnemonic='MOV32rr',
+            input_operands=basic_block.InstructionOperandList((
+                basic_block.InstructionOperand.from_register('RSI'),)),
+            output_operands=basic_block.InstructionOperandList((
+                basic_block.InstructionOperand.from_register('RCX'),)),
+        ),)))
     self.assertNotEqual(block_1a, block_2)
 
   def test_modify_instruction_list(self):
@@ -444,12 +406,10 @@ class BasicBlockTest(absltest.TestCase):
         basic_block.Instruction(
             mnemonic='MOV',
             llvm_mnemonic='MOV32rr',
-            input_operands=basic_block.InstructionOperandList((
-                basic_block.InstructionOperand.from_register('RSI'),
-            )),
-            output_operands=basic_block.InstructionOperandList((
-                basic_block.InstructionOperand.from_register('RCX'),
-            )),
+            input_operands=basic_block.InstructionOperandList(
+                (basic_block.InstructionOperand.from_register('RSI'),)),
+            output_operands=basic_block.InstructionOperandList(
+                (basic_block.InstructionOperand.from_register('RCX'),)),
         ),
         basic_block.Instruction(
             mnemonic='MOVSB',
@@ -469,8 +429,7 @@ class BasicBlockTest(absltest.TestCase):
     )
 
     block = basic_block.BasicBlock(
-        instructions=basic_block.InstructionList(instructions)
-    )
+        instructions=basic_block.InstructionList(instructions))
     self.assertSequenceEqual(block.instructions, instructions)
 
     del block.instructions[1]
@@ -478,8 +437,7 @@ class BasicBlockTest(absltest.TestCase):
 
     block.instructions.extend(instructions)
     self.assertSequenceEqual(
-        block.instructions, (instructions[0], instructions[0], instructions[1])
-    )
+        block.instructions, (instructions[0], instructions[0], instructions[1]))
 
     # Make sure that the property does not return a copy of the list.
     block.instructions[0].mnemonic = 'ADD'

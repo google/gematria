@@ -26,6 +26,15 @@ All contributions must follow the Google's
 [C++ style guide](https://google.github.io/styleguide/cppguide.html) and
 [Python style guide](https://google.github.io/styleguide/pyguide.html).
 
+## Python Formatting
+
+Gematria uses `yapf` for formatting python files. To format the repository, you
+can run the following command in the root of the repo:
+
+```bash
+yapf . -ir
+```
+
 ## The small print
 Contributions made by corporations are covered by a different agreement than
 the one above, the

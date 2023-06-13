@@ -50,12 +50,10 @@ class TrainingEpochStatsTest(tf.test.TestCase):
     self.assertAllEqual(stats.relative_mse, relative_mse)
     self.assertAllEqual(stats.relative_mae, relative_mae)
     self.assertEqual(stats.percentile_ranks, percentile_ranks)
-    self.assertAllEqual(
-        stats.absolute_error_percentiles, absolute_error_percentiles
-    )
-    self.assertAllEqual(
-        stats.relative_error_percentiles, relative_error_percentiles
-    )
+    self.assertAllEqual(stats.absolute_error_percentiles,
+                        absolute_error_percentiles)
+    self.assertAllEqual(stats.relative_error_percentiles,
+                        relative_error_percentiles)
     self.assertIsNone(stats.absolute_delta_mse)
     self.assertIsNone(stats.absolute_delta_mae)
     self.assertIsNone(stats.absolute_delta_error_percentiles)
@@ -85,12 +83,10 @@ class TrainingEpochStatsTest(tf.test.TestCase):
     self.assertAllEqual(stats.relative_mse, relative_mse)
     self.assertAllEqual(stats.relative_mae, relative_mae)
     self.assertEqual(stats.percentile_ranks, percentile_ranks)
-    self.assertAllEqual(
-        stats.absolute_error_percentiles, absolute_error_percentiles
-    )
-    self.assertAllEqual(
-        stats.relative_error_percentiles, relative_error_percentiles
-    )
+    self.assertAllEqual(stats.absolute_error_percentiles,
+                        absolute_error_percentiles)
+    self.assertAllEqual(stats.relative_error_percentiles,
+                        relative_error_percentiles)
     self.assertIsNone(stats.absolute_delta_mse)
     self.assertIsNone(stats.absolute_delta_mae)
     self.assertIsNone(stats.absolute_delta_error_percentiles)
@@ -126,15 +122,12 @@ class TrainingEpochStatsTest(tf.test.TestCase):
     self.assertAllEqual(stats.relative_mse, relative_mse)
     self.assertAllEqual(stats.relative_mae, relative_mae)
     self.assertAllEqual(stats.absolute_delta_mse, absolute_delta_mse)
-    self.assertAllEqual(
-        stats.absolute_error_percentiles, absolute_error_percentiles
-    )
-    self.assertAllEqual(
-        stats.relative_error_percentiles, relative_error_percentiles
-    )
-    self.assertAllEqual(
-        stats.absolute_delta_error_percentiles, absolute_delta_error_percentiles
-    )
+    self.assertAllEqual(stats.absolute_error_percentiles,
+                        absolute_error_percentiles)
+    self.assertAllEqual(stats.relative_error_percentiles,
+                        relative_error_percentiles)
+    self.assertAllEqual(stats.absolute_delta_error_percentiles,
+                        absolute_delta_error_percentiles)
 
   def test_initialize_with_invalid_shapes(self):
     with self.assertRaisesRegex(ValueError, 'relative_mse'):
@@ -287,8 +280,7 @@ class TrainingEpochStatsTest(tf.test.TestCase):
     expected_output = (
         'epoch: 123, loss: 345\n'
         'absolute mse: [234], 50%: [5.0], 90%: [9.0]\n'
-        'relative mse: [0.1], mae: [0.2], 50%: [0.5], 90%: [0.9]'
-    )
+        'relative mse: [0.1], mae: [0.2], 50%: [0.5], 90%: [0.9]')
     self.assertEqual(str(stats), expected_output)
 
   def test_string_conversion_multitask(self):
@@ -300,19 +292,16 @@ class TrainingEpochStatsTest(tf.test.TestCase):
         relative_mse=np.array((0.1, 0.2)),
         percentile_ranks=[50, 75, 90],
         absolute_error_percentiles=np.array(
-            ((5.0, 6.0), (9.0, 10.0), (13.0, 14.0))
-        ),
+            ((5.0, 6.0), (9.0, 10.0), (13.0, 14.0))),
         relative_error_percentiles=np.array(
-            ((0.5, 0.6), (0.9, 1.0), (1.3, 1.4))
-        ),
+            ((0.5, 0.6), (0.9, 1.0), (1.3, 1.4))),
     )
     expected_outputs = (
         'epoch: 123, loss: 345\n'
         'absolute mse: [234, 235], 50%: [5.0, 6.0], 75%: [9.0, 10.0],'
         ' 90%: [13.0, 14.0]\n'
         'relative mse: [0.1, 0.2], mae: [0.2, 0.3], 50%: [0.5, 0.6],'
-        ' 75%: [0.9, 1.0], 90%: [1.3, 1.4]'
-    )
+        ' 75%: [0.9, 1.0], 90%: [1.3, 1.4]')
     self.assertEqual(str(stats), expected_outputs)
 
   def test_string_conversion_no_percentiles(self):
@@ -326,11 +315,9 @@ class TrainingEpochStatsTest(tf.test.TestCase):
         absolute_error_percentiles=np.array(()),
         relative_error_percentiles=np.array(()),
     )
-    expected_output = (
-        'epoch: 123, loss: 345\n'
-        'absolute mse: [234]\n'
-        'relative mse: [0.1], mae: [0.2]'
-    )
+    expected_output = ('epoch: 123, loss: 345\n'
+                       'absolute mse: [234]\n'
+                       'relative mse: [0.1], mae: [0.2]')
     self.assertEqual(str(stats), expected_output)
 
   def test_string_conversion_with_seq2seq_stats(self):
@@ -351,8 +338,7 @@ class TrainingEpochStatsTest(tf.test.TestCase):
         'epoch: 123, loss: 345\n'
         'absolute mse: [234], 50%: [5.0], 90%: [9.0]\n'
         'relative mse: [0.1], mae: [0.2], 50%: [0.5], 90%: [0.9]\n'
-        'absolute delta mse: [321], mae: [23], 50%: [0.3], 90%: [0.4]'
-    )
+        'absolute delta mse: [321], mae: [23], 50%: [0.3], 90%: [0.4]')
     self.assertEqual(str(stats), expected_output)
 
 
@@ -369,36 +355,29 @@ class BatchesTest(
     return self.blocks_with_throughput if with_throughput else self.blocks
 
   def _get_num_instructions_callback(self, with_throughput):
-    return (
-        training.get_num_instructions_in_block_with_throughput
-        if with_throughput
-        else training.get_num_instructions_in_block
-    )
+    return (training.get_num_instructions_in_block_with_throughput
+            if with_throughput else training.get_num_instructions_in_block)
 
-  @parameterized.named_parameters(
-      ('with throughput', True), ('without throughput', False)
-  )
+  @parameterized.named_parameters(('with throughput', True),
+                                  ('without throughput', False))
   def test_no_limit(self, with_throughput):
     blocks = self._get_blocks(with_throughput)
     get_num_instructions = self._get_num_instructions_callback(with_throughput)
     batches = tuple(training.batches(blocks, get_num_instructions))
     self.assertSequenceEqual(batches, (blocks,))
 
-  @parameterized.named_parameters(
-      ('with throughput', True), ('without throughput', False)
-  )
+  @parameterized.named_parameters(('with throughput', True),
+                                  ('without throughput', False))
   def test_max_blocks_limit(self, with_throughput):
     blocks = self._get_blocks(with_throughput)
     get_num_instructions = self._get_num_instructions_callback(with_throughput)
     batches = tuple(
-        training.batches(blocks, get_num_instructions, max_blocks_in_batch=3)
-    )
+        training.batches(blocks, get_num_instructions, max_blocks_in_batch=3))
     expected_batches = (blocks[0:3], blocks[3:6], blocks[6:9], [blocks[9]])
     self.assertSequenceEqual(batches, expected_batches)
 
-  @parameterized.named_parameters(
-      ('with throughput', True), ('without throughput', False)
-  )
+  @parameterized.named_parameters(('with throughput', True),
+                                  ('without throughput', False))
   def test_max_instruction_limit(self, with_throughput):
     blocks = self._get_blocks(with_throughput)
     get_num_instructions = self._get_num_instructions_callback(with_throughput)
@@ -407,9 +386,7 @@ class BatchesTest(
     # Lengths of blocks in self.blocks are: [1, 5, 1, 8, 3, 4, 1, 2, 9, 4].
     batches = tuple(
         training.batches(
-            blocks, get_num_instructions, max_instructions_in_batch=8
-        )
-    )
+            blocks, get_num_instructions, max_instructions_in_batch=8))
     expected_batches = (
         blocks[0:3],
         [blocks[3]],
@@ -418,9 +395,8 @@ class BatchesTest(
     )
     self.assertSequenceEqual(batches, expected_batches)
 
-  @parameterized.named_parameters(
-      ('with throughput', True), ('without throughput', False)
-  )
+  @parameterized.named_parameters(('with throughput', True),
+                                  ('without throughput', False))
   def test_both_limits(self, with_throughput):
     blocks = self._get_blocks(with_throughput)
     get_num_instructions = self._get_num_instructions_callback(with_throughput)
@@ -430,8 +406,7 @@ class BatchesTest(
             get_num_instructions,
             max_blocks_in_batch=2,
             max_instructions_in_batch=8,
-        )
-    )
+        ))
     expected_batches = (
         blocks[0:2],
         [blocks[2]],

@@ -31,9 +31,7 @@ class GetTokensFromCommandLineFlagsTest(tf.test.TestCase):
     # No tokens are returned even if model_tokens is provided.
     self.assertIsNone(
         token_model_flags.get_tokens_from_command_line_flags(
-            ('FOO', 'BAR', 'BAZ')
-        )
-    )
+            ('FOO', 'BAR', 'BAZ')))
 
   @flagsaver.flagsaver
   def test_empty_file(self):
@@ -46,8 +44,7 @@ class GetTokensFromCommandLineFlagsTest(tf.test.TestCase):
     self.assertEmpty(loaded_tokens)
 
     loaded_tokens = token_model_flags.get_tokens_from_command_line_flags(
-        model_tokens
-    )
+        model_tokens)
     self.assertSequenceEqual(loaded_tokens, sorted(model_tokens))
 
   @flagsaver.flagsaver
@@ -63,11 +60,9 @@ class GetTokensFromCommandLineFlagsTest(tf.test.TestCase):
     self.assertSequenceEqual(loaded_tokens, sorted(file_tokens))
 
     loaded_tokens = token_model_flags.get_tokens_from_command_line_flags(
-        model_tokens
-    )
-    self.assertSequenceEqual(
-        loaded_tokens, sorted((*file_tokens, *model_tokens))
-    )
+        model_tokens)
+    self.assertSequenceEqual(loaded_tokens, sorted(
+        (*file_tokens, *model_tokens)))
 
   @flagsaver.flagsaver
   def test_file_with_comments(self):
@@ -90,8 +85,7 @@ class GetTokensFromCommandLineFlagsTest(tf.test.TestCase):
     self.assertSequenceEqual(loaded_tokens, ('BAR', 'BAZ', 'FOO'))
 
     loaded_tokens = token_model_flags.get_tokens_from_command_line_flags(
-        model_tokens
-    )
+        model_tokens)
     self.assertSequenceEqual(loaded_tokens, ('BAR', 'BAZ', 'DEL', 'FOO', 'MO'))
 
 
@@ -100,30 +94,24 @@ class GetOovTokenBehaviorFromCommandLineFlags(tf.test.TestCase):
   @flagsaver.flagsaver
   def test_default_and_empty(self):
     oov_token_behavior = (
-        token_model_flags.get_oov_token_behavior_from_command_line_flags()
-    )
-    self.assertEqual(
-        oov_token_behavior.behavior_type, oov_token_behavior.RETURN_ERROR
-    )
+        token_model_flags.get_oov_token_behavior_from_command_line_flags())
+    self.assertEqual(oov_token_behavior.behavior_type,
+                     oov_token_behavior.RETURN_ERROR)
 
     FLAGS.gematria_out_of_vocabulary_replacement_token = ''
     oov_token_behavior = (
-        token_model_flags.get_oov_token_behavior_from_command_line_flags()
-    )
-    self.assertEqual(
-        oov_token_behavior.behavior_type, oov_token_behavior.RETURN_ERROR
-    )
+        token_model_flags.get_oov_token_behavior_from_command_line_flags())
+    self.assertEqual(oov_token_behavior.behavior_type,
+                     oov_token_behavior.RETURN_ERROR)
 
   @flagsaver.flagsaver
   def test_some_token(self):
     token = 'FOO'
     FLAGS.gematria_out_of_vocabulary_replacement_token = token
     oov_token_behavior = (
-        token_model_flags.get_oov_token_behavior_from_command_line_flags()
-    )
-    self.assertEqual(
-        oov_token_behavior.behavior_type, oov_token_behavior.REPLACE_TOKEN
-    )
+        token_model_flags.get_oov_token_behavior_from_command_line_flags())
+    self.assertEqual(oov_token_behavior.behavior_type,
+                     oov_token_behavior.REPLACE_TOKEN)
     self.assertEqual(oov_token_behavior.replacement_token, token)
 
 

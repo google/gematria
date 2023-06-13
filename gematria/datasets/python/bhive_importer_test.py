@@ -22,12 +22,9 @@ from gematria.proto import canonicalized_instruction_pb2
 from gematria.proto import throughput_pb2
 
 _CanonicalizedOperandProto = (
-    canonicalized_instruction_pb2.CanonicalizedOperandProto
-)
+    canonicalized_instruction_pb2.CanonicalizedOperandProto)
 _CanonicalizedInstructionProto = (
-    canonicalized_instruction_pb2.CanonicalizedInstructionProto
-)
-
+    canonicalized_instruction_pb2.CanonicalizedInstructionProto)
 
 # A basic block that can be obtained by disassembling the basic block
 # "4829d38b44246c8b54246848c1fb034829d04839c3" and using base_address=600.
@@ -73,9 +70,8 @@ _EXPECTED_BASIC_BLOCK_PROTO = basic_block_pb2.BasicBlockProto(
                 _CanonicalizedOperandProto(register_name="RBX"),
                 _CanonicalizedOperandProto(register_name="RDX"),
             ),
-            implicit_output_operands=(
-                _CanonicalizedOperandProto(register_name="EFLAGS"),
-            ),
+            implicit_output_operands=(_CanonicalizedOperandProto(
+                register_name="EFLAGS"),),
         ),
         _CanonicalizedInstructionProto(
             mnemonic="MOV",
@@ -84,14 +80,10 @@ _EXPECTED_BASIC_BLOCK_PROTO = basic_block_pb2.BasicBlockProto(
             input_operands=(
                 _CanonicalizedOperandProto(
                     memory=_CanonicalizedOperandProto.MemoryLocation(
-                        alias_group_id=1
-                    )
-                ),
+                        alias_group_id=1)),
                 _CanonicalizedOperandProto(
                     address=_CanonicalizedOperandProto.AddressTuple(
-                        base_register="RSP", displacement=108, scaling=1
-                    )
-                ),
+                        base_register="RSP", displacement=108, scaling=1)),
             ),
         ),
         _CanonicalizedInstructionProto(
@@ -101,14 +93,10 @@ _EXPECTED_BASIC_BLOCK_PROTO = basic_block_pb2.BasicBlockProto(
             input_operands=(
                 _CanonicalizedOperandProto(
                     memory=_CanonicalizedOperandProto.MemoryLocation(
-                        alias_group_id=1
-                    )
-                ),
+                        alias_group_id=1)),
                 _CanonicalizedOperandProto(
                     address=_CanonicalizedOperandProto.AddressTuple(
-                        base_register="RSP", displacement=104, scaling=1
-                    )
-                ),
+                        base_register="RSP", displacement=104, scaling=1)),
             ),
         ),
         _CanonicalizedInstructionProto(
@@ -119,9 +107,8 @@ _EXPECTED_BASIC_BLOCK_PROTO = basic_block_pb2.BasicBlockProto(
                 _CanonicalizedOperandProto(register_name="RBX"),
                 _CanonicalizedOperandProto(immediate_value=3),
             ),
-            implicit_output_operands=(
-                _CanonicalizedOperandProto(register_name="EFLAGS"),
-            ),
+            implicit_output_operands=(_CanonicalizedOperandProto(
+                register_name="EFLAGS"),),
         ),
         _CanonicalizedInstructionProto(
             mnemonic="SUB",
@@ -131,9 +118,8 @@ _EXPECTED_BASIC_BLOCK_PROTO = basic_block_pb2.BasicBlockProto(
                 _CanonicalizedOperandProto(register_name="RAX"),
                 _CanonicalizedOperandProto(register_name="RDX"),
             ),
-            implicit_output_operands=(
-                _CanonicalizedOperandProto(register_name="EFLAGS"),
-            ),
+            implicit_output_operands=(_CanonicalizedOperandProto(
+                register_name="EFLAGS"),),
         ),
         _CanonicalizedInstructionProto(
             mnemonic="CMP",
@@ -142,9 +128,8 @@ _EXPECTED_BASIC_BLOCK_PROTO = basic_block_pb2.BasicBlockProto(
                 _CanonicalizedOperandProto(register_name="RBX"),
                 _CanonicalizedOperandProto(register_name="RAX"),
             ),
-            implicit_output_operands=(
-                _CanonicalizedOperandProto(register_name="EFLAGS"),
-            ),
+            implicit_output_operands=(_CanonicalizedOperandProto(
+                register_name="EFLAGS"),),
         ),
     ),
 )
@@ -161,24 +146,19 @@ class BhiveImporterTest(absltest.TestCase):
   def test_x86_basic_block_proto_from_bytes(self):
     importer = bhive_importer.BHiveImporter(self._x86_canonicalizer)
     block_proto = importer.basic_block_proto_from_bytes(
-        b"\x90", base_address=999
-    )
+        b"\x90", base_address=999)
     self.assertEqual(
         block_proto,
         basic_block_pb2.BasicBlockProto(
-            machine_instructions=(
-                basic_block_pb2.MachineInstructionProto(
-                    assembly="\tnop",
-                    machine_code=b"\x90",
-                    address=999,
-                ),
-            ),
-            canonicalized_instructions=(
-                _CanonicalizedInstructionProto(
-                    mnemonic="nop",
-                    llvm_mnemonic="NOOP",
-                ),
-            ),
+            machine_instructions=(basic_block_pb2.MachineInstructionProto(
+                assembly="\tnop",
+                machine_code=b"\x90",
+                address=999,
+            ),),
+            canonicalized_instructions=(_CanonicalizedInstructionProto(
+                mnemonic="nop",
+                llvm_mnemonic="NOOP",
+            ),),
         ),
     )
 
@@ -211,12 +191,10 @@ class BhiveImporterTest(absltest.TestCase):
         block_proto,
         throughput_pb2.BasicBlockWithThroughputProto(
             basic_block=_EXPECTED_BASIC_BLOCK_PROTO,
-            inverse_throughputs=(
-                throughput_pb2.ThroughputWithSourceProto(
-                    source=source_name,
-                    inverse_throughput_cycles=[20.0],
-                ),
-            ),
+            inverse_throughputs=(throughput_pb2.ThroughputWithSourceProto(
+                source=source_name,
+                inverse_throughput_cycles=[20.0],
+            ),),
         ),
     )
 

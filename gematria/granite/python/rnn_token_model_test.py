@@ -27,8 +27,7 @@ _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 class RnnTokenModelTest(parameterized.TestCase, model_test.TestCase):
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_train_seq2num(self, loss_type, loss_normalization):
     num_message_passing_iterations = 1
     node_embedding_size = 8
@@ -117,8 +116,7 @@ class RnnTokenModelTest(parameterized.TestCase, model_test.TestCase):
     self.check_training_model(model, self.blocks_with_throughput)
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_train_seq2seq(self, loss_type, loss_normalization):
     num_message_passing_iterations = 1
     node_embedding_size = 8

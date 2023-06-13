@@ -24,9 +24,8 @@ from google.protobuf import message
 Proto = TypeVar('Proto', bound=message.Message)
 
 
-def read_protos(
-    filenames: Sequence[str], proto_class: Type[Proto]
-) -> Iterable[Proto]:
+def read_protos(filenames: Sequence[str],
+                proto_class: Type[Proto]) -> Iterable[Proto]:
   """Reads protos of type `Proto` from `filenames`.
 
   Assumes that `filenames` is a list of files that each contains serialized

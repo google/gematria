@@ -17,8 +17,7 @@ from collections.abc import Sequence
 
 # Common error messages for flag validators.
 MUST_BE_POSITIVE_INTEGER_LIST_ERROR = (
-    'Flag must contain a list of positive integers.'
-)
+    'Flag must contain a list of positive integers.')
 MUST_BE_POSITIVE_ERROR = 'Flag must contain a positive number.'
 MUST_BE_BETWEEN_ZERO_AND_ONE = 'Flag must be a float between zero and one.'
 

@@ -91,16 +91,12 @@ def apply_filters(
     logging.info('Items removed by filter %s: %d', filter_name, num_items)
 
 
-def _keep_all_throughputs(
-    throughputs: MutableSequence[float],
-) -> None:
+def _keep_all_throughputs(throughputs: MutableSequence[float],) -> None:
   """Keeps the contents of `throughputs` untouched."""
   del throughputs  # Unused
 
 
-def _mean_throughput(
-    throughputs: MutableSequence[float],
-) -> None:
+def _mean_throughput(throughputs: MutableSequence[float],) -> None:
   """Replaces the contents of `throughputs` with its mean value."""
   if not throughputs:
     return
@@ -108,9 +104,7 @@ def _mean_throughput(
   throughputs[:] = (mean_throughput,)
 
 
-def _min_throughput(
-    throughputs: MutableSequence[float],
-) -> None:
+def _min_throughput(throughputs: MutableSequence[float],) -> None:
   """Replaces the contents of `throughputs` with its min value."""
   if not throughputs:
     return
@@ -118,9 +112,7 @@ def _min_throughput(
   throughputs[:] = (min_throughput,)
 
 
-def _first_throughput(
-    throughputs: MutableSequence[float],
-) -> None:
+def _first_throughput(throughputs: MutableSequence[float],) -> None:
   """Replaces the contents of `throughputs` with its first value."""
   if not throughputs:
     return
@@ -148,8 +140,7 @@ def aggregate_throughputs(
   throughput_filter = _THROUGHPUT_SELECTION_FUNCTION.get(throughput_selection)
   if throughput_filter is None:
     raise ValueError(
-        f'Invalid throughput selection strategy: {throughput_selection!r}'
-    )
+        f'Invalid throughput selection strategy: {throughput_selection!r}')
   for throughput in block.inverse_throughputs:
     throughput_filter(throughput.inverse_throughput_cycles)
     for prefix_throughputs in throughput.prefix_inverse_throughputs:
@@ -157,9 +148,8 @@ def aggregate_throughputs(
   return block
 
 
-def _scale_values(
-    values: MutableSequence[float], scaling_factor: float
-) -> None:
+def _scale_values(values: MutableSequence[float],
+                  scaling_factor: float) -> None:
   for i in range(len(values)):
     values[i] *= scaling_factor
 
@@ -198,9 +188,8 @@ def scale_throughputs(
   for throughput in block.inverse_throughputs:
     _scale_values(throughput.inverse_throughput_cycles, scaling_factor)
     for prefix_throughputs in throughput.prefix_inverse_throughputs:
-      _scale_values(
-          prefix_throughputs.inverse_throughput_cycles, scaling_factor
-      )
+      _scale_values(prefix_throughputs.inverse_throughput_cycles,
+                    scaling_factor)
   return block
 
 

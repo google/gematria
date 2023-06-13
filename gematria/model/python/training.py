@@ -92,30 +92,23 @@ class TrainingEpochStats:
     """
     # Check that if there are seq2seq stats, none of them is None.
     has_delta_stats = (
-        self.absolute_delta_mse is not None
-        or self.absolute_delta_mae is not None
-        or self.absolute_delta_error_percentiles is not None
-    )
+        self.absolute_delta_mse is not None or
+        self.absolute_delta_mae is not None or
+        self.absolute_delta_error_percentiles is not None)
     if has_delta_stats and self.absolute_delta_mse is None:
       raise ValueError(
-          'Incomplete seq2seq statistics: absolute_delta_mse is missing'
-      )
+          'Incomplete seq2seq statistics: absolute_delta_mse is missing')
     if has_delta_stats and self.absolute_delta_mae is None:
       raise ValueError(
-          'Incomplete seq2seq statistics: absolute_delta_mae is missing'
-      )
+          'Incomplete seq2seq statistics: absolute_delta_mae is missing')
     if has_delta_stats and self.absolute_delta_error_percentiles is None:
-      raise ValueError(
-          'Incomplete seq2seq statistics: '
-          'absolute_delta_error_percentiles is missing'
-      )
+      raise ValueError('Incomplete seq2seq statistics: '
+                       'absolute_delta_error_percentiles is missing')
 
     # Check that the dimensions of all the arrays match.
     if len(self.absolute_mse.shape) != 1:
-      raise ValueError(
-          'Expected absolute_mse to have shape [num_tasks],'
-          f' found {self.absolute_mse.shape}'
-      )
+      raise ValueError('Expected absolute_mse to have shape [num_tasks],'
+                       f' found {self.absolute_mse.shape}')
     num_tasks = self.absolute_mse.shape[0]
     num_percentile_ranks = len(self.percentile_ranks)
     expected_percentile_shape = (num_percentile_ranks, num_tasks)
@@ -123,62 +116,46 @@ class TrainingEpochStats:
       expected_percentile_shape = (0,)
 
     if self.relative_mae.shape != self.absolute_mse.shape:
-      raise ValueError(
-          'Expected relative_mae to have shape'
-          f' {self.absolute_mse.shape}, found'
-          f' {self.relative_mae.shape}'
-      )
+      raise ValueError('Expected relative_mae to have shape'
+                       f' {self.absolute_mse.shape}, found'
+                       f' {self.relative_mae.shape}')
     if self.relative_mse.shape != self.absolute_mse.shape:
-      raise ValueError(
-          'Expected relative_mse to have shape'
-          f' {self.absolute_mse.shape}, found'
-          f' {self.relative_mae.shape}'
-      )
+      raise ValueError('Expected relative_mse to have shape'
+                       f' {self.absolute_mse.shape}, found'
+                       f' {self.relative_mae.shape}')
 
     if self.absolute_error_percentiles.shape != expected_percentile_shape:
-      raise ValueError(
-          'Expected absolute_error_percentiles to have shape'
-          f' [{num_percentile_ranks}, {num_tasks}], found'
-          f' {self.absolute_error_percentiles.shape}'
-      )
+      raise ValueError('Expected absolute_error_percentiles to have shape'
+                       f' [{num_percentile_ranks}, {num_tasks}], found'
+                       f' {self.absolute_error_percentiles.shape}')
     if self.relative_error_percentiles.shape != expected_percentile_shape:
-      raise ValueError(
-          'Expected relative_error_percentiles to have shape'
-          f' [{num_percentile_ranks}, {num_tasks}], found'
-          f' {self.absolute_error_percentiles.shape}'
-      )
+      raise ValueError('Expected relative_error_percentiles to have shape'
+                       f' [{num_percentile_ranks}, {num_tasks}], found'
+                       f' {self.absolute_error_percentiles.shape}')
 
     if has_delta_stats:
       # We already checked that all of them are present above.
       if self.absolute_delta_mse.shape != self.absolute_mse.shape:
-        raise ValueError(
-            'Expected absolute_delta_mse to have shape'
-            f' {self.absolute_mse.shape}, found'
-            f' {self.absolute_delta_mse.shape}'
-        )
+        raise ValueError('Expected absolute_delta_mse to have shape'
+                         f' {self.absolute_mse.shape}, found'
+                         f' {self.absolute_delta_mse.shape}')
       if self.absolute_delta_mae.shape != self.absolute_mse.shape:
-        raise ValueError(
-            'Expected absolute_delta_mae to have shape'
-            f' {self.absolute_mse.shape}, found'
-            f' {self.absolute_delta_mae.shape}'
-        )
-      if (
-          self.absolute_delta_error_percentiles.shape
-          != expected_percentile_shape
-      ):
+        raise ValueError('Expected absolute_delta_mae to have shape'
+                         f' {self.absolute_mse.shape}, found'
+                         f' {self.absolute_delta_mae.shape}')
+      if (self.absolute_delta_error_percentiles.shape
+          != expected_percentile_shape):
         raise ValueError(
             'Expected absolute_delta_error_percentiles to have shape'
             f' {self.relative_error_percentiles.shape}, found'
-            f' {self.absolute_delta_error_percentiles.shape}'
-        )
+            f' {self.absolute_delta_error_percentiles.shape}')
 
   def __str__(self) -> str:
     """Converts the stats to a human-readable string."""
     parts = [
         f'epoch: {self.epoch}, loss: {self.loss}',
-        self._format_loss_string(
-            'absolute', self.absolute_mse, None, self.absolute_error_percentiles
-        ),
+        self._format_loss_string('absolute', self.absolute_mse, None,
+                                 self.absolute_error_percentiles),
         self._format_loss_string(
             'relative',
             self.relative_mse,
@@ -193,8 +170,7 @@ class TrainingEpochStats:
               self.absolute_delta_mse,
               self.absolute_delta_mae,
               self.absolute_delta_error_percentiles,
-          )
-      )
+          ))
     return '\n'.join(parts)
 
   def _format_loss_string(
@@ -222,8 +198,7 @@ def get_num_instructions_in_block(block: basic_block.BasicBlock) -> int:
 
 
 def get_num_instructions_in_block_with_throughput(
-    block: throughput.BasicBlockWithThroughput,
-) -> int:
+    block: throughput.BasicBlockWithThroughput,) -> int:
   """Returns the number of instructions in a basic block with throughput."""
   return len(block.block.instructions)
 
@@ -276,21 +251,16 @@ def batches(
       # This block alone has more instruction than we allow in a single batch.
       # We skip this basic block.
       logging.warn(
-          (
-              'Single basic block has more instructions (%d) than the '
-              'allowed limit per batch (%d). Skipping the basic block'
-          ),
+          ('Single basic block has more instructions (%d) than the '
+           'allowed limit per batch (%d). Skipping the basic block'),
           num_instructions_in_block,
           max_instructions_in_batch,
       )
       continue
     new_instructions_in_batch = (
-        num_instructions_in_batch + num_instructions_in_block
-    )
-    if (
-        new_instructions_in_batch > max_instructions_in_batch
-        or len(current_batch) == max_blocks_in_batch
-    ):
+        num_instructions_in_batch + num_instructions_in_block)
+    if (new_instructions_in_batch > max_instructions_in_batch or
+        len(current_batch) == max_blocks_in_batch):
       yield current_batch
       current_batch = []
       num_instructions_in_batch = 0
@@ -300,9 +270,9 @@ def batches(
     yield current_batch
 
 
-def partially_restore_from_checkpoint(
-    checkpoint_file: str, load_global_step_from_ckpt: bool, sess: tf.Session
-) -> None:
+def partially_restore_from_checkpoint(checkpoint_file: str,
+                                      load_global_step_from_ckpt: bool,
+                                      sess: tf.Session) -> None:
   """Partially restores a checkpoint to the current graph.
 
   Reads the list of variables from a checkpoint and from the current graph, and
@@ -321,15 +291,13 @@ def partially_restore_from_checkpoint(
   dtypes = reader.get_variable_to_dtype_map()
 
   if load_global_step_from_ckpt:
-    logging.info(
-        'Loading global step from checkpoint file: %s', checkpoint_file
-    )
+    logging.info('Loading global step from checkpoint file: %s',
+                 checkpoint_file)
     global_step = tf.train.get_global_step()
     global_step.load(reader.get_tensor('global_step'), sess)
 
   for variable in tf.get_collection(
-      tf.GraphKeys.TRAINABLE_VARIABLES, scope=None
-  ):
+      tf.GraphKeys.TRAINABLE_VARIABLES, scope=None):
     # All variable names should end with ':0'; this ':0' is not used in the
     # checkpoint.
     if not variable.name.endswith(':0'):

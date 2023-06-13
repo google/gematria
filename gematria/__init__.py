@@ -28,7 +28,6 @@
 import os
 import sys
 
-
 _THIRD_PARTY_REPOS = (
     'graph_nets',
     'pybind11_abseil',
@@ -45,8 +44,7 @@ def _setup_third_party_repos():
 
   root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
   third_party_repo_paths = tuple(
-      os.path.join(root, repo_name) for repo_name in _THIRD_PARTY_REPOS
-  )
+      os.path.join(root, repo_name) for repo_name in _THIRD_PARTY_REPOS)
 
   for i, path in enumerate(sys.path):
     if not path:

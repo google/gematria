@@ -40,8 +40,7 @@ class TestGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
   def __init__(
       self,
       out_of_vocabulary_behavior=_OutOfVocabularyTokenBehavior.return_error(),
-      **kwargs
-  ):
+      **kwargs):
     super().__init__(
         learning_rate=0.02,
         dtype=tf.dtypes.float32,
@@ -50,8 +49,7 @@ class TestGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
         address_token=tokens.ADDRESS,
         memory_token=tokens.MEMORY,
         out_of_vocabulary_behavior=out_of_vocabulary_behavior,
-        **kwargs
-    )
+        **kwargs)
 
   def _make_model_name(self):
     return 'TestGraphBuilderModel'
@@ -83,9 +81,8 @@ class TestGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
                     embed_dim=1,
                     initializers=embedding_initializers,
                 ),
-                global_model_fn=functools.partial(
-                    model_blocks.cast, self.dtype
-                ),
+                global_model_fn=functools.partial(model_blocks.cast,
+                                                  self.dtype),
             ),
             num_iterations=1,
             layer_normalization=options.EnableFeature.NEVER,
@@ -135,31 +132,26 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
 
   def test_schedule_batch(self):
     model = TestGraphBuilderModel(
-        tokens=self.tokens, num_message_passing_iterations=1
-    )
+        tokens=self.tokens, num_message_passing_iterations=1)
     model.initialize()
     schedule = model.schedule_batch(self.blocks_with_throughput)
     self.assertEqual(
         schedule[model._graphs_tuple_placeholders.globals].shape,
         (3, len(self.tokens)),
     )
-    self.assertEqual(
-        schedule[model._graphs_tuple_placeholders.nodes].shape, (26,)
-    )
-    self.assertAllEqual(
-        schedule[model._graphs_tuple_placeholders.edges].shape, (30,)
-    )
+    self.assertEqual(schedule[model._graphs_tuple_placeholders.nodes].shape,
+                     (26,))
+    self.assertAllEqual(schedule[model._graphs_tuple_placeholders.edges].shape,
+                        (30,))
 
   def test_node_token_names(self):
     model = TestGraphBuilderModel(
-        tokens=self.tokens, num_message_passing_iterations=1
-    )
+        tokens=self.tokens, num_message_passing_iterations=1)
     model.initialize()
     # Check that the node token tensors are marked as an output tensors by the
     # model.
-    self.assertIn(
-        token_model.TokenModel.TOKENS_TENSOR_NAME, model.output_tensor_names
-    )
+    self.assertIn(token_model.TokenModel.TOKENS_TENSOR_NAME,
+                  model.output_tensor_names)
     self.assertIn(
         TestGraphBuilderModel.SPECIAL_TOKENS_TENSOR_NAME,
         model.output_tensor_names,
@@ -171,9 +163,8 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
       # NOTE(ondrasej): The conversion to a tuple (or another collection) is
       # needed - otherwise, assertAll would treat expected_token_names as
       # a scalar array with a single string value.
-      expected_token_names = tuple(
-          b'\0'.join(token.encode('utf-8') for token in self.tokens)
-      )
+      expected_token_names = tuple(b'\0'.join(
+          token.encode('utf-8') for token in self.tokens))
       self.assertAllEqual(expected_token_names, token_names)
 
       special_tokens = sess.run(model.special_tokens_tensor)
@@ -182,8 +173,7 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
       self.assertAllGreaterEqual(special_tokens, -1)
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_train_seq2num_model(self, loss_type, loss_normalization):
     model = TestGraphBuilderModel(
         tokens=self.tokens,
@@ -195,12 +185,10 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
     )
     model.initialize()
     self.check_training_model(
-        model, self.blocks_with_throughput[0:1], num_epochs=50
-    )
+        model, self.blocks_with_throughput[0:1], num_epochs=50)
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_train_seq2seq_model(self, loss_type, loss_normalization):
     model = TestGraphBuilderModel(
         tokens=self.tokens,
@@ -212,13 +200,11 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
     )
     model.initialize()
     self.check_training_model(
-        model, self.blocks_with_throughput[0:1], num_epochs=50
-    )
+        model, self.blocks_with_throughput[0:1], num_epochs=50)
 
   def test_validate_basic_block(self):
     model = TestGraphBuilderModel(
-        tokens=self.tokens, num_message_passing_iterations=1
-    )
+        tokens=self.tokens, num_message_passing_iterations=1)
     model.initialize()
 
     for block in self.blocks_with_throughput:
@@ -227,11 +213,8 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
     # This basic block is invalid - there is no x86-64 instruction `FOOBAR`.
     invalid_block = throughput.BasicBlockWithThroughput(
         block=basic_block.BasicBlock(
-            basic_block.InstructionList((
-                basic_block.Instruction(mnemonic='FOOBAR'),
-            ))
-        )
-    )
+            basic_block.InstructionList((basic_block.Instruction(
+                mnemonic='FOOBAR'),))))
     self.assertFalse(model.validate_basic_block_with_throughput(invalid_block))
     self.assertFalse(model.validate_basic_block(invalid_block.block))
 
@@ -247,8 +230,7 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
 
   def test_inject_out_of_vocabulary_tokens(self):
     oov_behavior = _OutOfVocabularyTokenBehavior.replace_with_token(
-        tokens.UNKNOWN
-    )
+        tokens.UNKNOWN)
     model = TestGraphBuilderModel(
         tokens=self.tokens,
         num_message_passing_iterations=1,
@@ -266,8 +248,7 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
 
   def test_inject_out_of_vocabulary_estimate(self):
     oov_behavior = _OutOfVocabularyTokenBehavior.replace_with_token(
-        tokens.UNKNOWN
-    )
+        tokens.UNKNOWN)
     injection_probability = 0.3
     model = TestGraphBuilderModel(
         tokens=self.tokens,
@@ -287,8 +268,7 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
     for _ in range(num_trials):
       schedule = model.schedule_batch(self.blocks_with_throughput)
       oov_token_mask = (
-          schedule[model._graphs_tuple_placeholders.nodes] == model._oov_token
-      )
+          schedule[model._graphs_tuple_placeholders.nodes] == model._oov_token)
       num_ones += sum(oov_token_mask)
       num_all_elements += oov_token_mask.size
 
@@ -297,8 +277,7 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
 
   def test_inject_out_of_vocabulary_tokens_zero_probability(self):
     oov_behavior = _OutOfVocabularyTokenBehavior.replace_with_token(
-        tokens.UNKNOWN
-    )
+        tokens.UNKNOWN)
     model = TestGraphBuilderModel(
         tokens=self.tokens,
         num_message_passing_iterations=1,
@@ -315,8 +294,7 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
       # replacement token is never used.
       schedule = model.schedule_batch(self.blocks_with_throughput)
       oov_token_mask = (
-          schedule[model._graphs_tuple_placeholders.nodes] == model._oov_token
-      )
+          schedule[model._graphs_tuple_placeholders.nodes] == model._oov_token)
       expected_oov_token_mask = np.zeros_like(oov_token_mask)
       self.assertAllEqual(oov_token_mask, expected_oov_token_mask)
 

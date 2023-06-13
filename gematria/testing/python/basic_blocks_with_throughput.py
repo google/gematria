@@ -30,8 +30,7 @@ from gematria.proto import throughput_pb2
 # The path to the basic blocks in text format in the resources of the test.
 _ROOT_PATH = 'com_google_gematria'
 _BASIC_BLOCK_RESOURCE_PATH = os.path.join(
-    _ROOT_PATH, 'gematria/testing/testdata/basic_blocks_with_throughput.pbtxt'
-)
+    _ROOT_PATH, 'gematria/testing/testdata/basic_blocks_with_throughput.pbtxt')
 # Parsed basic block. An exception is thrown if the basic blocks do not parse.
 _BASIC_BLOCKS: throughput_pb2.BasicBlockWithThroughputListProto | None = None
 
@@ -51,8 +50,7 @@ def _get_basic_block_list_proto():
     assert runfiles_env is not None
     with open(runfiles_env.Rlocation(_BASIC_BLOCK_RESOURCE_PATH), 'rt') as f:
       _BASIC_BLOCKS = text_format.Parse(
-          f.read(), throughput_pb2.BasicBlockWithThroughputListProto()
-      )
+          f.read(), throughput_pb2.BasicBlockWithThroughputListProto())
   return _BASIC_BLOCKS
 
 
@@ -92,17 +90,14 @@ def get_basic_blocks(
   blocks = list(itertools.islice(all_blocks, num_blocks))
 
   if len(blocks) < num_blocks:
-    raise ValueError(
-        f'Not enough blocks in test data. Found: {len(blocks)}, '
-        f'expected: {num_blocks}.'
-    )
+    raise ValueError(f'Not enough blocks in test data. Found: {len(blocks)}, '
+                     f'expected: {num_blocks}.')
 
   return blocks
 
 
 def _get_block_tokens(
-    blocks: Iterable[basic_block.BasicBlock],
-) -> Sequence[str]:
+    blocks: Iterable[basic_block.BasicBlock],) -> Sequence[str]:
   """Returns a sorted list of tokens for `blocks`.
 
   The returned list contains all tokens that appear in `blocks`, and all

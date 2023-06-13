@@ -60,8 +60,7 @@ class TestModel(model_base.ModelBase):
     )
     self.output_shape_tensor = tf.placeholder(dtype=tf.dtypes.int32, shape=(2,))
     self.output_deltas_shape_tensor = tf.placeholder(
-        dtype=tf.dtypes.int32, shape=(2,)
-    )
+        dtype=tf.dtypes.int32, shape=(2,))
     if self._use_deltas:
       self._output_tensor_deltas = tf.broadcast_to(
           self.prediction_var,
@@ -89,12 +88,10 @@ class TestModel(model_base.ModelBase):
   # @Override
   def _make_batch_feed_dict(self):
     return {
-        self.output_shape_tensor: np.array(
-            (self.num_blocks_in_batch, self.num_tasks)
-        ),
-        self.output_deltas_shape_tensor: np.array(
-            (self.num_instructions_in_batch, self.num_tasks)
-        ),
+        self.output_shape_tensor:
+            np.array((self.num_blocks_in_batch, self.num_tasks)),
+        self.output_deltas_shape_tensor:
+            np.array((self.num_instructions_in_batch, self.num_tasks)),
     }
 
   # @Override()
@@ -111,9 +108,8 @@ class GematriaMainFunctionTest(model_test.TestCase):
     # Create a .tfrecord file with basic blocks from test data.
     self.work_directory = self.create_tempdir()
 
-    self.input_filename = path.join(
-        self.work_directory.full_path, 'input.tfrecord'
-    )
+    self.input_filename = path.join(self.work_directory.full_path,
+                                    'input.tfrecord')
     tfrecord.write_protos(self.input_filename, self.block_protos)
 
   def _create_checkpoint_file(
@@ -164,8 +160,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
     self.assertNotEmpty(
         tf.io.gfile.glob(full_path_pattern),
         'File was not found in the working directory: {}. All files: {}'.format(
-            full_path_pattern, all_files
-        ),
+            full_path_pattern, all_files),
     )
 
   @flagsaver.flagsaver
@@ -206,30 +201,26 @@ class GematriaMainFunctionTest(model_test.TestCase):
     FLAGS.gematria_collected_percentile_ranks = collected_percentile_ranks
     FLAGS.gematria_loss_type = model_options.LossType.HUBER
     FLAGS.gematria_loss_normalization = (
-        model_options.ErrorNormalization.PERCENTAGE_ERROR
-    )
+        model_options.ErrorNormalization.PERCENTAGE_ERROR)
     FLAGS.gematria_max_blocks_in_batch = max_blocks_in_batch
     FLAGS.gematria_max_instructions_in_batch = max_instructions_in_batch
 
     main_function.run_gematria_model_from_command_line_flags(
-        MockModel, dtype=tf.dtypes.float32
-    )
+        MockModel, dtype=tf.dtypes.float32)
 
     self.assertEqual(
         model.loss_normalization,
         model_options.ErrorNormalization.PERCENTAGE_ERROR,
     )
-    self.assertSequenceEqual(
-        model.collected_percentile_ranks, collected_percentile_ranks
-    )
+    self.assertSequenceEqual(model.collected_percentile_ranks,
+                             collected_percentile_ranks)
     self.assertEqual(model.loss_type, model_options.LossType.HUBER)
 
     block_filters = (
         functools.partial(utils.select_throughputs, (re.compile('.*'),)),
         functools.partial(utils.drop_blocks_with_no_throughputs, False),
-        functools.partial(
-            utils.aggregate_throughputs, io_options.ThroughputSelection.MEAN
-        ),
+        functools.partial(utils.aggregate_throughputs,
+                          io_options.ThroughputSelection.MEAN),
     )
     block_protos = utils.apply_filters(self.block_protos, block_filters)
     expected_blocks = [
@@ -259,12 +250,10 @@ class GematriaMainFunctionTest(model_test.TestCase):
     predicted_value = 123456
     max_blocks_in_batch = 15
     max_instructions_in_batch = 124
-    checkpoint_filename = path.join(
-        self.work_directory.full_path, 'checkpoint.ckpt'
-    )
-    output_filename = path.join(
-        self.work_directory.full_path, 'output.tfrecord'
-    )
+    checkpoint_filename = path.join(self.work_directory.full_path,
+                                    'checkpoint.ckpt')
+    output_filename = path.join(self.work_directory.full_path,
+                                'output.tfrecord')
     self._create_checkpoint_file(checkpoint_filename, predicted_value)
 
     model = None
@@ -281,8 +270,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
             inference,
             'predict_for_protos',
             side_effect=inference.predict_for_protos,
-        )
-    )
+        ))
 
     FLAGS.gematria_action = model_options.Action.PREDICT
     FLAGS.gematria_checkpoint_file = checkpoint_filename
@@ -294,8 +282,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
     FLAGS.gematria_max_blocks_in_batch = max_blocks_in_batch
     FLAGS.gematria_max_instructions_in_batch = max_instructions_in_batch
     main_function.run_gematria_model_from_command_line_flags(
-        MockModel, dtype=tf.dtypes.float32
-    )
+        MockModel, dtype=tf.dtypes.float32)
 
     inference.predict_for_protos.assert_called_once_with(
         model,
@@ -306,10 +293,8 @@ class GematriaMainFunctionTest(model_test.TestCase):
     )
 
     output_blocks = list(
-        tfrecord.read_protos(
-            (output_filename,), throughput_pb2.BasicBlockWithThroughputProto
-        )
-    )
+        tfrecord.read_protos((output_filename,),
+                             throughput_pb2.BasicBlockWithThroughputProto))
     for block in output_blocks:
       for throughput in block.inverse_throughputs:
         self.assertIn(
@@ -327,8 +312,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
           throughput_pb2.ThroughputWithSourceProto(
               source='TestModel, task=default',
               inverse_throughput_cycles=[predicted_value],
-          )
-      )
+          ))
     self.assertSequenceEqual(output_blocks, expected_output_blocks)
 
   @flagsaver.flagsaver
@@ -342,12 +326,10 @@ class GematriaMainFunctionTest(model_test.TestCase):
     predicted_value = 123456
     max_blocks_in_batch = 15
     max_instructions_in_batch = 124
-    checkpoint_filename = path.join(
-        self.work_directory.full_path, 'checkpoint.ckpt'
-    )
-    output_filename = path.join(
-        self.work_directory.full_path, 'output.tfrecord'
-    )
+    checkpoint_filename = path.join(self.work_directory.full_path,
+                                    'checkpoint.ckpt')
+    output_filename = path.join(self.work_directory.full_path,
+                                'output.tfrecord')
     self._create_checkpoint_file(checkpoint_filename, predicted_value)
 
     FLAGS.gematria_action = model_options.Action.PREDICT
@@ -362,14 +344,11 @@ class GematriaMainFunctionTest(model_test.TestCase):
     FLAGS.gematria_max_blocks_in_batch = max_blocks_in_batch
     FLAGS.gematria_max_instructions_in_batch = max_instructions_in_batch
     main_function.run_gematria_model_from_command_line_flags(
-        TestModel, dtype=tf.dtypes.float32
-    )
+        TestModel, dtype=tf.dtypes.float32)
 
     output_blocks = list(
-        tfrecord.read_protos(
-            (output_filename,), throughput_pb2.BasicBlockWithThroughputProto
-        )
-    )
+        tfrecord.read_protos((output_filename,),
+                             throughput_pb2.BasicBlockWithThroughputProto))
     for block in output_blocks:
       for throughput in block.inverse_throughputs:
         self.assertIn(
@@ -387,8 +366,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
           throughput_pb2.ThroughputWithSourceProto(
               source='CustomModelName, task=test_task',
               inverse_throughput_cycles=[predicted_value],
-          )
-      )
+          ))
     self.assertSequenceEqual(output_blocks, expected_output_blocks)
 
   @flagsaver.flagsaver
@@ -423,9 +401,8 @@ class GematriaMainFunctionTest(model_test.TestCase):
     FLAGS.gematria_action = model_options.Action.TRAIN
     FLAGS.gematria_input_file = (self.input_filename,)
     FLAGS.gematria_checkpoint_dir = checkpoint_dir
-    FLAGS.gematria_summary_dir = path.join(
-        self.work_directory.full_path, 'summary'
-    )
+    FLAGS.gematria_summary_dir = path.join(self.work_directory.full_path,
+                                           'summary')
     FLAGS.gematria_training_num_epochs = num_epochs
     FLAGS.gematria_training_randomize_batches = randomize_batches
     FLAGS.gematria_max_blocks_in_batch = max_blocks_in_batch
@@ -435,15 +412,13 @@ class GematriaMainFunctionTest(model_test.TestCase):
     FLAGS.gematria_training_throughput_selection = training_throughput_selection
 
     main_function.run_gematria_model_from_command_line_flags(
-        MockModel, dtype=tf.dtypes.float32
-    )
+        MockModel, dtype=tf.dtypes.float32)
 
     block_filters = (
         functools.partial(utils.select_throughputs, (re.compile('.*'),)),
         functools.partial(utils.drop_blocks_with_no_throughputs, False),
-        functools.partial(
-            utils.aggregate_throughputs, training_throughput_selection
-        ),
+        functools.partial(utils.aggregate_throughputs,
+                          training_throughput_selection),
     )
     block_protos = utils.apply_filters(self.block_protos, block_filters)
     expected_blocks = [
@@ -513,9 +488,8 @@ class GematriaMainFunctionTest(model_test.TestCase):
 
     FLAGS.gematria_action = model_options.Action.TRAIN
     FLAGS.gematria_input_file = (self.input_filename,)
-    FLAGS.gematria_summary_dir = path.join(
-        self.work_directory.full_path, 'summary'
-    )
+    FLAGS.gematria_summary_dir = path.join(self.work_directory.full_path,
+                                           'summary')
     FLAGS.gematria_training_num_epochs = num_epochs
     FLAGS.gematria_training_randomize_batches = randomize_batches
     FLAGS.gematria_max_blocks_in_batch = max_blocks_in_batch
@@ -523,15 +497,13 @@ class GematriaMainFunctionTest(model_test.TestCase):
     FLAGS.gematria_training_throughput_selection = training_throughput_selection
 
     main_function.run_gematria_model_from_command_line_flags(
-        MockModel, dtype=tf.dtypes.float32
-    )
+        MockModel, dtype=tf.dtypes.float32)
 
     block_filters = (
         functools.partial(utils.select_throughputs, (re.compile('.*'),)),
         functools.partial(utils.drop_blocks_with_no_throughputs, False),
-        functools.partial(
-            utils.aggregate_throughputs, training_throughput_selection
-        ),
+        functools.partial(utils.aggregate_throughputs,
+                          training_throughput_selection),
     )
     block_protos = utils.apply_filters(self.block_protos, block_filters)
     expected_blocks = [
@@ -575,9 +547,8 @@ class GematriaMainFunctionTest(model_test.TestCase):
 
     FLAGS.gematria_action = model_options.Action.TRAIN
     FLAGS.gematria_input_file = (self.input_filename,)
-    FLAGS.gematria_summary_dir = path.join(
-        self.work_directory.full_path, 'summary'
-    )
+    FLAGS.gematria_summary_dir = path.join(self.work_directory.full_path,
+                                           'summary')
     FLAGS.gematria_training_num_epochs = num_epochs
     FLAGS.gematria_training_randomize_batches = randomize_batches
     FLAGS.gematria_max_blocks_in_batch = max_blocks_in_batch
@@ -586,15 +557,13 @@ class GematriaMainFunctionTest(model_test.TestCase):
     FLAGS.gematria_input_file_scaling = throughput_scaling_factor
 
     main_function.run_gematria_model_from_command_line_flags(
-        MockModel, dtype=tf.dtypes.float32
-    )
+        MockModel, dtype=tf.dtypes.float32)
 
     block_filters = (
         functools.partial(utils.select_throughputs, (re.compile('.*'),)),
         functools.partial(utils.drop_blocks_with_no_throughputs, False),
-        functools.partial(
-            utils.aggregate_throughputs, training_throughput_selection
-        ),
+        functools.partial(utils.aggregate_throughputs,
+                          training_throughput_selection),
         functools.partial(utils.scale_throughputs, throughput_scaling_factor),
     )
     block_protos = utils.apply_filters(self.block_protos, block_filters)
@@ -630,16 +599,14 @@ class GematriaMainFunctionTest(model_test.TestCase):
     old_checkpoint_file = path.join(old_checkpoint_dir, 'model.ckpt')
     tf.io.gfile.makedirs(old_checkpoint_dir)
     self._create_checkpoint_file(
-        old_checkpoint_file, predicted_value, global_step=global_step
-    )
+        old_checkpoint_file, predicted_value, global_step=global_step)
 
     # Check that the checkpoint dir has the expected structure. There must be at
     # least a file called "checkpoint" that contains the list of the actual
     # checkpoints in text format. We check that the file is there, it contains
     # references to the old dir and no references to the "new" checkpoint dir.
-    with tf.io.gfile.GFile(
-        path.join(old_checkpoint_dir, 'checkpoint'), 'r'
-    ) as f:
+    with tf.io.gfile.GFile(path.join(old_checkpoint_dir, 'checkpoint'),
+                           'r') as f:
       checkpoint_list_pbtxt = f.read()
       self.assertIn(old_checkpoint_file, checkpoint_list_pbtxt)
       self.assertNotIn(new_checkpoint_dir, checkpoint_list_pbtxt)
@@ -666,8 +633,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
         gematria_resume_to_dir=new_checkpoint_dir,
     ):
       main_function.run_gematria_model_from_command_line_flags(
-          MockModel, dtype=tf.dtypes.float32
-      )
+          MockModel, dtype=tf.dtypes.float32)
 
     self.assertTrue(tf.io.gfile.exists(new_checkpoint_dir))
     old_glob = {
@@ -689,9 +655,8 @@ class GematriaMainFunctionTest(model_test.TestCase):
 
     # Check that all paths related to the old directory have been replaced with
     # the new one.
-    with tf.io.gfile.GFile(
-        path.join(new_checkpoint_dir, 'checkpoint'), 'r'
-    ) as f:
+    with tf.io.gfile.GFile(path.join(new_checkpoint_dir, 'checkpoint'),
+                           'r') as f:
       checkpoint_list_pbtxt = f.read()
       self.assertNotIn(old_checkpoint_dir, checkpoint_list_pbtxt)
       self.assertIn(new_checkpoint_dir, checkpoint_list_pbtxt)
@@ -720,8 +685,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
     ]
 
     main_function.run_gematria_model_from_command_line_flags(
-        MockModel, dtype=tf.dtypes.float32
-    )
+        MockModel, dtype=tf.dtypes.float32)
 
     calls = model.run_continuous_evaluation.call_args_list
     self.assertLen(calls, 1)
@@ -755,8 +719,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
     FLAGS.gematria_throughput_source_filter = ['hsw', 'skx', 'icx']
 
     main_function.run_gematria_model_from_command_line_flags(
-        MockModel, dtype=tf.dtypes.float32
-    )
+        MockModel, dtype=tf.dtypes.float32)
 
     self.assertLen(FLAGS.gematria_throughput_source_filter, model.num_tasks)
     self.assertEqual(model.task_list, ('task_1', 'task_2', 'task_3'))
@@ -764,16 +727,14 @@ class GematriaMainFunctionTest(model_test.TestCase):
   @flagsaver.flagsaver
   def test_export_graph_def(self):
     """Tests exporting the model to a GraphDef proto."""
-    graph_def_filename = path.join(
-        self.work_directory.full_path, 'graph_def.pbtxt'
-    )
+    graph_def_filename = path.join(self.work_directory.full_path,
+                                   'graph_def.pbtxt')
 
     FLAGS.gematria_action = model_options.Action.EXPORT_GRAPH_DEF
     FLAGS.gematria_graph_def_file = graph_def_filename
 
     main_function.run_gematria_model_from_command_line_flags(
-        TestModel, dtype=tf.dtypes.float32
-    )
+        TestModel, dtype=tf.dtypes.float32)
     with open(graph_def_filename, 'r') as graph_def_file:
       graph_def_pbtxt = graph_def_file.read()
     # We did not replace variable nodes with constants, so there should be at
@@ -784,13 +745,11 @@ class GematriaMainFunctionTest(model_test.TestCase):
   def test_export_frozen_graph_def(self):
     """Tests exporting a frozen model to a GraphDef proto."""
     predicted_value = 123654
-    graph_def_filename = path.join(
-        self.work_directory.full_path, 'graph_def.pbtxt'
-    )
+    graph_def_filename = path.join(self.work_directory.full_path,
+                                   'graph_def.pbtxt')
 
-    checkpoint_filename = path.join(
-        self.work_directory.full_path, 'checkpoint.ckpt'
-    )
+    checkpoint_filename = path.join(self.work_directory.full_path,
+                                    'checkpoint.ckpt')
     self._create_checkpoint_file(checkpoint_filename, predicted_value)
 
     FLAGS.gematria_action = model_options.Action.EXPORT_GRAPH_DEF
@@ -798,8 +757,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
     FLAGS.gematria_checkpoint_file = checkpoint_filename
 
     main_function.run_gematria_model_from_command_line_flags(
-        TestModel, dtype=tf.dtypes.float32
-    )
+        TestModel, dtype=tf.dtypes.float32)
     with open(graph_def_filename, 'r') as graph_def_file:
       graph_def_pbtxt = graph_def_file.read()
     # Check that the graph definition is not empty, there are no variable nodes,

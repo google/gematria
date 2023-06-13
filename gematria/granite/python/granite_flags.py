@@ -21,20 +21,16 @@ from gematria.utils.python import flag_utils
 NODE_EMBEDDING_SIZE = flags.DEFINE_integer(
     'gematria_node_embedding_size',
     128,
-    (
-        'The size of node embedding vectors used in the graph network. This is'
-        ' both the size of the learned embedding vectors and the size of the'
-        ' feature vectors used during graph network computation.'
-    ),
+    ('The size of node embedding vectors used in the graph network. This is'
+     ' both the size of the learned embedding vectors and the size of the'
+     ' feature vectors used during graph network computation.'),
 )
 EDGE_EMBEDDING_SIZE = flags.DEFINE_integer(
     'gematria_edge_embedding_size',
     128,
-    (
-        'The size of edge embedding vectors used in the graph network. This is'
-        ' both the size of the learned embedding vectors and the size of the'
-        ' feature vectors used during graph network computation.'
-    ),
+    ('The size of edge embedding vectors used in the graph network. This is'
+     ' both the size of the learned embedding vectors and the size of the'
+     ' feature vectors used during graph network computation.'),
 )
 GLOBAL_EMBEDDING_SIZE = flags.DEFINE_integer(
     'gematria_global_embedding_size',
@@ -45,56 +41,46 @@ GLOBAL_EMBEDDING_SIZE = flags.DEFINE_integer(
 NODE_UPDATE_LAYERS = flags.DEFINE_string(
     'gematria_node_update_layers',
     '',
-    (
-        'Specifies a comma-separated string that represents the number of dense'
-        ' layers and their sizes used to update the node feature vectors in'
-        ' each step of the graph neural network computation. An additional'
-        ' dense layer of size --gematria_node_embedding_size is added'
-        ' automatically after the last layer.'
-    ),
+    ('Specifies a comma-separated string that represents the number of dense'
+     ' layers and their sizes used to update the node feature vectors in'
+     ' each step of the graph neural network computation. An additional'
+     ' dense layer of size --gematria_node_embedding_size is added'
+     ' automatically after the last layer.'),
 )
 EDGE_UPDATE_LAYERS = flags.DEFINE_string(
     'gematria_edge_update_layers',
     '',
-    (
-        'Specifies a comma-separated string that represents the number of dense'
-        ' layers and their sizes used to update the'
-        ' edge feature vectors in each step of the graph neural network'
-        ' computation. An additional dense layer of size'
-        ' --gematria_edge_embedding_size is added automatically after the last'
-        ' layer.'
-    ),
+    ('Specifies a comma-separated string that represents the number of dense'
+     ' layers and their sizes used to update the'
+     ' edge feature vectors in each step of the graph neural network'
+     ' computation. An additional dense layer of size'
+     ' --gematria_edge_embedding_size is added automatically after the last'
+     ' layer.'),
 )
 GLOBAL_UPDATE_LAYERS = flags.DEFINE_string(
     'gematria_global_update_layers',
     '',
-    (
-        'Specifies a comma-separated string that represents the number of dense'
-        ' layers and their sizes used to update the global feature vectors in'
-        ' each step of the graph neural network computation. An additional'
-        ' dense layer of size --gematria_global_embedding_size is added'
-        ' automatically after the last layer.'
-    ),
+    ('Specifies a comma-separated string that represents the number of dense'
+     ' layers and their sizes used to update the global feature vectors in'
+     ' each step of the graph neural network computation. An additional'
+     ' dense layer of size --gematria_global_embedding_size is added'
+     ' automatically after the last layer.'),
 )
 
 USE_SENT_EDGES = flags.DEFINE_bool(
     'gematria_use_sent_edges',
     False,
-    (
-        'Specifies whether the Node block of the graph network should use the'
-        ' sent edges as a part of its input. This allows information to flow in'
-        ' both directions and in particular to propagate information from'
-        ' output operands back to the instructions writing to them.'
-    ),
+    ('Specifies whether the Node block of the graph network should use the'
+     ' sent edges as a part of its input. This allows information to flow in'
+     ' both directions and in particular to propagate information from'
+     ' output operands back to the instructions writing to them.'),
 )
 
 GRAPH_MODULE_RESIDUAL_CONNECTIONS = flags.DEFINE_bool(
     'gematria_graph_module_residual_connections',
     False,
-    (
-        "Use residual connections around graph network modules' computation of"
-        ' node, edge, and global feature vectors.'
-    ),
+    ("Use residual connections around graph network modules' computation of"
+     ' node, edge, and global feature vectors.'),
 )
 READOUT_RESIDUAL_CONNECTIONS = flags.DEFINE_bool(
     'gematria_readout_residual_connections',
@@ -104,20 +90,16 @@ READOUT_RESIDUAL_CONNECTIONS = flags.DEFINE_bool(
 TASK_READOUT_RESIDUAL_CONNECTIONS = flags.DEFINE_bool(
     'gematria_task_readout_residual_connections',
     False,
-    (
-        'Add a residual connection for the task-specific part of the readout'
-        ' network.'
-    ),
+    ('Add a residual connection for the task-specific part of the readout'
+     ' network.'),
 )
 
 RNN_OUTPUT_SIZE = flags.DEFINE_integer(
     'gematria_rnn_output_size',
     128,
-    (
-        'The size of the output vectors of the RNN network that is passed to'
-        ' the readout network. The actual size of the state passed between the'
-        ' RNN cells is twice this value.'
-    ),
+    ('The size of the output vectors of the RNN network that is passed to'
+     ' the readout network. The actual size of the state passed between the'
+     ' RNN cells is twice this value.'),
 )
 RNN_BIDIRECTIONAL = flags.DEFINE_bool(
     'gematria_rnn_bidirectional',
@@ -127,10 +109,8 @@ RNN_BIDIRECTIONAL = flags.DEFINE_bool(
 RNN_DROPOUT = flags.DEFINE_float(
     'gematria_rnn_dropout',
     0.0,
-    (
-        'A float between 0 and 1. Fraction of units to drop for the linear'
-        ' transformation of the inputs.'
-    ),
+    ('A float between 0 and 1. Fraction of units to drop for the linear'
+     ' transformation of the inputs.'),
 )
 RNN_TYPE = flags.DEFINE_enum_class(
     'gematria_rnn_type',
@@ -142,38 +122,32 @@ RNN_TYPE = flags.DEFINE_enum_class(
 READOUT_LAYERS = flags.DEFINE_string(
     'gematria_readout_layers',
     '',
-    (
-        'Specifies a comma-separated string that represents the number of'
-        ' shared dense layers and their sizes used to compute the output of the'
-        ' network. These dense layers consume the outputs of the graph network.'
-        ' When empty, the outputs of the graph network are passed directly to'
-        ' the input of the task-specific dense layers.'
-    ),
+    ('Specifies a comma-separated string that represents the number of'
+     ' shared dense layers and their sizes used to compute the output of the'
+     ' network. These dense layers consume the outputs of the graph network.'
+     ' When empty, the outputs of the graph network are passed directly to'
+     ' the input of the task-specific dense layers.'),
 )
 TASK_READOUT_LAYERS = flags.DEFINE_string(
     'gematria_task_readout_layers',
     '',
-    (
-        'Specifies a comma-separated string that represents the number of '
-        ' task-specific dense layers and their sizes used to compute the output'
-        ' of the network. The task-specific dense layers consume the output of'
-        ' the shared dense layers; they are followed by a single task-specific'
-        ' linear layer that produces the output of the network for the task.'
-        ' When empty, the linear layer is added directly after the shared dense'
-        ' layers or after the graph network.'
-    ),
+    ('Specifies a comma-separated string that represents the number of '
+     ' task-specific dense layers and their sizes used to compute the output'
+     ' of the network. The task-specific dense layers consume the output of'
+     ' the shared dense layers; they are followed by a single task-specific'
+     ' linear layer that produces the output of the network for the task.'
+     ' When empty, the linear layer is added directly after the shared dense'
+     ' layers or after the graph network.'),
 )
 
 USE_DELTAS = flags.DEFINE_bool(
     'gematria_seq2seq',
     False,
-    (
-        'When True, the prediction for a basic block is computed as a sum of'
-        ' per-instruction predictions computed from feature of nodes'
-        ' corresponding to instructions in the basic block graphs. Otherwise,'
-        ' the predictions are computed from the global feature vector of each'
-        ' basic block graph.'
-    ),
+    ('When True, the prediction for a basic block is computed as a sum of'
+     ' per-instruction predictions computed from feature of nodes'
+     ' corresponding to instructions in the basic block graphs. Otherwise,'
+     ' the predictions are computed from the global feature vector of each'
+     ' basic block graph.'),
 )
 NUM_MESSAGE_PASSING_ITERATIONS = flags.DEFINE_integer(
     'gematria_num_message_passing_iterations',
@@ -184,32 +158,25 @@ NUM_MESSAGE_PASSING_ITERATIONS = flags.DEFINE_integer(
 GRAPH_MODULE_LAYER_NORMALIZATION = flags.DEFINE_bool(
     'gematria_graph_module_layer_normalization',
     True,
-    (
-        'Inserts a layer normalization step at the output of each iteration of'
-        ' the graph network module.'
-    ),
+    ('Inserts a layer normalization step at the output of each iteration of'
+     ' the graph network module.'),
 )
 READOUT_INPUT_LAYER_NORMALIZATION = flags.DEFINE_bool(
     'gematria_readout_input_layer_normalization',
     True,
-    (
-        'Insert a layer normalization step before the input of the shared'
-        ' readout network. Note that this is redundant when using'
-        ' --gematria_graph_module_layer_normalization.'
-    ),
+    ('Insert a layer normalization step before the input of the shared'
+     ' readout network. Note that this is redundant when using'
+     ' --gematria_graph_module_layer_normalization.'),
 )
 TASK_READOUT_INPUT_LAYER_NORMALIZATION = flags.DEFINE_bool(
     'gematria_task_readout_input_layer_normalization',
     True,
-    (
-        'Inserts a layer normalization step before the input of the'
-        ' task-specific readout network.'
-    ),
+    ('Inserts a layer normalization step before the input of the'
+     ' task-specific readout network.'),
 )
 
 _MUST_BE_POSITIVE_WITH_RNN = (
-    'RNN size must be positive when RNN type is not NONE.'
-)
+    'RNN size must be positive when RNN type is not NONE.')
 
 flags.register_validator(
     NODE_UPDATE_LAYERS.name,
@@ -238,14 +205,11 @@ flags.register_validator(
 )
 
 
-@flags.multi_flags_validator(
-    [RNN_TYPE.name, RNN_OUTPUT_SIZE.name], message=_MUST_BE_POSITIVE_WITH_RNN
-)
+@flags.multi_flags_validator([RNN_TYPE.name, RNN_OUTPUT_SIZE.name],
+                             message=_MUST_BE_POSITIVE_WITH_RNN)
 def _is_rnn_size_positive(flags_dict):
-  return (
-      flags_dict[RNN_TYPE.name] == options.RnnType.NONE
-      or flags_dict[RNN_OUTPUT_SIZE.name] > 0
-  )
+  return (flags_dict[RNN_TYPE.name] == options.RnnType.NONE or
+          flags_dict[RNN_OUTPUT_SIZE.name] > 0)
 
 
 flags.register_validator(

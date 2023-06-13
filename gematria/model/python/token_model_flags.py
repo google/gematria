@@ -30,35 +30,29 @@ from gematria.utils.python import flag_utils
 _TOKEN_FILE = flags.DEFINE_string(
     'gematria_tokens_file',
     None,
-    (
-        'The text file that contains the list of tokens used in the input'
-        ' basic blocks. Used to create the token embedding table in models that'
-        ' use a token representation of instructions. Assumes that the argument'
-        ' is the path of a text file that contains one token per line. Lines'
-        ' that start with a hash symbol (#) are considered as comments and'
-        ' ignored.'
-    ),
+    ('The text file that contains the list of tokens used in the input'
+     ' basic blocks. Used to create the token embedding table in models that'
+     ' use a token representation of instructions. Assumes that the argument'
+     ' is the path of a text file that contains one token per line. Lines'
+     ' that start with a hash symbol (#) are considered as comments and'
+     ' ignored.'),
 )
 
 _OOV_REPLACEMENT_TOKEN = flags.DEFINE_string(
     'gematria_out_of_vocabulary_replacement_token',
     None,
-    (
-        'The token used as a replacement when the input contains an'
-        ' out-of-vocabulary token. When empty, no replacement is done and the'
-        ' model returns an error'
-    ),
+    ('The token used as a replacement when the input contains an'
+     ' out-of-vocabulary token. When empty, no replacement is done and the'
+     ' model returns an error'),
 )
 
 OUT_OF_VOCABULARY_INJECTION_PROBABILITY = flags.DEFINE_float(
     'gematria_out_of_vocabulary_injection_probability',
     0.0,
-    (
-        'The probability of replacing a token in the graph with the token'
-        ' specified --gematria_out_of_vocabulary_replacement_token. This flag'
-        ' may be used only when --gematria_out_of_vocabulary_replacement_token'
-        ' is non-empty.'
-    ),
+    ('The probability of replacing a token in the graph with the token'
+     ' specified --gematria_out_of_vocabulary_replacement_token. This flag'
+     ' may be used only when --gematria_out_of_vocabulary_replacement_token'
+     ' is non-empty.'),
 )
 
 flags.register_validator(
@@ -70,34 +64,28 @@ flags.register_validator(
 
 @flags.multi_flags_validator(
     (_OOV_REPLACEMENT_TOKEN.name, OUT_OF_VOCABULARY_INJECTION_PROBABILITY.name),
-    message=(
-        'Replacement token must be provided when'
-        ' --gematria_out_of_vocabulary_injection_probability is not 0.0.'
-    ),
+    message=('Replacement token must be provided when'
+             ' --gematria_out_of_vocabulary_injection_probability is not 0.0.'),
 )
 def _out_of_vocabulary_injection_is_valid(flags_dict):
   """Checks that the out-of-vocabulary injection flags are valid."""
   replacement_token = flags_dict[_OOV_REPLACEMENT_TOKEN.name]
   injection_probability = flags_dict[
-      OUT_OF_VOCABULARY_INJECTION_PROBABILITY.name
-  ]
+      OUT_OF_VOCABULARY_INJECTION_PROBABILITY.name]
   return injection_probability == 0.0 or bool(replacement_token)
 
 
-def get_oov_token_behavior_from_command_line_flags() -> (
-    oov_token_behavior.OutOfVocabularyTokenBehavior
-):
+def get_oov_token_behavior_from_command_line_flags(
+) -> (oov_token_behavior.OutOfVocabularyTokenBehavior):
   """Returns the out-of-vocabulary token behavior from command-line flags."""
   if not _OOV_REPLACEMENT_TOKEN.value:
     return oov_token_behavior.OutOfVocabularyTokenBehavior.return_error()
   return oov_token_behavior.OutOfVocabularyTokenBehavior.replace_with_token(
-      _OOV_REPLACEMENT_TOKEN.value
-  )
+      _OOV_REPLACEMENT_TOKEN.value)
 
 
 def get_tokens_from_command_line_flags(  #
-    model_tokens: Sequence[str] = (),
-) -> Optional[Sequence[str]]:
+    model_tokens: Sequence[str] = (),) -> Optional[Sequence[str]]:
   """Returns the list of tokens used in the model.
 
   When the command-line flag --gematria_tokens_file is used, returns a sorted

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Contains functions for performance debugging in Gematria code."""
 
 from collections.abc import Callable, Iterator
@@ -54,8 +53,7 @@ def scoped(
   yield
   duration = time.time() - start_time
   if num_iterations > 1:
-    log_function(
-        '%s: %fs, %fs per iteration', name, duration, duration / num_iterations
-    )
+    log_function('%s: %fs, %fs per iteration', name, duration,
+                 duration / num_iterations)
   else:
     log_function('%s: %fs', name, duration)

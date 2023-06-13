@@ -32,16 +32,16 @@ def _create_one_dir(dirname: str) -> None:
   tf.io.gfile.makedirs(dirname)
 
 
-def _copy_one_file(
-    source_and_destination: tuple[str, str], overwrite: bool
-) -> None:
+def _copy_one_file(source_and_destination: tuple[str, str],
+                   overwrite: bool) -> None:
   from_file, to_file = source_and_destination
   tf.io.gfile.copy(from_file, to_file, overwrite=overwrite)
 
 
-def copy_dir(
-    from_dir: str, to_dir: str, overwrite: bool, num_workers: int = 10
-) -> None:
+def copy_dir(from_dir: str,
+             to_dir: str,
+             overwrite: bool,
+             num_workers: int = 10) -> None:
   """Recursively copies files from one directory to another.
 
   The copying is done in parallel, using tf.io.gfile.copy(). Creates target
@@ -78,5 +78,4 @@ def copy_dir(
   pool = multiprocessing.pool.ThreadPool(processes=num_workers)
   pool.map(_create_one_dir, dirs_to_create)
   pool.map(
-      functools.partial(_copy_one_file, overwrite=overwrite), files_to_copy
-  )
+      functools.partial(_copy_one_file, overwrite=overwrite), files_to_copy)

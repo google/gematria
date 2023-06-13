@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for throughput_protos."""
 
 from absl.testing import absltest
@@ -41,41 +40,27 @@ class ConvertFromProtoTest(absltest.TestCase):
                     llvm_mnemonic='MOV32rr',
                     input_operands=(
                         canonicalized_instruction_pb2.CanonicalizedOperandProto(
-                            register_name='RAX'
-                        ),
-                    ),
+                            register_name='RAX'),),
                     output_operands=(
                         canonicalized_instruction_pb2.CanonicalizedOperandProto(
-                            register_name='R15'
-                        ),
-                    ),
-                ),
-            ),
-        ),
-        inverse_throughputs=(
-            throughput_pb2.ThroughputWithSourceProto(
-                inverse_throughput_cycles=(1, 2, 3)
-            ),
-        ),
+                            register_name='R15'),),
+                ),),),
+        inverse_throughputs=(throughput_pb2.ThroughputWithSourceProto(
+            inverse_throughput_cycles=(1, 2, 3)),),
     )
     block = throughput_protos.block_with_throughput_from_proto(proto)
 
     self.assertEqual(
         block.block,
         basic_block.BasicBlock(
-            basic_block.InstructionList((
-                basic_block.Instruction(
-                    mnemonic='MOV',
-                    llvm_mnemonic='MOV32rr',
-                    input_operands=basic_block.InstructionOperandList((
-                        basic_block.InstructionOperand.from_register('RAX'),
-                    )),
-                    output_operands=basic_block.InstructionOperandList((
-                        basic_block.InstructionOperand.from_register('R15'),
-                    )),
-                ),
-            ))
-        ),
+            basic_block.InstructionList((basic_block.Instruction(
+                mnemonic='MOV',
+                llvm_mnemonic='MOV32rr',
+                input_operands=basic_block.InstructionOperandList(
+                    (basic_block.InstructionOperand.from_register('RAX'),)),
+                output_operands=basic_block.InstructionOperandList(
+                    (basic_block.InstructionOperand.from_register('R15'),)),
+            ),))),
     )
 
     self.assertLen(block.throughputs, 1)
@@ -92,33 +77,23 @@ class ConvertFromProtoTest(absltest.TestCase):
                     llvm_mnemonic='MOV32rr',
                     input_operands=(
                         canonicalized_instruction_pb2.CanonicalizedOperandProto(
-                            register_name='RAX'
-                        ),
-                    ),
+                            register_name='RAX'),),
                     output_operands=(
                         canonicalized_instruction_pb2.CanonicalizedOperandProto(
-                            register_name='R15'
-                        ),
-                    ),
+                            register_name='R15'),),
                 ),
                 canonicalized_instruction_pb2.CanonicalizedInstructionProto(
-                    mnemonic='NOP', llvm_mnemonic='NOP'
-                ),
-            )
-        ),
-        inverse_throughputs=(
-            throughput_pb2.ThroughputWithSourceProto(
-                inverse_throughput_cycles=(1, 2, 3),
-                prefix_inverse_throughputs=(
-                    throughput_pb2.ThroughputWithSourceProto.PrefixThroughputProto(
-                        inverse_throughput_cycles=(1, 1, 1)
-                    ),
-                    throughput_pb2.ThroughputWithSourceProto.PrefixThroughputProto(
-                        inverse_throughput_cycles=(2, 2, 2)
-                    ),
-                ),
+                    mnemonic='NOP', llvm_mnemonic='NOP'),
+            )),
+        inverse_throughputs=(throughput_pb2.ThroughputWithSourceProto(
+            inverse_throughput_cycles=(1, 2, 3),
+            prefix_inverse_throughputs=(
+                throughput_pb2.ThroughputWithSourceProto.PrefixThroughputProto(
+                    inverse_throughput_cycles=(1, 1, 1)),
+                throughput_pb2.ThroughputWithSourceProto.PrefixThroughputProto(
+                    inverse_throughput_cycles=(2, 2, 2)),
             ),
-        ),
+        ),),
     )
     block = throughput_protos.block_with_throughput_from_proto(proto)
 
@@ -129,24 +104,20 @@ class ConvertFromProtoTest(absltest.TestCase):
                 basic_block.Instruction(
                     mnemonic='MOV',
                     llvm_mnemonic='MOV32rr',
-                    input_operands=basic_block.InstructionOperandList((
-                        basic_block.InstructionOperand.from_register('RAX'),
-                    )),
-                    output_operands=basic_block.InstructionOperandList((
-                        basic_block.InstructionOperand.from_register('R15'),
-                    )),
+                    input_operands=basic_block.InstructionOperandList(
+                        (basic_block.InstructionOperand.from_register('RAX'),)),
+                    output_operands=basic_block.InstructionOperandList(
+                        (basic_block.InstructionOperand.from_register('R15'),)),
                 ),
                 basic_block.Instruction(mnemonic='NOP', llvm_mnemonic='NOP'),
-            ))
-        ),
+            ))),
     )
 
     self.assertLen(block.throughputs, 1)
     throughputs = block.throughputs[0]
     self.assertSequenceEqual(throughputs.inverse_throughput_cycles, (1, 2, 3))
-    self.assertSequenceEqual(
-        throughputs.prefix_inverse_throughput_cycles, ((1, 1, 1), (2, 2, 2))
-    )
+    self.assertSequenceEqual(throughputs.prefix_inverse_throughput_cycles,
+                             ((1, 1, 1), (2, 2, 2)))
 
   def test_proto_with_empty_sources(self):
     proto = throughput_pb2.BasicBlockWithThroughputProto(
@@ -157,30 +128,21 @@ class ConvertFromProtoTest(absltest.TestCase):
                     llvm_mnemonic='MOV32rr',
                     input_operands=(
                         canonicalized_instruction_pb2.CanonicalizedOperandProto(
-                            register_name='RAX'
-                        ),
-                    ),
+                            register_name='RAX'),),
                     output_operands=(
                         canonicalized_instruction_pb2.CanonicalizedOperandProto(
-                            register_name='R15'
-                        ),
-                    ),
+                            register_name='R15'),),
                 ),
                 canonicalized_instruction_pb2.CanonicalizedInstructionProto(
-                    mnemonic='NOP', llvm_mnemonic='NOP'
-                ),
-            )
-        ),
+                    mnemonic='NOP', llvm_mnemonic='NOP'),
+            )),
         inverse_throughputs=(
             throughput_pb2.ThroughputWithSourceProto(
-                source='source_1', inverse_throughput_cycles=(1, 2, 3)
-            ),
+                source='source_1', inverse_throughput_cycles=(1, 2, 3)),
             throughput_pb2.ThroughputWithSourceProto(
-                source='source_2', inverse_throughput_cycles=()
-            ),
+                source='source_2', inverse_throughput_cycles=()),
             throughput_pb2.ThroughputWithSourceProto(
-                source='source_3', inverse_throughput_cycles=(4, 5, 6)
-            ),
+                source='source_3', inverse_throughput_cycles=(4, 5, 6)),
         ),
     )
     block = throughput_protos.block_with_throughput_from_proto(proto)
@@ -192,25 +154,20 @@ class ConvertFromProtoTest(absltest.TestCase):
                 basic_block.Instruction(
                     mnemonic='MOV',
                     llvm_mnemonic='MOV32rr',
-                    input_operands=basic_block.InstructionOperandList((
-                        basic_block.InstructionOperand.from_register('RAX'),
-                    )),
-                    output_operands=basic_block.InstructionOperandList((
-                        basic_block.InstructionOperand.from_register('R15'),
-                    )),
+                    input_operands=basic_block.InstructionOperandList(
+                        (basic_block.InstructionOperand.from_register('RAX'),)),
+                    output_operands=basic_block.InstructionOperandList(
+                        (basic_block.InstructionOperand.from_register('R15'),)),
                 ),
                 basic_block.Instruction(mnemonic='NOP', llvm_mnemonic='NOP'),
-            ))
-        ),
+            ))),
     )
     self.assertLen(block.throughputs, 3)
-    self.assertSequenceEqual(
-        block.throughputs[0].inverse_throughput_cycles, (1, 2, 3)
-    )
+    self.assertSequenceEqual(block.throughputs[0].inverse_throughput_cycles,
+                             (1, 2, 3))
     self.assertIsNone(block.throughputs[1])
-    self.assertSequenceEqual(
-        block.throughputs[2].inverse_throughput_cycles, (4, 5, 6)
-    )
+    self.assertSequenceEqual(block.throughputs[2].inverse_throughput_cycles,
+                             (4, 5, 6))
 
 
 if __name__ == '__main__':

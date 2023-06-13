@@ -108,11 +108,9 @@ class RnnTokenModel(token_graph_builder_model.TokenGraphBuilderModel):
 
   def _make_model_name(self) -> str:
     base_name = super()._make_model_name()
-    return (
-        f'Rnn{base_name},rnn_state_size={self._rnn_output_size}'
-        f',rnn_dropout={self._rnn_dropout}'
-        f',bidirectional={self._rnn_bidirectional}'
-    )
+    return (f'Rnn{base_name},rnn_state_size={self._rnn_output_size}'
+            f',rnn_dropout={self._rnn_dropout}'
+            f',bidirectional={self._rnn_bidirectional}')
 
   def _create_readout_network(self) -> tf.Tensor:
     instruction_features = self._instruction_features
@@ -127,8 +125,7 @@ class RnnTokenModel(token_graph_builder_model.TokenGraphBuilderModel):
     # contains a sequence of feature vectors of the instructions in the basic
     # block.
     blocks_ragged = tf.RaggedTensor.from_value_rowids(
-        self._instruction_features, self._delta_block_index_tensor
-    )
+        self._instruction_features, self._delta_block_index_tensor)
     # TODO(ayazdan): Figure out how to pass `training` flag to the pipeline.
     rnn_layer = _RNN_TYPE_TO_TF[self._rnn_type.name](
         self._rnn_output_size,

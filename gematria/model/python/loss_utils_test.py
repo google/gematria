@@ -26,13 +26,11 @@ class LossComputationTest(tf.test.TestCase):
     super().setUp()
     self.dtype = tf.float32
     self.numpy_dtype = self.dtype.as_numpy_dtype()
-    self.actual_outputs_array = np.array(
-        ((1,), (2,), (3,), (5,), (2.5,)), dtype=self.numpy_dtype
-    )
+    self.actual_outputs_array = np.array(((1,), (2,), (3,), (5,), (2.5,)),
+                                         dtype=self.numpy_dtype)
     self.actual_outputs = tf.constant(self.actual_outputs_array)
-    self.expected_outputs_array = np.array(
-        ((4,), (2,), (3,), (1,), (2,)), dtype=self.numpy_dtype
-    )
+    self.expected_outputs_array = np.array(((4,), (2,), (3,), (1,), (2,)),
+                                           dtype=self.numpy_dtype)
     self.expected_outputs = tf.constant(self.expected_outputs_array)
     self.full_mask = tf.ones_like(self.expected_outputs, dtype=tf.dtypes.bool)
 
@@ -41,18 +39,15 @@ class LossComputationTest(tf.test.TestCase):
         dtype=self.numpy_dtype,
     )
     self.multitask_actual_outputs = tf.constant(
-        self.multitask_actual_outputs_array
-    )
+        self.multitask_actual_outputs_array)
     self.multitask_expected_outputs_array = np.array(
         ((4, 14.0), (2, 12.0), (3, 13.0), (1, 11.0), (2, 12.0)),
         dtype=self.numpy_dtype,
     )
     self.multitask_expected_outputs = tf.constant(
-        self.multitask_expected_outputs_array
-    )
+        self.multitask_expected_outputs_array)
     self.multitask_full_mask = tf.ones_like(
-        self.multitask_expected_outputs, dtype=tf.dtypes.bool
-    )
+        self.multitask_expected_outputs, dtype=tf.dtypes.bool)
 
   def test_unscaled_loss(self):
     loss = loss_utils.LossComputation(
@@ -65,21 +60,16 @@ class LossComputationTest(tf.test.TestCase):
 
     mse_tensor = loss.mean_squared_error
     mae_tensor = loss.mean_absolute_error
-    huber_tensor = loss.loss_tensor(
-        options.ErrorNormalization.NONE, options.LossType.HUBER
-    )
+    huber_tensor = loss.loss_tensor(options.ErrorNormalization.NONE,
+                                    options.LossType.HUBER)
     percentiles_tensor = loss.absolute_error_percentiles
     with self.session() as sess:
       mse, mae, huber, percentiles = sess.run(
-          (mse_tensor, mae_tensor, huber_tensor, percentiles_tensor)
-      )
-      self.assertNear(
-          float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6
-      )
+          (mse_tensor, mae_tensor, huber_tensor, percentiles_tensor))
+      self.assertNear(float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6)
       self.assertNear(float(mae), (3 + 0 + 0 + 4 + 0.5) / 5, 1e-6)
       self.assertNear(
-          float(huber), (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5, 1e-6
-      )
+          float(huber), (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5, 1e-6)
       self.assertAllEqual(percentiles, ((0,), (0,), (0.5,), (3,), (4,)))
 
   def test_percentage_loss(self):
@@ -96,25 +86,20 @@ class LossComputationTest(tf.test.TestCase):
     percentiles_tensor = loss.absolute_percentage_error_percentiles
     with self.session() as sess:
       mspe, mape, percentiles = sess.run(
-          (mspe_tensor, mape_tensor, percentiles_tensor)
-      )
+          (mspe_tensor, mape_tensor, percentiles_tensor))
       self.assertAlmostEqual(
-          float(mspe), ((3 / 4) ** 2 + 0 + 0 + 4**2 + (0.5 / 2) ** 2) / 5
-      )
+          float(mspe), ((3 / 4)**2 + 0 + 0 + 4**2 + (0.5 / 2)**2) / 5)
       self.assertAlmostEqual(float(mape), (3 / 4 + 0 + 0 + 4 + 0.5 / 2) / 5)
       self.assertAllEqual(percentiles, ((0,), (0.5 / 2,), (0.5 / 2,), (4,)))
 
   def test_normalized_loss_when_expected_value_greater_than_one(self):
-    actual_outputs = tf.constant(
-        ((1.3,), (-2,), (3,), (1,), (2,)), dtype=self.dtype
-    )
-    expected_outputs = tf.constant(
-        ((1,), (4,), (3,), (0.5,), (0,)), dtype=self.dtype
-    )
+    actual_outputs = tf.constant(((1.3,), (-2,), (3,), (1,), (2,)),
+                                 dtype=self.dtype)
+    expected_outputs = tf.constant(((1,), (4,), (3,), (0.5,), (0,)),
+                                   dtype=self.dtype)
     mask = tf.ones_like(actual_outputs, dtype=tf.dtypes.bool)
     loss = loss_utils.LossComputation(
-        actual_outputs, expected_outputs, mask, dtype=self.dtype
-    )
+        actual_outputs, expected_outputs, mask, dtype=self.dtype)
 
     mean_absolute_error_tensor = loss.loss_tensor(
         options.ErrorNormalization.EXPECTED_VALUE_GREATER_THAN_ONE,
@@ -128,8 +113,7 @@ class LossComputationTest(tf.test.TestCase):
       mean_absolute_error = sess.run(mean_absolute_error_tensor)
       mean_squared_error = sess.run(mean_squared_error_tensor)
       self.assertAlmostEqual(
-          float(mean_absolute_error), (0.3 + 1.5 + 0.0 + 0.5 + 2.0) / 5
-      )
+          float(mean_absolute_error), (0.3 + 1.5 + 0.0 + 0.5 + 2.0) / 5)
       self.assertAlmostEqual(
           float(mean_squared_error),
           (0.3**2 + 1.5**2 + 0.0 + 0.5**2 + 2.0**2) / 5,
@@ -147,8 +131,7 @@ class LossComputationTest(tf.test.TestCase):
     pct_percentiles_tenros = loss.absolute_percentage_error_percentiles
     with self.session() as sess:
       abs_percentiles, pct_percentiles = sess.run(
-          (abs_percentiles_tensor, pct_percentiles_tenros)
-      )
+          (abs_percentiles_tensor, pct_percentiles_tenros))
       self.assertAllEqual(abs_percentiles, [])
       self.assertAllEqual(pct_percentiles, [])
 
@@ -166,14 +149,12 @@ class LossComputationTest(tf.test.TestCase):
 
     mse_tensor = loss.mean_squared_error
     mae_tensor = loss.mean_absolute_error
-    huber_tensor = loss.loss_tensor(
-        options.ErrorNormalization.NONE, options.LossType.HUBER
-    )
+    huber_tensor = loss.loss_tensor(options.ErrorNormalization.NONE,
+                                    options.LossType.HUBER)
     percentiles_tensor = loss.absolute_error_percentiles
     with self.session() as sess:
       mse, mae, huber, percentiles = sess.run(
-          (mse_tensor, mae_tensor, huber_tensor, percentiles_tensor)
-      )
+          (mse_tensor, mae_tensor, huber_tensor, percentiles_tensor))
       self.assertAllClose(
           mse,
           (
@@ -182,9 +163,8 @@ class LossComputationTest(tf.test.TestCase):
           ),
           1e-6,
       )
-      self.assertAllClose(
-          mae, ((3 + 0 + 0 + 4 + 0.5) / 5, (6 + 0 + 0 + 4 + 0.5) / 5), 1e-6
-      )
+      self.assertAllClose(mae, ((3 + 0 + 0 + 4 + 0.5) / 5,
+                                (6 + 0 + 0 + 4 + 0.5) / 5), 1e-6)
       self.assertAllClose(
           huber,
           (
@@ -193,9 +173,8 @@ class LossComputationTest(tf.test.TestCase):
           ),
           1e-6,
       )
-      self.assertAllEqual(
-          percentiles, ((0, 0), (0, 0), (0.5, 0.5), (3, 4), (4, 6))
-      )
+      self.assertAllEqual(percentiles,
+                          ((0, 0), (0, 0), (0.5, 0.5), (3, 4), (4, 6)))
 
   def test_multi_task_with_mask(self):
     loss = loss_utils.LossComputation(
@@ -204,8 +183,7 @@ class LossComputationTest(tf.test.TestCase):
             dtype=self.dtype,
         ),
         expected_outputs=tf.constant(
-            ((4, 14), (500, 12), (30, 13), (1, 11), (2, 12)), dtype=self.dtype
-        ),
+            ((4, 14), (500, 12), (30, 13), (1, 11), (2, 12)), dtype=self.dtype),
         mask=tf.constant((
             (True, True),
             (False, True),
@@ -221,12 +199,10 @@ class LossComputationTest(tf.test.TestCase):
     mspe_tensor = loss.mean_squared_percentage_error
     mae_tensor = loss.mean_absolute_error
     mape_tensor = loss.mean_absolute_percentage_error
-    huber_tensor = loss.loss_tensor(
-        options.ErrorNormalization.NONE, options.LossType.HUBER
-    )
+    huber_tensor = loss.loss_tensor(options.ErrorNormalization.NONE,
+                                    options.LossType.HUBER)
     huber_percentage_tensor = loss.loss_tensor(
-        options.ErrorNormalization.PERCENTAGE_ERROR, options.LossType.HUBER
-    )
+        options.ErrorNormalization.PERCENTAGE_ERROR, options.LossType.HUBER)
     percentile_tensor = loss.absolute_error_percentiles
     with self.session() as sess:
       mse, mspe, mae, mape, huber, huber_percentage, percentiles = sess.run((
@@ -246,15 +222,14 @@ class LossComputationTest(tf.test.TestCase):
       self.assertAllClose(
           mspe,
           (
-              ((3 / 4) ** 2 + (27 / 30) ** 2 + (0.5 / 2) ** 2) / 3,
-              ((6 / 14) ** 2 + (0.1 / 12) ** 2) / 2,
+              ((3 / 4)**2 + (27 / 30)**2 + (0.5 / 2)**2) / 3,
+              ((6 / 14)**2 + (0.1 / 12)**2) / 2,
           ),
           1e-6,
       )
       self.assertAllClose(mae, ((3 + 27 + 0.5) / 3, (6 + 0.1) / 2), 1e-6)
-      self.assertAllClose(
-          mape, ((3 / 4 + 27 / 30 + 0.5 / 2) / 3, (6 / 14 + 0.1 / 12) / 2), 1e-6
-      )
+      self.assertAllClose(mape, ((3 / 4 + 27 / 30 + 0.5 / 2) / 3,
+                                 (6 / 14 + 0.1 / 12) / 2), 1e-6)
       self.assertAllClose(
           huber,
           ((2.5 + 26.5 + (0.5**2) / 2) / 3, (5.5 + (0.1**2) / 2) / 2),
@@ -263,9 +238,8 @@ class LossComputationTest(tf.test.TestCase):
       self.assertAllClose(
           huber_percentage,
           (
-              (((3 / 4) ** 2) / 2 + ((27 / 30) ** 2) / 2 + ((0.5 / 2) ** 2) / 2)
-              / 3,
-              (((6 / 14) ** 2) / 2 + ((0.1 / 12) ** 2) / 2) / 2,
+              (((3 / 4)**2) / 2 + ((27 / 30)**2) / 2 + ((0.5 / 2)**2) / 2) / 3,
+              (((6 / 14)**2) / 2 + ((0.1 / 12)**2) / 2) / 2,
           ),
           1e-6,
       )
@@ -291,9 +265,8 @@ class LossComputationTest(tf.test.TestCase):
 
     mse_tensor = loss.mean_squared_error
     mae_tensor = loss.mean_absolute_error
-    huber_tensor = loss.loss_tensor(
-        options.ErrorNormalization.NONE, options.LossType.HUBER
-    )
+    huber_tensor = loss.loss_tensor(options.ErrorNormalization.NONE,
+                                    options.LossType.HUBER)
     percentiles_tensor = loss.absolute_error_percentiles
 
     self.assertEqual(mse_tensor.shape, (1,))
@@ -311,13 +284,10 @@ class LossComputationTest(tf.test.TestCase):
           (mse_tensor, mae_tensor, huber_tensor, percentiles_tensor),
           feed_dict=feed_dict,
       )
-      self.assertNear(
-          float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6
-      )
+      self.assertNear(float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6)
       self.assertNear(float(mae), (3 + 0 + 0 + 4 + 0.5) / 5, 1e-6)
       self.assertNear(
-          float(huber), (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5, 1e-6
-      )
+          float(huber), (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5, 1e-6)
       self.assertAllEqual(percentiles, ((0,), (0.5,), (3,), (4,)))
 
   def test_multi_task_unknown_shape(self):
@@ -337,17 +307,15 @@ class LossComputationTest(tf.test.TestCase):
 
     mse_tensor = loss.mean_squared_error
     mae_tensor = loss.mean_absolute_error
-    huber_tensor = loss.loss_tensor(
-        options.ErrorNormalization.NONE, options.LossType.HUBER
-    )
+    huber_tensor = loss.loss_tensor(options.ErrorNormalization.NONE,
+                                    options.LossType.HUBER)
     percentiles_tensor = loss.absolute_error_percentiles
 
     self.assertEqual(mse_tensor.shape, (num_tasks,))
     self.assertEqual(mae_tensor.shape, (num_tasks,))
     self.assertEqual(huber_tensor.shape, (num_tasks,))
-    self.assertEqual(
-        percentiles_tensor.shape, (len(percentile_ranks), num_tasks)
-    )
+    self.assertEqual(percentiles_tensor.shape,
+                     (len(percentile_ranks), num_tasks))
 
     feed_dict = {
         actual_output: self.multitask_actual_outputs_array,
@@ -367,9 +335,8 @@ class LossComputationTest(tf.test.TestCase):
           )),
           1e-6,
       )
-      self.assertNDArrayNear(
-          mae, (((3 + 0 + 0 + 4 + 0.5) / 5, (6 + 0 + 0 + 4 + 0.5) / 5)), 1e-6
-      )
+      self.assertNDArrayNear(mae, (((3 + 0 + 0 + 4 + 0.5) / 5,
+                                    (6 + 0 + 0 + 4 + 0.5) / 5)), 1e-6)
       self.assertNDArrayNear(
           huber,
           ((
@@ -397,17 +364,15 @@ class LossComputationTest(tf.test.TestCase):
 
     mse_tensor = loss.mean_squared_error
     mae_tensor = loss.mean_absolute_error
-    huber_tensor = loss.loss_tensor(
-        options.ErrorNormalization.NONE, options.LossType.HUBER
-    )
+    huber_tensor = loss.loss_tensor(options.ErrorNormalization.NONE,
+                                    options.LossType.HUBER)
     percentiles_tensor = loss.absolute_error_percentiles
 
     self.assertEqual(mse_tensor.shape, (num_tasks,))
     self.assertEqual(mae_tensor.shape, (num_tasks,))
     self.assertEqual(huber_tensor.shape, (num_tasks,))
-    self.assertEqual(
-        percentiles_tensor.shape, (len(percentile_ranks), num_tasks)
-    )
+    self.assertEqual(percentiles_tensor.shape,
+                     (len(percentile_ranks), num_tasks))
 
     feed_dict = {
         actual_output: self.actual_outputs_array.reshape((-1, 1)),
@@ -418,13 +383,10 @@ class LossComputationTest(tf.test.TestCase):
           (mse_tensor, mae_tensor, huber_tensor, percentiles_tensor),
           feed_dict=feed_dict,
       )
-      self.assertNear(
-          float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6
-      )
+      self.assertNear(float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6)
       self.assertNear(float(mae), (3 + 0 + 0 + 4 + 0.5) / 5, 1e-6)
       self.assertNear(
-          float(huber), (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5, 1e-6
-      )
+          float(huber), (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5, 1e-6)
       self.assertAllEqual(percentiles, ((0,), (0.5,), (3,), (4,)))
 
   def test_single_task_ranking_softmax_loss(self):
@@ -434,8 +396,7 @@ class LossComputationTest(tf.test.TestCase):
     mask = tf.ones_like(actual_output, tf.dtypes.bool)
 
     loss = loss_utils.LossComputation(
-        actual_output, expected_output, mask, dtype=self.dtype
-    )
+        actual_output, expected_output, mask, dtype=self.dtype)
 
     rank_loss_tensor = loss.loss_tensor(
         normalization=options.ErrorNormalization.NONE,
@@ -447,23 +408,23 @@ class LossComputationTest(tf.test.TestCase):
       rank_loss_a = sess.run(
           rank_loss_tensor,
           feed_dict={
-              actual_output: np.array(
-                  (1, 2, 3, 4, 5), dtype=np.float32
-              ).reshape((-1, num_tasks)),
-              expected_output: np.array(
-                  (1, 2, 3, 4, 5), dtype=np.float32
-              ).reshape((-1, num_tasks)),
+              actual_output:
+                  np.array((1, 2, 3, 4, 5), dtype=np.float32).reshape(
+                      (-1, num_tasks)),
+              expected_output:
+                  np.array((1, 2, 3, 4, 5), dtype=np.float32).reshape(
+                      (-1, num_tasks)),
           },
       )
       rank_loss_b = sess.run(
           rank_loss_tensor,
           feed_dict={
-              actual_output: np.array(
-                  (4, 2, 3, 4, 1), dtype=np.float32
-              ).reshape((-1, num_tasks)),
-              expected_output: np.array(
-                  (1, 2, 3, 4, 5), dtype=np.float32
-              ).reshape((-1, num_tasks)),
+              actual_output:
+                  np.array((4, 2, 3, 4, 1), dtype=np.float32).reshape(
+                      (-1, num_tasks)),
+              expected_output:
+                  np.array((1, 2, 3, 4, 5), dtype=np.float32).reshape(
+                      (-1, num_tasks)),
           },
       )
       self.assertLess(float(rank_loss_a), float(rank_loss_b))
@@ -475,8 +436,7 @@ class LossComputationTest(tf.test.TestCase):
     mask = tf.ones_like(actual_output, dtype=tf.dtypes.bool)
 
     loss = loss_utils.LossComputation(
-        actual_output, expected_output, mask, dtype=self.dtype
-    )
+        actual_output, expected_output, mask, dtype=self.dtype)
 
     rank_loss_tensor = loss.loss_tensor(
         normalization=options.ErrorNormalization.NONE,
@@ -488,14 +448,16 @@ class LossComputationTest(tf.test.TestCase):
       rank_loss = sess.run(
           rank_loss_tensor,
           feed_dict={
-              actual_output: np.array(
-                  ((5, 1, 5), (2, 2, 2), (3, 3, 3), (4, 4, 4), (1, 5, 1)),
-                  dtype=np.float32,
-              ).reshape((-1, num_tasks)),
-              expected_output: np.array(
-                  ((1, 1, 1), (2, 2, 2), (3, 3, 3), (4, 4, 4), (5, 5, 5)),
-                  dtype=np.float32,
-              ).reshape((-1, num_tasks)),
+              actual_output:
+                  np.array(
+                      ((5, 1, 5), (2, 2, 2), (3, 3, 3), (4, 4, 4), (1, 5, 1)),
+                      dtype=np.float32,
+                  ).reshape((-1, num_tasks)),
+              expected_output:
+                  np.array(
+                      ((1, 1, 1), (2, 2, 2), (3, 3, 3), (4, 4, 4), (5, 5, 5)),
+                      dtype=np.float32,
+                  ).reshape((-1, num_tasks)),
           },
       )
       self.assertEqual(rank_loss.shape, (3,))

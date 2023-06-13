@@ -36,52 +36,42 @@ _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 _TOKEN_EMBEDDING_SIZE = flags.DEFINE_integer(
     'gematria_token_embedding_size',
     256,
-    (
-        'The size of the token embedding vectors used in the hierarchical LSTM'
-        ' model.'
-    ),
+    ('The size of the token embedding vectors used in the hierarchical LSTM'
+     ' model.'),
 )
 _INSTRUCTION_EMBEDDING_SIZE = flags.DEFINE_integer(
     'gematria_instruction_embedding_size',
     256,
-    (
-        'The size of the instruction embedding vectors used in the hierarchical'
-        ' LSTM model.'
-    ),
+    ('The size of the instruction embedding vectors used in the hierarchical'
+     ' LSTM model.'),
 )
 _BLOCK_EMBEDDING_SIZE = flags.DEFINE_integer(
     'gematria_block_embedding_size',
     256,
-    (
-        'The size of the basic block embedding vectors used in the hierarchical'
-        ' LSTM model.'
-    ),
+    ('The size of the basic block embedding vectors used in the hierarchical'
+     ' LSTM model.'),
 )
 
 _OUTPUT_LAYERS = flags.DEFINE_string(
     'gematria_output_layers',
     '',
-    (
-        'Specifies a comma-separated string that represents the number of'
-        ' shared dense layers and their sizes used to compute the output of the'
-        ' network. These dense layers consume the outputs of the'
-        ' basic-block-level LSTM. When empty, the outputs of the'
-        ' basic-block-level LSTM are passed directly to the input of the'
-        ' task-specific dense layers.'
-    ),
+    ('Specifies a comma-separated string that represents the number of'
+     ' shared dense layers and their sizes used to compute the output of the'
+     ' network. These dense layers consume the outputs of the'
+     ' basic-block-level LSTM. When empty, the outputs of the'
+     ' basic-block-level LSTM are passed directly to the input of the'
+     ' task-specific dense layers.'),
 )
 _TASK_OUTPUT_LAYERS = flags.DEFINE_string(
     'gematria_task_output_layers',
     '',
-    (
-        'Specifies a comma-separated string that represents the number of '
-        ' task-specific dense layers and their sizes used to compute the output'
-        ' of the network. The task-specific dense layers consume the output of'
-        ' the shared dense layers; they are followed by a single task-specific'
-        ' linear layer that produces the output of the network for the task.'
-        ' When empty, the linear layer is added directly after the shared dense'
-        ' layers or after the basic-block-level LSTM layer.'
-    ),
+    ('Specifies a comma-separated string that represents the number of '
+     ' task-specific dense layers and their sizes used to compute the output'
+     ' of the network. The task-specific dense layers consume the output of'
+     ' the shared dense layers; they are followed by a single task-specific'
+     ' linear layer that produces the output of the network for the task.'
+     ' When empty, the linear layer is added directly after the shared dense'
+     ' layers or after the basic-block-level LSTM layer.'),
 )
 
 _BIDIRECTIONAL = flags.DEFINE_bool(
@@ -93,11 +83,9 @@ _BIDIRECTIONAL = flags.DEFINE_bool(
 _SEQ_2_SEQ = flags.DEFINE_bool(
     'gematria_seq2seq',
     False,
-    (
-        'Run the model in the seq2seq mode where predictions are made for each'
-        ' instruction in the basic block rather than for the basic block as a'
-        ' whole.'
-    ),
+    ('Run the model in the seq2seq mode where predictions are made for each'
+     ' instruction in the basic block rather than for the basic block as a'
+     ' whole.'),
 )
 
 flags.register_validator(
@@ -131,11 +119,9 @@ flags.register_validator(
 def main(argv: Sequence[str]) -> None:
   del argv  # Unused
   out_of_vocabulary_behavior = (
-      token_model_flags.get_oov_token_behavior_from_command_line_flags()
-  )
+      token_model_flags.get_oov_token_behavior_from_command_line_flags())
   model_tokens = token_model_flags.get_tokens_from_command_line_flags(
-      model_tokens=tokens.STRUCTURAL_TOKENS
-  )
+      model_tokens=tokens.STRUCTURAL_TOKENS)
   main_function.run_gematria_model_from_command_line_flags(
       sequence_model_hlstm.HierarchicalLstmModel,
       use_deltas=_SEQ_2_SEQ.value,
@@ -149,8 +135,7 @@ def main(argv: Sequence[str]) -> None:
       dtype=tf.dtypes.float32,
       out_of_vocabulary_behavior=out_of_vocabulary_behavior,
       out_of_vocabulary_injection_probability=(
-          token_model_flags.OUT_OF_VOCABULARY_INJECTION_PROBABILITY.value
-      ),
+          token_model_flags.OUT_OF_VOCABULARY_INJECTION_PROBABILITY.value),
   )
 
 

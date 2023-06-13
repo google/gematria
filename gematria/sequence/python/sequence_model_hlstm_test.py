@@ -25,8 +25,7 @@ _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 class SequenceModelHlstmTest(parameterized.TestCase, model_test.TestCase):
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_train_seq2num(self, loss_type, loss_normalization):
     model = sequence_model_hlstm.HierarchicalLstmModel(
         learning_rate=0.01,
@@ -47,8 +46,7 @@ class SequenceModelHlstmTest(parameterized.TestCase, model_test.TestCase):
     self.check_training_model(model, self.blocks_with_throughput)
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_train_seq2seq(self, loss_type, loss_normalization):
     model = sequence_model_hlstm.HierarchicalLstmModel(
         learning_rate=0.01,
@@ -69,8 +67,7 @@ class SequenceModelHlstmTest(parameterized.TestCase, model_test.TestCase):
     self.check_training_model(model, self.blocks_with_throughput)
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_train_seq2num_multi_task(self, loss_type, loss_normalization):
     model = sequence_model_hlstm.HierarchicalLstmModel(
         learning_rate=0.01,
@@ -93,8 +90,7 @@ class SequenceModelHlstmTest(parameterized.TestCase, model_test.TestCase):
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_train_seq2num_bidirectional(self, loss_type, loss_normalization):
     model = sequence_model_hlstm.HierarchicalLstmModel(
         learning_rate=0.01,
@@ -112,14 +108,12 @@ class SequenceModelHlstmTest(parameterized.TestCase, model_test.TestCase):
         out_of_vocabulary_behavior=_OutOfVocabularyTokenBehavior.return_error(),
     )
     model.initialize()
-    self.assertIsInstance(
-        model._model._block_lstm, tf.keras.layers.Bidirectional
-    )
+    self.assertIsInstance(model._model._block_lstm,
+                          tf.keras.layers.Bidirectional)
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_train_seq2seq_bidirectional(self, loss_type, loss_normalization):
     model = sequence_model_hlstm.HierarchicalLstmModel(
         learning_rate=0.01,

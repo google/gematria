@@ -101,9 +101,10 @@ class SaveBestCheckpoint(tf.train.SessionRunHook):
     self._last_eval = math.inf
 
   def before_run(self, run_context: ...) -> tf.train.SessionRunArgs:
-    return tf.train.SessionRunArgs(
-        {'loss': self._error_tensor, 'global_step': self._global_step}
-    )
+    return tf.train.SessionRunArgs({
+        'loss': self._error_tensor,
+        'global_step': self._global_step
+    })
 
   def after_run(self, run_context: ..., run_values: ...):
     step = run_values.results['global_step']
@@ -178,8 +179,7 @@ class ModelBase(metaclass=abc.ABCMeta):
   # property as its only argument.
   _USE_DELTAS_ATTRIBUTE_ERROR_MESSAGE = (
       '%s is available only when the model is created in the sequence to'
-      ' sequence mode (use_deltas is True)'
-  )
+      ' sequence mode (use_deltas is True)')
 
   # The name used for the tensor that contains the per-basic block outputs of
   # the model (stored in self._output_tensor). This name is used both in the
@@ -203,21 +203,18 @@ class ModelBase(metaclass=abc.ABCMeta):
       dtype: tf.dtypes.DType,
       loss_type: options.LossType = options.LossType.MEAN_SQUARED_ERROR,
       loss_normalization: options.ErrorNormalization = (
-          options.ErrorNormalization.NONE
-      ),
+          options.ErrorNormalization.NONE),
       use_deltas: bool = False,
       use_delta_loss: bool = True,
       create_delta_block_index: bool = False,
       optimizer_type: Optional[
-          options.OptimizerType
-      ] = options.OptimizerType.ADAM,
+          options.OptimizerType] = options.OptimizerType.ADAM,
       grad_clip_norm: Optional[float] = None,
       learning_rate: Optional[float] = 0.001,
       decay_steps: Optional[int] = 0,
       decay_rate: Optional[float] = 0.0,
       learning_rate_schedule: Optional[options.LearningRateScheduleType] = (
-          options.LearningRateScheduleType.NONE
-      ),
+          options.LearningRateScheduleType.NONE),
       collected_percentile_ranks: Optional[Sequence[int]] = None,
       synchronous_training: bool = False,
       is_chief: bool = False,
@@ -300,8 +297,7 @@ class ModelBase(metaclass=abc.ABCMeta):
     self._synchronous_training = synchronous_training
     self._num_training_worker_replicas = num_training_worker_replicas
     self._num_training_worker_replicas_to_aggregate = (
-        num_training_worker_replicas_to_aggregate
-    )
+        num_training_worker_replicas_to_aggregate)
     self._optimizer_type = optimizer_type
     self._grad_clip_norm = grad_clip_norm
     task_list = task_list or ('default',)
@@ -312,8 +308,7 @@ class ModelBase(metaclass=abc.ABCMeta):
     # Named groups of variable tensors in the model. The training procedure
     # allows restricting weight updates only to variables from a certain group.
     self._variable_groups: MutableMapping[str, MutableSequence[tf.Tensor]] = (
-        collections.defaultdict(list)
-    )
+        collections.defaultdict(list))
     self._trained_variable_groups = tuple(trained_variable_groups or ())
 
     self._global_step = tf.train.get_or_create_global_step()
@@ -332,9 +327,8 @@ class ModelBase(metaclass=abc.ABCMeta):
     self._expected_outputs_deltas: Optional[tf.Tensor] = None
     self._loss_tensor: Optional[tf.Tensor] = None
     self._train_step: Optional[tf.Operation] = None
-    self._optimizer: Union[
-        tf.train.Optimizer, tf.train.SyncReplicasOptimizer
-    ] = None
+    self._optimizer: Union[tf.train.Optimizer,
+                           tf.train.SyncReplicasOptimizer] = None
     # Specifies whether self._delta_block_index_tensor should be created. This
     # property is always True for seq2seq models, but it can be also requested
     # by seq2num models that need to partition per-instruction data in the batch
@@ -376,8 +370,7 @@ class ModelBase(metaclass=abc.ABCMeta):
   def initialize(self) -> None:
     """Initializes the model. Must be called before any other method."""
     self._expected_outputs = tf.placeholder(
-        dtype=self.dtype, shape=(None, self.num_tasks), name='expected_outputs'
-    )
+        dtype=self.dtype, shape=(None, self.num_tasks), name='expected_outputs')
     if self._create_delta_block_index:
       self._delta_block_index_tensor = tf.placeholder(
           _BASIC_BLOCK_INDEX_TF_DTYPE,
@@ -388,29 +381,23 @@ class ModelBase(metaclass=abc.ABCMeta):
     # Check that the required tensors were created by _create_tf_graph().
     expected_shape = (None, self.num_tasks)
     if not self._use_deltas:
-      assert (
-          self._output_tensor is not None
-      ), 'self._output_tensor was not created by self._create_tf_graph()'
+      assert (self._output_tensor is not None
+             ), 'self._output_tensor was not created by self._create_tf_graph()'
       assert (
           self._output_tensor_deltas is None
       ), 'self._output_tensor_deltas was created with self._use_deltas == False'
       assert self._output_tensor.shape.is_compatible_with(expected_shape), (
           f'Expected shape {expected_shape}, got '
-          f'{self._output_tensor.shape.as_list()}'
-      )
+          f'{self._output_tensor.shape.as_list()}')
     else:
       assert (
           self._output_tensor_deltas is not None
       ), 'self._output_tensor_deltas was not created by self._create_tf_graph()'
-      assert (
-          self._output_tensor is None
-      ), 'self._output_tensor was created with self._use_deltas == True'
+      assert (self._output_tensor is None
+             ), 'self._output_tensor was created with self._use_deltas == True'
       assert self._output_tensor_deltas.shape.is_compatible_with(
-          expected_shape
-      ), (
-          f'Expected shape {expected_shape}, got '
-          f'{self._output_tensor_deltas.shape.as_list()}'
-      )
+          expected_shape), (f'Expected shape {expected_shape}, got '
+                            f'{self._output_tensor_deltas.shape.as_list()}')
     self._create_output_and_loss_tensors()
     self._create_optimizer()
     tf.summary.scalar('learning_rate', self._decayed_learning_rate)
@@ -455,9 +442,8 @@ class ModelBase(metaclass=abc.ABCMeta):
     This property is available only when self.use_deltas is True.
     """
     if not self._use_deltas:
-      raise AttributeError(
-          ModelBase._USE_DELTAS_ATTRIBUTE_ERROR_MESSAGE % 'output_tensor_deltas'
-      )
+      raise AttributeError(ModelBase._USE_DELTAS_ATTRIBUTE_ERROR_MESSAGE %
+                           'output_tensor_deltas')
     return self._output_tensor_deltas
 
   @property
@@ -560,15 +546,12 @@ class ModelBase(metaclass=abc.ABCMeta):
         The tensor must have the same number of elements as percentile_ranks.
     """
     expected_percentile_tensor_shape = (len(percentile_ranks), self.num_tasks)
-    if (
-        percentile_ranks
-        and percentile_tensor.shape != expected_percentile_tensor_shape
-    ):
+    if (percentile_ranks and
+        percentile_tensor.shape != expected_percentile_tensor_shape):
       raise ValueError(
           f'The number of percentile ranks ({len(percentile_ranks)}) and tasks '
           f'({self.num_tasks}) does not match the shape of the tensor '
-          f'({percentile_tensor.shape}).'
-      )
+          f'({percentile_tensor.shape}).')
     for task_idx, task_name in enumerate(self._task_list):
       for percentile_idx, rank in enumerate(percentile_ranks):
         # TODO(ondrasej): Maybe we could simplify this as
@@ -578,10 +561,8 @@ class ModelBase(metaclass=abc.ABCMeta):
 
   def _add_error_summaries(self, error_name: str, error_tensor: tf.Tensor):
     if error_tensor.shape[0] != self.num_tasks:
-      raise ValueError(
-          'First dimension of thr error tensor should be equal to'
-          f' the number of tasks: {self.num_tasks}.'
-      )
+      raise ValueError('First dimension of thr error tensor should be equal to'
+                       f' the number of tasks: {self.num_tasks}.')
     for task_idx, task_name in enumerate(self._task_list):
       summary_name = f'{error_name}_{task_name}'
       tf.summary.scalar(summary_name, error_tensor[task_idx])
@@ -623,29 +604,23 @@ class ModelBase(metaclass=abc.ABCMeta):
       # ":0"), so we add an additional warning to the log in case the index is
       # not "0" as this might cause errors from omission.
       output_deltas_name, output_deltas_index = (
-          self._output_tensor_deltas.name.split(':')
-      )
+          self._output_tensor_deltas.name.split(':'))
       if output_deltas_name != ModelBase.OUTPUT_TENSOR_DELTAS_NAME:
         logging.warning(
-            (
-                'ModelBase._output_tensor_deltas has invalid name.'
-                ' Expected %s, found %s.'
-            ),
+            ('ModelBase._output_tensor_deltas has invalid name.'
+             ' Expected %s, found %s.'),
             ModelBase.OUTPUT_TENSOR_DELTAS_NAME,
             output_deltas_name,
         )
         self._output_tensor_deltas = tf.identity(
-            self._output_tensor_deltas, ModelBase.OUTPUT_TENSOR_DELTAS_NAME
-        )
+            self._output_tensor_deltas, ModelBase.OUTPUT_TENSOR_DELTAS_NAME)
       elif output_deltas_index != '0':
         # NOTE(ondrasej): We can't rename the output tensor automatically,
         # because the desired name is already taken, and the output index 0 is
         # used by another tensor.
         logging.warning(
-            (
-                'ModelBase._output_tensor_deltas has an unexpected index: '
-                'expected 0, found %s.'
-            ),
+            ('ModelBase._output_tensor_deltas has an unexpected index: '
+             'expected 0, found %s.'),
             output_deltas_index,
         )
       self._output_tensor = tf.math.segment_sum(
@@ -661,15 +636,12 @@ class ModelBase(metaclass=abc.ABCMeta):
             ModelBase.OUTPUT_TENSOR_NAME,
             self._output_tensor.name,
         )
-        self._output_tensor = tf.identity(
-            self._output_tensor, ModelBase.OUTPUT_TENSOR_NAME
-        )
+        self._output_tensor = tf.identity(self._output_tensor,
+                                          ModelBase.OUTPUT_TENSOR_NAME)
       elif output_index != '0':
         logging.warning(
-            (
-                'ModelBase._output_tensor has an unexpected index: expected 0,'
-                ' found %s.'
-            ),
+            ('ModelBase._output_tensor has an unexpected index: expected 0,'
+             ' found %s.'),
             output_index,
         )
 
@@ -681,12 +653,10 @@ class ModelBase(metaclass=abc.ABCMeta):
         dtype=self.dtype,
     )
     self._add_error_summaries('absolute_mse', self._loss.mean_squared_error)
-    self._add_error_summaries(
-        'relative_mae', self._loss.mean_absolute_percentage_error
-    )
-    self._add_error_summaries(
-        'relative_mse', self._loss.mean_squared_percentage_error
-    )
+    self._add_error_summaries('relative_mae',
+                              self._loss.mean_absolute_percentage_error)
+    self._add_error_summaries('relative_mse',
+                              self._loss.mean_squared_percentage_error)
     self._add_percentile_summaries(
         'absolute_error',
         self._collected_percentile_ranks,
@@ -708,12 +678,10 @@ class ModelBase(metaclass=abc.ABCMeta):
           dtype=self.dtype,
       )
 
-      self._add_error_summaries(
-          'absolute_mse_deltas', self._delta_loss.mean_squared_error
-      )
-      self._add_error_summaries(
-          'absolute_mae_deltas', self._delta_loss.mean_absolute_error
-      )
+      self._add_error_summaries('absolute_mse_deltas',
+                                self._delta_loss.mean_squared_error)
+      self._add_error_summaries('absolute_mae_deltas',
+                                self._delta_loss.mean_absolute_error)
       self._add_percentile_summaries(
           'absolute_error_deltas',
           self._collected_percentile_ranks,
@@ -724,23 +692,19 @@ class ModelBase(metaclass=abc.ABCMeta):
         loss = self._delta_loss
 
     spearman_correlations = self._make_spearman_correlations(
-        self._expected_outputs, self._output_tensor
-    )
+        self._expected_outputs, self._output_tensor)
     self._add_error_summaries('spearman', spearman_correlations)
 
-    self._loss_tensor_per_task = loss.loss_tensor(
-        self._loss_normalization, self._loss_type
-    )
-    self._loss_tensor = loss.loss_tensor(
-        self._loss_normalization, self._loss_type
-    )
+    self._loss_tensor_per_task = loss.loss_tensor(self._loss_normalization,
+                                                  self._loss_type)
+    self._loss_tensor = loss.loss_tensor(self._loss_normalization,
+                                         self._loss_type)
     self._add_error_summaries('loss', self._loss_tensor_per_task)
     self._loss_tensor = tf.reduce_mean(self._loss_tensor_per_task)
     tf.summary.scalar('overall_loss', self._loss_tensor)
 
-  def _make_spearman_correlations(
-      self, expected_outputs: tf.Tensor, output_tensor: tf.Tensor
-  ) -> tf.Tensor:
+  def _make_spearman_correlations(self, expected_outputs: tf.Tensor,
+                                  output_tensor: tf.Tensor) -> tf.Tensor:
     """Creates a contains Spearman rank correlation tensor.
 
     Assumes that both inputs have rank (None, num_tasks). Returns a tensor in
@@ -772,8 +736,7 @@ class ModelBase(metaclass=abc.ABCMeta):
                   Tout=self.dtype,
               ),
               (1,),
-          )
-      )
+          ))
     return tf.concat(task_correlations, axis=0)
 
   def _clip_if_not_none(self, grad: Optional[tf.Tensor]) -> tf.Tensor:
@@ -790,57 +753,37 @@ class ModelBase(metaclass=abc.ABCMeta):
     }
     decay_rate_arg = {'decay_rate': self._decay_rate}
 
-    if (
-        self._learning_rate_schedule != options.LearningRateScheduleType.NONE
-    ) and (self._decay_steps == 0):
-      raise ValueError(
-          'When a learning schedule is selected, `decay_steps` '
-          'must be great than zero.'
-      )
+    if (self._learning_rate_schedule
+        != options.LearningRateScheduleType.NONE) and (self._decay_steps == 0):
+      raise ValueError('When a learning schedule is selected, `decay_steps` '
+                       'must be great than zero.')
     if self._learning_rate_schedule == options.LearningRateScheduleType.COSINE:
       self._decayed_learning_rate = tf.train.cosine_decay(**decay_args)
-    elif (
-        self._learning_rate_schedule
-        == options.LearningRateScheduleType.EXPONENTIAL
-    ):
+    elif (self._learning_rate_schedule ==
+          options.LearningRateScheduleType.EXPONENTIAL):
       self._decayed_learning_rate = tf.train.exponential_decay(
-          **decay_args, **decay_rate_arg
-      )
-    elif (
-        self._learning_rate_schedule
-        == options.LearningRateScheduleType.INVERSE_TIME
-    ):
+          **decay_args, **decay_rate_arg)
+    elif (self._learning_rate_schedule ==
+          options.LearningRateScheduleType.INVERSE_TIME):
       self._decayed_learning_rate = tf.train.inverse_time_decay(
-          **decay_args, **decay_rate_arg
-      )
-    elif (
-        self._learning_rate_schedule
-        == options.LearningRateScheduleType.LINEAR_COSINE
-    ):
+          **decay_args, **decay_rate_arg)
+    elif (self._learning_rate_schedule ==
+          options.LearningRateScheduleType.LINEAR_COSINE):
       self._decayed_learning_rate = tf.train.linear_cosine_decay(**decay_args)
-    elif (
-        self._learning_rate_schedule
-        == options.LearningRateScheduleType.NATURAL_EXP
-    ):
+    elif (self._learning_rate_schedule ==
+          options.LearningRateScheduleType.NATURAL_EXP):
       self._decayed_learning_rate = tf.train.natural_exp_decay(
-          **decay_args, **decay_rate_arg
-      )
-    elif (
-        self._learning_rate_schedule
-        == options.LearningRateScheduleType.NOISY_LINEAR_COSINE
-    ):
+          **decay_args, **decay_rate_arg)
+    elif (self._learning_rate_schedule ==
+          options.LearningRateScheduleType.NOISY_LINEAR_COSINE):
       self._decayed_learning_rate = tf.train.noisy_linear_cosine_decay(
-          **decay_args
-      )
-    elif (
-        self._learning_rate_schedule
-        == options.LearningRateScheduleType.POLYNOMIAL
-    ):
+          **decay_args)
+    elif (self._learning_rate_schedule ==
+          options.LearningRateScheduleType.POLYNOMIAL):
       self._decayed_learning_rate = tf.train.polynomial_decay(**decay_args)
     else:
       assert (
-          self._learning_rate_schedule == options.LearningRateScheduleType.NONE
-      )
+          self._learning_rate_schedule == options.LearningRateScheduleType.NONE)
       self._decayed_learning_rate = self._learning_rate
 
     # The list of variables to optimize. By default, the list is empty which
@@ -851,21 +794,17 @@ class ModelBase(metaclass=abc.ABCMeta):
 
     if self._optimizer_type == options.OptimizerType.ADAM:
       self._optimizer = tf.train.AdamOptimizer(
-          learning_rate=self._decayed_learning_rate
-      )
+          learning_rate=self._decayed_learning_rate)
     elif self._optimizer_type == options.OptimizerType.SGD:
       self._optimizer = tf.train.GradientDescentOptimizer(
-          learning_rate=self._decayed_learning_rate
-      )
+          learning_rate=self._decayed_learning_rate)
     elif self._optimizer_type == options.OptimizerType.RMSPROP:
       self._optimizer = tf.train.RMSPropOptimizer(
-          learning_rate=self._decayed_learning_rate
-      )
+          learning_rate=self._decayed_learning_rate)
     else:
       raise ValueError(
-          'Optimizer %s is not supported. List of supported optimizers are %s'
-          % (self._optimizer_type, list(map(str, options.OptimizerType)))
-      )
+          'Optimizer %s is not supported. List of supported optimizers are %s' %
+          (self._optimizer_type, list(map(str, options.OptimizerType))))
     if self._synchronous_training and self._num_training_worker_replicas > 1:
       # TODO(ondrasej): Rewrite this using the tf.distributed framework.
       # SyncReplicasOptimizer is deprecated and might be removed in the future.
@@ -876,27 +815,22 @@ class ModelBase(metaclass=abc.ABCMeta):
       )
     elif self._synchronous_training:
       logging.warning(
-          'ModelBase._synchronous_training is True with a single worker.'
-      )
+          'ModelBase._synchronous_training is True with a single worker.')
     grads_and_vars = self._optimizer.compute_gradients(
-        self._loss_tensor, var_list=list(variables) if variables else None
-    )
+        self._loss_tensor, var_list=list(variables) if variables else None)
     if self._grad_clip_norm:
       if self._grad_clip_norm <= 0.0:
         logging.warning(
             'The gradients are clipped to zero. Please revise if this is not '
-            'intended.'
-        )
+            'intended.')
       grads_and_vars = [
           (self._clip_if_not_none(g), v) for g, v in grads_and_vars
       ]
     self._train_step = self._optimizer.apply_gradients(
-        grads_and_vars, global_step=self.global_step
-    )
+        grads_and_vars, global_step=self.global_step)
 
   def get_monitored_training_session_hooks(
-      self,
-  ) -> Sequence[tf.train.SessionRunHook]:
+      self,) -> Sequence[tf.train.SessionRunHook]:
     """Returns hooks for a MonitoredTrainingSession required by the model."""
     hooks = []
     if isinstance(self._optimizer, tf.train.SyncReplicasOptimizer):
@@ -919,8 +853,7 @@ class ModelBase(metaclass=abc.ABCMeta):
     return True
 
   def validate_basic_block_with_throughput(
-      self, block: throughput.BasicBlockWithThroughput
-  ) -> bool:
+      self, block: throughput.BasicBlockWithThroughput) -> bool:
     """A version of validate_basic_block that works on blocks with throughpu."""
     return self.validate_basic_block(block.block)
 
@@ -932,8 +865,7 @@ class ModelBase(metaclass=abc.ABCMeta):
     """
     assert self._batch_expected_outputs is None, (
         'ModelBase._start_batch() was called without calling '
-        'ModelBase._finalize_batch() for the previous batch.'
-    )
+        'ModelBase._finalize_batch() for the previous batch.')
 
     self._batch_expected_outputs = []
     self._batch_expected_outputs_deltas = []
@@ -952,8 +884,7 @@ class ModelBase(metaclass=abc.ABCMeta):
       A feed_dict object that can be used for running the batch.
     """
     raise NotImplementedError(
-        'ModelBase._make_batch_feed_dict() is not implemented'
-    )
+        'ModelBase._make_batch_feed_dict() is not implemented')
 
   def _finalize_batch(self, include_expected_outputs: bool) -> FeedDict:
     """Method called after traversing the all basic blocks in the batch.
@@ -974,8 +905,7 @@ class ModelBase(metaclass=abc.ABCMeta):
     schedule = self._make_batch_feed_dict()
     if self._create_delta_block_index:
       schedule[self._delta_block_index_tensor] = np.array(
-          self._batch_delta_block_index, dtype=_BASIC_BLOCK_INDEX_NUMPY_DTYPE
-      )
+          self._batch_delta_block_index, dtype=_BASIC_BLOCK_INDEX_NUMPY_DTYPE)
     if include_expected_outputs:
       schedule[self._expected_outputs] = np.reshape(
           np.array(self._batch_expected_outputs, dtype=self.numpy_dtype),
@@ -985,8 +915,7 @@ class ModelBase(metaclass=abc.ABCMeta):
       if self._use_deltas:
         schedule[self._expected_outputs_deltas] = np.reshape(
             np.array(
-                self._batch_expected_outputs_deltas, dtype=self.numpy_dtype
-            ),
+                self._batch_expected_outputs_deltas, dtype=self.numpy_dtype),
             [-1, self.num_tasks],
         )
 
@@ -1008,8 +937,7 @@ class ModelBase(metaclass=abc.ABCMeta):
       block: The basic block added to the batch.
     """
     raise NotImplementedError(
-        'ModelBase._add_basic_block_to_batch is not implemented'
-    )
+        'ModelBase._add_basic_block_to_batch is not implemented')
 
   def _add_expected_outputs_to_batch(
       self,
@@ -1037,43 +965,32 @@ class ModelBase(metaclass=abc.ABCMeta):
     # just take self.num_tasks throughputs if there are enough and raise an
     # error if there isn't a sufficient number of throughputs.
     if len(throughputs) < self.num_tasks:
-      raise ValueError(
-          'Block contains an insufficient number of throughputs:'
-          f' {len(throughputs)}, should be {self.num_tasks}'
-      )
+      raise ValueError('Block contains an insufficient number of throughputs:'
+                       f' {len(throughputs)}, should be {self.num_tasks}')
     block_mask = tuple(
         bool(task_throughput)
-        for task_throughput in itertools.islice(throughputs, self.num_tasks)
-    )
+        for task_throughput in itertools.islice(throughputs, self.num_tasks))
     block_expected_outputs = []
     if self._use_deltas:
-      expected_prefix_throughputs = np.zeros(
-          (num_prefixes, self.num_tasks), dtype=self.numpy_dtype
-      )
+      expected_prefix_throughputs = np.zeros((num_prefixes, self.num_tasks),
+                                             dtype=self.numpy_dtype)
       for task in range(self.num_tasks):
         if throughputs[task] is not None:
           num_prefixes_in_throughputs = len(
-              throughputs[task].prefix_inverse_throughput_cycles
-          )
-          if (
-              self._use_delta_loss
-              and num_prefixes != num_prefixes_in_throughputs
-          ):
-            raise ValueError(
-                f'Invalid number of prefixes for task {task}.\n'
-                f'Expected: {num_prefixes}\n'
-                f'Actual:   {num_prefixes_in_throughputs}'
-            )
+              throughputs[task].prefix_inverse_throughput_cycles)
+          if (self._use_delta_loss and
+              num_prefixes != num_prefixes_in_throughputs):
+            raise ValueError(f'Invalid number of prefixes for task {task}.\n'
+                             f'Expected: {num_prefixes}\n'
+                             f'Actual:   {num_prefixes_in_throughputs}')
           for prefix_index, prefix_throughputs in enumerate(
-              throughputs[task].prefix_inverse_throughput_cycles
-          ):
+              throughputs[task].prefix_inverse_throughput_cycles):
             if randomize_expected_outputs:
               expected_prefix_throughput = random.choice(prefix_throughputs)
             else:
               expected_prefix_throughput = prefix_throughputs[0]
             expected_prefix_throughputs[prefix_index, task] = (
-                expected_prefix_throughput
-            )
+                expected_prefix_throughput)
         else:
           expected_prefix_throughputs[:, task] = INVALID_THROUGHPUT_VALUE
 
@@ -1157,9 +1074,8 @@ class ModelBase(metaclass=abc.ABCMeta):
     # The input is a sequence that that contains either only basic blocks with
     # throughputs or only basic blocks without throughputs. We can determine
     # which case it is by looking at the first block of the sequence.
-    has_throughputs = isinstance(
-        basic_blocks[0], throughput.BasicBlockWithThroughput
-    )
+    has_throughputs = isinstance(basic_blocks[0],
+                                 throughput.BasicBlockWithThroughput)
 
     max_blocks_in_batch = max_blocks_in_batch or num_input_blocks
     with timer.scoped('ModelBase.schedule_batch'):
@@ -1179,9 +1095,8 @@ class ModelBase(metaclass=abc.ABCMeta):
         # TODO(ondrasej): Consider replacing this with a fairer sampling
         # mechanism where we push the rejected blocks to the following batch.
         if max_instructions_in_batch:
-          num_blocks_in_sample = min(
-              (3 * max_blocks_in_batch) // 2, num_input_blocks
-          )
+          num_blocks_in_sample = min((3 * max_blocks_in_batch) // 2,
+                                     num_input_blocks)
         else:
           num_blocks_in_sample = min(max_blocks_in_batch, num_input_blocks)
         basic_blocks = random.sample(basic_blocks, num_blocks_in_sample)
@@ -1194,13 +1109,10 @@ class ModelBase(metaclass=abc.ABCMeta):
 
         block: basic_block.BasicBlock = (
             block_or_block_with_throughputs.block
-            if has_throughputs
-            else block_or_block_with_throughputs
-        )
+            if has_throughputs else block_or_block_with_throughputs)
         if has_throughputs:
           block_with_throughputs: throughput.BasicBlockWithThroughput = (
-              block_or_block_with_throughputs
-          )
+              block_or_block_with_throughputs)
 
         num_instructions_in_block = len(block.instructions)
 
@@ -1210,17 +1122,14 @@ class ModelBase(metaclass=abc.ABCMeta):
             # the limit on the number of instructions per batch. We skip it and
             # print a warning to the log.
             logging.warn(
-                (
-                    'A single basic block has more instructions (%d) than'
-                    ' max_instructions_in_batch (%d)'
-                ),
+                ('A single basic block has more instructions (%d) than'
+                 ' max_instructions_in_batch (%d)'),
                 num_instructions_in_block,
                 max_instructions_in_batch,
             )
             continue
           num_instructions_with_block = (
-              num_instructions_in_batch + num_instructions_in_block
-          )
+              num_instructions_in_batch + num_instructions_in_block)
           if num_instructions_with_block > max_instructions_in_batch:
             # Adding this basic block to the batch would exceed the maximal
             # number of instructions in the batch.
@@ -1236,9 +1145,8 @@ class ModelBase(metaclass=abc.ABCMeta):
           )
         if self._create_delta_block_index:
           assert num_prefixes == num_instructions_in_block
-          self._batch_delta_block_index.extend(
-              [num_blocks_in_batch] * num_prefixes
-          )
+          self._batch_delta_block_index.extend([num_blocks_in_batch] *
+                                               num_prefixes)
 
         num_instructions_in_batch += num_instructions_in_block
         num_blocks_in_batch += 1
@@ -1372,9 +1280,8 @@ class ModelBase(metaclass=abc.ABCMeta):
             block_len = len(block.instructions)
             # Extract the per-instruction throughput predictions for the basic
             # block. This has shape (block_len, num_tasks).
-            block_output_deltas = output_deltas[
-                output_index : output_index + block_len
-            ]
+            block_output_deltas = output_deltas[output_index:output_index +
+                                                block_len]
             assert block_output_deltas.shape == (block_len, self.num_tasks)
             throughputs = []
             for task_index in range(self.num_tasks):
@@ -1383,16 +1290,13 @@ class ModelBase(metaclass=abc.ABCMeta):
                   inverse_throughput_cycles=(output[block_index, task_index],),
                   prefix_inverse_throughput_cycles=tuple(
                       (delta_throughput,)
-                      for delta_throughput in task_output_deltas
-                  ),
+                      for delta_throughput in task_output_deltas),
               )
               throughputs.append(task_throughputs)
             output_index += block_len
             batch_output_blocks.append(
                 throughput.BasicBlockWithThroughput(
-                    block=block, throughputs=throughputs
-                )
-            )
+                    block=block, throughputs=throughputs))
         else:
           output = sess.run(self._output_tensor, feed_dict=schedule)
           for block_index, block in enumerate(batch):
@@ -1400,16 +1304,11 @@ class ModelBase(metaclass=abc.ABCMeta):
             for task_index in range(self.num_tasks):
               throughputs.append(
                   throughput.BasicBlockThroughput(
-                      inverse_throughput_cycles=(
-                          output[block_index, task_index],
-                      )
-                  )
-              )
+                      inverse_throughput_cycles=(output[block_index,
+                                                        task_index],)))
             batch_output_blocks.append(
                 throughput.BasicBlockWithThroughput(
-                    block=block, throughputs=throughputs
-                )
-            )
+                    block=block, throughputs=throughputs))
 
       for output_block in batch_output_blocks:
         yield output_block
@@ -1471,18 +1370,15 @@ class ModelBase(metaclass=abc.ABCMeta):
           training.batches(
               itertools.cycle(basic_block_list),
               get_num_instructions=(
-                  training.get_num_instructions_in_block_with_throughput
-              ),
+                  training.get_num_instructions_in_block_with_throughput),
               max_blocks_in_batch=max_blocks_in_batch,
               max_instructions_in_batch=max_instructions_in_batch,
-          )
-      )
+          ))
 
       def run_one_epoch():
         batch = next(batches)
         schedule = self.schedule_batch(
-            batch, randomize_expected_outputs=randomize_expected_outputs
-        )
+            batch, randomize_expected_outputs=randomize_expected_outputs)
         return self.train_batch(monitored_session, schedule)
 
     with timer.scoped('ModelBase.train - one batch', num_iterations=num_epochs):
@@ -1522,24 +1418,20 @@ class ModelBase(metaclass=abc.ABCMeta):
       stats_ops['relative_mae'] = self._loss.mean_absolute_percentage_error
       stats_ops['relative_mse'] = self._loss.mean_squared_percentage_error
       stats_ops['absolute_error_percentiles'] = (
-          self._loss.absolute_error_percentiles
-      )
+          self._loss.absolute_error_percentiles)
       stats_ops['relative_error_percentiles'] = (
-          self._loss.absolute_percentage_error_percentiles
-      )
+          self._loss.absolute_percentage_error_percentiles)
       if self._use_deltas:
         stats_ops['absolute_delta_mse'] = self._delta_loss.mean_squared_error
         stats_ops['absolute_delta_mae'] = self._delta_loss.mean_absolute_error
         stats_ops['absolute_delta_error_percentiles'] = (
-            self._delta_loss.absolute_error_percentiles
-        )
+            self._delta_loss.absolute_error_percentiles)
         # NOTE(ondrasej): We do not compute relative errors for deltas. Deltas
         # are very often zero or very small, which makes the percentage error
         # ill-defined.
       (_, stats) = sess.run((self._train_step, stats_ops), feed_dict=schedule)
       return training.TrainingEpochStats(
-          percentile_ranks=self._collected_percentile_ranks, **stats
-      )
+          percentile_ranks=self._collected_percentile_ranks, **stats)
 
   def train_mini_batch(
       self,

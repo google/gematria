@@ -132,19 +132,15 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     self._use_sent_edges = use_sent_edges
 
     self._node_update_layers = tuple(
-        itertools.chain(node_update_layers, (node_embedding_size,))
-    )
+        itertools.chain(node_update_layers, (node_embedding_size,)))
     self._edge_update_layers = tuple(
-        itertools.chain(edge_update_layers, (edge_embedding_size,))
-    )
+        itertools.chain(edge_update_layers, (edge_embedding_size,)))
     self._global_update_layers = tuple(
-        itertools.chain(global_update_layers, (global_embedding_size,))
-    )
+        itertools.chain(global_update_layers, (global_embedding_size,)))
 
     self._readout_input_layer_normalization = readout_input_layer_normalization
     self._task_readout_input_layer_normalization = (
-        task_readout_input_layer_normalization
-    )
+        task_readout_input_layer_normalization)
 
     self._readout_residual_connections = readout_residual_connections
     self._task_readout_residual_connections = task_readout_residual_connections
@@ -175,8 +171,7 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
         f'graph_module_layer_norm={self._graph_module_layer_normalization}, '
         f'readout_input_layer_norm={self._readout_input_layer_normalization}, '
         'task_readout_input_layer_norm='
-        f'{self._task_readout_input_layer_normalization}'
-    )
+        f'{self._task_readout_input_layer_normalization}')
 
   def _create_dense_readout_network(self, data: tf.Tensor) -> tf.Tensor:
     """Creates the dense part of the readout network from `data`.
@@ -190,8 +185,7 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
       readout networks for all tasks.
     """
     readout_variables = self._variable_groups[
-        TokenGraphBuilderModel.READOUT_VARIABLES
-    ]
+        TokenGraphBuilderModel.READOUT_VARIABLES]
     readout_input = data
     for size in self._readout_layers:
       dense = tf.keras.layers.Dense(
@@ -204,24 +198,19 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     if self._readout_residual_connections:
       if self._readout_layers:
         residual_connection_layer = model_blocks.ResidualConnectionLayer(
-            name='readout_residual_connections'
-        )
+            name='readout_residual_connections')
         data = residual_connection_layer((data, readout_input))
         readout_variables.extend(residual_connection_layer.trainable_weights)
       else:
-        logging.warning(
-            'Readout residual connections are enabled, but the'
-            ' readout network has no layers.'
-        )
+        logging.warning('Readout residual connections are enabled, but the'
+                        ' readout network has no layers.')
     if self._task_readout_input_layer_normalization:
       layer_normalization = tf.keras.layers.LayerNormalization(
-          name='task_readout_input_layer_normalization'
-      )
+          name='task_readout_input_layer_normalization')
       data = layer_normalization(data)
     task_outputs = []
     task_variables = self._variable_groups[
-        TokenGraphBuilderModel.TASK_READOUT_VARIABLES
-    ]
+        TokenGraphBuilderModel.TASK_READOUT_VARIABLES]
     for _ in range(self.num_tasks):
       task_data = data
       for size in self._task_readout_layers:
@@ -235,20 +224,16 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
       if self._task_readout_residual_connections:
         if self._task_readout_layers:
           residual_connection_layer = model_blocks.ResidualConnectionLayer(
-              name='task_readout_residual_connections'
-          )
+              name='task_readout_residual_connections')
           task_data = residual_connection_layer((task_data, data))
           task_variables.extend(residual_connection_layer.trainable_weights)
         else:
-          logging.warning(
-              'Task readout residual connections are enabled, but'
-              ' the task readout network has no layers.'
-          )
+          logging.warning('Task readout residual connections are enabled, but'
+                          ' the task readout network has no layers.')
       # Create a linear layer that computes a weighted sum of the output of the
       # last dense layer.
       linear_layer = tf.keras.layers.Dense(
-          1, activation=tf.keras.activations.linear, use_bias=False
-      )
+          1, activation=tf.keras.activations.linear, use_bias=False)
       task_outputs.append(linear_layer(task_data))
       task_variables.extend(linear_layer.trainable_weights)
     return tf.concat(task_outputs, axis=1)
@@ -260,14 +245,12 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
       data = self._graphs_tuple_outputs.globals
     if self._readout_input_layer_normalization:
       layer_normalization = tf.keras.layers.LayerNormalization(
-          name='readout_input_layer_normalization'
-      )
+          name='readout_input_layer_normalization')
       data = layer_normalization(data)
     return self._create_dense_readout_network(data)
 
   def _create_graph_network_modules(
-      self,
-  ) -> Sequence[gnn_model_base.GraphNetworkLayer]:
+      self,) -> Sequence[gnn_model_base.GraphNetworkLayer]:
     mlp_initializers = {
         'w': tf.keras.initializers.glorot_normal(),
         'b': tf.keras.initializers.glorot_normal(),

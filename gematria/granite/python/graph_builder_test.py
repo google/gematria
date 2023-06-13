@@ -35,9 +35,8 @@ _STRUCTURAL_TOKENS = (
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 
 
-class BasicBlockGraphBuilderTest(
-    basic_blocks_with_throughput.TestCase, absltest.TestCase
-):
+class BasicBlockGraphBuilderTest(basic_blocks_with_throughput.TestCase,
+                                 absltest.TestCase):
   """Test for the BasicBlockGraphBuilder class wrapper.
 
   Most of the functionality is tested in the corresponding cc_test(). Here we
@@ -164,8 +163,7 @@ class BasicBlockGraphBuilderTest(
         address_token=tokens.ADDRESS,
         memory_token=tokens.MEMORY,
         out_of_vocabulary_behavior=(
-            _OutOfVocabularyTokenBehavior.replace_with_token(tokens.UNKNOWN)
-        ),
+            _OutOfVocabularyTokenBehavior.replace_with_token(tokens.UNKNOWN)),
     )
 
     for block in self.blocks:

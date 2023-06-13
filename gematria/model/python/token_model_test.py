@@ -35,8 +35,7 @@ class TestTokenModel(token_model.TokenModel):
   def _create_tf_graph(self):
     super()._create_tf_graph()
     self._output_tensor = tf.placeholder(
-        dtype=self.dtype, shape=(None, self.num_tasks)
-    )
+        dtype=self.dtype, shape=(None, self.num_tasks))
 
   def _create_optimizer(self):
     # We can't create an optimizer: this model doesn't have any variables that
@@ -94,8 +93,7 @@ class TokenModelTest(model_test.TestCase):
         dtype=tf.dtypes.float32,
         tokens=self.tokens,
         out_of_vocabulary_behavior=(
-            _OutOfVocabularyTokenBehavior.replace_with_token(tokens.UNKNOWN)
-        ),
+            _OutOfVocabularyTokenBehavior.replace_with_token(tokens.UNKNOWN)),
     )
     model.initialize()
 
@@ -105,8 +103,7 @@ class TokenModelTest(model_test.TestCase):
       self.assertEqual(token_index, self.tokens.index(token))
 
     self.assertEqual(
-        model._token_index('FOOBAR'), self.tokens.index(tokens.UNKNOWN)
-    )
+        model._token_index('FOOBAR'), self.tokens.index(tokens.UNKNOWN))
 
   def test_validate_basic_block(self):
     model = TestTokenModel(
@@ -122,28 +119,22 @@ class TokenModelTest(model_test.TestCase):
       self.assertTrue(model.validate_basic_block_with_throughput(block))
 
     invalid_block = basic_block.BasicBlock(
-        basic_block.InstructionList((
-            basic_block.Instruction(mnemonic='FOOBAR'),
-        ))
-    )
+        basic_block.InstructionList(
+            (basic_block.Instruction(mnemonic='FOOBAR'),)))
     self.assertFalse(model.validate_basic_block(invalid_block))
     self.assertFalse(model.validate_basic_blockTokens(invalid_block))
     invalid_block_with_throughput = throughput.BasicBlockWithThroughput(
-        block=invalid_block, throughputs=()
-    )
+        block=invalid_block, throughputs=())
     self.assertFalse(
         model.validate_basic_block_with_throughput(
-            invalid_block_with_throughput
-        )
-    )
+            invalid_block_with_throughput))
 
   def test_validate_basic_block_with_replacement_token(self):
     model = TestTokenModel(
         dtype=tf.dtypes.float32,
         tokens=self.tokens,
-        out_of_vocabulary_behavior=_OutOfVocabularyTokenBehavior.replace_with_token(
-            tokens.UNKNOWN
-        ),
+        out_of_vocabulary_behavior=_OutOfVocabularyTokenBehavior
+        .replace_with_token(tokens.UNKNOWN),
     )
     model.initialize()
 
@@ -153,18 +144,14 @@ class TokenModelTest(model_test.TestCase):
       self.assertTrue(model.validate_basic_block_with_throughput(block))
 
     block = basic_block.BasicBlock(
-        basic_block.InstructionList((
-            basic_block.Instruction(mnemonic='FOOBAR'),
-        ))
-    )
+        basic_block.InstructionList(
+            (basic_block.Instruction(mnemonic='FOOBAR'),)))
     self.assertTrue(model.validate_basic_block(block))
     self.assertTrue(model.validate_basic_blockTokens(block))
     block_with_throughput = throughput.BasicBlockWithThroughput(
-        block=block, throughputs=()
-    )
+        block=block, throughputs=())
     self.assertTrue(
-        model.validate_basic_block_with_throughput(block_with_throughput)
-    )
+        model.validate_basic_block_with_throughput(block_with_throughput))
 
 
 if __name__ == '__main__':

@@ -29,14 +29,10 @@ class SequenceEqual:
     self._sequence = sequence
 
   def __eq__(self, other: Any) -> bool:
-    return (
-        isinstance(other, Sequence)
-        and len(self._sequence) == len(other)
-        and all(
-            own_item == other_item
-            for own_item, other_item in zip(self._sequence, other)
-        )
-    )
+    return (isinstance(other, Sequence) and
+            len(self._sequence) == len(other) and
+            all(own_item == other_item
+                for own_item, other_item in zip(self._sequence, other)))
 
   def __repr__(self) -> str:
     return f"SequenceEqual({self._sequence!r})"

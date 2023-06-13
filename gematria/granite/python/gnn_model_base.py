@@ -213,14 +213,11 @@ class GnnModelBase(model_base.ModelBase):
     super().__init__(**kwargs)
     self._graph_index_dtype = graph_index_dtype
     self._graph_node_feature_spec = tf.TensorSpec(
-        shape=node_feature_shape, dtype=node_feature_dtype or self.dtype
-    )
+        shape=node_feature_shape, dtype=node_feature_dtype or self.dtype)
     self._graph_edge_feature_spec = tf.TensorSpec(
-        shape=edge_feature_shape, dtype=edge_feature_dtype or self.dtype
-    )
+        shape=edge_feature_shape, dtype=edge_feature_dtype or self.dtype)
     self._graph_global_feature_spec = tf.TensorSpec(
-        shape=global_feature_shape, dtype=global_feature_dtype or self.dtype
-    )
+        shape=global_feature_shape, dtype=global_feature_dtype or self.dtype)
 
     self._graph_network = None
     self._graphs_tuple_placeholders = None
@@ -272,8 +269,7 @@ class GnnModelBase(model_base.ModelBase):
     # TODO(ondrasej): Consider specifying the graph network module as a
     # parameter of the constructor instead of filling it in via inheritance.
     raise NotImplementedError(
-        'GnnModelBase._create_graph_networkModule is abstract'
-    )
+        'GnnModelBase._create_graph_networkModule is abstract')
 
   def _create_graphs_placeholders(self) -> graph_nets.graphs.GraphsTuple:
     """Creates placeholder inputs for the graph neural network.
@@ -333,29 +329,21 @@ class GnnModelBase(model_base.ModelBase):
     graphs_tuple = self._graphs_tuple_placeholders
     for layer_index, layer in enumerate(self._graph_network):
       num_iterations = (
-          layer.num_iterations or self._num_message_passing_iterations
-      )
+          layer.num_iterations or self._num_message_passing_iterations)
       use_residual_connections = (
-          layer.residual_connection == options.EnableFeature.ALWAYS
-          or (
-              layer.residual_connection == options.EnableFeature.BY_FLAG
-              and self._graph_module_residual_connections
-          )
-      )
+          layer.residual_connection == options.EnableFeature.ALWAYS or
+          (layer.residual_connection == options.EnableFeature.BY_FLAG and
+           self._graph_module_residual_connections))
       use_layer_norm = (
-          layer.layer_normalization == options.EnableFeature.ALWAYS
-          or (
-              layer.layer_normalization == options.EnableFeature.BY_FLAG
-              and self._graph_module_layer_normalization
-          )
-      )
+          layer.layer_normalization == options.EnableFeature.ALWAYS or
+          (layer.layer_normalization == options.EnableFeature.BY_FLAG and
+           self._graph_module_layer_normalization))
       for iteration in range(num_iterations):
         residual_input = graphs_tuple
         graphs_tuple = layer.module(graphs_tuple)
         if use_residual_connections:
           residual_op_name_base = (
-              f'residual_connection_{layer_index}_{iteration}'
-          )
+              f'residual_connection_{layer_index}_{iteration}')
           graphs_tuple = graph_nets.graphs.GraphsTuple(
               nodes=model_blocks.add_residual_connection(
                   output_part=graphs_tuple.nodes,
@@ -381,17 +369,13 @@ class GnnModelBase(model_base.ModelBase):
           # Create a new layer normalization step (with a separate scaling
           # factor and bias) per graph network module iteration.
           layer_norm_name_base = (
-              f'graph_network_layer_norm_{layer_index}_{iteration}'
-          )
+              f'graph_network_layer_norm_{layer_index}_{iteration}')
           nodes_layer_norm = tf.keras.layers.LayerNormalization(
-              name=layer_norm_name_base + '_nodes'
-          )
+              name=layer_norm_name_base + '_nodes')
           edges_layer_norm = tf.keras.layers.LayerNormalization(
-              name=layer_norm_name_base + '_edges'
-          )
+              name=layer_norm_name_base + '_edges')
           globals_layer_norm = tf.keras.layers.LayerNormalization(
-              name=layer_norm_name_base + '_globals'
-          )
+              name=layer_norm_name_base + '_globals')
           graphs_tuple = graph_nets.graphs.GraphsTuple(
               nodes=nodes_layer_norm(graphs_tuple.nodes),
               edges=edges_layer_norm(graphs_tuple.edges),
@@ -431,15 +415,13 @@ class GnnModelBase(model_base.ModelBase):
       used as self._output_tensor.
     """
     raise NotImplementedError(
-        'GnnModelBase._create_readout_network is abstract'
-    )
+        'GnnModelBase._create_readout_network is abstract')
 
   # @Override
   def _make_batch_feed_dict(self) -> model_base.FeedDict:
     graphs_tuple = self._make_batch_graphs_tuple()
-    return graph_nets.utils_tf.get_feed_dict(
-        self._graphs_tuple_placeholders, graphs_tuple
-    )
+    return graph_nets.utils_tf.get_feed_dict(self._graphs_tuple_placeholders,
+                                             graphs_tuple)
 
   @abc.abstractmethod
   def _make_batch_graphs_tuple(self) -> graph_nets.graphs.GraphsTuple:
@@ -450,5 +432,4 @@ class GnnModelBase(model_base.ModelBase):
     it to provide the model-specific graph representation of the basic blocks.
     """
     raise NotImplementedError(
-        'GnnModelBase._make_batch_graphs_tuple is abstract'
-    )
+        'GnnModelBase._make_batch_graphs_tuple is abstract')

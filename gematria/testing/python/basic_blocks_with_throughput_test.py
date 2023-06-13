@@ -60,8 +60,7 @@ class BasicBlocksWithThroughputTest(absltest.TestCase):
     num_blocks = 10
 
     blocks = basic_blocks_with_throughput.get_basic_blocks(
-        num_blocks, cleanup_fn=_cleanup
-    )
+        num_blocks, cleanup_fn=_cleanup)
     self.assertLen(blocks, num_blocks)
     for block in blocks:
       self.assertEmpty(block.inverse_throughputs)
@@ -71,13 +70,11 @@ class BasicBlocksWithThroughputTest(absltest.TestCase):
     keep_len = 2
 
     def _block_filter(
-        basic_block: throughput_pb2.BasicBlockWithThroughputProto,
-    ):
+        basic_block: throughput_pb2.BasicBlockWithThroughputProto,):
       return len(basic_block.inverse_throughputs) == keep_len
 
     blocks = basic_blocks_with_throughput.get_basic_blocks(
-        num_blocks, keep_fn=_block_filter
-    )
+        num_blocks, keep_fn=_block_filter)
     self.assertLen(blocks, num_blocks)
     for block in blocks:
       self.assertLen(block.inverse_throughputs, keep_len)

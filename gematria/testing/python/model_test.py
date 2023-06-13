@@ -176,9 +176,8 @@ class TestCase(basic_blocks_with_throughput.TestCase, tf.test.TestCase):
 
         # Check the percentiles.
         num_percentiles = len(model.collected_percentile_ranks)
-        self.assertEqual(
-            stats.percentile_ranks, model.collected_percentile_ranks
-        )
+        self.assertEqual(stats.percentile_ranks,
+                         model.collected_percentile_ranks)
         self.assertLen(stats.absolute_error_percentiles, num_percentiles)
         self.assertLen(stats.relative_error_percentiles, num_percentiles)
 

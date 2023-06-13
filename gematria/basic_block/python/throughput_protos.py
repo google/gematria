@@ -28,14 +28,11 @@ def block_with_throughput_from_proto(
     if inverse_throughput_cycles:
       throughputs.append(
           throughput.BasicBlockThroughput(
-              inverse_throughput_cycles=inverse_throughput_cycles
-          )
-      )
+              inverse_throughput_cycles=inverse_throughput_cycles))
       if throughput_proto.prefix_inverse_throughputs:
         throughputs[-1].prefix_inverse_throughput_cycles = tuple(
             tuple(prefix.inverse_throughput_cycles)
-            for prefix in throughput_proto.prefix_inverse_throughputs
-        )
+            for prefix in throughput_proto.prefix_inverse_throughputs)
     else:
       throughputs.append(None)
 

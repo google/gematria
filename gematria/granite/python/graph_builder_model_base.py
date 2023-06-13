@@ -39,9 +39,8 @@ from gematria.model.python import token_model
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 
 
-class GraphBuilderModelBase(
-    token_model.TokenModel, gnn_model_base.GnnModelBase
-):
+class GraphBuilderModelBase(token_model.TokenModel,
+                            gnn_model_base.GnnModelBase):
   """Base class for models usign the BasicBlockGraphBuilder graphs.
 
   The model integrates the basic block to graph transformation into the Gematria
@@ -56,8 +55,7 @@ class GraphBuilderModelBase(
 
   # The name of the input tensor that receives the instruction node mask.
   INSTRUCTION_NODE_MASK_TENSOR_NAME = (
-      'GraphBuilderModelBase.instruction_node_mask'
-  )
+      'GraphBuilderModelBase.instruction_node_mask')
 
   # A Boolean tensor placeholder that receives a mask for instruction nodes. The
   # mask has shape (None,), and it must have the same length as
@@ -194,8 +192,7 @@ class GraphBuilderModelBase(
         name=GraphBuilderModelBase.INSTRUCTION_NODE_MASK_TENSOR_NAME,
     )
     self._instruction_features = tf.boolean_mask(
-        self._graphs_tuple_outputs.nodes, self._instruction_node_mask
-    )
+        self._graphs_tuple_outputs.nodes, self._instruction_node_mask)
 
   # @Override
   def _start_batch(self) -> None:
@@ -206,8 +203,7 @@ class GraphBuilderModelBase(
   def _make_batch_feed_dict(self) -> model_base.FeedDict:
     feed_dict = super()._make_batch_feed_dict()
     feed_dict[self._instruction_node_mask] = np.array(
-        self._batch_graph_builder.instruction_node_mask, dtype=bool
-    )
+        self._batch_graph_builder.instruction_node_mask, dtype=bool)
     return feed_dict
 
   # @Override
@@ -224,8 +220,7 @@ class GraphBuilderModelBase(
       # batch are stable.
       injection_mask = (
           np.random.default_rng().random(node_features.shape)
-          < self._oov_injection_probability
-      )
+          < self._oov_injection_probability)
       node_features[injection_mask] = self._oov_token
     return graph_nets.graphs.GraphsTuple(
         nodes=node_features,
@@ -266,5 +261,4 @@ class GraphBuilderModelBase(
       # batch. For now, we just let the exception propagate out of the model and
       # let the user handle it.
       raise model_base.AddBasicBlockError(
-          f'Basic block could not be added to the batch: {block}'
-      )
+          f'Basic block could not be added to the batch: {block}')

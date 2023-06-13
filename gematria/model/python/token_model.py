@@ -114,24 +114,19 @@ class TokenModel(model_base.ModelBase):
       ValueError: When the out of vocabulary replacement token is not in tokens.
     """
     replace_token = _OutOfVocabularyTokenBehavior.BehaviorType.REPLACE_TOKEN
-    if (
-        out_of_vocabulary_injection_probability > 0.0
-        and out_of_vocabulary_behavior.behavior_type != replace_token
-    ):
+    if (out_of_vocabulary_injection_probability > 0.0 and
+        out_of_vocabulary_behavior.behavior_type != replace_token):
       raise ValueError(
           'out_of_vocabulary_injection_probability may be non-zero only when'
-          ' out_of_vocabulary_behavior.behavior_type is kReplaceToken.'
-      )
+          ' out_of_vocabulary_behavior.behavior_type is kReplaceToken.')
     self._oov_injection_probability = out_of_vocabulary_injection_probability
 
     self._token_list = tuple(tokens)
     self._tokens = {token: i for i, token in enumerate(self._token_list)}
     self._oov_behavior = out_of_vocabulary_behavior
     self._oov_token = None
-    if (
-        out_of_vocabulary_behavior.behavior_type
-        == _OutOfVocabularyTokenBehavior.BehaviorType.REPLACE_TOKEN
-    ):
+    if (out_of_vocabulary_behavior.behavior_type ==
+        _OutOfVocabularyTokenBehavior.BehaviorType.REPLACE_TOKEN):
       replacement_token = out_of_vocabulary_behavior.replacement_token
       self._oov_token = self._tokens.get(replacement_token)
       if self._oov_token is None:
@@ -207,5 +202,4 @@ class TokenModel(model_base.ModelBase):
         dtype=np.uint8,
     )
     self._token_list_tensor = tf.constant(
-        token_list_array, name=TokenModel.TOKENS_TENSOR_NAME
-    )
+        token_list_array, name=TokenModel.TOKENS_TENSOR_NAME)

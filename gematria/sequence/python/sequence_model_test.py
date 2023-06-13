@@ -37,14 +37,12 @@ class TestSequenceModel(sequence_model.SequenceModelBase):
   def __init__(
       self,
       out_of_vocabulary_behavior=_OutOfVocabularyTokenBehavior.return_error(),
-      **kwargs
-  ):
+      **kwargs):
     super().__init__(
         learning_rate=0.02,
         dtype=tf.dtypes.float32,
         out_of_vocabulary_behavior=out_of_vocabulary_behavior,
-        **kwargs
-    )
+        **kwargs)
 
   def _make_model_name(self):
     return 'TestSequenceModel'
@@ -55,20 +53,17 @@ class TestSequenceModel(sequence_model.SequenceModelBase):
     num_instructions_per_block = tf.keras.Input(shape=(), dtype=tf.dtypes.int32)
 
     embed_input = tf.keras.layers.Embedding(
-        input_dim=len(self._token_list), output_dim=self.num_tasks
-    )
+        input_dim=len(self._token_list), output_dim=self.num_tasks)
     embedded_tokens = embed_input(token_sequence)
-    instructions = tf.RaggedTensor.from_row_lengths(
-        embedded_tokens, num_tokens_per_instruction
-    )
+    instructions = tf.RaggedTensor.from_row_lengths(embedded_tokens,
+                                                    num_tokens_per_instruction)
 
     instruction_values = tf.math.reduce_sum(instructions, axis=1)
     if self.use_deltas:
       output = instruction_values
     else:
       block_tensor = tf.RaggedTensor.from_row_lengths(
-          instruction_values, num_instructions_per_block
-      )
+          instruction_values, num_instructions_per_block)
       output = tf.math.reduce_sum(block_tensor, axis=1)
 
     output = tf.reshape(output, (-1, self.num_tasks))
@@ -98,29 +93,24 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
     schedule = model.schedule_batch(self.blocks_with_throughput)
     self.assertEqual(schedule[model._token_sequence_placeholder].shape, (58,))
     self.assertEqual(
-        schedule[model._num_tokens_per_instruction_placeholder].shape, (7,)
-    )
+        schedule[model._num_tokens_per_instruction_placeholder].shape, (7,))
     self.assertEqual(
-        schedule[model._num_instructions_per_block_placeholder].shape, (3,)
-    )
+        schedule[model._num_instructions_per_block_placeholder].shape, (3,))
 
   def test_schedule_batch_with_invalid_block(self):
     model = TestSequenceModel(tokens=self.tokens)
     model.initialize()
 
     invalid_block = basic_block.BasicBlock(
-        instructions=basic_block.InstructionList((
-            basic_block.Instruction(mnemonic='FOOBAR'),
-        ))
-    )
+        instructions=basic_block.InstructionList((basic_block.Instruction(
+            mnemonic='FOOBAR'),)))
     self.assertFalse(model.validate_basic_block(invalid_block))
 
     with self.assertRaises(token_model.TokenNotFoundError):
       model.schedule_batch((invalid_block,))
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_train_seq2seq(self, loss_type, loss_normalization):
     model = TestSequenceModel(
         tokens=self.tokens,
@@ -132,8 +122,7 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
     self.check_training_model(model, self.blocks_with_throughput[0:1])
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_train_seq2num(self, loss_type, loss_normalization):
     model = TestSequenceModel(
         tokens=self.tokens,
@@ -145,8 +134,7 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
     self.check_training_model(model, self.blocks_with_throughput[0:1])
 
   @parameterized.named_parameters(
-      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
-  )
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS)
   def test_train_seq2num_multi_task(self, loss_type, loss_normalization):
     model = TestSequenceModel(
         tokens=self.tokens,
@@ -169,8 +157,7 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
 
   def test_inject_out_of_vocabulary_tokens(self):
     oov_behavior = _OutOfVocabularyTokenBehavior.replace_with_token(
-        tokens.UNKNOWN
-    )
+        tokens.UNKNOWN)
     model = TestSequenceModel(
         tokens=self.tokens,
         out_of_vocabulary_behavior=oov_behavior,
@@ -187,8 +174,7 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
 
   def test_inject_out_of_vocabulary_estimate(self):
     oov_behavior = _OutOfVocabularyTokenBehavior.replace_with_token(
-        tokens.UNKNOWN
-    )
+        tokens.UNKNOWN)
     injection_probability = 0.3
     model = TestSequenceModel(
         tokens=self.tokens,
@@ -207,8 +193,7 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
     for _ in range(num_trials):
       schedule = model.schedule_batch(self.blocks_with_throughput)
       oov_token_mask = (
-          schedule[model._token_sequence_placeholder] == model._oov_token
-      )
+          schedule[model._token_sequence_placeholder] == model._oov_token)
       num_ones += sum(oov_token_mask)
       num_all_elements += oov_token_mask.size
 
@@ -217,8 +202,7 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
 
   def test_inject_out_of_vocabulary_tokens_zero_probability(self):
     oov_behavior = _OutOfVocabularyTokenBehavior.replace_with_token(
-        tokens.UNKNOWN
-    )
+        tokens.UNKNOWN)
     model = TestSequenceModel(
         tokens=self.tokens,
         out_of_vocabulary_behavior=oov_behavior,
@@ -234,8 +218,7 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
       # replacement token is never used.
       schedule = model.schedule_batch(self.blocks_with_throughput)
       oov_token_mask = (
-          schedule[model._token_sequence_placeholder] == model._oov_token
-      )
+          schedule[model._token_sequence_placeholder] == model._oov_token)
       expected_oov_token_mask = np.zeros_like(oov_token_mask)
       self.assertAllEqual(oov_token_mask, expected_oov_token_mask)
 
@@ -251,10 +234,8 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
       self.assertTrue(model.validate_basic_block_with_throughput(block))
 
     invalid_block = basic_block.BasicBlock(
-        instructions=basic_block.InstructionList((
-            basic_block.Instruction(mnemonic='FOOBAR'),
-        ))
-    )
+        instructions=basic_block.InstructionList((basic_block.Instruction(
+            mnemonic='FOOBAR'),)))
     self.assertFalse(model.validate_basic_block(invalid_block))
 
 

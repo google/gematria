@@ -40,11 +40,9 @@ def main(argv):
         'rnn_type': granite_flags.RNN_TYPE.value,
     }
   out_of_vocabulary_behavior = (
-      token_model_flags.get_oov_token_behavior_from_command_line_flags()
-  )
+      token_model_flags.get_oov_token_behavior_from_command_line_flags())
   model_tokens = token_model_flags.get_tokens_from_command_line_flags(
-      model_tokens=tokens.STRUCTURAL_TOKENS
-  )
+      model_tokens=tokens.STRUCTURAL_TOKENS)
 
   main_function.run_gematria_model_from_command_line_flags(
       model_class,
@@ -58,46 +56,33 @@ def main(argv):
       edge_embedding_size=granite_flags.EDGE_EMBEDDING_SIZE.value,
       global_embedding_size=granite_flags.GLOBAL_EMBEDDING_SIZE.value,
       node_update_layers=flag_utils.layers_from_str(
-          granite_flags.NODE_UPDATE_LAYERS.value
-      ),
+          granite_flags.NODE_UPDATE_LAYERS.value),
       edge_update_layers=flag_utils.layers_from_str(
-          granite_flags.EDGE_UPDATE_LAYERS.value
-      ),
+          granite_flags.EDGE_UPDATE_LAYERS.value),
       global_update_layers=flag_utils.layers_from_str(
-          granite_flags.GLOBAL_UPDATE_LAYERS.value
-      ),
+          granite_flags.GLOBAL_UPDATE_LAYERS.value),
       readout_layers=flag_utils.layers_from_str(
-          granite_flags.READOUT_LAYERS.value
-      ),
+          granite_flags.READOUT_LAYERS.value),
       task_readout_layers=flag_utils.layers_from_str(
-          granite_flags.TASK_READOUT_LAYERS.value
-      ),
+          granite_flags.TASK_READOUT_LAYERS.value),
       graph_module_layer_normalization=(
-          granite_flags.GRAPH_MODULE_LAYER_NORMALIZATION.value
-      ),
+          granite_flags.GRAPH_MODULE_LAYER_NORMALIZATION.value),
       readout_input_layer_normalization=(
-          granite_flags.READOUT_INPUT_LAYER_NORMALIZATION.value
-      ),
+          granite_flags.READOUT_INPUT_LAYER_NORMALIZATION.value),
       task_readout_input_layer_normalization=(
-          granite_flags.TASK_READOUT_INPUT_LAYER_NORMALIZATION.value
-      ),
+          granite_flags.TASK_READOUT_INPUT_LAYER_NORMALIZATION.value),
       graph_module_residual_connections=(
-          granite_flags.GRAPH_MODULE_RESIDUAL_CONNECTIONS.value
-      ),
+          granite_flags.GRAPH_MODULE_RESIDUAL_CONNECTIONS.value),
       readout_residual_connections=(
-          granite_flags.READOUT_RESIDUAL_CONNECTIONS.value
-      ),
+          granite_flags.READOUT_RESIDUAL_CONNECTIONS.value),
       task_readout_residual_connections=(
-          granite_flags.TASK_READOUT_RESIDUAL_CONNECTIONS.value
-      ),
+          granite_flags.TASK_READOUT_RESIDUAL_CONNECTIONS.value),
       use_sent_edges=granite_flags.USE_SENT_EDGES.value,
       out_of_vocabulary_behavior=out_of_vocabulary_behavior,
       out_of_vocabulary_injection_probability=(
-          token_model_flags.OUT_OF_VOCABULARY_INJECTION_PROBABILITY.value
-      ),
+          token_model_flags.OUT_OF_VOCABULARY_INJECTION_PROBABILITY.value),
       num_message_passing_iterations=(
-          granite_flags.NUM_MESSAGE_PASSING_ITERATIONS.value
-      ),
+          granite_flags.NUM_MESSAGE_PASSING_ITERATIONS.value),
       use_deltas=granite_flags.USE_DELTAS.value,
       **rnn_kwargs,
   )

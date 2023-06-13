@@ -146,18 +146,16 @@ class SequenceModelBase(token_model.TokenModel, model_base.ModelBase):
     if self._oov_injection_probability > 0:
       oov_injection_mask = (
           np.random.uniform(0.0, 1.0, size=batch_tokens.shape)
-          < self._oov_injection_probability
-      )
+          < self._oov_injection_probability)
       batch_tokens[oov_injection_mask] = self._oov_token
 
     return {
-        self._token_sequence_placeholder: batch_tokens,
-        self._num_tokens_per_instruction_placeholder: np.array(
-            self._batch_num_tokens_per_instruction, dtype=np.int32
-        ),
-        self._num_instructions_per_block_placeholder: np.array(
-            self._batch_num_instructions_per_block, dtype=np.int32
-        ),
+        self._token_sequence_placeholder:
+            batch_tokens,
+        self._num_tokens_per_instruction_placeholder:
+            np.array(self._batch_num_tokens_per_instruction, dtype=np.int32),
+        self._num_instructions_per_block_placeholder:
+            np.array(self._batch_num_instructions_per_block, dtype=np.int32),
     }
 
   # @Override

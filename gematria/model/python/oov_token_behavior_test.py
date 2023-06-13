@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for the Clif wrapper of OutOfVocabularyTokenBehavior."""
 
 from absl.testing import absltest
@@ -35,8 +34,7 @@ class OutOfVocabularyTokenBehaviorTest(absltest.TestCase):
   def test_replace_with_token(self):
     replacement_token = 'FooBar'
     replace_with_token = _OutOfVocabularyTokenBehavior.replace_with_token(
-        replacement_token
-    )
+        replacement_token)
     self.assertIsNotNone(replace_with_token)
     self.assertEqual(
         replace_with_token.behavior_type,

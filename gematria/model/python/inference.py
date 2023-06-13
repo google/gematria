@@ -26,8 +26,7 @@ from gematria.proto import throughput_pb2
 
 
 def _get_num_instructions_in_block_with_throughput_proto(
-    proto: throughput_pb2.BasicBlockWithThroughputProto,
-) -> int:
+    proto: throughput_pb2.BasicBlockWithThroughputProto,) -> int:
   return len(proto.basic_block.canonicalized_instructions)
 
 
@@ -64,15 +63,13 @@ def predict_for_protos(
   batches = training.batches(
       basic_blocks,
       get_num_instructions=(
-          _get_num_instructions_in_block_with_throughput_proto
-      ),
+          _get_num_instructions_in_block_with_throughput_proto),
       max_blocks_in_batch=max_blocks_in_batch,
       max_instructions_in_batch=max_instructions_in_batch,
   )
   for batch_index, protos in enumerate(batches):
-    logging.info(
-        'Processing proto batch %d (%d blocks).', batch_index, len(protos)
-    )
+    logging.info('Processing proto batch %d (%d blocks).', batch_index,
+                 len(protos))
     blocks = []
     block_is_valid = [False] * len(protos)
     for proto_index, proto in enumerate(protos):
@@ -90,19 +87,15 @@ def predict_for_protos(
       if is_valid:
         prediction = next(predictions)
         for task_index, task_predictions in zip(
-            range(model.num_tasks), prediction.throughputs
-        ):
+            range(model.num_tasks), prediction.throughputs):
           task_prefix_predictions = (
-              task_predictions.prefix_inverse_throughput_cycles
-          )
+              task_predictions.prefix_inverse_throughput_cycles)
           task_throughput = proto.inverse_throughputs.add(
               source=model.get_source_name(task_index),
               inverse_throughput_cycles=(
-                  task_predictions.inverse_throughput_cycles
-              ),
+                  task_predictions.inverse_throughput_cycles),
           )
           for prefix_predictions in task_prefix_predictions:
             task_throughput.prefix_inverse_throughputs.add(
-                inverse_throughput_cycles=prefix_predictions
-            )
+                inverse_throughput_cycles=prefix_predictions)
       yield proto

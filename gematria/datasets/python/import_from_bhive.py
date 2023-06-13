@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 r"""Creates a Gematria data set from a BHive data set.
 
 Reads basic blocks and throughput data from a BHive CSV file, and writes them in
@@ -35,7 +34,6 @@ import tensorflow as tf
 from gematria.datasets.python import bhive_importer
 from gematria.llvm.python import canonicalizer
 from gematria.llvm.python import llvm_architecture_support
-
 
 _INPUT_CSV_FILE = flags.DEFINE_string(
     'gematria_input_csv',
@@ -74,12 +72,10 @@ def main(argv: Sequence[str]) -> None:
     raise app.UsageError('Too many command-line arguments.')
   try:
     llvm = llvm_architecture_support.LlvmArchitectureSupport.from_triple(
-        _LLVM_TRIPLE.value
-    )
+        _LLVM_TRIPLE.value)
   except status.StatusNotOk:
-    logging.exception(
-        'LLVM triple "%s" is not known or supported.', _LLVM_TRIPLE.value
-    )
+    logging.exception('LLVM triple "%s" is not known or supported.',
+                      _LLVM_TRIPLE.value)
     return
 
   # TODO(ondrasej): Update this so that the canonicalizer is created using the

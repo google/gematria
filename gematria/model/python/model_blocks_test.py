@@ -32,12 +32,10 @@ class ResidualConnectionLayerTest(tf.test.TestCase):
     self.assertEmpty(residual_layer.weights)
 
     with self.session() as sess:
-      input_array = np.array(
-          [[1, 2, 3, 4], [5, 6, 7, 8]], dtype=dtype.as_numpy_dtype
-      )
-      residual_array = np.array(
-          [[-1, 1, -1, 1], [-2, 2, -2, 2]], dtype=dtype.as_numpy_dtype
-      )
+      input_array = np.array([[1, 2, 3, 4], [5, 6, 7, 8]],
+                             dtype=dtype.as_numpy_dtype)
+      residual_array = np.array([[-1, 1, -1, 1], [-2, 2, -2, 2]],
+                                dtype=dtype.as_numpy_dtype)
       output_array = sess.run(
           output_tensor,
           feed_dict={
@@ -99,17 +97,14 @@ class AddResidualConnectioNTest(tf.test.TestCase):
     input_tensor = tf.placeholder(shape=shape, dtype=dtype)
     residual_tensor = tf.placeholder(shape=shape, dtype=dtype)
     output_tensor = model_blocks.add_residual_connection(
-        input_tensor, residual_tensor, name='residual'
-    )
+        input_tensor, residual_tensor, name='residual')
     self.assertEqual(output_tensor.shape, shape)
 
     with self.session() as sess:
-      input_array = np.array(
-          [[1, 2, 3, 4], [5, 6, 7, 8]], dtype=dtype.as_numpy_dtype
-      )
-      residual_array = np.array(
-          [[-1, 1, -1, 1], [-2, 2, -2, 2]], dtype=dtype.as_numpy_dtype
-      )
+      input_array = np.array([[1, 2, 3, 4], [5, 6, 7, 8]],
+                             dtype=dtype.as_numpy_dtype)
+      residual_array = np.array([[-1, 1, -1, 1], [-2, 2, -2, 2]],
+                                dtype=dtype.as_numpy_dtype)
       output_array = sess.run(
           output_tensor,
           feed_dict={
@@ -126,8 +121,7 @@ class AddResidualConnectioNTest(tf.test.TestCase):
     input_tensor = tf.placeholder(shape=input_shape, dtype=dtype)
     residual_tensor = tf.placeholder(shape=residual_shape, dtype=dtype)
     output_tensor = model_blocks.add_residual_connection(
-        input_tensor, residual_tensor, name='residual'
-    )
+        input_tensor, residual_tensor, name='residual')
     output_tensor.shape.assert_is_compatible_with(input_shape)
 
     with self.session() as sess:
@@ -176,8 +170,7 @@ class CastTest(tf.test.TestCase):
     with self.session() as sess:
       input_array = np.ones(input_shape, input_dtype.as_numpy_dtype)
       output_array = sess.run(
-          output_tensor, feed_dict={input_tensor: input_array}
-      )
+          output_tensor, feed_dict={input_tensor: input_array})
       self.assertEqual(output_array.shape, input_shape)
       self.assertEqual(output_array.dtype, output_dtype.as_numpy_dtype)
 
