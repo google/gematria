@@ -21,11 +21,9 @@ from collections.abc import Sequence
 from typing import Optional
 
 from absl import flags
-
-import tensorflow.compat.v1 as tf
-
 from gematria.model.python import oov_token_behavior
 from gematria.utils.python import flag_utils
+import tensorflow.compat.v1 as tf
 
 _TOKEN_FILE = flags.DEFINE_string(
     'gematria_tokens_file',

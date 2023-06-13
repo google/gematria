@@ -19,11 +19,10 @@ import math
 from typing import Optional, TypeVar
 
 from absl import logging
-import numpy as np
-import tensorflow.compat.v1 as tf
-
 from gematria.basic_block.python import basic_block
 from gematria.basic_block.python import throughput
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 
 @dataclasses.dataclass(frozen=True)

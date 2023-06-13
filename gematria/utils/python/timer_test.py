@@ -15,7 +15,6 @@
 from unittest import mock
 
 from absl.testing import absltest
-
 from gematria.utils.python import timer
 
 

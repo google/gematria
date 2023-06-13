@@ -17,9 +17,9 @@ Provides the RnnTokenModel class. See the documentation of the class for more
 information about the model.
 """
 
-import tensorflow.compat.v1 as tf
 from gematria.granite.python import token_graph_builder_model
 from gematria.model.python import options
+import tensorflow.compat.v1 as tf
 
 _RNN_TYPE_TO_TF = {'LSTM': tf.keras.layers.LSTM, 'GRU': tf.keras.layers.GRU}
 

@@ -17,13 +17,12 @@ import abc
 from collections.abc import MutableSequence
 from typing import Optional
 
-import numpy as np
-import tensorflow.compat.v1 as tf
-
 from gematria.basic_block.python import basic_block
 from gematria.model.python import model_base
 from gematria.model.python import oov_token_behavior
 from gematria.model.python import token_model
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 

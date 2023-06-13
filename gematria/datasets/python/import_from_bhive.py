@@ -29,12 +29,11 @@ from collections.abc import Sequence
 from absl import app
 from absl import flags
 from absl import logging
-from pybind11_abseil import status
-import tensorflow as tf
-
 from gematria.datasets.python import bhive_importer
 from gematria.llvm.python import canonicalizer
 from gematria.llvm.python import llvm_architecture_support
+from pybind11_abseil import status
+import tensorflow as tf
 
 
 _INPUT_CSV_FILE = flags.DEFINE_string(

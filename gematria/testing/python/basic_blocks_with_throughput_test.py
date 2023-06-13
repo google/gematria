@@ -14,7 +14,6 @@
 """Sanity checks for the test data."""
 
 from absl.testing import absltest
-
 from gematria.proto import throughput_pb2
 from gematria.testing.python import basic_blocks_with_throughput
 

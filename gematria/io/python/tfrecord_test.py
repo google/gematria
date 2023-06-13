@@ -14,12 +14,11 @@
 
 from os import path
 
-import tensorflow as tf
-
-from google.protobuf import message
 from gematria.io.python import tfrecord
 from gematria.proto import canonicalized_instruction_pb2
 from gematria.proto import throughput_pb2
+from google.protobuf import message
+import tensorflow as tf
 
 _CanonicalizedInstructionProto = (
     canonicalized_instruction_pb2.CanonicalizedInstructionProto

@@ -15,11 +15,10 @@
 import os
 
 from absl.testing import parameterized
-import numpy as np
-import tensorflow.compat.v1 as tf
-
 from gematria.model.python import training
 from gematria.testing.python import basic_blocks_with_throughput
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 
 class TrainingEpochStatsTest(tf.test.TestCase):

@@ -15,7 +15,6 @@
 """Tests for basic block data structure wrappers."""
 
 from absl.testing import absltest
-
 from gematria.basic_block.python import basic_block
 from gematria.basic_block.python import tokens
 

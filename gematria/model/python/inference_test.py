@@ -14,13 +14,12 @@
 
 import copy
 
-import numpy as np
-import tensorflow.compat.v1 as tf
-
 from gematria.model.python import inference
 from gematria.model.python import model_base
 from gematria.proto import throughput_pb2
 from gematria.testing.python import model_test
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 _PrefixThroughputProto = (
     throughput_pb2.ThroughputWithSourceProto.PrefixThroughputProto

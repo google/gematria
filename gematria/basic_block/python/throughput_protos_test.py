@@ -15,7 +15,6 @@
 """Tests for throughput_protos."""
 
 from absl.testing import absltest
-
 from gematria.basic_block.python import basic_block
 from gematria.basic_block.python import throughput_protos
 from gematria.proto import basic_block_pb2

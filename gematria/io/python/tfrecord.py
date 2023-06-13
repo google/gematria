@@ -17,9 +17,8 @@ from collections.abc import Iterable, Sequence
 from os import path
 from typing import Type, TypeVar
 
-import tensorflow.compat.v1 as tf
-
 from google.protobuf import message
+import tensorflow.compat.v1 as tf
 
 Proto = TypeVar('Proto', bound=message.Message)
 

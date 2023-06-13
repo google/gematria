@@ -20,9 +20,6 @@ from unittest import mock
 
 from absl import flags
 from absl.testing import flagsaver
-import numpy as np
-import tensorflow.compat.v1 as tf
-
 from gematria.basic_block.python import throughput_protos
 from gematria.io.python import options as io_options
 from gematria.io.python import tfrecord
@@ -34,6 +31,8 @@ from gematria.model.python import options as model_options
 from gematria.proto import throughput_pb2
 from gematria.testing.python import matchers
 from gematria.testing.python import model_test
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 FLAGS = flags.FLAGS
 

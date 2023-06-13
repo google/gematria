@@ -13,13 +13,12 @@
 # limitations under the License.
 """Tests for the ModelBase class."""
 
-import numpy as np
-import tensorflow.compat.v1 as tf
-
 from gematria.basic_block.python import throughput
 from gematria.model.python import model_base
 from gematria.model.python import options
 from gematria.testing.python import model_test
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 # The tolerance used in tests with heavier use of float32 arithmetics.
 _TOLERANCE = 1e-6

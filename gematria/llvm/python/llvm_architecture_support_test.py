@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from pybind11_abseil import status
-
 from gematria.llvm.python import llvm_architecture_support
+from pybind11_abseil import status
 
 
 class LlvmArchitectureSupportTest(absltest.TestCase):

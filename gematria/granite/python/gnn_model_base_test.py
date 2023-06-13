@@ -16,15 +16,14 @@ import functools
 from unittest import mock
 
 from absl.testing import parameterized
+from gematria.granite.python import gnn_model_base
+from gematria.model.python import options
+from gematria.testing.python import model_test
 import graph_nets
 import networkx as nx
 import numpy as np
 import sonnet as snt
 import tensorflow.compat.v1 as tf
-
-from gematria.granite.python import gnn_model_base
-from gematria.model.python import options
-from gematria.testing.python import model_test
 
 
 class TestGnnModel(gnn_model_base.GnnModelBase):

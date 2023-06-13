@@ -14,7 +14,6 @@
 """Defines the common flags for models."""
 
 from absl import flags
-
 from gematria.model.python import options
 from gematria.utils.python import flag_utils
 

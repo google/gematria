@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import tensorflow.compat.v1 as tf
-
 from gematria.basic_block.python import basic_block
 from gematria.basic_block.python import throughput
 from gematria.basic_block.python import tokens
 from gematria.model.python import oov_token_behavior
 from gematria.model.python import token_model
 from gematria.testing.python import model_test
+import tensorflow.compat.v1 as tf
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 

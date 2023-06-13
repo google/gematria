@@ -21,12 +21,11 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import Optional
 
 from absl import logging
-import numpy as np
-import tensorflow.compat.v1 as tf
-
 from gematria.basic_block.python import basic_block
 from gematria.model.python import model_base
 from gematria.model.python import oov_token_behavior
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 

@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from absl.testing import absltest
-
 from gematria.llvm.python import canonicalizer
 from gematria.llvm.python import llvm_architecture_support
 

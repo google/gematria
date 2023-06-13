@@ -17,7 +17,6 @@ import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
-
 from gematria.io.python import options
 from gematria.io.python import utils
 from gematria.proto import throughput_pb2

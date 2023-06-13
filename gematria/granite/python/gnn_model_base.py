@@ -21,13 +21,12 @@ from collections.abc import Sequence
 import dataclasses
 from typing import Optional
 
-import graph_nets
-import sonnet as snt
-import tensorflow.compat.v1 as tf
-
 from gematria.model.python import model_base
 from gematria.model.python import model_blocks
 from gematria.model.python import options
+import graph_nets
+import sonnet as snt
+import tensorflow.compat.v1 as tf
 
 
 def _add_batch_dimension(shape: Sequence[int]) -> Sequence[Optional[int]]:

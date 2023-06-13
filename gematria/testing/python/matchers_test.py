@@ -15,7 +15,6 @@ from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
-
 from gematria.testing.python import matchers
 
 # The tests use explicit comparisons to test their behavior.

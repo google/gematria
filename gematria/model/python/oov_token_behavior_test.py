@@ -15,7 +15,6 @@
 """Tests for the Clif wrapper of OutOfVocabularyTokenBehavior."""
 
 from absl.testing import absltest
-
 from gematria.model.python import oov_token_behavior
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior

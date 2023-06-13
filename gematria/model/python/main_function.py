@@ -34,10 +34,6 @@ from typing import Any, Type
 
 from absl import flags
 from absl import logging
-
-import numpy as np
-import tensorflow.compat.v1 as tf
-
 from gematria.basic_block.python import throughput
 from gematria.basic_block.python import throughput_protos
 from gematria.io.python import gfile_copy
@@ -50,6 +46,8 @@ from gematria.model.python import options as model_options
 from gematria.model.python import training
 from gematria.proto import throughput_pb2
 from gematria.utils.python import timer
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 _ACTION = flags.DEFINE_enum_class(
     'gematria_action',

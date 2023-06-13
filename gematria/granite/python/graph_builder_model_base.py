@@ -25,16 +25,15 @@ format of the basic block, but they can use different ways to process the data:
 from collections.abc import Sequence
 from typing import Any
 
-import graph_nets
-import numpy as np
-import tensorflow.compat.v1 as tf
-
 from gematria.basic_block.python import basic_block
 from gematria.granite.python import gnn_model_base
 from gematria.granite.python import graph_builder
 from gematria.model.python import model_base
 from gematria.model.python import oov_token_behavior
 from gematria.model.python import token_model
+import graph_nets
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 

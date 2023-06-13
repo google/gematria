@@ -22,14 +22,13 @@ from collections.abc import Sequence
 
 from absl import app
 from absl import flags
-import tensorflow.compat.v1 as tf
-
 from gematria.basic_block.python import tokens
 from gematria.model.python import main_function
 from gematria.model.python import oov_token_behavior
 from gematria.model.python import token_model_flags
 from gematria.sequence.python import sequence_model_hlstm
 from gematria.utils.python import flag_utils
+import tensorflow.compat.v1 as tf
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 

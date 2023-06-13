@@ -35,16 +35,15 @@ import random
 from typing import Optional, TypeVar, Union
 
 from absl import logging
-import numpy as np
-import scipy.stats
-import tensorflow.compat.v1 as tf
-
 from gematria.basic_block.python import basic_block
 from gematria.basic_block.python import throughput
 from gematria.model.python import loss_utils
 from gematria.model.python import options
 from gematria.model.python import training
 from gematria.utils.python import timer
+import numpy as np
+import scipy.stats
+import tensorflow.compat.v1 as tf
 
 # The type used for TensorFlow feed_dict objects. The type we use here is
 # simpler than what is actually accepted by TensorFlow, but the typing should be

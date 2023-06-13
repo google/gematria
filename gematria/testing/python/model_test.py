@@ -17,11 +17,10 @@ import math
 
 from absl import flags
 from absl import logging
-import numpy as np
-import tensorflow.compat.v1 as tf
-
 from gematria.model.python import options
 from gematria.testing.python import basic_blocks_with_throughput
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 FLAGS = flags.FLAGS
 

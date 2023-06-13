@@ -19,10 +19,9 @@ import re
 from typing import Optional, TypeVar
 
 from absl import logging
-import numpy as np
-
 from gematria.io.python import options
 from gematria.proto import throughput_pb2
+import numpy as np
 
 T = TypeVar('T')
 

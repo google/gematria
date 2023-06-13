@@ -14,10 +14,8 @@
 
 from absl import flags
 from absl.testing import flagsaver
-
-import tensorflow.compat.v1 as tf
-
 from gematria.model.python import token_model_flags
+import tensorflow.compat.v1 as tf
 
 FLAGS = flags.FLAGS
 

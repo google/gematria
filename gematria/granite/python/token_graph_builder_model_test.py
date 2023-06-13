@@ -16,14 +16,13 @@ import functools
 from unittest import mock
 
 from absl.testing import parameterized
-import tensorflow.compat.v1 as tf
-
 from gematria.basic_block.python import tokens
 from gematria.granite.python import token_graph_builder_model
 from gematria.model.python import model_base
 from gematria.model.python import model_blocks
 from gematria.model.python import oov_token_behavior
 from gematria.testing.python import model_test
+import tensorflow.compat.v1 as tf
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 

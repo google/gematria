@@ -18,10 +18,9 @@ See the docstring of HierarchicalLstmModel for more details of the model.
 
 from collections.abc import Sequence
 
-import tensorflow.compat.v1 as tf
-
 from gematria.model.python import model_base
 from gematria.sequence.python import sequence_model
+import tensorflow.compat.v1 as tf
 
 
 class HierarchicalLstmModel(sequence_model.SequenceModelBase):

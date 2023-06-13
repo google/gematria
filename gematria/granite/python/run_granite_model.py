@@ -14,8 +14,6 @@
 """Main function for the token-based Granite model."""
 
 from absl import app
-import tensorflow.compat.v1 as tf
-
 from gematria.basic_block.python import tokens
 from gematria.granite.python import granite_flags
 from gematria.granite.python import rnn_token_model
@@ -24,6 +22,7 @@ from gematria.model.python import main_function
 from gematria.model.python import options
 from gematria.model.python import token_model_flags
 from gematria.utils.python import flag_utils
+import tensorflow.compat.v1 as tf
 
 
 def main(argv):

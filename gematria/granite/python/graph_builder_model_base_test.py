@@ -15,11 +15,6 @@
 import functools
 
 from absl.testing import parameterized
-import graph_nets
-import numpy as np
-import sonnet as snt
-import tensorflow.compat.v1 as tf
-
 from gematria.basic_block.python import basic_block
 from gematria.basic_block.python import throughput
 from gematria.basic_block.python import tokens
@@ -31,6 +26,10 @@ from gematria.model.python import oov_token_behavior
 from gematria.model.python import options
 from gematria.model.python import token_model
 from gematria.testing.python import model_test
+import graph_nets
+import numpy as np
+import sonnet as snt
+import tensorflow.compat.v1 as tf
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 

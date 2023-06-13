@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-import tensorflow.compat.v1 as tf
-
 from gematria.model.python import loss_utils
 from gematria.model.python import options
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 
 class LossComputationTest(tf.test.TestCase):

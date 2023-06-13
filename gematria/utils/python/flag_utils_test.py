@@ -14,7 +14,6 @@
 import itertools
 
 from absl.testing import absltest
-
 from gematria.utils.python import flag_utils
 
 

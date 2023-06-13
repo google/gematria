@@ -13,15 +13,14 @@
 # limitations under the License.
 
 from absl.testing import parameterized
-import numpy as np
-import tensorflow.compat.v1 as tf
-
 from gematria.basic_block.python import basic_block
 from gematria.basic_block.python import tokens
 from gematria.model.python import oov_token_behavior
 from gematria.model.python import token_model
 from gematria.sequence.python import sequence_model
 from gematria.testing.python import model_test
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 
