@@ -139,6 +139,7 @@ new_git_repository(
 # LLVM and its dependencies
 
 LLVM_COMMIT = "868591501c61bc1aa56da537bab85cc67439f16d"
+
 LLVM_SHA256 = "7790344f8245cb6a60ec8cbdadd46640ef8cc217c8cadc6b4481da473292f77b"
 
 http_archive(
@@ -152,6 +153,7 @@ http_archive(
 load("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure", "llvm_disable_optional_support_deps")
 
 llvm_configure(name = "llvm-project")
+
 llvm_disable_optional_support_deps()
 
 http_archive(

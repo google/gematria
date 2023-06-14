@@ -55,3 +55,13 @@ pyink .
 
 See the Pyink and [Black](https://github.com/psf/black) documentation for IDE
 integrations.
+
+### Bazel files
+
+All BUILD and Starlark files are formatted using
+[Buildifier](https://github.com/bazelbuild/buildtools/blob/master/buildifier/README.md).
+To format the code, run:
+
+```bash
+buildifier -r .
+```

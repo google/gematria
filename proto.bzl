@@ -13,7 +13,7 @@
 # limitations under the License.
 """Contains portable rules for generating protocol buffer libraries."""
 
-load("@rules_cc//cc:defs.bzl", _cc_proto_library="cc_proto_library")
+load("@rules_cc//cc:defs.bzl", _cc_proto_library = "cc_proto_library")
 load("@com_google_protobuf//:protobuf.bzl", _py_proto_library = "py_proto_library")
 
 def gematria_proto_library(name = None, srcs = None, deps = (), **kwargs):
