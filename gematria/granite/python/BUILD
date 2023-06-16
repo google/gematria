@@ -1,8 +1,4 @@
 load("//:python.bzl", "gematria_py_binary", "gematria_py_library", "gematria_py_test", "gematria_pybind_extension")
-load(
-    "@pypi//:requirements.bzl",
-    "requirement",
-)
 
 package(
     default_visibility = ["//visibility:private"],

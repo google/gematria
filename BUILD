@@ -1,5 +1,3 @@
-load("@rules_python//python:pip.bzl", "compile_pip_requirements")
-
 package(
     default_visibility = ["//visibility:private"],
 )
@@ -19,11 +17,4 @@ package_group(
         # Gematria code base.
         "//gematria/...",
     ],
-)
-
-compile_pip_requirements(
-    name = "requirements",
-    extra_args = ["--allow-unsafe"],
-    requirements_in = "requirements.in",
-    requirements_txt = "requirements.txt",
 )

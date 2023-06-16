@@ -19,7 +19,7 @@ make C++ APIs available in Python.
 Basic requirements that need to be installed before starting:
 
 *   [Bazel 6.0](https://bazel.build) or newer.
-*   A C++ compiler supported by Bazel that compiles C++20. Recent versions of
+*   A C++ compiler supported by Bazel that compiles C++17. Recent versions of
     GCC and Clang on Linux both fit the bill.
 *   Python 3.10 or newer.
 *   Git.
@@ -41,11 +41,8 @@ $ pip install virtualenv
 $ virtualenv env
 $ . env/bin/activate
 
-# Compile the requirements file.
-$ bazel run :requirements.update
-
 # Install Python dependencies.
-$ pip install -r requirements.txt
+$ pip install -r requirements.in
 
 # On OS X only. The dependencies of tensorflow-ranking are not set up correctly
 # and it needs to be installed manually.

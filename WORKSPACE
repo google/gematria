@@ -16,9 +16,7 @@ http_archive(
 git_repository(
     name = "com_google_protobuf",
     remote = "https://github.com/protocolbuffers/protobuf.git",
-    # TODO(ondrasej): This is the maximal version compatible with
-    # TensorFlow 2.11.0 (last version on PyPI as of 2023-03-03).
-    tag = "v19.5",
+    tag = "v23.2",
 )
 
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
@@ -26,15 +24,10 @@ load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 protobuf_deps()
 
 # Required for protobuf to build.
-bind(
-    name = "python_headers",
-    actual = "@com_google_protobuf//util/python:python_headers",
-)
-
 git_repository(
     name = "com_google_absl",
     remote = "https://github.com/abseil/abseil-cpp.git",
-    tag = "20230125.0",
+    tag = "20230125.3",
 )
 
 git_repository(
@@ -56,26 +49,26 @@ git_repository(
 )
 
 # Python
+load("@upb//bazel:system_python.bzl", "system_python")
+system_python(
+    name = "system_python",
+    minimum_python_version = "3.10",
+)
+
+bind(
+    name = "python_headers",
+    actual = "@system_python//:python_headers",
+)
+
 git_repository(
     name = "rules_python",
     remote = "https://github.com/bazelbuild/rules_python.git",
     tag = "0.19.0",
 )
 
-load("@rules_python//python:pip.bzl", "pip_parse")
-
-pip_parse(
-    name = "pypi",
-    requirements_lock = "//:requirements.txt",
-)
-
-load("@pypi//:requirements.bzl", "install_deps")
-
-install_deps()
-
 git_repository(
     name = "pybind11_bazel",
-    commit = "faf56fb3df11287f26dbc66fdedf60a2fc2c6631",
+    commit = "b162c7c88a253e3f6b673df0c621aca27596ce6b",
     patch_args = ["-p1"],
     patches = ["@org_mizux_bazelpybind11//patches:pybind11_bazel.patch"],
     remote = "https://github.com/pybind/pybind11_bazel.git",
@@ -98,10 +91,12 @@ git_repository(
     remote = "https://github.com/pybind/pybind11_abseil.git",
 )
 
+# TODO(ondrasej): Revert back to the official repository, once
+# https://github.com/pybind/pybind11_protobuf/pull/117 is merged.
 git_repository(
     name = "com_google_pybind11_protobuf",
-    commit = "6128db54998e52f4003c0e04f472aba7a3dbe835",
-    remote = "https://github.com/pybind/pybind11_protobuf.git",
+    commit = "3e4d063c56156d752ad5cf63cf8338ef960c3269",
+    remote = "https://github.com/ondrasej/pybind11_protobuf.git",
 )
 
 load("@pybind11_bazel//:python_configure.bzl", _pybind11_python_configure = "python_configure")
