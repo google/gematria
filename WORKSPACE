@@ -50,6 +50,7 @@ git_repository(
 
 # Python
 load("@upb//bazel:system_python.bzl", "system_python")
+
 system_python(
     name = "system_python",
     minimum_python_version = "3.10",
