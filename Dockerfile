@@ -4,5 +4,5 @@ ARG bazelisk_version=1.17.0
 RUN curl -L https://github.com/bazelbuild/bazelisk/releases/download/v${bazelisk_version}/bazelisk-linux-amd64 > /usr/bin/bazelisk && chmod +x /usr/bin/bazelisk && ln -s /usr/bin/bazelisk /usr/bin/bazel
 WORKDIR /gematria
 COPY . .
-RUN bazel run :requirements.update
-RUN pip3 install -r requirements.txt
+RUN pip3 install -r requirements.in
+
