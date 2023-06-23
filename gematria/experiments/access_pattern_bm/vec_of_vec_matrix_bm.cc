@@ -4,6 +4,8 @@
 
 #include "vec_of_vec_matrix.h"
 
+namespace gematria {
+
 static void BM_FlushVecOfVecMatrixFromCache(benchmark::State &state) {
   const std::size_t size = state.range(0);
 
@@ -77,5 +79,7 @@ static void BM_VecOfVecMatrix_Flush(benchmark::State &state) {
 }
 
 BENCHMARK(BM_VecOfVecMatrix_Flush)->Range(1 << 4, 1 << 12);
+
+}  // namespace gematria
 
 BENCHMARK_MAIN();

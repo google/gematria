@@ -3,8 +3,12 @@
 
 #include <iostream>
 
+namespace gematria {
+
 int *CreateRandomContiguousMatrix(const std::size_t size);
 void FlushContiguousMatrixFromCache(int *matrix, std::size_t size);
 void DeleteContiguousMatrix(int *matrix);
+
+}  // namespace gematria
 
 #endif

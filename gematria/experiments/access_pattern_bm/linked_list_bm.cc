@@ -4,6 +4,8 @@
 
 #include "linked_list.h"
 
+namespace gematria {
+
 // Times flushing an entire linked list from cache - not sure how
 // Google Benchmark repeating the test changes the results, i.e. what
 // happens when clflush cache misses (which seems to happen a ton).
@@ -21,7 +23,7 @@ static void BM_FlushLinkedListFromCache(benchmark::State &state) {
   DeleteLinkedList(head);
 }
 
-// BENCHMARK(BM_FlushLinkedListFromCache)->Range(1 << 4, 1 << 20);
+BENCHMARK(BM_FlushLinkedListFromCache)->Range(1 << 4, 1 << 20);
 
 // Traverses a linked list, does not try to directly manipulate the
 // the cache in any way.
@@ -30,15 +32,15 @@ static void BM_AccessLinkedList_NoFlush(benchmark::State &state) {
 
   // Create a random linked list
   Node *head = CreateRandomLinkedList(size);
-  // Node *mock = CreateRandomLinkedList(size);                      <-- mock is
-  // used to balance out the extra flushing time
-  //                                                                     to make
-  //                                                                     for a
-  //                                                                     better
-  //                                                                     comparison
-  //                                                                     from
-  //                                                                     time
-  //                                                                     perspective
+  // Node *mock = CreateRandomLinkedList(size);  <-- mock is
+  //                                                 used to balance out
+  //                                                 the extra flushing
+  //                                                 time to make for a
+  //                                                 better
+  //                                                 comparison
+  //                                                 from
+  //                                                 time
+  //                                                 perspective
 
   for (auto _ : state) {
     // Traverse the linked list, doing some arbitrary operations
@@ -46,7 +48,7 @@ static void BM_AccessLinkedList_NoFlush(benchmark::State &state) {
     Node *current = head;
     int sum = 0;
 
-    // FlushLinkedListFromCache(mock);                             <--
+    // FlushLinkedListFromCache(mock);           <--
 
     while (current) {
       sum += current->value;
@@ -59,7 +61,7 @@ static void BM_AccessLinkedList_NoFlush(benchmark::State &state) {
 
   // Free up memory allocated to the linked list
   DeleteLinkedList(head);
-  // DeleteLinkedList(mock);                                         <--
+  // DeleteLinkedList(mock);                     <--
 }
 
 BENCHMARK(BM_AccessLinkedList_NoFlush)->Range(1 << 4, 1 << 20);
@@ -95,5 +97,7 @@ static void BM_AccessLinkedList_Flush(benchmark::State &state) {
 }
 
 BENCHMARK(BM_AccessLinkedList_Flush)->Range(1 << 4, 1 << 20);
+
+}  // namespace gematria
 
 BENCHMARK_MAIN();

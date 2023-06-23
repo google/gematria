@@ -3,9 +3,13 @@
 
 #include <vector>
 
+namespace gematria {
+
 std::vector<std::vector<int>> *CreateRandomVecOfVecMatrix(
     const std::size_t size);
 void FlushVecOfVecMatrixFromCache(std::vector<std::vector<int>> *matrix);
 void DeleteVecOfVecMatrix(std::vector<std::vector<int>> *matrix);
+
+}  // namespace gematria
 
 #endif

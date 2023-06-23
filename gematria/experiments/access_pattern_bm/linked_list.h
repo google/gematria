@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+namespace gematria {
+
 // Represents a linked list node
 struct Node {
   Node *next = nullptr;
@@ -15,3 +17,5 @@ void FlushNodeFromCache(Node *ptr);
 void FlushLinkedListFromCache(Node *ptr);
 
 #endif
+
+}  // namespace gematria

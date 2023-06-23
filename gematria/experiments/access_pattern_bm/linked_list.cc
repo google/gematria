@@ -4,6 +4,8 @@
 
 #include <random>
 
+namespace gematria {
+
 static std::default_random_engine generator;
 static std::uniform_int_distribution<int> distribution(0, 1023);
 
@@ -40,3 +42,5 @@ void DeleteLinkedList(Node *ptr) {
     ptr = temp;
   }
 }
+
+}  // namespace gematria

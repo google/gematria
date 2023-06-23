@@ -6,6 +6,8 @@
 #include <random>
 #include <vector>
 
+namespace gematria {
+
 static std::default_random_engine generator;
 static std::uniform_int_distribution<int> distribution(0, 1023);
 
@@ -34,5 +36,7 @@ template <typename Container>
 void DeleteSTLContainer(Container *container) {
   delete container;
 }
+
+}  // namespace gematria
 
 #endif

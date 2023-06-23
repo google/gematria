@@ -5,6 +5,8 @@
 
 #include "stl_assoc_container.h"
 
+namespace gematria {
+
 template <typename Container>
 static void BM_FlushSTLAssocContainerFromCache(benchmark::State &state) {
   const std::size_t size = state.range(0);
@@ -89,5 +91,7 @@ BENCHMARK_TEMPLATE(BM_STLAssocContainer_Flush, std::map<int, int>)
     ->Range(1 << 4, 1 << 16);
 BENCHMARK_TEMPLATE(BM_STLAssocContainer_Flush, std::unordered_map<int, int>)
     ->Range(1 << 4, 1 << 16);
+
+}  // namespace gematria
 
 BENCHMARK_MAIN();

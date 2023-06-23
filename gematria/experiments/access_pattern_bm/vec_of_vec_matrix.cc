@@ -3,6 +3,8 @@
 #include <random>
 #include <vector>
 
+namespace gematria {
+
 static std::default_random_engine generator;
 static std::uniform_int_distribution<int> distribution(0, 1023);
 
@@ -35,3 +37,5 @@ void FlushVecOfVecMatrixFromCache(std::vector<std::vector<int>> *matrix) {
 void DeleteVecOfVecMatrix(std::vector<std::vector<int>> *matrix) {
   delete matrix;
 }
+
+}  // namespace gematria

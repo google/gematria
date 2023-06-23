@@ -4,6 +4,8 @@
 
 #include "contiguous_matrix.h"
 
+namespace gematria {
+
 static void BM_FlushContiguousMatrixFromCache(benchmark::State &state) {
   const std::size_t size = state.range(0);
 
@@ -77,5 +79,7 @@ static void BM_ContiguousMatrix_Flush(benchmark::State &state) {
 }
 
 BENCHMARK(BM_ContiguousMatrix_Flush)->Range(1 << 4, 1 << 12);
+
+}  // namespace gematria
 
 BENCHMARK_MAIN();

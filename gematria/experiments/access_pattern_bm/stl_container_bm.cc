@@ -6,6 +6,8 @@
 
 #include "stl_container.h"
 
+namespace gematria {
+
 template <typename Container>
 static void BM_FlushSTLContainerFromCache(benchmark::State &state) {
   const std::size_t size = state.range(0);
@@ -93,5 +95,7 @@ BENCHMARK_TEMPLATE(BM_STLContainer_Flush, std::list<int>)
     ->Range(1 << 4, 1 << 16);
 BENCHMARK_TEMPLATE(BM_STLContainer_Flush, std::deque<int>)
     ->Range(1 << 4, 1 << 16);
+
+}  // namespace gematria
 
 BENCHMARK_MAIN();
