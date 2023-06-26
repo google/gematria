@@ -110,7 +110,7 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseBHiveCsvLine(
   if (machine_code_hex_column_index == throughput_column_index) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "Expected machine code column and throughput column indices to be "
-        "different for `line`, but were both %d: %s",
+        "different, but were both %d: %s",
         machine_code_hex_column_index, line));
   }
   const std::string_view machine_code_hex =
