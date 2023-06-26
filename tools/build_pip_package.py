@@ -11,12 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""This module is used for building the Gematria python package. Usage:
+
+bazel run //tools:build_pip_package bdist_wheel
+
+This will build a Gematria python wheel that can then be used as a normal
+python wheel.
+"""
 
 from datetime import datetime, timezone
 import os
 import pkg_resources
 
 from setuptools import setup
+from setuptools import find_packages
 
 VERSION = '0.1.0.dev' + datetime.now(tz=timezone.utc).strftime('%Y%m%d%H%M')
 
@@ -42,9 +50,8 @@ setup(
     version=VERSION,
     description='Tooling for cost modelling',
     author='Gematria Authors',
-    py_modules=[''],
     install_requires=requirements,
-    packages=['', 'gematria.proto'],
+    packages=find_packages() + [''],
     package_data={'': shared_objects},
     python_requires='>=3.10',
 )
