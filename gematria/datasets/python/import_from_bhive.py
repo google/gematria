@@ -77,13 +77,19 @@ _THROUGHPUT_COLUMN_INDEX = flags.DEFINE_integer(
     'The index of the throughput value column in the input CSV file.',
 )
 
-flags.register_multi_flags_validator(
+
+@flags.multi_flags_validator(
     ['machine_code_hex_column_index', 'throughput_column_index'],
-    lambda flags_dict: flags_dict['machine_code_hex_column_index']
-    != flags_dict['throughput_column_index'],
-    'Expected machine code column and throughput column indices to be'
-    ' different',
+    message=(
+        'Expected machine code column and throughput column indices to be'
+        ' different'
+    ),
 )
+def _validate_input_columns(flags_dict):
+  return (
+      flags_dict['machine_code_hex_column_index']
+      != flags_dict['throughput_column_index']
+  )
 
 
 def main(argv: Sequence[str]) -> None:
