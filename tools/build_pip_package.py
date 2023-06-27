@@ -13,7 +13,7 @@
 # limitations under the License.
 """This module is used for building the Gematria python package. Usage:
 
-bazel run //tools:build_pip_package bdist_wheel
+bazel run //tools:build_pip_package -c opt -- bdist_wheel
 
 This will build a Gematria python wheel that can then be used as a normal
 python wheel.
