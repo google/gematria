@@ -7,7 +7,9 @@ package(
 gematria_py_library(
     name = "inference",
     srcs = ["inference.py"],
-    visibility = ["//:internal_users"],
+    visibility = [
+        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
+    ],
     deps = [
         ":model_base",
         ":training",
@@ -31,7 +33,9 @@ gematria_py_test(
 gematria_py_library(
     name = "loss_utils",
     srcs = ["loss_utils.py"],
-    visibility = ["//:internal_users"],
+    visibility = [
+        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
+    ],
     deps = [
         ":options",
     ],
@@ -206,7 +210,9 @@ gematria_py_test(
 gematria_py_library(
     name = "training",
     srcs = ["training.py"],
-    visibility = ["//:internal_users"],
+    visibility = [
+        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
+    ],
     deps = [
         "//gematria/basic_block/python:basic_block",
         "//gematria/basic_block/python:throughput",
