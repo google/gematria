@@ -79,7 +79,7 @@ _THROUGHPUT_COLUMN_INDEX = flags.DEFINE_integer(
 
 
 @flags.multi_flags_validator(
-    ['machine_code_hex_column_index', 'throughput_column_index'],
+    [_MACHINE_CODE_HEX_COLUMN_INDEX.name, _THROUGHPUT_COLUMN_INDEX.name],
     message=(
         'Expected machine code column and throughput column indices to be'
         ' different'
@@ -87,8 +87,8 @@ _THROUGHPUT_COLUMN_INDEX = flags.DEFINE_integer(
 )
 def _validate_input_columns(flags_dict):
   return (
-      flags_dict['machine_code_hex_column_index']
-      != flags_dict['throughput_column_index']
+      flags_dict[_MACHINE_CODE_HEX_COLUMN_INDEX.name]
+      != flags_dict[_THROUGHPUT_COLUMN_INDEX.name]
   )
 
 
