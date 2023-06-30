@@ -70,6 +70,7 @@ class BHiveImporter {
   // `base_address` as the address of the first instruction in the basic block.
   absl::StatusOr<BasicBlockWithThroughputProto> ParseBHiveCsvLine(
       std::string_view source_name, std::string_view line,
+      size_t machine_code_hex_column_index, size_t throughput_column_index,
       double throughput_scaling = 1.0, uint64_t base_address = 0);
 
  private:

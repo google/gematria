@@ -49,7 +49,7 @@ using BHiveImporterDeathTest = BHiveImporterTest;
 
 TEST_F(BHiveImporterTest, EmptyBlock) {
   EXPECT_THAT(
-      x86_bhive_importer_->ParseBHiveCsvLine(kSourceName, ",0", kScaling),
+      x86_bhive_importer_->ParseBHiveCsvLine(kSourceName, ",0", 0, 1, kScaling),
       IsOkAndHolds(EqualsProto(R"pb(basic_block {}
                                     inverse_throughputs {
                                       source: "bhive: skl"
@@ -58,8 +58,8 @@ TEST_F(BHiveImporterTest, EmptyBlock) {
 }
 
 TEST_F(BHiveImporterTest, OneInstruction) {
-  EXPECT_THAT(x86_bhive_importer_->ParseBHiveCsvLine(kSourceName,
-                                                     "4929d2,100.000000", 0.5),
+  EXPECT_THAT(x86_bhive_importer_->ParseBHiveCsvLine(
+                  kSourceName, "4929d2,100.000000", 0, 1, 0.5),
               IsOkAndHolds(EqualsProto(
                   R"pb(basic_block {
                          machine_instructions {
@@ -182,26 +182,48 @@ TEST_F(BHiveImporterTest, MultipleInstructions) {
              source: "bhive: skl"
              inverse_throughput_cycles: 2.07
            })pb";
-  EXPECT_THAT(
-      x86_bhive_importer_->ParseBHiveCsvLine(
-          kSourceName, "4829d38b44246c8b54246848c1fb034829d04839c3,207.000000",
-          /*throughput_scaling=*/kScaling, /*base_address=*/100),
-      IsOkAndHolds(EqualsProto(kExpectedBasicBlockProto)));
+  EXPECT_THAT(x86_bhive_importer_->ParseBHiveCsvLine(
+                  kSourceName,
+                  "4829d38b44246c8b54246848c1fb034829d04839c3,207.000000", 0, 1,
+                  /*throughput_scaling=*/kScaling, /*base_address=*/100),
+              IsOkAndHolds(EqualsProto(kExpectedBasicBlockProto)));
 }
 
-TEST_F(BHiveImporterTest, NoCommaOnLine) {
+TEST_F(BHiveImporterTest, InvalidColumnIndices) {
+  EXPECT_THAT(x86_bhive_importer_->ParseBHiveCsvLine(kSourceName, "4929d2", 0,
+                                                     1, kScaling),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST_F(BHiveImporterTest, InvalidColumnIndicesBig) {
+  EXPECT_THAT(x86_bhive_importer_->ParseBHiveCsvLine(kSourceName,
+                                                     "4929d2,a,b,c,5", 0, 10),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST_F(BHiveImporterTest, InvalidColumnIndicesSame) {
   EXPECT_THAT(
-      x86_bhive_importer_->ParseBHiveCsvLine(kSourceName, "4929d2", kScaling),
+      x86_bhive_importer_->ParseBHiveCsvLine(kSourceName, "4929d2,5", 0, 0),
       StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
 TEST_F(BHiveImporterTest, InvalidMachineCode) {
   // The binary code below is missing one byte at the end.
-  EXPECT_THAT(
-      x86_bhive_importer_->ParseBHiveCsvLine(kSourceName, "4929", kScaling),
-      StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(x86_bhive_importer_->ParseBHiveCsvLine(kSourceName, "4929", 0, 1,
+                                                     kScaling),
+              StatusIs(absl::StatusCode::kInvalidArgument));
   EXPECT_THAT(x86_bhive_importer_->BasicBlockProtoFromMachineCodeHex("4929"),
               StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST_F(BHiveImporterTest, NonStandardColumns) {
+  EXPECT_THAT(x86_bhive_importer_->ParseBHiveCsvLine(kSourceName, "a,b,,0", 2,
+                                                     3, kScaling),
+              IsOkAndHolds(EqualsProto(R"pb(basic_block {}
+                                            inverse_throughputs {
+                                              source: "bhive: skl"
+                                              inverse_throughput_cycles: 0
+                                            })pb")));
 }
 
 }  // namespace

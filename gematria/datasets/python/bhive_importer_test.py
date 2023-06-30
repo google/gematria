@@ -219,6 +219,31 @@ class BhiveImporterTest(absltest.TestCase):
         ),
     )
 
+  def test_x86_nonstandard_columns(self):
+    source_name = "test: made-up"
+    importer = bhive_importer.BHiveImporter(self._x86_canonicalizer)
+    # Same basic block as in test_x86_basic_block_proto_from_bytes().
+    block_proto = importer.basic_block_with_throughput_proto_from_csv_line(
+        source_name=source_name,
+        line="a,b,4829d38b44246c8b54246848c1fb034829d04839c3,10",
+        machine_code_hex_column_index=2,
+        throughput_column_index=3,
+        base_address=600,
+        throughput_scaling=2.0,
+    )
+    self.assertEqual(
+        block_proto,
+        throughput_pb2.BasicBlockWithThroughputProto(
+            basic_block=_EXPECTED_BASIC_BLOCK_PROTO,
+            inverse_throughputs=(
+                throughput_pb2.ThroughputWithSourceProto(
+                    source=source_name,
+                    inverse_throughput_cycles=[20.0],
+                ),
+            ),
+        ),
+    )
+
 
 if __name__ == "__main__":
   absltest.main()
