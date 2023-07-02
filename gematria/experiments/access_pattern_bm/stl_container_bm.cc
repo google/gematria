@@ -1,40 +1,54 @@
-#include <benchmark/benchmark.h>
+// Copyright 2023 Google Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <deque>
 #include <list>
 #include <set>
 
-#include "stl_container.h"
+#include "benchmark/benchmark.h"
+#include "gematria/experiments/access_pattern_bm/stl_container.h"
 
 namespace gematria {
+namespace {
 
 template <typename Container>
-static void BM_FlushSTLContainerFromCache(benchmark::State &state) {
+void BM_FlushSTLContainerFromCache(benchmark::State &state) {
   const std::size_t size = state.range(0);
 
-  // Create a random container
+  // Create a random container.
   auto container = CreateRandomSTLContainer<Container>(size);
 
   for (auto _ : state) {
     FlushSTLContainerFromCache(container);
   }
 
-  // Deallocate memory associated with the container
+  // Deallocate memory associated with the container.
   DeleteSTLContainer(container);
 }
 
-BENCHMARK_TEMPLATE(BM_FlushSTLContainerFromCache, std::multiset<int>)
+BENCHMARK(BM_FlushSTLContainerFromCache<std::multiset<int>>)
     ->Range(1 << 4, 1 << 16);
-BENCHMARK_TEMPLATE(BM_FlushSTLContainerFromCache, std::list<int>)
+BENCHMARK(BM_FlushSTLContainerFromCache<std::list<int>>)
     ->Range(1 << 4, 1 << 16);
-BENCHMARK_TEMPLATE(BM_FlushSTLContainerFromCache, std::deque<int>)
+BENCHMARK(BM_FlushSTLContainerFromCache<std::deque<int>>)
     ->Range(1 << 4, 1 << 16);
 
 template <typename Container>
-static void BM_STLContainer_NoFlush(benchmark::State &state) {
+void BM_STLContainer_NoFlush(benchmark::State &state) {
   const std::size_t size = state.range(0);
 
-  // Create a random container
+  // Create a random container.
   auto container = CreateRandomSTLContainer<Container>(size);
   // auto mock = CreateRandomSTLContainer<Container>(size);
 
@@ -52,23 +66,20 @@ static void BM_STLContainer_NoFlush(benchmark::State &state) {
     sum = 0;
   }
 
-  // Deallocate memory associated with the container
+  // Deallocate memory associated with the container.
   DeleteSTLContainer(container);
   // DeleteSTLContainer(mock);
 }
 
-BENCHMARK_TEMPLATE(BM_STLContainer_NoFlush, std::multiset<int>)
-    ->Range(1 << 4, 1 << 16);
-BENCHMARK_TEMPLATE(BM_STLContainer_NoFlush, std::list<int>)
-    ->Range(1 << 4, 1 << 16);
-BENCHMARK_TEMPLATE(BM_STLContainer_NoFlush, std::deque<int>)
-    ->Range(1 << 4, 1 << 16);
+BENCHMARK(BM_STLContainer_NoFlush<std::multiset<int>>)->Range(1 << 4, 1 << 16);
+BENCHMARK(BM_STLContainer_NoFlush<std::list<int>>)->Range(1 << 4, 1 << 16);
+BENCHMARK(BM_STLContainer_NoFlush<std::deque<int>>)->Range(1 << 4, 1 << 16);
 
 template <typename Container>
-static void BM_STLContainer_Flush(benchmark::State &state) {
+void BM_STLContainer_Flush(benchmark::State &state) {
   const std::size_t size = state.range(0);
 
-  // Create a random container
+  // Create a random container.
   auto container = CreateRandomSTLContainer<Container>(size);
 
   int sum = 0;
@@ -85,17 +96,13 @@ static void BM_STLContainer_Flush(benchmark::State &state) {
     sum = 0;
   }
 
-  // Deallocate memory associated with the container
+  // Deallocate memory associated with the container.
   DeleteSTLContainer(container);
 }
 
-BENCHMARK_TEMPLATE(BM_STLContainer_Flush, std::multiset<int>)
-    ->Range(1 << 4, 1 << 16);
-BENCHMARK_TEMPLATE(BM_STLContainer_Flush, std::list<int>)
-    ->Range(1 << 4, 1 << 16);
-BENCHMARK_TEMPLATE(BM_STLContainer_Flush, std::deque<int>)
-    ->Range(1 << 4, 1 << 16);
+BENCHMARK(BM_STLContainer_Flush<std::multiset<int>>)->Range(1 << 4, 1 << 16);
+BENCHMARK(BM_STLContainer_Flush<std::list<int>>)->Range(1 << 4, 1 << 16);
+BENCHMARK(BM_STLContainer_Flush<std::deque<int>>)->Range(1 << 4, 1 << 16);
 
+}  // namespace
 }  // namespace gematria
-
-BENCHMARK_MAIN();
