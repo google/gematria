@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <iostream>
+#include <memory>
 
 #include "benchmark/benchmark.h"
 #include "gematria/experiments/access_pattern_bm/linked_list.h"
@@ -27,14 +27,11 @@ void BM_FlushLinkedListFromCache(benchmark::State &state) {
   const std::size_t size = state.range(0);
 
   // Create a random linked list.
-  Node *head = CreateRandomLinkedList(size);
+  auto head = CreateRandomLinkedList(size);
 
   for (auto _ : state) {
     FlushLinkedListFromCache(head);
   }
-
-  // Free up memory allocated to the linked list.
-  DeleteLinkedList(head);
 }
 
 BENCHMARK(BM_FlushLinkedListFromCache)->Range(1 << 4, 1 << 20);
@@ -45,7 +42,7 @@ void BM_AccessLinkedList_NoFlush(benchmark::State &state) {
   const std::size_t size = state.range(0);
 
   // Create a random linked list
-  Node *head = CreateRandomLinkedList(size);
+  auto head = CreateRandomLinkedList(size);
   // Node *mock = CreateRandomLinkedList(size);  <-- mock is used to balance out
   //                                                 the extra flushing time to
   //                                                 make better comparison from
@@ -54,7 +51,7 @@ void BM_AccessLinkedList_NoFlush(benchmark::State &state) {
   for (auto _ : state) {
     // Traverse the linked list, doing some arbitrary operations on each element
     // to mimic realistic use to some extent.
-    Node *current = head;
+    Node *current = head.get();
     int sum = 0;
 
     // FlushLinkedListFromCache(mock);           <--
@@ -67,10 +64,6 @@ void BM_AccessLinkedList_NoFlush(benchmark::State &state) {
     benchmark::DoNotOptimize(sum);
     sum = 0;
   }
-
-  // Free up memory allocated to the linked list
-  DeleteLinkedList(head);
-  // DeleteLinkedList(mock);                     <--
 }
 
 BENCHMARK(BM_AccessLinkedList_NoFlush)->Range(1 << 4, 1 << 20);
@@ -82,12 +75,12 @@ void BM_AccessLinkedList_Flush(benchmark::State &state) {
   const std::size_t size = state.range(0);
 
   // Create a random linked list.
-  Node *head = CreateRandomLinkedList(size);
+  auto head = CreateRandomLinkedList(size);
 
   for (auto _ : state) {
     // Traverse the linked list, doing some arbitrary operations
     // on each element to mimic realistic use to some extent.
-    Node *current = head;
+    Node *current = head.get();
     int sum = 0;
 
     FlushLinkedListFromCache(head);
@@ -100,9 +93,6 @@ void BM_AccessLinkedList_Flush(benchmark::State &state) {
     benchmark::DoNotOptimize(sum);
     sum = 0;
   }
-
-  // Free up memory allocated to the linked list.
-  DeleteLinkedList(head);
 }
 
 BENCHMARK(BM_AccessLinkedList_Flush)->Range(1 << 4, 1 << 20);

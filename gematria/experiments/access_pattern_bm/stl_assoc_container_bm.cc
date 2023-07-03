@@ -31,9 +31,6 @@ void BM_FlushSTLAssocContainerFromCache(benchmark::State &state) {
   for (auto _ : state) {
     FlushSTLAssocContainerFromCache(container);
   }
-
-  // Deallocate memory associated with the associative container.
-  DeleteSTLAssocContainer(container);
 }
 
 BENCHMARK(BM_FlushSTLAssocContainerFromCache<std::map<int, int>>)
@@ -63,10 +60,6 @@ void BM_STLAssocContainer_NoFlush(benchmark::State &state) {
     benchmark::DoNotOptimize(sum);
     sum = 0;
   }
-
-  // Deallocate memory associated with the associative container.
-  DeleteSTLAssocContainer(container);
-  // DeleteSTLAssocContainer(mock);
 }
 
 BENCHMARK(BM_STLAssocContainer_NoFlush<std::map<int, int>>)
@@ -94,9 +87,6 @@ void BM_STLAssocContainer_Flush(benchmark::State &state) {
     benchmark::DoNotOptimize(sum);
     sum = 0;
   }
-
-  // Deallocate memory associated with the associative container.
-  DeleteSTLAssocContainer(container);
 }
 
 BENCHMARK(BM_STLAssocContainer_Flush<std::map<int, int>>)

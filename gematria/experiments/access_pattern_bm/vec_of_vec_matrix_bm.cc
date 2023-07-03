@@ -29,9 +29,6 @@ void BM_FlushVecOfVecMatrixFromCache(benchmark::State &state) {
   for (auto _ : state) {
     FlushVecOfVecMatrixFromCache(matrix);
   }
-
-  // Deallocate memory associated with the matrix.
-  DeleteVecOfVecMatrix(matrix);
 }
 
 BENCHMARK(BM_FlushVecOfVecMatrixFromCache)->Range(1 << 4, 1 << 12);
@@ -58,10 +55,6 @@ void BM_VecOfVecMatrix_NoFlush(benchmark::State &state) {
     benchmark::DoNotOptimize(sum);
     sum = 0;
   }
-
-  // Deallocate memory associated with the matrix.
-  DeleteVecOfVecMatrix(matrix);
-  // DeleteVecOfVecMatrix(mock);
 }
 
 BENCHMARK(BM_VecOfVecMatrix_NoFlush)->Range(1 << 4, 1 << 12);
@@ -87,9 +80,6 @@ void BM_VecOfVecMatrix_Flush(benchmark::State &state) {
     benchmark::DoNotOptimize(sum);
     sum = 0;
   }
-
-  // Deallocate memory associated with the matrix.
-  DeleteVecOfVecMatrix(matrix);
 }
 
 BENCHMARK(BM_VecOfVecMatrix_Flush)->Range(1 << 4, 1 << 12);

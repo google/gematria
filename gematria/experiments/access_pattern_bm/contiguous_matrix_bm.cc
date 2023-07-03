@@ -29,9 +29,6 @@ void BM_FlushContiguousMatrixFromCache(benchmark::State &state) {
   for (auto _ : state) {
     FlushContiguousMatrixFromCache(matrix, size);
   }
-
-  // Deallocate memory associated with the matrix.
-  DeleteContiguousMatrix(matrix);
 }
 
 BENCHMARK(BM_FlushContiguousMatrixFromCache)->Range(1 << 4, 1 << 12);
@@ -57,10 +54,6 @@ void BM_ContiguousMatrix_NoFlush(benchmark::State &state) {
     benchmark::DoNotOptimize(sum);
     sum = 0;
   }
-
-  // Deallocate memory associated with the matrix.
-  DeleteContiguousMatrix(matrix);
-  // DeleteContiguousMatrix(mock);
 }
 
 BENCHMARK(BM_ContiguousMatrix_NoFlush)->Range(1 << 4, 1 << 12);
@@ -85,9 +78,6 @@ void BM_ContiguousMatrix_Flush(benchmark::State &state) {
     benchmark::DoNotOptimize(sum);
     sum = 0;
   }
-
-  // Deallocate memory associated with the matrix.
-  DeleteContiguousMatrix(matrix);
 }
 
 BENCHMARK(BM_ContiguousMatrix_Flush)->Range(1 << 4, 1 << 12);

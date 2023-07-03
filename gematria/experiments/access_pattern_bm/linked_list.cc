@@ -16,6 +16,7 @@
 
 #include <immintrin.h>
 
+#include <memory>
 #include <random>
 
 namespace gematria {
@@ -23,7 +24,7 @@ namespace gematria {
 static std::default_random_engine generator;
 static std::uniform_int_distribution<int> distribution(0, 1023);
 
-Node *CreateRandomLinkedList(const std::size_t size) {
+std::unique_ptr<Node, void (*)(Node *)> CreateRandomLinkedList(const std::size_t size) {
   Node *head = new Node;
   Node *current = head;
 
@@ -34,27 +35,27 @@ Node *CreateRandomLinkedList(const std::size_t size) {
     current = current->next;
   }
 
-  return head;
+  auto deleter = [](Node *ptr) {
+    while (ptr) {
+      Node *temp = ptr->next;
+      delete ptr;
+      ptr = temp;
+    }
+  };
+
+  return std::unique_ptr<Node, decltype(deleter)>(head, deleter);
 }
 
-void FlushNodeFromCache(Node *ptr) { _mm_clflushopt(ptr); }
+void FlushLinkedListFromCache(std::unique_ptr<Node, void (*)(Node *)> &ptr) {
+  Node *current = ptr.get();
 
-void FlushLinkedListFromCache(Node *ptr) {
   _mm_mfence();
-  while (ptr) {
-    Node *temp = ptr->next;
-    FlushNodeFromCache(ptr);
-    ptr = temp;
+  while (current) {
+    Node *temp = current->next;
+    _mm_clflushopt(current);
+    current = temp;
   }
   _mm_mfence();
-}
-
-void DeleteLinkedList(Node *ptr) {
-  while (ptr) {
-    Node *temp = ptr->next;
-    delete ptr;
-    ptr = temp;
-  }
 }
 
 }  // namespace gematria

@@ -32,9 +32,6 @@ void BM_FlushSTLContainerFromCache(benchmark::State &state) {
   for (auto _ : state) {
     FlushSTLContainerFromCache(container);
   }
-
-  // Deallocate memory associated with the container.
-  DeleteSTLContainer(container);
 }
 
 BENCHMARK(BM_FlushSTLContainerFromCache<std::multiset<int>>)
@@ -65,10 +62,6 @@ void BM_STLContainer_NoFlush(benchmark::State &state) {
     benchmark::DoNotOptimize(sum);
     sum = 0;
   }
-
-  // Deallocate memory associated with the container.
-  DeleteSTLContainer(container);
-  // DeleteSTLContainer(mock);
 }
 
 BENCHMARK(BM_STLContainer_NoFlush<std::multiset<int>>)->Range(1 << 4, 1 << 16);
@@ -95,9 +88,6 @@ void BM_STLContainer_Flush(benchmark::State &state) {
     benchmark::DoNotOptimize(sum);
     sum = 0;
   }
-
-  // Deallocate memory associated with the container.
-  DeleteSTLContainer(container);
 }
 
 BENCHMARK(BM_STLContainer_Flush<std::multiset<int>>)->Range(1 << 4, 1 << 16);

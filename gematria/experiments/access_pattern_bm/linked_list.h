@@ -15,7 +15,7 @@
 #ifndef GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_LINKED_LIST_H_
 #define GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_LINKED_LIST_H_
 
-#include <iostream>
+#include <memory>
 
 namespace gematria {
 
@@ -25,10 +25,8 @@ struct Node {
   int value;
 };
 
-Node *CreateRandomLinkedList(std::size_t size);
-void DeleteLinkedList(Node *ptr);
-void FlushNodeFromCache(Node *ptr);
-void FlushLinkedListFromCache(Node *ptr);
+std::unique_ptr<Node, void (*)(Node *)> CreateRandomLinkedList(std::size_t size);
+void FlushLinkedListFromCache(std::unique_ptr<Node, void (*)(Node *)> &ptr);
 
 #endif
 

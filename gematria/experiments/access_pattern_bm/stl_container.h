@@ -17,6 +17,7 @@
 
 #include <immintrin.h>
 
+#include <memory>
 #include <random>
 #include <vector>
 
@@ -26,12 +27,12 @@ static std::default_random_engine generator;
 static std::uniform_int_distribution<int> distribution(0, 1023);
 
 template <typename Container>
-Container *CreateRandomSTLContainer(const std::size_t size) {
+std::unique_ptr<Container> CreateRandomSTLContainer(const std::size_t size) {
   static_assert(std::is_same<typename Container::value_type, int>::value,
                 "Container must hold `int`s.");
 
-  auto container = new Container;
-  auto inserter = std::inserter(*container, container->end());
+  auto container = std::make_unique<Container>();
+  auto inserter = std::inserter(*(container.get()), container.get()->end());
   for (int i = 0; i < size; ++i, ++inserter) {
     *inserter = distribution(generator);
   }
@@ -40,17 +41,12 @@ Container *CreateRandomSTLContainer(const std::size_t size) {
 }
 
 template <typename Container>
-void FlushSTLContainerFromCache(Container *container) {
+void FlushSTLContainerFromCache(std::unique_ptr<Container> &container) {
   _mm_mfence();
-  for (auto &element : *container) {
+  for (auto &element : *(container.get())) {
     _mm_clflushopt(&element);
   }
   _mm_mfence();
-}
-
-template <typename Container>
-void DeleteSTLContainer(Container *container) {
-  delete container;
 }
 
 }  // namespace gematria

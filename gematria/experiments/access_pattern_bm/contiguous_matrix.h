@@ -15,13 +15,12 @@
 #ifndef GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_CONTIGUOUS_MATRIX_H_
 #define GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_CONTIGUOUS_MATRIX_H_
 
-#include <iostream>
+#include <memory>
 
 namespace gematria {
 
-int *CreateRandomContiguousMatrix(std::size_t size);
-void FlushContiguousMatrixFromCache(int *matrix, std::size_t size);
-void DeleteContiguousMatrix(int *matrix);
+std::unique_ptr<int[]>CreateRandomContiguousMatrix(std::size_t size);
+void FlushContiguousMatrixFromCache(std::unique_ptr<int[]> &matrix, std::size_t size);
 
 }  // namespace gematria
 

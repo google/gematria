@@ -17,6 +17,7 @@
 #include <immintrin.h>
 
 #include <random>
+#include <memory>
 
 #include "absl/base/optimization.h"
 
@@ -25,8 +26,8 @@ namespace gematria {
 static std::default_random_engine generator;
 static std::uniform_int_distribution<int> distribution(0, 1023);
 
-int *CreateRandomContiguousMatrix(const std::size_t size) {
-  auto matrix = new int[size * size];
+std::unique_ptr<int[]> CreateRandomContiguousMatrix(const std::size_t size) {
+  auto matrix = std::make_unique<int[]>(size * size);
 
   for (int i = 0; i < size; ++i) {
     for (int j = 0; j < size; ++j) {
@@ -37,10 +38,10 @@ int *CreateRandomContiguousMatrix(const std::size_t size) {
   return matrix;
 }
 
-void FlushContiguousMatrixFromCache(int *matrix, const std::size_t size) {
+void FlushContiguousMatrixFromCache(std::unique_ptr<int[]> &matrix, const std::size_t size) {
   constexpr int line_size = ABSL_CACHELINE_SIZE;
-  const char *ptr = (const char *)matrix;
-  const char *end = (const char *)(matrix + (size + 1) * sizeof(int));
+  const char *ptr = (const char *) matrix.get();
+  const char *end = (const char *) (matrix.get() + (size + 1) * sizeof(int));
 
   _mm_mfence();
   while (ptr <= end) {
@@ -49,7 +50,5 @@ void FlushContiguousMatrixFromCache(int *matrix, const std::size_t size) {
   }
   _mm_mfence();
 }
-
-void DeleteContiguousMatrix(int *matrix) { delete[] matrix; }
 
 }  // namespace gematria

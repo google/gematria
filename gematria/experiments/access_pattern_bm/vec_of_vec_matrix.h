@@ -15,13 +15,13 @@
 #ifndef GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_VEC_OF_VEC_MATRIX_H_
 #define GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_VEC_OF_VEC_MATRIX_H_
 
+#include <memory>
 #include <vector>
 
 namespace gematria {
 
-std::vector<std::vector<int>> *CreateRandomVecOfVecMatrix(std::size_t size);
-void FlushVecOfVecMatrixFromCache(std::vector<std::vector<int>> *matrix);
-void DeleteVecOfVecMatrix(std::vector<std::vector<int>> *matrix);
+std::unique_ptr<std::vector<std::vector<int>>> CreateRandomVecOfVecMatrix(std::size_t size);
+void FlushVecOfVecMatrixFromCache(std::unique_ptr<std::vector<std::vector<int>>> &matrix);
 
 }  // namespace gematria
 

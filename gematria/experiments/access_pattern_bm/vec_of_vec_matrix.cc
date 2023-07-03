@@ -14,6 +14,7 @@
 
 #include <immintrin.h>
 
+#include <memory>
 #include <random>
 #include <vector>
 
@@ -22,9 +23,9 @@ namespace gematria {
 static std::default_random_engine generator;
 static std::uniform_int_distribution<int> distribution(0, 1023);
 
-std::vector<std::vector<int>> *CreateRandomVecOfVecMatrix(
+std::unique_ptr<std::vector<std::vector<int>>> CreateRandomVecOfVecMatrix(
     const std::size_t size) {
-  auto matrix = new std::vector<std::vector<int>>(size, std::vector<int>(size));
+  auto matrix = std::make_unique<std::vector<std::vector<int>>>(size, std::vector<int>(size));
 
   for (int i = 0; i < size; ++i) {
     for (int j = 0; j < size; ++j) {
@@ -35,7 +36,7 @@ std::vector<std::vector<int>> *CreateRandomVecOfVecMatrix(
   return matrix;
 }
 
-void FlushVecOfVecMatrixFromCache(std::vector<std::vector<int>> *matrix) {
+void FlushVecOfVecMatrixFromCache(std::unique_ptr<std::vector<std::vector<int>>> &matrix) {
   const std::size_t size = matrix->size();
   constexpr int line_size = 64;
 
@@ -46,10 +47,6 @@ void FlushVecOfVecMatrixFromCache(std::vector<std::vector<int>> *matrix) {
     }
   }
   _mm_mfence();
-}
-
-void DeleteVecOfVecMatrix(std::vector<std::vector<int>> *matrix) {
-  delete matrix;
 }
 
 }  // namespace gematria
