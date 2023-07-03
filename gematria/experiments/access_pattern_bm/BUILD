@@ -14,7 +14,7 @@ cc_library(
 cc_test(
     name = "linked_list_bm",
     size = "small",
-    srcs = ["linked_list_bm.cc"],
+    srcs = ["linked_list_test.cc"],
     deps = [
         ":linked_list",
         "@com_github_google_benchmark//:benchmark_main",
@@ -32,7 +32,7 @@ cc_library(
 cc_test(
     name = "contiguous_matrix_bm",
     size = "small",
-    srcs = ["contiguous_matrix_bm.cc"],
+    srcs = ["contiguous_matrix_test.cc"],
     deps = [
         ":contiguous_matrix",
         "@com_github_google_benchmark//:benchmark_main",
@@ -49,7 +49,7 @@ cc_library(
 cc_test(
     name = "vec_of_vec_matrix_bm",
     size = "small",
-    srcs = ["vec_of_vec_matrix_bm.cc"],
+    srcs = ["vec_of_vec_matrix_test.cc"],
     deps = [
         ":vec_of_vec_matrix",
         "@com_github_google_benchmark//:benchmark_main",
@@ -66,7 +66,7 @@ cc_library(
 cc_test(
     name = "stl_container_bm",
     size = "small",
-    srcs = ["stl_container_bm.cc"],
+    srcs = ["stl_container_test.cc"],
     copts = FEATURE_OPTS,  # Since templated functions using _mm_clflushopt are defined in the header
     deps = [
         ":stl_container",
@@ -84,7 +84,7 @@ cc_library(
 cc_test(
     name = "stl_assoc_container_bm",
     size = "small",
-    srcs = ["stl_assoc_container_bm.cc"],
+    srcs = ["stl_assoc_container_test.cc"],
     copts = FEATURE_OPTS,  # Since templated functions using _mm_clflushopt are defined in the header
     deps = [
         ":stl_assoc_container",
