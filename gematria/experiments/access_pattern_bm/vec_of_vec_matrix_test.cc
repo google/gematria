@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "gematria/experiments/access_pattern_bm/vec_of_vec_matrix.h"
+
 #include <vector>
 
 #include "benchmark/benchmark.h"
-#include "gematria/experiments/access_pattern_bm/vec_of_vec_matrix.h"
 
 namespace gematria {
 namespace {

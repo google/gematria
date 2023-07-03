@@ -25,7 +25,8 @@ struct Node {
   int value;
 };
 
-std::unique_ptr<Node, void (*)(Node *)> CreateRandomLinkedList(std::size_t size);
+std::unique_ptr<Node, void (*)(Node *)> CreateRandomLinkedList(
+    std::size_t size);
 void FlushLinkedListFromCache(std::unique_ptr<Node, void (*)(Node *)> &ptr);
 
 #endif

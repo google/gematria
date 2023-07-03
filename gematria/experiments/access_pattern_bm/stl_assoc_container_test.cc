@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "gematria/experiments/access_pattern_bm/stl_assoc_container.h"
+
 #include <map>
 #include <unordered_map>
 
 #include "benchmark/benchmark.h"
-#include "gematria/experiments/access_pattern_bm/stl_assoc_container.h"
 
 namespace gematria {
 namespace {
@@ -80,7 +81,7 @@ void BM_STLAssocContainer_Flush(benchmark::State &state) {
 
     // Loop over the associative container, doing some dummy
     // operations along the way.
-    for (const auto& [key, value] : *container) {
+    for (const auto &[key, value] : *container) {
       sum += value;
     }
 

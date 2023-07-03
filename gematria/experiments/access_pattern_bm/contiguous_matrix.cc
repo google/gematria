@@ -16,8 +16,8 @@
 
 #include <immintrin.h>
 
-#include <random>
 #include <memory>
+#include <random>
 
 #include "absl/base/optimization.h"
 
@@ -38,10 +38,11 @@ std::unique_ptr<int[]> CreateRandomContiguousMatrix(const std::size_t size) {
   return matrix;
 }
 
-void FlushContiguousMatrixFromCache(std::unique_ptr<int[]> &matrix, const std::size_t size) {
+void FlushContiguousMatrixFromCache(std::unique_ptr<int[]> &matrix,
+                                    const std::size_t size) {
   constexpr int line_size = ABSL_CACHELINE_SIZE;
-  const char *ptr = (const char *) matrix.get();
-  const char *end = (const char *) (matrix.get() + (size + 1) * sizeof(int));
+  const char *ptr = (const char *)matrix.get();
+  const char *end = (const char *)(matrix.get() + (size + 1) * sizeof(int));
 
   _mm_mfence();
   while (ptr <= end) {

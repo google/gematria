@@ -26,7 +26,8 @@ static std::default_random_engine generator;
 static std::uniform_int_distribution<int> distribution(0, 1023);
 
 template <typename Container>
-std::unique_ptr<Container> CreateRandomSTLAssocContainer(const std::size_t size) {
+std::unique_ptr<Container> CreateRandomSTLAssocContainer(
+    const std::size_t size) {
   static_assert(std::is_same<typename Container::key_type, int>::value,
                 "Container must have `int` keys.");
   static_assert(std::is_same<typename Container::mapped_type, int>::value,

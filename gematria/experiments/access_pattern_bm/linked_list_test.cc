@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "gematria/experiments/access_pattern_bm/linked_list.h"
+
 #include <memory>
 
 #include "benchmark/benchmark.h"
-#include "gematria/experiments/access_pattern_bm/linked_list.h"
 
 namespace gematria {
 namespace {

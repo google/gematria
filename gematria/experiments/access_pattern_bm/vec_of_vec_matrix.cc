@@ -25,7 +25,8 @@ static std::uniform_int_distribution<int> distribution(0, 1023);
 
 std::unique_ptr<std::vector<std::vector<int>>> CreateRandomVecOfVecMatrix(
     const std::size_t size) {
-  auto matrix = std::make_unique<std::vector<std::vector<int>>>(size, std::vector<int>(size));
+  auto matrix = std::make_unique<std::vector<std::vector<int>>>(
+      size, std::vector<int>(size));
 
   for (int i = 0; i < size; ++i) {
     for (int j = 0; j < size; ++j) {
@@ -36,7 +37,8 @@ std::unique_ptr<std::vector<std::vector<int>>> CreateRandomVecOfVecMatrix(
   return matrix;
 }
 
-void FlushVecOfVecMatrixFromCache(std::unique_ptr<std::vector<std::vector<int>>> &matrix) {
+void FlushVecOfVecMatrixFromCache(
+    std::unique_ptr<std::vector<std::vector<int>>> &matrix) {
   const std::size_t size = matrix->size();
   constexpr int line_size = 64;
 

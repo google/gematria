@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "gematria/experiments/access_pattern_bm/stl_container.h"
+
 #include <deque>
 #include <list>
 #include <set>
 
 #include "benchmark/benchmark.h"
-#include "gematria/experiments/access_pattern_bm/stl_container.h"
 
 namespace gematria {
 namespace {

@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "gematria/experiments/access_pattern_bm/contiguous_matrix.h"
+
 #include <iostream>
 
 #include "benchmark/benchmark.h"
-#include "gematria/experiments/access_pattern_bm/contiguous_matrix.h"
 
 namespace gematria {
 namespace {

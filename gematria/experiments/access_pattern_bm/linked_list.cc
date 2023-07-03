@@ -24,7 +24,8 @@ namespace gematria {
 static std::default_random_engine generator;
 static std::uniform_int_distribution<int> distribution(0, 1023);
 
-std::unique_ptr<Node, void (*)(Node *)> CreateRandomLinkedList(const std::size_t size) {
+std::unique_ptr<Node, void (*)(Node *)> CreateRandomLinkedList(
+    const std::size_t size) {
   Node *head = new Node;
   Node *current = head;
 

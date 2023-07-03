@@ -20,8 +20,10 @@
 
 namespace gematria {
 
-std::unique_ptr<std::vector<std::vector<int>>> CreateRandomVecOfVecMatrix(std::size_t size);
-void FlushVecOfVecMatrixFromCache(std::unique_ptr<std::vector<std::vector<int>>> &matrix);
+std::unique_ptr<std::vector<std::vector<int>>> CreateRandomVecOfVecMatrix(
+    std::size_t size);
+void FlushVecOfVecMatrixFromCache(
+    std::unique_ptr<std::vector<std::vector<int>>> &matrix);
 
 }  // namespace gematria
 
