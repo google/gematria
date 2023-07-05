@@ -39,11 +39,15 @@ void BM_ContiguousMatrix_NoFlush(benchmark::State &state) {
 
   // Create a random matrix.
   auto matrix = CreateRandomContiguousMatrix(size);
-  // auto mock = CreateRandomContiguousMatrix(size);
+#ifdef BALANCE_FLUSHING_TIME
+  auto mock = CreateRandomContiguousMatrix(size);
+#endif
 
   int sum = 0;
   for (auto _ : state) {
-    // FlushContiguousMatrixFromCache(mock, size);
+#ifdef BALANCE_FLUSHING_TIME
+    FlushContiguousMatrixFromCache(mock, size);
+#endif
 
     // Loop over the matrix, doing some dummy operations along the way.
     for (int i = 0; i < size; ++i) {

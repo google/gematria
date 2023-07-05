@@ -42,12 +42,13 @@ BENCHMARK(BM_FlushLinkedListFromCache)->Range(1 << 4, 1 << 20);
 void BM_AccessLinkedList_NoFlush(benchmark::State &state) {
   const std::size_t size = state.range(0);
 
-  // Create a random linked list
+  // Create a random linked list.
   auto head = CreateRandomLinkedList(size);
-  // Node *mock = CreateRandomLinkedList(size);  <-- mock is used to balance out
-  //                                                 the extra flushing time to
-  //                                                 make better comparison from
-  //                                                 time perspective.
+#ifdef BALANCE_FLUSHING_TIME
+  // mock is used to balance out the extra flushing time to make a better
+  // comparison from a time perspective.
+  auto mock = CreateRandomLinkedList(size);
+#endif
 
   for (auto _ : state) {
     // Traverse the linked list, doing some arbitrary operations on each element
@@ -55,7 +56,9 @@ void BM_AccessLinkedList_NoFlush(benchmark::State &state) {
     Node *current = head.get();
     int sum = 0;
 
-    // FlushLinkedListFromCache(mock);           <--
+#ifdef BALANCE_FLUSHING_TIME
+    FlushLinkedListFromCache(mock);
+#endif
 
     while (current) {
       sum += current->value;

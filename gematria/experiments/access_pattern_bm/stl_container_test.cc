@@ -48,11 +48,15 @@ void BM_STLContainer_NoFlush(benchmark::State &state) {
 
   // Create a random container.
   auto container = CreateRandomSTLContainer<Container>(size);
-  // auto mock = CreateRandomSTLContainer<Container>(size);
+#ifdef BALANCE_FLUSHING_TIME
+  auto mock = CreateRandomSTLContainer<Container>(size);
+#endif
 
   int sum = 0;
   for (auto _ : state) {
-    // FlushSTLContainerFromCache(mock);
+#ifdef BALANCE_FLUSHING_TIME
+    FlushSTLContainerFromCache(mock);
+#endif
 
     // Loop over the container, doing some dummy
     // operations along the way.

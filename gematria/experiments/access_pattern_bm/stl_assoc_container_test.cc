@@ -45,11 +45,15 @@ void BM_STLAssocContainer_NoFlush(benchmark::State &state) {
 
   // Create a random associative container.
   auto container = CreateRandomSTLAssocContainer<Container>(size);
-  // auto mock = CreateRandomSTLAssocContainer<Container>(size);
+#ifdef BALANCE_FLUSHING_TIME
+  auto mock = CreateRandomSTLAssocContainer<Container>(size);
+#endif
 
   int sum = 0;
   for (auto _ : state) {
+#ifdef BALANCE_FLUSHING_TIME
     // FlushSTLAssocContainerFromCache(mock);
+#endif
 
     // Loop over the associative container, doing some dummy
     // operations along the way.

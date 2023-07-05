@@ -39,11 +39,15 @@ void BM_VecOfVecMatrix_NoFlush(benchmark::State &state) {
 
   // Create a random matrix.
   auto matrix = CreateRandomVecOfVecMatrix(size);
-  // auto mock = CreateRandomVecOfVecMatrix(size);
+#ifdef BALANCE_FLUSHING_TIME
+  auto mock = CreateRandomVecOfVecMatrix(size);
+#endif
 
   int sum = 0;
   for (auto _ : state) {
-    // FlushVecOfVecMatrixFromCache(mock);
+#ifdef BALANCE_FLUSHING_TIME
+    FlushVecOfVecMatrixFromCache(mock);
+#endif
 
     // Loop over the matrix, doing some dummy
     // operations along the way.
