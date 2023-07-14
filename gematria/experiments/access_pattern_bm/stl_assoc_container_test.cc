@@ -15,9 +15,11 @@
 #include "gematria/experiments/access_pattern_bm/stl_assoc_container.h"
 
 #include <map>
+#include <memory>
 #include <unordered_map>
 
 #include "benchmark/benchmark.h"
+#include "gematria/experiments/access_pattern_bm/configuration.h"
 
 namespace gematria {
 namespace {
@@ -30,7 +32,7 @@ void BM_FlushSTLAssocContainerFromCache(benchmark::State &state) {
   auto container = CreateRandomSTLAssocContainer<Container>(size);
 
   for (auto _ : state) {
-    FlushSTLAssocContainerFromCache(container);
+    FlushSTLAssocContainerFromCache(container.get());
   }
 }
 
@@ -45,15 +47,16 @@ void BM_STLAssocContainer_NoFlush(benchmark::State &state) {
 
   // Create a random associative container.
   auto container = CreateRandomSTLAssocContainer<Container>(size);
-#ifdef BALANCE_FLUSHING_TIME
-  auto mock = CreateRandomSTLAssocContainer<Container>(size);
-#endif
+  std::unique_ptr<Container> mock;
+  if (kBalanceFlushingTime) {
+    auto mock = CreateRandomSTLAssocContainer<Container>(size);
+  }
 
-  int sum = 0;
   for (auto _ : state) {
-#ifdef BALANCE_FLUSHING_TIME
-    // FlushSTLAssocContainerFromCache(mock);
-#endif
+    int sum = 0;
+    if (kBalanceFlushingTime) {
+      FlushSTLAssocContainerFromCache(mock.get());
+    }
 
     // Loop over the associative container, doing some dummy
     // operations along the way.
@@ -63,7 +66,6 @@ void BM_STLAssocContainer_NoFlush(benchmark::State &state) {
     }
 
     benchmark::DoNotOptimize(sum);
-    sum = 0;
   }
 }
 
@@ -81,7 +83,7 @@ void BM_STLAssocContainer_Flush(benchmark::State &state) {
 
   int sum = 0;
   for (auto _ : state) {
-    FlushSTLAssocContainerFromCache(container);
+    FlushSTLAssocContainerFromCache(container.get());
 
     // Loop over the associative container, doing some dummy
     // operations along the way.

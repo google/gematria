@@ -18,13 +18,15 @@
 #include <random>
 #include <vector>
 
-namespace gematria {
+#include "absl/base/optimization.h"
 
-static std::default_random_engine generator;
-static std::uniform_int_distribution<int> distribution(0, 1023);
+namespace gematria {
 
 std::unique_ptr<std::vector<std::vector<int>>> CreateRandomVecOfVecMatrix(
     const std::size_t size) {
+  std::default_random_engine generator;
+  std::uniform_int_distribution<int> distribution(0, 1023);
+
   auto matrix = std::make_unique<std::vector<std::vector<int>>>(
       size, std::vector<int>(size));
 
@@ -37,10 +39,9 @@ std::unique_ptr<std::vector<std::vector<int>>> CreateRandomVecOfVecMatrix(
   return matrix;
 }
 
-void FlushVecOfVecMatrixFromCache(
-    std::unique_ptr<std::vector<std::vector<int>>> &matrix) {
+void FlushVecOfVecMatrixFromCache(const std::vector<std::vector<int>> *matrix) {
   const std::size_t size = matrix->size();
-  constexpr int line_size = 64;
+  constexpr int line_size = ABSL_CACHELINE_SIZE;
 
   _mm_mfence();
   for (int i = 0; i < size; ++i) {

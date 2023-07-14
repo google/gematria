@@ -17,6 +17,7 @@
 #include <iostream>
 
 #include "benchmark/benchmark.h"
+#include "gematria/experiments/access_pattern_bm/configuration.h"
 
 namespace gematria {
 namespace {
@@ -28,7 +29,7 @@ void BM_FlushContiguousMatrixFromCache(benchmark::State &state) {
   auto matrix = CreateRandomContiguousMatrix(size);
 
   for (auto _ : state) {
-    FlushContiguousMatrixFromCache(matrix, size);
+    FlushContiguousMatrixFromCache(matrix.get(), size);
   }
 }
 
@@ -39,15 +40,16 @@ void BM_ContiguousMatrix_NoFlush(benchmark::State &state) {
 
   // Create a random matrix.
   auto matrix = CreateRandomContiguousMatrix(size);
-#ifdef BALANCE_FLUSHING_TIME
-  auto mock = CreateRandomContiguousMatrix(size);
-#endif
+  std::unique_ptr<int[]> mock;
+  if (kBalanceFlushingTime) {
+    mock = CreateRandomContiguousMatrix(size);
+  }
 
-  int sum = 0;
   for (auto _ : state) {
-#ifdef BALANCE_FLUSHING_TIME
-    FlushContiguousMatrixFromCache(mock, size);
-#endif
+    int sum = 0;
+    if (kBalanceFlushingTime) {
+      FlushContiguousMatrixFromCache(mock.get(), size);
+    }
 
     // Loop over the matrix, doing some dummy operations along the way.
     for (int i = 0; i < size; ++i) {
@@ -57,7 +59,6 @@ void BM_ContiguousMatrix_NoFlush(benchmark::State &state) {
     }
 
     benchmark::DoNotOptimize(sum);
-    sum = 0;
   }
 }
 
@@ -69,9 +70,9 @@ void BM_ContiguousMatrix_Flush(benchmark::State &state) {
   // Create a random matrix.
   auto matrix = CreateRandomContiguousMatrix(size);
 
-  int sum = 0;
   for (auto _ : state) {
-    FlushContiguousMatrixFromCache(matrix, size);
+    int sum = 0;
+    FlushContiguousMatrixFromCache(matrix.get(), size);
 
     // Loop over the matrix, doing some dummy operations along the way.
     for (int i = 0; i < size; ++i) {
@@ -81,7 +82,6 @@ void BM_ContiguousMatrix_Flush(benchmark::State &state) {
     }
 
     benchmark::DoNotOptimize(sum);
-    sum = 0;
   }
 }
 

@@ -25,10 +25,19 @@ struct Node {
   int value;
 };
 
-std::unique_ptr<Node, void (*)(Node *)> CreateRandomLinkedList(
-    std::size_t size);
-void FlushLinkedListFromCache(std::unique_ptr<Node, void (*)(Node *)> &ptr);
+struct NodeDeleter {
+  void operator()(Node *ptr) {
+    while (ptr) {
+      Node *temp = ptr->next;
+      delete ptr;
+      ptr = temp;
+    }
+  }
+};
 
-#endif
+std::unique_ptr<Node, NodeDeleter> CreateRandomLinkedList(std::size_t size);
+void FlushLinkedListFromCache(const Node *ptr);
 
 }  // namespace gematria
+
+#endif  // GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_LINKED_LIST_H_

@@ -20,9 +20,8 @@
 namespace gematria {
 
 std::unique_ptr<int[]> CreateRandomContiguousMatrix(std::size_t size);
-void FlushContiguousMatrixFromCache(std::unique_ptr<int[]> &matrix,
-                                    std::size_t size);
+void FlushContiguousMatrixFromCache(const void *matrix, std::size_t size);
 
 }  // namespace gematria
 
-#endif
+#endif  // GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_CONTIGUOUS_MATRIX_H_

@@ -12,7 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "gematria/experiments/access_pattern_bm/stl_container.h"
+#ifndef GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_CONFIGURATION_H_
+#define GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_CONFIGURATION_H_
 
-// No common functionality here yet - templated
-// functions are defined in stl_container.h
+namespace gematria {
+
+inline constexpr bool kBalanceFlushingTime =
+#ifdef GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_BALANCE_FLUSHING_TIME
+    true;
+#else
+    false;
+#endif  // GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_BALANCE_FLUSHING_TIME
+
+}  // namespace gematria
+
+#endif  // GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_CONFIGURATION_H_

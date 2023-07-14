@@ -43,9 +43,9 @@ std::unique_ptr<Container> CreateRandomSTLAssocContainer(
 }
 
 template <typename Container>
-void FlushSTLAssocContainerFromCache(std::unique_ptr<Container> &container) {
+void FlushSTLAssocContainerFromCache(const Container *container) {
   _mm_mfence();
-  for (typename Container::iterator it = container.get()->begin();
+  for (typename Container::const_iterator it = container->begin();
        it != container->end(); ++it) {
     _mm_clflushopt(&it->first);
     _mm_clflushopt(&it->second);
@@ -55,4 +55,4 @@ void FlushSTLAssocContainerFromCache(std::unique_ptr<Container> &container) {
 
 }  // namespace gematria
 
-#endif
+#endif  // GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_STL_ASSOC_CONTAINER_H_

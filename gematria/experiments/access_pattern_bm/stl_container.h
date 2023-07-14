@@ -41,9 +41,9 @@ std::unique_ptr<Container> CreateRandomSTLContainer(const std::size_t size) {
 }
 
 template <typename Container>
-void FlushSTLContainerFromCache(std::unique_ptr<Container> &container) {
+void FlushSTLContainerFromCache(const Container *container) {
   _mm_mfence();
-  for (auto &element : *(container.get())) {
+  for (auto &element : *container) {
     _mm_clflushopt(&element);
   }
   _mm_mfence();
@@ -51,4 +51,4 @@ void FlushSTLContainerFromCache(std::unique_ptr<Container> &container) {
 
 }  // namespace gematria
 
-#endif
+#endif  // GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_STL_CONTAINER_H_

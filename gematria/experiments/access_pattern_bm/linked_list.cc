@@ -21,11 +21,10 @@
 
 namespace gematria {
 
-static std::default_random_engine generator;
-static std::uniform_int_distribution<int> distribution(0, 1023);
-
-std::unique_ptr<Node, void (*)(Node *)> CreateRandomLinkedList(
+std::unique_ptr<Node, NodeDeleter> CreateRandomLinkedList(
     const std::size_t size) {
+  std::default_random_engine generator;
+  std::uniform_int_distribution<int> distribution(0, 1023);
   Node *head = new Node;
   Node *current = head;
 
@@ -36,23 +35,15 @@ std::unique_ptr<Node, void (*)(Node *)> CreateRandomLinkedList(
     current = current->next;
   }
 
-  auto deleter = [](Node *ptr) {
-    while (ptr) {
-      Node *temp = ptr->next;
-      delete ptr;
-      ptr = temp;
-    }
-  };
-
-  return std::unique_ptr<Node, decltype(deleter)>(head, deleter);
+  return std::unique_ptr<Node, NodeDeleter>(head);
 }
 
-void FlushLinkedListFromCache(std::unique_ptr<Node, void (*)(Node *)> &ptr) {
-  Node *current = ptr.get();
+void FlushLinkedListFromCache(const Node *ptr) {
+  const Node *current = ptr;
 
   _mm_mfence();
   while (current) {
-    Node *temp = current->next;
+    const Node *temp = current->next;
     _mm_clflushopt(current);
     current = temp;
   }

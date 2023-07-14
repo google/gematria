@@ -16,9 +16,11 @@
 
 #include <deque>
 #include <list>
+#include <memory>
 #include <set>
 
 #include "benchmark/benchmark.h"
+#include "gematria/experiments/access_pattern_bm/configuration.h"
 
 namespace gematria {
 namespace {
@@ -31,7 +33,7 @@ void BM_FlushSTLContainerFromCache(benchmark::State &state) {
   auto container = CreateRandomSTLContainer<Container>(size);
 
   for (auto _ : state) {
-    FlushSTLContainerFromCache(container);
+    FlushSTLContainerFromCache(container.get());
   }
 }
 
@@ -48,15 +50,16 @@ void BM_STLContainer_NoFlush(benchmark::State &state) {
 
   // Create a random container.
   auto container = CreateRandomSTLContainer<Container>(size);
-#ifdef BALANCE_FLUSHING_TIME
-  auto mock = CreateRandomSTLContainer<Container>(size);
-#endif
+  std::unique_ptr<Container> mock;
+  if (kBalanceFlushingTime) {
+    mock = CreateRandomSTLContainer<Container>(size);
+  }
 
-  int sum = 0;
   for (auto _ : state) {
-#ifdef BALANCE_FLUSHING_TIME
-    FlushSTLContainerFromCache(mock);
-#endif
+    int sum = 0;
+    if (kBalanceFlushingTime) {
+      FlushSTLContainerFromCache(mock.get());
+    }
 
     // Loop over the container, doing some dummy
     // operations along the way.
@@ -65,7 +68,6 @@ void BM_STLContainer_NoFlush(benchmark::State &state) {
     }
 
     benchmark::DoNotOptimize(sum);
-    sum = 0;
   }
 }
 
@@ -82,7 +84,7 @@ void BM_STLContainer_Flush(benchmark::State &state) {
 
   int sum = 0;
   for (auto _ : state) {
-    FlushSTLContainerFromCache(container);
+    FlushSTLContainerFromCache(container.get());
 
     // Loop over the container, doing some dummy
     // operations along the way.

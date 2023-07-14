@@ -17,6 +17,7 @@
 #include <memory>
 
 #include "benchmark/benchmark.h"
+#include "gematria/experiments/access_pattern_bm/configuration.h"
 
 namespace gematria {
 namespace {
@@ -31,7 +32,7 @@ void BM_FlushLinkedListFromCache(benchmark::State &state) {
   auto head = CreateRandomLinkedList(size);
 
   for (auto _ : state) {
-    FlushLinkedListFromCache(head);
+    FlushLinkedListFromCache(head.get());
   }
 }
 
@@ -44,21 +45,22 @@ void BM_AccessLinkedList_NoFlush(benchmark::State &state) {
 
   // Create a random linked list.
   auto head = CreateRandomLinkedList(size);
-#ifdef BALANCE_FLUSHING_TIME
-  // mock is used to balance out the extra flushing time to make a better
-  // comparison from a time perspective.
-  auto mock = CreateRandomLinkedList(size);
-#endif
+  std::unique_ptr<Node, NodeDeleter> mock;
+  if (kBalanceFlushingTime) {
+    // mock is used to balance out the extra flushing time to make a better
+    // comparison from a time perspective.
+    mock = CreateRandomLinkedList(size);
+  }
 
   for (auto _ : state) {
     // Traverse the linked list, doing some arbitrary operations on each element
     // to mimic realistic use to some extent.
-    Node *current = head.get();
     int sum = 0;
+    if (kBalanceFlushingTime) {
+      FlushLinkedListFromCache(mock.get());
+    }
 
-#ifdef BALANCE_FLUSHING_TIME
-    FlushLinkedListFromCache(mock);
-#endif
+    Node *current = head.get();
 
     while (current) {
       sum += current->value;
@@ -66,7 +68,6 @@ void BM_AccessLinkedList_NoFlush(benchmark::State &state) {
     }
 
     benchmark::DoNotOptimize(sum);
-    sum = 0;
   }
 }
 
@@ -84,10 +85,10 @@ void BM_AccessLinkedList_Flush(benchmark::State &state) {
   for (auto _ : state) {
     // Traverse the linked list, doing some arbitrary operations
     // on each element to mimic realistic use to some extent.
-    Node *current = head.get();
     int sum = 0;
+    FlushLinkedListFromCache(head.get());
 
-    FlushLinkedListFromCache(head);
+    Node *current = head.get();
 
     while (current) {
       sum += current->value;
@@ -95,7 +96,6 @@ void BM_AccessLinkedList_Flush(benchmark::State &state) {
     }
 
     benchmark::DoNotOptimize(sum);
-    sum = 0;
   }
 }
 

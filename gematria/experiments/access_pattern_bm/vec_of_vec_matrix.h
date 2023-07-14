@@ -22,9 +22,8 @@ namespace gematria {
 
 std::unique_ptr<std::vector<std::vector<int>>> CreateRandomVecOfVecMatrix(
     std::size_t size);
-void FlushVecOfVecMatrixFromCache(
-    std::unique_ptr<std::vector<std::vector<int>>> &matrix);
+void FlushVecOfVecMatrixFromCache(const std::vector<std::vector<int>> *matrix);
 
 }  // namespace gematria
 
-#endif
+#endif  // GEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_VEC_OF_VEC_MATRIX_H_

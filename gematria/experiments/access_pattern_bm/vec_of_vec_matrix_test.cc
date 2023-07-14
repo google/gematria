@@ -14,9 +14,11 @@
 
 #include "gematria/experiments/access_pattern_bm/vec_of_vec_matrix.h"
 
+#include <memory>
 #include <vector>
 
 #include "benchmark/benchmark.h"
+#include "gematria/experiments/access_pattern_bm/configuration.h"
 
 namespace gematria {
 namespace {
@@ -28,7 +30,7 @@ void BM_FlushVecOfVecMatrixFromCache(benchmark::State &state) {
   auto matrix = CreateRandomVecOfVecMatrix(size);
 
   for (auto _ : state) {
-    FlushVecOfVecMatrixFromCache(matrix);
+    FlushVecOfVecMatrixFromCache(matrix.get());
   }
 }
 
@@ -39,15 +41,16 @@ void BM_VecOfVecMatrix_NoFlush(benchmark::State &state) {
 
   // Create a random matrix.
   auto matrix = CreateRandomVecOfVecMatrix(size);
-#ifdef BALANCE_FLUSHING_TIME
-  auto mock = CreateRandomVecOfVecMatrix(size);
-#endif
+  std::unique_ptr<std::vector<std::vector<int>>> mock;
+  if (kBalanceFlushingTime) {
+    mock = CreateRandomVecOfVecMatrix(size);
+  }
 
-  int sum = 0;
   for (auto _ : state) {
-#ifdef BALANCE_FLUSHING_TIME
-    FlushVecOfVecMatrixFromCache(mock);
-#endif
+    int sum = 0;
+    if (kBalanceFlushingTime) {
+      FlushVecOfVecMatrixFromCache(mock.get());
+    }
 
     // Loop over the matrix, doing some dummy
     // operations along the way.
@@ -58,7 +61,6 @@ void BM_VecOfVecMatrix_NoFlush(benchmark::State &state) {
     }
 
     benchmark::DoNotOptimize(sum);
-    sum = 0;
   }
 }
 
@@ -70,9 +72,9 @@ void BM_VecOfVecMatrix_Flush(benchmark::State &state) {
   // Create a random matrix.
   auto matrix = CreateRandomVecOfVecMatrix(size);
 
-  int sum = 0;
   for (auto _ : state) {
-    FlushVecOfVecMatrixFromCache(matrix);
+    int sum = 0;
+    FlushVecOfVecMatrixFromCache(matrix.get());
 
     // Loop over the matrix, doing some dummy
     // operations along the way.
@@ -83,7 +85,6 @@ void BM_VecOfVecMatrix_Flush(benchmark::State &state) {
     }
 
     benchmark::DoNotOptimize(sum);
-    sum = 0;
   }
 }
 

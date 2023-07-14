@@ -23,10 +23,11 @@
 
 namespace gematria {
 
-static std::default_random_engine generator;
-static std::uniform_int_distribution<int> distribution(0, 1023);
-
+// Creates a size x size matrix, as an array of (size * size) random integers.
 std::unique_ptr<int[]> CreateRandomContiguousMatrix(const std::size_t size) {
+  std::default_random_engine generator;
+  std::uniform_int_distribution<int> distribution(0, 1023);
+
   auto matrix = std::make_unique<int[]>(size * size);
 
   for (int i = 0; i < size; ++i) {
@@ -38,16 +39,18 @@ std::unique_ptr<int[]> CreateRandomContiguousMatrix(const std::size_t size) {
   return matrix;
 }
 
-void FlushContiguousMatrixFromCache(std::unique_ptr<int[]> &matrix,
+// Flushes matrices created by `CreateRandomContiguousMatrix`. Takes the matrix
+// itself, along with its size (given that it is a size x size square matrix,
+// holding size * size ints).
+void FlushContiguousMatrixFromCache(const void *matrix,
                                     const std::size_t size) {
   constexpr int line_size = ABSL_CACHELINE_SIZE;
-  const char *ptr = (const char *)matrix.get();
-  const char *end = (const char *)(matrix.get() + (size + 1) * sizeof(int));
+  const char *begin = reinterpret_cast<const char *>(matrix);
+  const char *end = begin + size * size * sizeof(int) / sizeof(char);
 
   _mm_mfence();
-  while (ptr <= end) {
-    _mm_clflushopt(ptr);
-    ptr += line_size;
+  for (; begin <= end; begin += line_size) {
+    _mm_clflushopt(begin);
   }
   _mm_mfence();
 }
