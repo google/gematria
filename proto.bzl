@@ -16,6 +16,8 @@
 load("@rules_cc//cc:defs.bzl", _cc_proto_library = "cc_proto_library")
 load("@com_google_protobuf//:protobuf.bzl", _py_proto_library = "py_proto_library")
 
+load("//third_party/bazel_rules/rules_python/python:proto.bzl", "py_proto_library")
+
 def gematria_proto_library(name = None, srcs = None, deps = (), **kwargs):
     """Creates proto library target and language bindings.
 
