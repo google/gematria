@@ -46,10 +46,10 @@ void FlushContiguousMatrixFromCache(const void *matrix,
                                     const std::size_t size) {
   constexpr int line_size = ABSL_CACHELINE_SIZE;
   const char *begin = reinterpret_cast<const char *>(matrix);
-  const char *end = begin + size * size * sizeof(int) / sizeof(char);
+  const char *end = begin + size * size * sizeof(int);
 
   _mm_mfence();
-  for (; begin <= end; begin += line_size) {
+  for (; begin < end; begin += line_size) {
     _mm_clflushopt(begin);
   }
   _mm_mfence();

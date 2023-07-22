@@ -94,7 +94,7 @@ cc_test(
         "stl_container.h",
         "stl_container_test.cc",
     ],
-    copts = BALANCE_FLUSHING_TIME_OPTS + FEATURE_OPTS,  # Since templated functions using _mm_clflushopt are defined in the header
+    copts = BALANCE_FLUSHING_TIME_OPTS + FEATURE_OPTS,  # Since templated functions using _mm_clflushopt are defined in the header.
     deps = [
         "@com_github_google_benchmark//:benchmark_main",
     ],
@@ -107,7 +107,7 @@ cc_test(
         "stl_assoc_container.h",
         "stl_assoc_container_test.cc",
     ],
-    copts = BALANCE_FLUSHING_TIME_OPTS + FEATURE_OPTS,  # Since templated functions using _mm_clflushopt are defined in the header
+    copts = BALANCE_FLUSHING_TIME_OPTS + FEATURE_OPTS,  # Since templated functions using _mm_clflushopt are defined in the header.
     deps = [
         "@com_github_google_benchmark//:benchmark_main",
     ],
