@@ -43,6 +43,12 @@ git_repository(
 )
 
 git_repository(
+    name = "com_github_google_benchmark",
+    remote = "https://github.com/google/benchmark.git",
+    tag = "v1.8.0",
+)
+
+git_repository(
     name = "rules_proto",
     remote = "https://github.com/bazelbuild/rules_proto.git",
     tag = "5.3.0-21.7",
