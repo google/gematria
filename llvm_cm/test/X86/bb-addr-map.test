@@ -1,0 +1,20 @@
+## This test checks that llvm-cm outputs an error when
+## failing to read a valid basic block address mapping.
+# RUN: yaml2obj %s -o %t.o
+# RUN: not llvm-cm %t.o --csv=%p/Inputs/dummy.csv 2>&1 | FileCheck %s
+
+# CHECK: error: failed to read basic block address mapping
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS64
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_X86_64
+Sections:
+  - Name:    .text
+    Type:    SHT_PROGBITS
+    Flags:   [ SHF_ALLOC, SHF_EXECINSTR ]
+  - Name:    .llvm_cm_bb_addr_map
+    Type:    SHT_LLVM_BB_ADDR_MAP
+    Link:    .text

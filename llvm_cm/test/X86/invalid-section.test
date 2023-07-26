@@ -1,0 +1,54 @@
+## This test checks that llvm-cm outputs an error message
+## when attempting to disassemble an invalid section symbol.
+# RUN: yaml2obj %s -o %t.o
+# RUN: not llvm-cm %t.o --csv=%p/Inputs/dummy.csv 2>&1
+
+# CHECK: reading file: invalid section index
+
+--- !ELF
+FileHeader:
+  Class:   ELFCLASS32
+  Data:    ELFDATA2LSB
+  Type:    ET_REL
+  Machine: EM_X86_64
+Sections:
+  - Name: .foo
+    Type: SHT_PROGBITS
+  - Name: .rela.foo
+    Type: SHT_RELA
+    Link: .symtab
+    Info: .foo
+    Relocations:
+      - Offset: 0x1
+        Symbol: 1
+        Type:   R_X86_64_NONE
+      - Offset: 0x2
+        Symbol: 2
+        Type:   R_X86_64_NONE
+      - Offset: 0x3
+        Symbol: 3
+        Type:   R_X86_64_NONE
+      - Offset: 0x4
+        Symbol: 4
+        Type:   R_X86_64_NONE
+Symbols:
+## Case 5: a section symbol with invalid name.
+  - Name: ''
+    Section: .foo
+    Type: STT_SECTION
+## Case 1: a valid unnamed section symbol.
+  - Name: ""
+    Section: .foo
+    Type: STT_FUNC
+## Case 2: a valid named section symbol.
+  - Name: "symbol1"
+    Section: .foo
+    Type: STT_SECTION
+## Case 3: an unnamed section symbol with invalid index.
+  - Name: ""
+    Index: 0x43
+    Type: STT_FUNC
+## Case 4: a named section symbol with invalid index.
+  - Name: "symbol2"
+    Index: 0x44
+    Type: STT_SECTION

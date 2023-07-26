@@ -1,0 +1,45 @@
+## Check that llvm-cm returns informative error messages when the input CSV
+## file is invalid in different ways.
+# RUN: split-file %s %t
+# RUN: yaml2obj %t/invalid-csv.test -o %t.o
+# RUN: not llvm-cm %t.o --csv=%t/invalid-func-name.csv 2>&1 | FileCheck %t/invalid-csv.test
+# RUN: not llvm-cm %t.o --csv=%t/invalid-bb-idx.csv 2>&1 | FileCheck %t/invalid-csv.test  -check-prefix=CHECK-BB
+# RUN: not llvm-cm %t.o --csv=%t/invalid-bb-freq.csv 2>&1 | FileCheck %t/invalid-csv.test  -check-prefix=CHECK-BB-FREQ
+
+
+//--- invalid-func-name.csv
+,0,1.000000e+00
+
+//--- invalid-bb-idx.csv
+main,bad,1.000000e+00
+
+//--- invalid-bb-freq.csv
+main,0,bad
+
+
+//--- invalid-csv.test
+
+# CHECK: error: Function name cannot be empty
+# CHECK-BB: error: BBIndex could not be parsed
+# CHECK-BB-FREQ: error: Frequency value could not be parsed
+
+--- !ELF
+FileHeader:
+  Class:   ELFCLASS32
+  Data:    ELFDATA2LSB
+  Type:    ET_REL
+  Machine: EM_X86_64
+Sections:
+  - Name:         .text
+    Type:         SHT_PROGBITS
+    Flags:        [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign: 0x4
+Symbols:
+  - Name:            "func1"
+    Type:            STT_FUNC
+    Section:         .text
+    Value:   0x0000000000000001
+  - Name:            "func2"
+    Type:            STT_FUNC
+    Section:         .text
+    Value:   0x0000000000000005
