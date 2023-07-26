@@ -48,6 +48,45 @@ git_repository(
     tag = "v1.8.0",
 )
 
+# Needed to build libpfm4 as it is configured to be built by GNU Make.
+git_repository(
+    name = "rules_foreign_cc",
+    commit = "816905a078773405803e86635def78b61d2f782d",
+    remote = "https://github.com/bazelbuild/rules_foreign_cc.git",
+)
+
+load("@rules_foreign_cc//foreign_cc:repositories.bzl", "rules_foreign_cc_dependencies")
+
+rules_foreign_cc_dependencies()
+
+git_repository(
+    name = "libpfm",
+    # use our own build file, based from google/benchmark/tools, but modified to
+    # disable use-after-free, which is emitted when building libpfm.
+    build_file_content = """
+load("@rules_foreign_cc//foreign_cc:defs.bzl", "make")
+
+filegroup(
+    name = "pfm_srcs",
+    srcs = glob(["**"]),
+)
+
+make(
+    name = "libpfm",
+    lib_source = ":pfm_srcs",
+    lib_name = "libpfm",
+    # this disables debug mode. In particular, this makes sure certain
+    # warning-as-error of libpfm aren't surfaced, which would break the build.
+    args = ["DBG="],
+    visibility = [
+        "//visibility:public",
+    ],
+)
+    """,
+    remote = "https://git.code.sf.net/p/perfmon2/libpfm4",
+    tag = "v4.13.0",
+)
+
 git_repository(
     name = "rules_proto",
     remote = "https://github.com/bazelbuild/rules_proto.git",
