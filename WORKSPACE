@@ -46,8 +46,8 @@ git_repository(
 # used to refer to libpfm4 and its targets consistent with other dependencies.
 git_repository(
     name = "com_github_google_benchmark",
-    patches = ["@//:benchmark_build.patch"],
     patch_args = ["-p1"],
+    patches = ["@//:benchmark_build.patch"],
     remote = "https://github.com/google/benchmark.git",
     tag = "v1.8.2",
 )
