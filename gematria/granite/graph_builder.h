@@ -178,8 +178,9 @@ class BasicBlockGraphBuilder {
   //
   // Returns true when the block was successfully added; returns false when the
   // method encountered an unknown token and the unknown token behavior is not
-  // kReplaceToken. When this happens, the graph builder is left in the previous
-  // state, i.e. no basic block is added to it.
+  // kReplaceToken or when the basic block does not contain any instructions.
+  // When this happens, the graph builder is left in the previous state, i.e. no
+  // basic block is added to it.
   bool AddBasicBlock(const BasicBlock& block) {
     return AddBasicBlockFromInstructions(block.instructions);
   }

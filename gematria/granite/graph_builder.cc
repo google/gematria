@@ -168,6 +168,7 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
 
 bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
     const std::vector<Instruction>& instructions) {
+  if (instructions.empty()) return false;
   AddBasicBlockTransaction transaction(this);
 
   // Clear the maps that are maintained per basic block.

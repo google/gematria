@@ -71,6 +71,12 @@ class BasicBlockGraphBuilderTest : public testing::Test {
   std::unique_ptr<BasicBlockGraphBuilder> builder_;
 };
 
+TEST_F(BasicBlockGraphBuilderTest, EmptyBlock) {
+  CreateBuilder(OutOfVocabularyTokenBehavior::ReturnError());
+  ASSERT_FALSE(builder_->AddBasicBlockFromInstructions({}));
+  ASSERT_FALSE(builder_->AddBasicBlock(BasicBlock()));
+}
+
 TEST_F(BasicBlockGraphBuilderTest, SingleInstruction) {
   CreateBuilder(OutOfVocabularyTokenBehavior::ReturnError());
   ASSERT_TRUE(builder_->AddBasicBlock(BasicBlockFromProto(ParseTextProto(R"pb(
