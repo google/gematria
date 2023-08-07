@@ -1,0 +1,18 @@
+diff --git a/BUILD.bazel b/BUILD.bazel
+index 60d31d2..5789203 100644
+
+This patch is applied to google/benchmark/BUILD.bazel, renaming the dependency
+@libpfm//:libpfm to @pfm://pfm to be uniform with other dependencies
+co-dependent on libpfm4.
+
+--- a/BUILD.bazel
++++ b/BUILD.bazel
+@@ -66,7 +66,7 @@ cc_library(
+         "//conditions:default": [],
+     }),
+     deps = select({
+-        ":perfcounters": ["@libpfm//:libpfm"],
++        ":perfcounters": ["@pfm//:pfm"],
+         "//conditions:default": [],
+     }),
+ )

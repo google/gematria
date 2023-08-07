@@ -1,4 +1,4 @@
-#Experiment - access pattern benchmarks
+# Experiment - access pattern benchmarks
 
 This directory contains a set of microbenchmarks used to prototype data sets of 
 basic blocks and functions augmented with cache hit and miss ratios.
@@ -7,12 +7,12 @@ basic blocks and functions augmented with cache hit and miss ratios.
 
 The benchmarks can be built using
 ```bash
-bazel build -c opt //gematria/experiments/access_pattern_bm/...
+bazel build -c opt --define pfm=true //gematria/experiments/access_pattern_bm/...
 ```
 or, if timing measurements between flushing and non-flushing benchmarks are to 
 be compared, using
 ```bash
-bazel build -c opt --define balance_flushing_time=true //gematria/experiments/access_pattern_bm/...
+bazel build -c opt --define pfm=true --define balance_flushing_time=true //gematria/experiments/access_pattern_bm/...
 ```
 and built binaries for each benchmark can be found down the corresponding 
 path in `bazel-bin`.

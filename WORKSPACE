@@ -42,10 +42,35 @@ git_repository(
     tag = "release-1.12.1",
 )
 
+# We use a patched version of google/benchmark/BUILD.bazel to keep the name
+# used to refer to libpfm4 and its targets consistent with other dependencies.
 git_repository(
     name = "com_github_google_benchmark",
+    patch_args = ["-p1"],
+    patches = ["@//:benchmark_build.patch"],
     remote = "https://github.com/google/benchmark.git",
-    tag = "v1.8.0",
+    tag = "v1.8.2",
+)
+
+# rules_foreign_cc is required to build libpfm4 since it is originally
+# configured to be built using GNU Make.
+git_repository(
+    name = "rules_foreign_cc",
+    commit = "816905a078773405803e86635def78b61d2f782d",
+    remote = "https://github.com/bazelbuild/rules_foreign_cc.git",
+)
+
+# Dependencies needed by rules_foreign_cc, in turn needed to build libpfm4.
+load("@rules_foreign_cc//foreign_cc:repositories.bzl", "rules_foreign_cc_dependencies")
+
+rules_foreign_cc_dependencies()
+
+# Used by benchmark to capture metrics using perf counter counters.
+git_repository(
+    name = "pfm",
+    build_file = "@llvm-raw//utils/bazel/third_party_build:pfm.BUILD",
+    remote = "https://git.code.sf.net/p/perfmon2/libpfm4",
+    tag = "v4.13.0",
 )
 
 git_repository(
