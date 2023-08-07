@@ -60,6 +60,7 @@ git_repository(
     remote = "https://github.com/bazelbuild/rules_foreign_cc.git",
 )
 
+# Dependencies needed by rules_foreign_cc, in turn needed to build libpfm4.
 load("@rules_foreign_cc//foreign_cc:repositories.bzl", "rules_foreign_cc_dependencies")
 
 rules_foreign_cc_dependencies()
