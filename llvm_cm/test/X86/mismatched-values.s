@@ -2,8 +2,8 @@
 ## format is valid.
 # RUN: split-file %s %t
 # RUN: llvm-mc -o %t.o --filetype=obj -triple=x86_64-unknown-linux-gnu %t/test.s
-# RUN: not llvm-cm %t.o --csv=%t/mismatched-input-func.csv 2>&1 | FileCheck %t/test.s
-# RUN: not llvm-cm %t.o --csv=%t/mismatched-bb.csv 2>&1 | FileCheck %t/test.s --check-prefix=CHECK-BBERR
+# RUN: not llvm-cm %t.o --csv=%t/mismatched-input-func.csv -granite_model=%S/Inputs/gb-token-mit-2022_12_02.tflite -evaluator=count 2>&1 | FileCheck %t/test.s
+# RUN: not llvm-cm %t.o --csv=%t/mismatched-bb.csv -granite_model=%S/Inputs/gb-token-mit-2022_12_02.tflite -evaluator=granite 2>&1 | FileCheck %t/test.s --check-prefix=CHECK-BBERR
 
 //--- mismatched-bb.csv
 multiply,1792,1.000000e+00

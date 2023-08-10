@@ -11,29 +11,45 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <stdlib.h>
+
+#include <algorithm>
 #include <cassert>
+#include <cinttypes>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
+#include <limits>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "absl/log/check.h"
+#include "absl/status/statusor.h"
+#include "gematria/basic_block/basic_block.h"
+#include "gematria/llvm/canonicalizer.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/Config/llvm-config.h"
 #include "llvm/DebugInfo/Symbolize/Symbolize.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCDisassembler/MCDisassembler.h"
+#include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstPrinter.h"
 #include "llvm/MC/MCInstrAnalysis.h"
+#include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCObjectFileInfo.h"
 #include "llvm/MC/MCParser/MCTargetAsmParser.h"
@@ -47,18 +63,28 @@
 #include "llvm/Object/ELFTypes.h"
 #include "llvm/Object/ObjectFile.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/CodeGen.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/ErrorOr.h"
+#include "llvm/Support/Format.h"
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/LineIterator.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/WithColor.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Target/TargetMachine.h"
+#include "research/devtools/exegesis/gematria/granite/graph_builder_model_inference.h"
+#include "research/devtools/exegesis/llvm/mcinst_utils.h"
+#include "tensorflow/lite/model_builder.h"
 
 using namespace llvm;
 using namespace llvm::object;
+
+#define DEBUG_TYPE "llvm-cm"
 
 // Define the command line options.
 static cl::opt<std::string> InputFilename(cl::Positional,
@@ -69,8 +95,26 @@ static cl::opt<std::string> TripleName("triple",
                                        cl::init(LLVM_DEFAULT_TARGET_TRIPLE),
                                        cl::value_desc("triple"));
 
-static cl::opt<StringRef> CPU("mcpu", cl::desc("Target a specific cpu type."),
-                              cl::init("skylake"), cl::value_desc("cpu-name"));
+static cl::opt<std::string> CPU("mcpu", cl::desc("Target a specific cpu type."),
+                                cl::init("skylake"),
+                                cl::value_desc("cpu-name"));
+
+enum class EvaluationType : int { Counter, Granite };
+static cl::opt<EvaluationType> EvaluationMethod(
+    "evaluator", cl::desc("Choose llvm-cm latency output method: "),
+    cl::init(EvaluationType::Counter),
+    cl::values(clEnumValN(EvaluationType::Counter, "count",
+                          "use weighted instruction counting"),
+               clEnumValN(EvaluationType::Granite, "granite",
+                          "use GRANITE  model values")));
+
+static cl::opt<std::string> EvaluatorFilename(
+    "granite_model", cl::desc("GRANITE tflite model file or any other model."),
+    cl::value_desc("filename"));
+
+static cl::opt<uint64_t> uArchTaskNumber(
+    "task_number", cl::init(2),
+    cl::desc("Specify uarch-specific task number if using GRANITE model"));
 
 static cl::opt<std::string> CSVFilename(
     "csv",
@@ -100,6 +144,159 @@ static void exitIf(bool Cond, Twine Message) {
   }
 }
 
+double calcFrequency(StringRef CurrSymbol,
+                     const StringMap<SmallVector<BBFreq, 20>> &BBFreqMap,
+                     uint64_t BB) {
+  exitIf(!BBFreqMap.contains(CurrSymbol),
+         "Function " + CurrSymbol + " not found in CSV file");
+  exitIf(BB >= BBFreqMap.lookup(CurrSymbol).size(),
+         "Basic block index not found in CSV file: Index " + Twine(BB) +
+             " is+ out of bounds");
+  exitIf(BBFreqMap.lookup(CurrSymbol)[BB] == BBFreq::Invalid,
+         "Basic block index not found in CSV file for function " + CurrSymbol +
+             ": Index " + Twine(BB) + " is not present");
+  return BBFreqMap.lookup(CurrSymbol)[BB];
+}
+
+// Abstraction for latency evaluator, applicate to future models.
+class CostModel {
+  // The functions here represent properties that should be common between all
+  // models provided as input to llvm-cm.
+ protected:
+  // Handles latency calculation at the function level, once basic blocks have
+  // all been assembled, as well as function level accumulation.
+  virtual double getLatencyForGivenBlocks() = 0;
+  // How individual instructions are handled by a model.
+  virtual void handleInstr(MCInst &Inst, MCInstrInfo &MII) = 0;
+
+  // Determines how individual basic blocks are handled.
+  virtual void evaluateBasicBlock(double Freq) = 0;
+  virtual uint64_t getNumBasicBlocks() = 0;
+
+ public:
+  virtual ~CostModel() = default;
+
+  double getLatency(
+      MCDisassembler &DisAsm, uint64_t SectionAddr, ArrayRef<uint8_t> Bytes,
+      uint64_t Start, uint64_t End, uint64_t Index,
+      raw_svector_ostream &CommentStream, MCInstrInfo &MII,
+      const std::unordered_map<uint64_t, std::vector<uint64_t>> &Labels,
+      StringRef CurrSymbol,
+      const StringMap<SmallVector<BBFreq, 20>> &BBFreqMap);
+};
+
+class GraniteCostModel : public CostModel {
+ private:
+  GraniteCostModel(
+      const TargetMachine *TM,
+      std::unique_ptr<tflite::FlatBufferModel> InfModel,
+      std::unique_ptr<gematria::GraphBuilderModelInference> Inference)
+      : Canonicalizer(TM),
+        InfModel(std::move(InfModel)),
+        Inference(std::move(Inference)) {}
+
+  gematria::X86Canonicalizer Canonicalizer;
+
+  std::unique_ptr<tflite::FlatBufferModel> InfModel;
+  std::unique_ptr<gematria::GraphBuilderModelInference> Inference;
+
+  std::vector<std::pair<gematria::BasicBlock, double>> BasicBlocksAndFreq;
+
+  std::vector<MCInst> InstVec;
+
+ public:
+  // Factory method to create a Granite-based cost model.
+  static std::unique_ptr<CostModel> create(const TargetMachine *TM) {
+    std::unique_ptr<tflite::FlatBufferModel> InfModel =
+        tflite::FlatBufferModel::BuildFromFile(EvaluatorFilename.c_str());
+
+    auto InferenceOr =
+        gematria::GraphBuilderModelInference::FromTfLiteModel(InfModel.get());
+
+    // TODO(dayannd): Change this to make use of Expected<>.
+    if (!InferenceOr.ok() || InferenceOr.value() == nullptr) return nullptr;
+
+    return std::unique_ptr<CostModel>(new GraniteCostModel(
+        TM, std::move(InfModel), std::move(InferenceOr).value()));
+  }
+
+  uint64_t getNumBasicBlocks() override { return BasicBlocksAndFreq.size(); }
+
+  double getLatencyForGivenBlocks() override {
+    Inference->Reset();
+
+    for (const auto &BasicBlock : BasicBlocksAndFreq) {
+      exitIf(!Inference->AddBasicBlockToBatch(BasicBlock.first),
+             "Basic block could not be added to batch!");
+    }
+
+    const absl::StatusOr<
+        std::vector<gematria::GraphBuilderModelInference::OutputType>>
+        Predictions = Inference->RunInference();
+    CHECK_OK(Predictions.status());
+    CHECK_EQ(Predictions->size(), BasicBlocksAndFreq.size());
+    double LatencyAccumulator = 0.0;
+
+    // The tasks: IVB, HSW, and SKL. We only care about SKL right now.
+    for (unsigned Block = 0; Block < Predictions->size(); ++Block) {
+      const auto &Costs = (*Predictions)[Block];
+      // All Gematria models are implemented as multi-task models, even if
+      // they have just one output head (and `output` contains just a single
+      // value).
+      LatencyAccumulator += Costs[2] * BasicBlocksAndFreq[Block].second;
+    }
+
+    return LatencyAccumulator;
+  }
+
+  void handleInstr(MCInst &Inst, MCInstrInfo &MII) override {
+    if (!exegesis::InstructionTerminatesBasicBlock(MII, Inst) &&
+        MII.getName(Inst.getOpcode()) != "CDQ" &&
+        MII.getName(Inst.getOpcode()) != "NOOP") {
+      InstVec.push_back(Inst);
+    }
+  }
+
+  void evaluateBasicBlock(double Freq) override {
+    if (InstVec.empty()) {
+      return;
+    }
+    BasicBlocksAndFreq.push_back(
+        std::make_pair(Canonicalizer.BasicBlockFromMCInst(InstVec), Freq));
+    InstVec.clear();
+  }
+};
+
+class CountCostModel : public CostModel {
+ private:
+  CountCostModel() = default;
+
+  uint64_t NumBasicBlocks = 0;
+
+  uint64_t NumInsts = 0;
+
+  double TotalFuncLatency = 0.0;
+
+ public:
+  // Factory method for standard weighted instruction count model.
+  static std::unique_ptr<CostModel> create() {
+    return std::unique_ptr<CostModel>(new CountCostModel());
+  }
+
+  uint64_t getNumBasicBlocks() override { return NumBasicBlocks; }
+
+  void handleInstr(MCInst &Inst, MCInstrInfo &MII) override { ++NumInsts; }
+
+  double getLatencyForGivenBlocks() override { return TotalFuncLatency; }
+
+  void evaluateBasicBlock(double Freq) override {
+    double BBLatency = Freq * NumInsts;
+    TotalFuncLatency += BBLatency;
+    ++NumBasicBlocks;
+    NumInsts = 0;
+  }
+};
+
 static SectionFilter getToolSectionFilter(object::ObjectFile const &O,
                                           uint64_t *Idx) {
   // Set the initial index to max so that the first increment will set it to 0.
@@ -126,7 +323,7 @@ T unwrapOrError(Expected<T> EO) {
   return std::move(*EO);
 }
 
-// TODO: Share this with llvm-objdump.cpp.
+// TODO(dayannd): Share this with llvm-objdump.cpp.
 static uint8_t getElfSymbolType(const llvm::object::ObjectFile &Obj,
                                 const llvm::object::SymbolRef &Sym) {
   assert(Obj.isELF());
@@ -145,7 +342,7 @@ static uint8_t getElfSymbolType(const llvm::object::ObjectFile &Obj,
   llvm_unreachable("Unsupported binary format");
 }
 
-// TODO: Share this with llvm-objdump.cpp.
+// TODO(dayannd): Share this with llvm-objdump.cpp.
 SymbolInfoTy createSymbolInfo(const object::ObjectFile &Obj,
                               const object::SymbolRef Symbol) {
   const uint64_t Addr = unwrapOrError(Symbol.getAddress());
@@ -176,28 +373,12 @@ static void collectBBtoAddressLabels(
   }
 }
 
-double calcFrequency(uint64_t NumInstsIn, StringRef CurrSymbol,
-                     const StringMap<SmallVector<BBFreq, 20>> &BBFreqMap,
-                     uint64_t BB) {
-  exitIf(!BBFreqMap.contains(CurrSymbol),
-         "Function " + CurrSymbol + " not found in CSV file");
-  exitIf(BB >= BBFreqMap.lookup(CurrSymbol).size(),
-         "Basic block index not found in CSV file: Index " + Twine(BB) +
-             " is+ out of bounds");
-  exitIf(BBFreqMap.lookup(CurrSymbol)[BB] == BBFreq::Invalid,
-         "Basic block index not found in CSV file for function " + CurrSymbol +
-             ": Index " + Twine(BB) + " is not present");
-  double Freq = BBFreqMap.lookup(CurrSymbol)[BB] * NumInstsIn;
-  return Freq;
-}
-
-void processInsts(
+double CostModel::getLatency(
     MCDisassembler &DisAsm, uint64_t SectionAddr, ArrayRef<uint8_t> Bytes,
-    raw_svector_ostream &CommentStream, uint64_t Start, uint64_t End,
-    uint64_t Index,
+    uint64_t Start, uint64_t End, uint64_t Index,
+    raw_svector_ostream &CommentStream, MCInstrInfo &MII,
     const std::unordered_map<uint64_t, std::vector<uint64_t>> &Labels,
     StringRef CurrSymbol, const StringMap<SmallVector<BBFreq, 20>> &BBFreqMap) {
-  uint64_t NumInstsInBB = 0;
   uint64_t ThisBb = -1;
   bool EnteredBb = false;
   while (Index < End) {
@@ -205,17 +386,14 @@ void processInsts(
     auto FirstIter = Labels.find(CurrAddr);
     if (FirstIter != Labels.end()) {
       for (auto Label : FirstIter->second) {
-        if (EnteredBb) {
-          outs() << "Calculated frequency: "
-                 << calcFrequency(NumInstsInBB, CurrSymbol, BBFreqMap, ThisBb)
-                 << "\n";
-          NumInstsInBB = 0;
-        }
+        if (EnteredBb)
+          evaluateBasicBlock(calcFrequency(CurrSymbol, BBFreqMap, ThisBb));
         EnteredBb = true;
         ThisBb = Label;
-        outs() << "<"
-               << "BB" + Twine(Label) << ">: ";
-        outs() << format("%016" PRIx64 " ", CurrAddr) << "\n";
+
+        LLVM_DEBUG(dbgs() << "<"
+                          << "BB" + Twine(Label) << ">: "
+                          << format("%016" PRIx64 " ", CurrAddr) << "\n");
       }
     }
     MCInst Inst;
@@ -225,25 +403,16 @@ void processInsts(
         !DisAsm.getInstruction(Inst, Size, BytesSlice, CurrAddr, CommentStream),
         "disassembler cannot disassemble given data at address 0x" +
             Twine::utohexstr(CurrAddr).str());
-    ++NumInstsInBB;
-    if (Size == 0) {
+    handleInstr(Inst, MII);
+    if (Size == 0)
       Size = std::min<uint64_t>(
           BytesSlice.size(), DisAsm.suggestBytesToSkip(BytesSlice, CurrAddr));
-    }
     Index += Size;
   }
-
-  if (EnteredBb && Labels.size() > 1) {
-    outs() << "Calculated frequency: "
-           << calcFrequency(NumInstsInBB, CurrSymbol, BBFreqMap, ThisBb)
-           << "\n";
-    NumInstsInBB = 0;
-    EnteredBb = false;
-  } else {
-    outs() << "Calculated frequency: "
-           << calcFrequency(NumInstsInBB, CurrSymbol, BBFreqMap, ThisBb)
-           << "\n";
-  }
+  evaluateBasicBlock(calcFrequency(CurrSymbol, BBFreqMap, ThisBb));
+  double Latency = getLatencyForGivenBlocks();
+  outs() << "Calculated Frequency: " << Latency << "\n";
+  return Latency;
 }
 
 void populateBBFreqMap(StringMap<SmallVector<BBFreq, 20>> &BBFreqMap) {
@@ -283,6 +452,7 @@ int main(int argc, char *argv[]) {
   cl::ParseCommandLineOptions(argc, argv, "llvm cost model tool\n");
 
   // Set up the triple and target features.
+  InitializeAllTargets();
   InitializeAllTargetInfos();
   InitializeAllTargetMCs();
   InitializeAllDisassemblers();
@@ -324,6 +494,11 @@ int main(int argc, char *argv[]) {
   std::unique_ptr<MCDisassembler> DisAsm(
       TheTarget->createMCDisassembler(*SubInfo, Ctx));
   assert(DisAsm && "Unable to create disassembler!");
+
+  std::unique_ptr<TargetMachine> TM(
+      TheTarget->createTargetMachine(TripleName, CPU, FeatureVals->getString(),
+                                     TargetOptions(), Reloc::Model::Static));
+  assert(TM && "Unable to create target machine!");
 
   StringMap<SmallVector<BBFreq, 20>> BBFreqMap;
   populateBBFreqMap(BBFreqMap);
@@ -425,6 +600,7 @@ int main(int argc, char *argv[]) {
       collectBBtoAddressLabels(BBAddrMap, SectionAddr, Start, End,
                                BBtoAddressLabels);
 
+      // TODO(dayannd): Implement function selection.
       printFunctionNames(Aliases);
 
       uint64_t Index = Start;
@@ -432,8 +608,19 @@ int main(int argc, char *argv[]) {
         Index = std::max<uint64_t>(Index, StartAddr - SectionAddr);
 
       StringRef CurrSymbolName = Aliases[0].Name;
-      processInsts(*DisAsm, SectionAddr, Bytes, CommentStream, Start, End,
-                   Index, BBtoAddressLabels, CurrSymbolName, BBFreqMap);
+
+      std::unique_ptr<CostModel> Handler;
+
+      if (EvaluationMethod == EvaluationType::Granite) {
+        Handler = GraniteCostModel::create(TM.get());
+      } else if (EvaluationMethod == EvaluationType::Counter) {
+        Handler = CountCostModel::create();
+      }
+      assert(Handler && "A valid Handler type must be specified!");
+
+      Handler->getLatency(*DisAsm, SectionAddr, Bytes, Start, End, Index,
+                          CommentStream, *MII, BBtoAddressLabels,
+                          CurrSymbolName, BBFreqMap);
     }
   }
 }

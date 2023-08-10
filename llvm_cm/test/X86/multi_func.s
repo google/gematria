@@ -1,175 +1,35 @@
 ## Check that llvm-cm can handle input containing many basic blocks across functions.
 # RUN: llvm-mc -o %t.o --filetype=obj -triple=x86_64-unknown-linux-gnu %s
-# RUN: llvm-cm %t.o --csv=%p/Inputs/multi-func.csv 2>&1 | FileCheck %s
+# RUN: llvm-cm %t.o -csv=%S/Inputs/multi-func.csv -granite_model=%S/Inputs/gb-token-mit-2022_12_02.tflite -evaluator=granite | FileCheck %s
+# RUN: llvm-cm %t.o -csv=%S/Inputs/multi-func.csv -granite_model=%S/Inputs/gb-token-mit-2022_12_02.tflite -evaluator=count | FileCheck %s --check-prefix=CHECK-COUNT
+
 
 # CHECK:      <reverse>:
-# CHECK-NEXT: <BB0>: 0000000000000000
-# CHECK-NEXT: Calculated frequency: 2.000000e+00
-# CHECK-NEXT: <BB1>: 0000000000000005
-# CHECK-NEXT: Calculated frequency: 1.250000e+00
-# CHECK-NEXT: <BB2>: 0000000000000010
-# CHECK-NEXT: Calculated frequency: 5.990625e+01
-# CHECK-NEXT: <BB3>: 000000000000001b
-# CHECK-NEXT: Calculated frequency: 1.250000e+00
-# CHECK-NEXT: <BB9>: 0000000000000021
-# CHECK-NEXT: Calculated frequency: 7.500000e-01
-# CHECK-NEXT: <BB4>: 0000000000000026
-# CHECK-NEXT: Calculated frequency: 4.000000e+00
-# CHECK-NEXT: <BB5>: 0000000000000031
-# CHECK-NEXT: Calculated frequency: 3.500000e+00
-# CHECK-NEXT: <BB6>: 0000000000000045
-# CHECK-NEXT: Calculated frequency: 5.000000e-01
-# CHECK-NEXT: <BB7>: 0000000000000050
-# CHECK-NEXT: Calculated frequency: 7.171875e+01
-# CHECK-NEXT: <BB8>: 000000000000006c
-# CHECK-NEXT: Calculated frequency: 2.000000e+00
+# CHECK-NEXT: Calculated Frequency: 8.342712e+03
 # CHECK-NEXT: <tallestBillboard>:
-# CHECK-NEXT: <BB0>: 0000000000000070
-# CHECK-NEXT: Calculated frequency: 2.000000e+00
-# CHECK-NEXT: <BB1>: 0000000000000074
-# CHECK-NEXT: Calculated frequency: 7.294118e+00
-# CHECK-NEXT: <BB22>: 0000000000000090
-# CHECK-NEXT: Calculated frequency: 8.823531e-01
-# CHECK-NEXT: <BB21>: 000000000000009a
-# CHECK-NEXT: Calculated frequency: 7.450980e-01
-# CHECK-NEXT: <BB2>: 000000000000009d
-# CHECK-NEXT: Calculated frequency: 2.941177e+00
-# CHECK-NEXT: <BB23>: 00000000000000bc
-# CHECK-NEXT: Calculated frequency: 6.274512e-01
-# CHECK-NEXT: <BB3>: 00000000000000c8
-# CHECK-NEXT: Calculated frequency: 7.843140e-01
-# CHECK-NEXT: <BB4>: 00000000000000e0
-# CHECK-NEXT: Calculated frequency: 9.500000e+01
-# CHECK-NEXT: <BB5>: 0000000000000139
-# CHECK-NEXT: Calculated frequency: 5.882354e-01
-# CHECK-NEXT: <BB6>: 000000000000013e
-# CHECK-NEXT: Calculated frequency: 8.823530e-01
-# CHECK-NEXT: <BB7>: 0000000000000150
-# CHECK-NEXT: Calculated frequency: 4.378431e+01
-# CHECK-NEXT: <BB8>: 000000000000016c
-# CHECK-NEXT: Calculated frequency: 2.647059e+00
-# CHECK-NEXT: <BB12>: 0000000000000190
-# CHECK-NEXT: Calculated frequency: 6.015688e+01
-# CHECK-NEXT: <BB10>: 000000000000019c
-# CHECK-NEXT: Calculated frequency: 1.215686e+01
-# CHECK-NEXT: <BB11>: 00000000000001f5
-# CHECK-NEXT: Calculated frequency: 1.117647e+00
-# CHECK-NEXT: <BB17>: 0000000000000200
-# CHECK-NEXT: Calculated frequency: 5.011764e+01
-# CHECK-NEXT: <BB15>: 000000000000020f
-# CHECK-NEXT: Calculated frequency: 1.628823e+02
-# CHECK-NEXT: <BB16>: 000000000000023c
-# CHECK-NEXT: Calculated frequency: 6.254902e+01
-# CHECK-NEXT: <BB20>: 0000000000000260
-# CHECK-NEXT: Calculated frequency: 6.022941e+02
-# CHECK-NEXT: <BB18>: 0000000000000268
-# CHECK-NEXT: Calculated frequency: 6.022941e+02
-# CHECK-NEXT: <BB19>: 0000000000000271
-# CHECK-NEXT: Calculated frequency: 2.760353e+03
-# CHECK-NEXT: <BB13>: 00000000000002c2
-# CHECK-NEXT: Calculated frequency: 7.450980e-01
-# CHECK-NEXT: <BB24>: 00000000000002c7
-# CHECK-NEXT: Calculated frequency: 2.156863e-01
-# CHECK-NEXT: <BB25>: 00000000000002c9
-# CHECK-NEXT: Calculated frequency: 5.470589e+00
+# CHECK-NEXT: Calculated Frequency: 2.928509e+05
 # CHECK-NEXT: <isMatch>:
-# CHECK-NEXT: <BB0>: 00000000000002e0
-# CHECK-NEXT: Calculated frequency: 6.000000e+00
-# CHECK-NEXT: <BB1>: 00000000000002ef
-# CHECK-NEXT: Calculated frequency: 4.407407e+00
-# CHECK-NEXT: <BB2>: 00000000000002fd
-# CHECK-NEXT: Calculated frequency: 2.765432e+00
-# CHECK-NEXT: <BB5>: 0000000000000312
-# CHECK-NEXT: Calculated frequency: 3.950618e-01
-# CHECK-NEXT: <BB10>: 0000000000000317
-# CHECK-NEXT: Calculated frequency: 1.975309e-01
-# CHECK-NEXT: <BB3>: 000000000000031c
-# CHECK-NEXT: Calculated frequency: 9.382716e-01
-# CHECK-NEXT: <BB4>: 0000000000000329
-# CHECK-NEXT: Calculated frequency: 1.851852e+00
-# CHECK-NEXT: <BB8>: 000000000000033c
-# CHECK-NEXT: alculated frequency: 4.691358e-01
-# CHECK-NEXT: <BB6>: 0000000000000341
-# CHECK-NEXT: Calculated frequency: 1.728395e+00
-# CHECK-NEXT: <BB9>: 0000000000000356
-# CHECK-NEXT: Calculated frequency: 9.876543e-02
-# CHECK-NEXT: <BB13>: 0000000000000358
-# CHECK-NEXT: Calculated frequency: 1.888889e+00
-# CHECK-NEXT: <BB7>: 000000000000035c
-# CHECK-NEXT: Calculated frequency: 2.000000e+00
+# CHECK-NEXT: Calculated Frequency: 8.204262e+02
 # CHECK-NEXT: <bubbleSort>:
-# CHECK-NEXT: <BB0>: 0000000000000360
-# CHECK-NEXT: Calculated frequency: 2.000000e+00
-# CHECK-NEXT: <BB14>: 0000000000000365
-# CHECK-NEXT: Calculated frequency: 1.000000e+00
-# CHECK-NEXT: <BB1>: 0000000000000366
-# CHECK-NEXT: Calculated frequency: 3.000000e+00
-# CHECK-NEXT: <BB5>: 0000000000000380
-# CHECK-NEXT: Calculated frequency: 7.968750e+01
-# CHECK-NEXT: <BB6>: 000000000000038d
-# CHECK-NEXT: Calculated frequency: 3.187500e+01
-# CHECK-NEXT: <BB7>: 0000000000000392
-# CHECK-NEXT: Calculated frequency: 3.968750e+01
-# CHECK-NEXT: <BB15>: 00000000000003a0
-# CHECK-NEXT: Calculated frequency: 3.937500e+00
-# CHECK-NEXT: <BB2>: 00000000000003a3
-# CHECK-NEXT: Calculated frequency: 1.587500e+01
-# CHECK-NEXT: <BB3>: 00000000000003a7
-# CHECK-NEXT: Calculated frequency: 1.181250e+01
-# CHECK-NEXT: <BB4>: 00000000000003b1
-# CHECK-NEXT: Calculated frequency: 7.750000e+00
-# CHECK-NEXT: <BB8>: 00000000000003c0
-# CHECK-NEXT: Calculated frequency: 1.968750e+01
-# CHECK-NEXT: <BB12>: 00000000000003d0
-# CHECK-NEXT: Calculated frequency: 1.278750e+02
-# CHECK-NEXT: <BB13>: 00000000000003da
-# CHECK-NEXT: Calculated frequency: 3.838125e+02
-# CHECK-NEXT: <BB9>: 00000000000003e3
-# CHECK-NEXT: Calculated frequency: 3.838125e+02
-# CHECK-NEXT: <BB10>: 00000000000003ed
-# CHECK-NEXT: Calculated frequency: 2.557500e+02
-# CHECK-NEXT: <BB16>: 0000000000000400
-# CHECK-NEXT: Calculated frequency: 6.393750e+01
-# CHECK-NEXT: <BB11>: 0000000000000403
-# CHECK-NEXT: Calculated frequency: 3.838125e+02
-# CHECK-NEXT: <BB17>: 000000000000040d
-# CHECK-NEXT: Calculated frequency: 1.918125e+02
+# CHECK-NEXT: Calculated Frequency: 6.651033e+04
 # CHECK-NEXT: <isPrime>:
-# CHECK-NEXT: <BB0>: 0000000000000420
-# CHECK-NEXT: Calculated frequency: 3.000000e+00
-# CHECK-NEXT: <BB1>: 0000000000000427
-# CHECK-NEXT: Calculated frequency: 5.000000e-01
-# CHECK-NEXT: <BB10>: 0000000000000429
-# CHECK-NEXT: Calculated frequency: 5.000000e-01
-# CHECK-NEXT: <BB2>: 000000000000042f
-# CHECK-NEXT: Calculated frequency: 5.000000e-01
-# CHECK-NEXT: <BB3>: 0000000000000435
-# CHECK-NEXT: Calculated frequency: 3.750000e-01
-# CHECK-NEXT: <BB4>: 000000000000043f
-# CHECK-NEXT: Calculated frequency: 1.250000e-01
-# CHECK-NEXT: <BB5>: 0000000000000450
-# CHECK-NEXT: Calculated frequency: 1.200000e+01
-# CHECK-NEXT: <BB8>: 000000000000045c
-# CHECK-NEXT: Calculated frequency: 9.843750e+00
-# CHECK-NEXT: <BB6>: 0000000000000468
-# CHECK-NEXT: Calculated frequency: 1.875000e-01
-# CHECK-NEXT: <BB7>: 000000000000046f
-# CHECK-NEXT: Calculated frequency: 7.500000e-01
+# CHECK-NEXT: Calculated Frequency: 5.754429e+02
 # CHECK-NEXT: <main>:
-# CHECK-NEXT: <BB0>: 0000000000000470
-# CHECK-NEXT: Calculated frequency: 5.000000e+00
-# CHECK-NEXT: <BB1>: 0000000000000490
-# CHECK-NEXT: Calculated frequency: 9.590625e+01
-# CHECK-NEXT: <BB2>: 000000000000049a
-# CHECK-NEXT: Calculated frequency: 3.000000e+00
-# CHECK-NEXT: <BB3>: 00000000000004a3
-# CHECK-NEXT: Calculated frequency: 3.500000e+00
-# CHECK-NEXT: <BB4>: 00000000000004ba
-# CHECK-NEXT: Calculated frequency: 5.000000e-01
-# CHECK-NEXT: <BB5>: 00000000000004c0
-# CHECK-NEXT: Calculated frequency: 7.171875e+01
-# CHECK-NEXT: <BB6>: 00000000000004dc
-# CHECK-NEXT: Calculated frequency: 5.500000e+01
+# CHECK-NEXT: Calculated Frequency: 8.872796e+03
+
+
+# CHECK-COUNT: <reverse>:
+# CHECK-COUNT: Calculated Frequency: 1.468750e+02
+# CHECK-COUNT: <tallestBillboard>:
+# CHECK-COUNT: Calculated Frequency: 4.478530e+03
+# CHECK-COUNT: <isMatch>:
+# CHECK-COUNT: Calculated Frequency: 2.274074e+01
+# CHECK-COUNT: <bubbleSort>:
+# CHECK-COUNT: Calculated Frequency: 2.007125e+03
+# CHECK-COUNT: <isPrime>:
+# CHECK-COUNT: Calculated Frequency: 2.778125e+01
+# CHECK-COUNT: <main>:
+# CHECK-COUNT: Calculated Frequency: 2.346250e+02
 
  .text
  .file "test.c"

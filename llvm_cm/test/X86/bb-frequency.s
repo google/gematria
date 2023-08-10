@@ -1,8 +1,8 @@
 ## LLVM-CM frequency weighting test.
 # RUN: split-file %s %t
 # RUN: llvm-mc -o %t.o --filetype=obj -triple=x86_64-unknown-linux-gnu %t/bb-frequency-test.s
-# RUN: llvm-cm %t.o --csv=%t/bb-frequency.csv 2>&1 | FileCheck %t/bb-frequency-test.s
-
+# RUN: llvm-cm %t.o --csv=%t/bb-frequency.csv -granite_model=%S/Inputs/gb-token-mit-2022_12_02.tflite -evaluator=granite| FileCheck %t/bb-frequency-test.s
+# RUN: llvm-cm %t.o --csv=%t/bb-frequency.csv -granite_model=%S/Inputs/gb-token-mit-2022_12_02.tflite -evaluator=count| FileCheck %t/bb-frequency-test.s --check-prefix=CHECK-COUNT
 
 //--- bb-frequency.csv
 main,0,1.000000e+00
@@ -12,12 +12,10 @@ main,3,3.809524e-01
 
 //--- bb-frequency-test.s
 # CHECK:      <main>:
-# CHECK-NEXT: <BB0>: 0000000000000000
-# CHECK-NEXT: Calculated frequency: 4.000000e+00
-# CHECK-NEXT: <BB2>: 0000000000000008
-# CHECK-NEXT: Calculated frequency: 1.238095e+00
-# CHECK-NEXT: <BB3>: 000000000000000c
-# CHECK-NEXT: Calculated frequency: 7.619048e-01
+# CHECK-NEXT: Calculated Frequency: 1.803670e+02
+
+# CHECK-COUNT: <main>:
+# CHECK-COUNT: Calculated Frequency: 6.000000e+00
 
  .text
  .file "bb-frequency.ll"

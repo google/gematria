@@ -1,6 +1,7 @@
 # RUN: split-file %s %t
 # RUN: llvm-mc -o %t.o --filetype=obj -triple=x86_64-unknown-linux-gnu %t/profile-dump-test.s
-# RUN: llvm-cm %t.o --csv=%t/profile-dump-test.csv 2>&1 | FileCheck %t/profile-dump-test.s
+# RUN: llvm-cm %t.o --csv=%t/profile-dump-test.csv -granite_model=%S/Inputs/gb-token-mit-2022_12_02.tflite -evaluator=granite | FileCheck %t/profile-dump-test.s
+# RUN: llvm-cm %t.o --csv=%t/profile-dump-test.csv -granite_model=%S/Inputs/gb-token-mit-2022_12_02.tflite -evaluator=count | FileCheck %t/profile-dump-test.s --check-prefix=CHECK-COUNT
 
 //--- profile-dump-test.csv
 f2,0,1.000000e+00
@@ -10,17 +11,16 @@ f1,2,1.000000e+00
 
 
 //--- profile-dump-test.s
-
 # CHECK:      <f2>:
-# CHECK-NEXT: <BB0>: 0000000000000000
-# CHECK-NEXT: Calculated frequency: 3.000000e+00
+# CHECK-NEXT: Calculated Frequency: 9.630392e+01
 # CHECK-NEXT: <f1>:
-# CHECK-NEXT: <BB0>: 0000000000000010
-# CHECK-NEXT: Calculated frequency: 6.000000e+00
-# CHECK-NEXT: <BB1>: 0000000000000026
-# CHECK-NEXT: Calculated frequency: 5.000000e-01
-# CHECK-NEXT: <BB2>: 0000000000000028
-# CHECK-NEXT: Calculated frequency: 2.000000e+00
+# CHECK-NEXT: Calculated Frequency: 1.629852e+02
+
+# CHECK-COUNT: <f2>:
+# CHECK-COUNT: Calculated Frequency: 3.000000e+00
+# CHECK-COUNT: <f1>:
+# CHECK-COUNT: Calculated Frequency: 8.500000e+00
+
 
  .text
  .file "profile_dump_test.ll"
