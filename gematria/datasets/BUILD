@@ -38,3 +38,68 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "find_accessed_addrs",
+    srcs = ["find_accessed_addrs.cc"],
+    hdrs = ["find_accessed_addrs.h"],
+    # This library uses various POSIX APIs. Only tested on Linux, and we'll likely use some
+    # Linux-only APIs in future.
+    target_compatible_with = [
+        "@platforms//os:linux",
+    ],
+    deps = [
+        ":block_wrapper",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+cc_test(
+    name = "find_accessed_addrs_test",
+    srcs = ["find_accessed_addrs_test.cc"],
+    # We're testing FindAccessedAddrs, which executes code passed to it. In this test we hardcode
+    # some assembled x86 code to execute.
+    tags = [
+        "not_build:arm",
+    ],
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
+    deps = [
+        ":find_accessed_addrs",
+        "//gematria/llvm:asm_parser",
+        "//gematria/llvm:llvm_architecture_support",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/log:log_streamer",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/random:distributions",
+        "@com_google_absl//absl/random:seed_sequences",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:source_location",
+        "@com_google_absl//absl/types:span",
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:MC",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:Target",
+        "@llvm-project//llvm:ir_headers",
+    ],
+)
+
+cc_library(
+    name = "block_wrapper",
+    srcs = ["block_wrapper.S"],
+    hdrs = ["block_wrapper.h"],
+    # This file contains x86_64 assembly that directly invokes Linux syscalls.
+    tags = [
+        "not_build:arm",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    deps = ["@com_google_absl//absl/types:span"],
+)
