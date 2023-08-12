@@ -45,10 +45,9 @@ std::unique_ptr<Container> CreateRandomSTLAssocContainer(
 template <typename Container>
 void FlushSTLAssocContainerFromCache(const Container *container) {
   _mm_mfence();
-  for (typename Container::const_iterator it = container->begin();
-       it != container->end(); ++it) {
-    _mm_clflushopt(&it->first);
-    _mm_clflushopt(&it->second);
+  for (const auto &[key, value] : *container) {
+    _mm_clflushopt(&key);
+    _mm_clflushopt(&value);
   }
   _mm_mfence();
 }
