@@ -55,7 +55,9 @@ void BM_STLAssocContainer_NoFlush(benchmark::State &state) {
   for (auto _ : state) {
     int sum = 0;
     if (kBalanceFlushingTime) {
+      state.PauseTiming();
       FlushSTLAssocContainerFromCache(mock.get());
+      state.ResumeTiming();
     }
 
     // Loop over the associative container, doing some dummy
@@ -83,7 +85,9 @@ void BM_STLAssocContainer_Flush(benchmark::State &state) {
 
   for (auto _ : state) {
     int sum = 0;
+    state.PauseTiming();
     FlushSTLAssocContainerFromCache(container.get());
+    state.ResumeTiming();
 
     // Loop over the associative container, doing some dummy
     // operations along the way.

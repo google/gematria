@@ -58,7 +58,9 @@ void BM_STLContainer_NoFlush(benchmark::State &state) {
   for (auto _ : state) {
     int sum = 0;
     if (kBalanceFlushingTime) {
+      state.PauseTiming();
       FlushSTLContainerFromCache(mock.get());
+      state.ResumeTiming();
     }
 
     // Loop over the container, doing some dummy
@@ -84,7 +86,9 @@ void BM_STLContainer_Flush(benchmark::State &state) {
 
   for (auto _ : state) {
     int sum = 0;
+    state.PauseTiming();
     FlushSTLContainerFromCache(container.get());
+    state.ResumeTiming();
 
     // Loop over the container, doing some dummy
     // operations along the way.
