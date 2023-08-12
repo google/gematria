@@ -81,8 +81,8 @@ void BM_STLAssocContainer_Flush(benchmark::State &state) {
   // Create a random associative container.
   auto container = CreateRandomSTLAssocContainer<Container>(size);
 
-  int sum = 0;
   for (auto _ : state) {
+    int sum = 0;
     FlushSTLAssocContainerFromCache(container.get());
 
     // Loop over the associative container, doing some dummy

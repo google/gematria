@@ -53,13 +53,13 @@ void BM_AccessLinkedList_NoFlush(benchmark::State &state) {
   }
 
   for (auto _ : state) {
-    // Traverse the linked list, doing some arbitrary operations on each element
-    // to mimic realistic use to some extent.
     int sum = 0;
     if (kBalanceFlushingTime) {
       FlushLinkedListFromCache(mock.get());
     }
 
+    // Traverse the linked list, doing some arbitrary operations on each element
+    // to mimic realistic use to some extent.
     Node *current = head.get();
 
     while (current) {
@@ -83,11 +83,11 @@ void BM_AccessLinkedList_Flush(benchmark::State &state) {
   auto head = CreateRandomLinkedList(size);
 
   for (auto _ : state) {
-    // Traverse the linked list, doing some arbitrary operations
-    // on each element to mimic realistic use to some extent.
     int sum = 0;
     FlushLinkedListFromCache(head.get());
 
+    // Traverse the linked list, doing some arbitrary operations
+    // on each element to mimic realistic use to some extent.
     Node *current = head.get();
 
     while (current) {

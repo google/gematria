@@ -82,8 +82,8 @@ void BM_STLContainer_Flush(benchmark::State &state) {
   // Create a random container.
   auto container = CreateRandomSTLContainer<Container>(size);
 
-  int sum = 0;
   for (auto _ : state) {
+    int sum = 0;
     FlushSTLContainerFromCache(container.get());
 
     // Loop over the container, doing some dummy

@@ -9,7 +9,7 @@ package(
 config_setting(
     name = "balance_flushing_time",
     define_values = {
-        "balance_flushing_time": "true",
+        "balance_flushing_time": "1",
     },
 )
 
