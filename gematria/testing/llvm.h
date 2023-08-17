@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_GEMATRIA_GEMATRIA_TESTING_LLVM_H_
 #define THIRD_PARTY_GEMATRIA_GEMATRIA_TESTING_LLVM_H_
 
+#include <cstdint>
 #include <vector>
 
 #include "gtest/gtest.h"
