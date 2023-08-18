@@ -86,3 +86,9 @@ with tf.Session() as sess:
   saver.restore(sess, _CHECKPOINT_FILE)
   output_blocks = model.Predict(sess, _INPUT_BLOCKS)
 ```
+
+## In-process C++ inference API
+
+For models based on graph neural network, we provide a native C++ API based on
+the TensorFlow Lite Framework. This API is described in a
+[separate document](granite-inference-api.md).

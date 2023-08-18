@@ -61,8 +61,7 @@ other architectures and platforms that run TensorFlow.
 
 ## Using the models
 
-See the [training](g3doc/training.md) and [inference](g3doc/inference-api.md)
-guides.
+See the [training](g3doc/training.md) guide and guides for [Python inference](g3doc/inference-api.md) and [C++ inference](g3doc/granite-inference-api.md).
 
 ## Repository structure
 
