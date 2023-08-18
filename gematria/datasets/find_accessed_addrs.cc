@@ -225,11 +225,14 @@ absl::Status ParentProcess(int child_pid, int pipe_read_fd,
     }
   }
 
-  // We copy in the code we're given, followed by our after-block code which
-  // cleanly exits the process. Otherwise if it finishes without segfaulting it
-  // will just run over into whatever is afterwards.
+  // We copy in our before-block code which sets up registers, followed by the
+  // code we're given, followed by our after-block code which cleanly exits the
+  // process. Otherwise if it finishes without segfaulting it will just run over
+  // into whatever is afterwards.
+  const auto before_block = GetGematriaBeforeBlockCode();
   const auto after_block = GetGematriaAfterBlockCode();
-  const auto total_block_size = basic_block.size() + after_block.size();
+  const auto total_block_size =
+      before_block.size() + basic_block.size() + after_block.size();
 
   uintptr_t desired_code_location = accessed_addrs.code_location;
   if (desired_code_location == 0) {
@@ -253,9 +256,11 @@ absl::Status ParentProcess(int child_pid, int pipe_read_fd,
 
   absl::Span<uint8_t> mapped_span = absl::MakeSpan(
       reinterpret_cast<uint8_t*>(mapped_address), total_block_size);
-  std::copy(basic_block.begin(), basic_block.end(), &mapped_span[0]);
+  std::copy(before_block.begin(), before_block.end(), &mapped_span[0]);
+  std::copy(basic_block.begin(), basic_block.end(),
+            &mapped_span[before_block.size()]);
   std::copy(after_block.begin(), after_block.end(),
-            &mapped_span[basic_block.size()]);
+            &mapped_span[before_block.size() + basic_block.size()]);
 
   auto mapped_func = reinterpret_cast<void (*)()>(mapped_address);
   mapped_func();

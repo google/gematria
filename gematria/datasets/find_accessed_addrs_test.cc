@@ -21,19 +21,16 @@
 #include <string_view>
 
 #include "absl/log/check.h"
-#include "absl/log/log_streamer.h"
 #include "absl/memory/memory.h"
 #include "absl/random/distributions.h"
 #include "absl/random/random.h"
 #include "absl/random/seed_sequences.h"
 #include "absl/strings/str_format.h"
-#include "absl/types/source_location.h"
 #include "absl/types/span.h"
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/InlineAsm.h"
 #include "llvm/MC/MCAsmInfo.h"
@@ -152,6 +149,15 @@ TEST_F(FindAccessedAddrsTest, MultipleAccesses) {
   EXPECT_THAT(FindAccessedAddrsAsm(R"asm(
     mov [0x10000], eax
     mov [0x20000], eax
+  )asm"),
+              IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
+                                 ElementsAre(0x10000, 0x20000))));
+}
+
+TEST_F(FindAccessedAddrsTest, AccessFromRegister) {
+  EXPECT_THAT(FindAccessedAddrsAsm(R"asm(
+    mov [eax], eax
+    mov [r11+r12], eax
   )asm"),
               IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
                                  ElementsAre(0x10000, 0x20000))));

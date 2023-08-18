@@ -24,11 +24,22 @@ extern "C" {
 // This is a function, defined in block_wrapper.S. But we're not going to call
 // it directly, we're going to copy it after the block we're given, and execute
 // the whole thing. So we declare it as a byte array instead.
+extern const uint8_t gematria_before_block;
+
+// Ditto.
 extern const uint8_t gematria_after_block;
 
 // A separate symbol, also defined in block_wrapper.S, which gives the size of
 // the function.
+extern const uint64_t gematria_before_block_size;
+
+// Ditto.
 extern const uint64_t gematria_after_block_size;
+}
+
+inline absl::Span<const uint8_t> GetGematriaBeforeBlockCode() {
+  return absl::MakeConstSpan(&gematria_before_block,
+                             gematria_before_block_size);
 }
 
 inline absl::Span<const uint8_t> GetGematriaAfterBlockCode() {
