@@ -16,10 +16,9 @@
 #define THIRD_PARTY_GEMATRIA_GEMATRIA_TESTING_PARSE_PROTO_H_
 
 #include <string>
+#include <utility>
 
 #include "absl/log/absl_check.h"
-#include "absl/log/absl_log.h"
-#include "google/protobuf/io/tokenizer.h"
 #include "google/protobuf/text_format.h"
 
 namespace gematria {
@@ -30,7 +29,8 @@ namespace internal {
 // cast operator that parses the text proto as the requested output type.
 class ParseProtoHelper {
  public:
-  explicit ParseProtoHelper(std::string text_proto)
+  template <typename StringType>
+  explicit ParseProtoHelper(StringType text_proto)
       : text_proto_(std::move(text_proto)) {}
 
   template <typename Proto>
@@ -60,7 +60,8 @@ class ParseProtoHelper {
 //    scaling: 2
 //    segment: 'FS'
 //  )pb");
-inline internal::ParseProtoHelper ParseTextProto(std::string text_proto) {
+template <typename StringType>
+inline internal::ParseProtoHelper ParseTextProto(StringType text_proto) {
   return internal::ParseProtoHelper(std::move(text_proto));
 }
 

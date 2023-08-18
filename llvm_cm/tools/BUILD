@@ -8,8 +8,8 @@ cc_binary(
     deps = [
         "//gematria/basic_block",
         "//gematria/granite:graph_builder",
+        "//gematria/granite:graph_builder_model_inference",
         "//gematria/llvm:canonicalizer",
-        "//research/devtools/exegesis/gematria/granite:graph_builder_model_inference",
         "//research/devtools/exegesis/llvm:mcinst_utils",
         "//third_party/tensorflow/lite:framework",
         "//third_party/tensorflow/lite/c:c_api_types",

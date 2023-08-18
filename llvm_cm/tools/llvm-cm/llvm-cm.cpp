@@ -29,6 +29,7 @@
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "gematria/basic_block/basic_block.h"
+#include "gematria/granite/graph_builder_model_inference.h"
 #include "gematria/llvm/canonicalizer.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
@@ -77,7 +78,6 @@
 #include "llvm/Support/WithColor.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
-#include "research/devtools/exegesis/gematria/granite/graph_builder_model_inference.h"
 #include "research/devtools/exegesis/llvm/mcinst_utils.h"
 #include "tensorflow/lite/model_builder.h"
 
