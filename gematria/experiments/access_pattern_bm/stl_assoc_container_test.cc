@@ -95,7 +95,6 @@ void BM_STLAssocContainer_Flush(benchmark::State &state) {
     }
 
     benchmark::DoNotOptimize(sum);
-    sum = 0;
   }
 }
 

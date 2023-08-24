@@ -97,7 +97,6 @@ void BM_STLContainer_Flush(benchmark::State &state) {
     }
 
     benchmark::DoNotOptimize(sum);
-    sum = 0;
   }
 }
 
