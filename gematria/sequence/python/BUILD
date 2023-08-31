@@ -20,7 +20,9 @@ gematria_py_binary(
 gematria_py_library(
     name = "sequence_model",
     srcs = ["sequence_model.py"],
-    visibility = ["//:internal_users"],
+    visibility = [
+        "//visibility:private",
+    ],
     deps = [
         "//gematria/basic_block/python:basic_block",
         "//gematria/model/python:model_base",
@@ -48,7 +50,9 @@ gematria_py_test(
 gematria_py_library(
     name = "sequence_model_hlstm",
     srcs = ["sequence_model_hlstm.py"],
-    visibility = ["//:internal_users"],
+    visibility = [
+        "//visibility:private",
+    ],
     deps = [
         ":sequence_model",
         "//gematria/model/python:model_base",

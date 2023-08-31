@@ -8,7 +8,7 @@ gematria_py_library(
     name = "inference",
     srcs = ["inference.py"],
     visibility = [
-        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
+        "//visibility:private",
     ],
     deps = [
         ":model_base",
@@ -34,7 +34,7 @@ gematria_py_library(
     name = "loss_utils",
     srcs = ["loss_utils.py"],
     visibility = [
-        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
+        "//visibility:private",
     ],
     deps = [
         ":options",
