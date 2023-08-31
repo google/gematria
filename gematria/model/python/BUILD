@@ -211,7 +211,7 @@ gematria_py_library(
     name = "training",
     srcs = ["training.py"],
     visibility = [
-        "//visibility:private",  # Only private by automation, not intent. Owner may accept CLs adding visibility. See go/scheuklappen#explicit-private.
+        "//visibility:private",
     ],
     deps = [
         "//gematria/basic_block/python:basic_block",
