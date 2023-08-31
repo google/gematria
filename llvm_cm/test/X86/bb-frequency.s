@@ -1,4 +1,5 @@
 ## LLVM-CM frequency weighting test.
+# REQUIRES: x86
 # RUN: split-file %s %t
 # RUN: llvm-mc -o %t.o --filetype=obj -triple=x86_64-unknown-linux-gnu %t/bb-frequency-test.s
 # RUN: llvm-cm %t.o --csv=%t/bb-frequency.csv -granite_model=%S/Inputs/gb-token-mit-2022_12_02.tflite -evaluator=granite| FileCheck %t/bb-frequency-test.s
