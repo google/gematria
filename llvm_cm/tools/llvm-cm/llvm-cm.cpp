@@ -78,7 +78,6 @@
 #include "llvm/Support/WithColor.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
-#include "research/devtools/exegesis/llvm/mcinst_utils.h"
 #include "tensorflow/lite/model_builder.h"
 
 using namespace llvm;
@@ -142,6 +141,13 @@ static void exitIf(bool Cond, Twine Message) {
     WithColor::error(errs(), "llvm-cm") << Message << "\n";
     std::exit(1);
   }
+}
+
+static bool instructionTerminatesBasicBlock(const MCInstrInfo &instruction_info,
+                                            const MCInst &inst) {
+  const MCInstrDesc &desc = instruction_info.get(inst.getOpcode());
+  return desc.isReturn() || desc.isCall() || desc.isBranch() || desc.isTrap() ||
+         desc.isBarrier() || desc.hasUnmodeledSideEffects();
 }
 
 double calcFrequency(StringRef CurrSymbol,
@@ -250,7 +256,7 @@ class GraniteCostModel : public CostModel {
   }
 
   void handleInstr(MCInst &Inst, MCInstrInfo &MII) override {
-    if (!exegesis::InstructionTerminatesBasicBlock(MII, Inst) &&
+    if (!instructionTerminatesBasicBlock(MII, Inst) &&
         MII.getName(Inst.getOpcode()) != "CDQ" &&
         MII.getName(Inst.getOpcode()) != "NOOP") {
       InstVec.push_back(Inst);
