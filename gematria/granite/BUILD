@@ -62,9 +62,6 @@ cc_test(
     name = "graph_builder_model_inference_test",
     size = "small",
     srcs = ["graph_builder_model_inference_test.cc"],
-    data = [
-        "//research/devtools/exegesis/gematria/granite/models:gb-token-mit-2022_12_02.tflite",
-    ],
     deps = [
         ":graph_builder_model_inference",
         "//file/base:path",
