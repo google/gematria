@@ -7,7 +7,6 @@ cc_binary(
     srcs = ["llvm-cm/llvm-cm.cpp"],
     deps = [
         "//gematria/basic_block",
-        "//gematria/granite:graph_builder",
         "//gematria/granite:graph_builder_model_inference",
         "//gematria/llvm:canonicalizer",
         "//third_party/tensorflow/lite:framework",

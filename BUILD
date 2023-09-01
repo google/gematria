@@ -9,7 +9,10 @@ exports_files(["LICENSE"])
 package_group(
     name = "external_users",
     includes = [":internal_users"],
-    packages = [],
+    packages = [
+        # llvm-cm prototype.
+        "//llvm_cm/...",
+    ],
 )
 
 # A package group used for internal visibility within the EXEgesis code.

@@ -6,7 +6,7 @@ cc_library(
     name = "basic_block",
     srcs = ["basic_block.cc"],
     hdrs = ["basic_block.h"],
-    visibility = ["//:internal_users"],
+    visibility = ["//:external_users"],
     deps = [
         "@com_google_absl//absl/log:absl_check",
         "@com_google_absl//absl/strings",
