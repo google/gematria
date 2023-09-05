@@ -72,6 +72,7 @@ cc_test(
         ":find_accessed_addrs",
         "//gematria/llvm:asm_parser",
         "//gematria/llvm:llvm_architecture_support",
+        "//gematria/testing:matchers",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/random",

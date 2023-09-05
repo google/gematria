@@ -29,6 +29,7 @@
 #include "absl/types/span.h"
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/llvm_architecture_support.h"
+#include "gematria/testing/matchers.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "llvm/ADT/SmallVector.h"
@@ -47,7 +48,6 @@ namespace {
 using testing::ElementsAre;
 using testing::Field;
 using testing::IsEmpty;
-using testing::status::IsOkAndHolds;
 
 uintptr_t AlignDown(uintptr_t x, size_t align) { return x - (x % align); }
 
@@ -102,9 +102,7 @@ TEST_F(FindAccessedAddrsTest, BasicMov) {
 }
 
 TEST_F(FindAccessedAddrsTest, DISABLED_SingleAddressRandomTests) {
-  absl::BitGen rng(
-      absl::MakeTaggedSeedSeq("FIND_ACCESSED_ADDRS_SINGLE_ADDRESS_RANDOM_TESTS",
-                              absl::LogInfoStreamer(ABSL_LOC).stream()));
+  absl::BitGen rng;
 
   // See https://www.kernel.org/doc/html/latest/x86/x86_64/mm.html for
   // a full description of the address space on Linux x86_64, which this test
@@ -130,13 +128,13 @@ TEST_F(FindAccessedAddrsTest, DISABLED_SingleAddressRandomTests) {
       mov ebx, [rax]
     )asm",
                                 addr);
-    ASSERT_OK_AND_ASSIGN(const AccessedAddrs result,
-                         FindAccessedAddrsAsm(code));
+    const absl::StatusOr<AccessedAddrs> result = FindAccessedAddrsAsm(code);
+    ASSERT_OK(result.status());
 
-    EXPECT_THAT(result.accessed_blocks,
-                ElementsAre(AlignDown(addr, result.block_size)));
-    EXPECT_GT(result.code_location, 0);
-    EXPECT_LT(result.code_location, kMaxUserModeAddress);
+    EXPECT_THAT(result->accessed_blocks,
+                ElementsAre(AlignDown(addr, result->block_size)));
+    EXPECT_GT(result->code_location, 0);
+    EXPECT_LT(result->code_location, kMaxUserModeAddress);
   }
 }
 
