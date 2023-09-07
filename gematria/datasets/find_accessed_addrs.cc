@@ -183,6 +183,9 @@ absl::Status ParentProcess(int child_pid, int pipe_read_fd,
     return absl::InternalError(
         absl::StrFormat("Failed to kill child process: %s", err_str));
   }
+  // We must wait on the child after killing it, otherwise it remains as a
+  // zombie process.
+  waitpid(child_pid, nullptr, 0);
 
   if (!result.ok()) {
     return result;
