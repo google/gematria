@@ -48,7 +48,9 @@ void BM_ContiguousMatrix_NoFlush(benchmark::State &state) {
   for (auto _ : state) {
     int sum = 0;
     if (kBalanceFlushingTime) {
+      state.PauseTiming();
       FlushContiguousMatrixFromCache(mock.get(), size);
+      state.ResumeTiming();
     }
 
     // Loop over the matrix, doing some dummy operations along the way.
@@ -72,7 +74,9 @@ void BM_ContiguousMatrix_Flush(benchmark::State &state) {
 
   for (auto _ : state) {
     int sum = 0;
+    state.PauseTiming();
     FlushContiguousMatrixFromCache(matrix.get(), size);
+    state.ResumeTiming();
 
     // Loop over the matrix, doing some dummy operations along the way.
     for (int i = 0; i < size; ++i) {

@@ -49,7 +49,7 @@ git_repository(
     patch_args = ["-p1"],
     patches = ["@//:benchmark_build.patch"],
     remote = "https://github.com/google/benchmark.git",
-    tag = "v1.8.2",
+    tag = "v1.8.3",
 )
 
 # rules_foreign_cc is required to build libpfm4 since it is originally

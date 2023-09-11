@@ -49,7 +49,9 @@ void BM_VecOfVecMatrix_NoFlush(benchmark::State &state) {
   for (auto _ : state) {
     int sum = 0;
     if (kBalanceFlushingTime) {
+      state.PauseTiming();
       FlushVecOfVecMatrixFromCache(mock.get());
+      state.ResumeTiming();
     }
 
     // Loop over the matrix, doing some dummy
@@ -74,7 +76,9 @@ void BM_VecOfVecMatrix_Flush(benchmark::State &state) {
 
   for (auto _ : state) {
     int sum = 0;
+    state.PauseTiming();
     FlushVecOfVecMatrixFromCache(matrix.get());
+    state.ResumeTiming();
 
     // Loop over the matrix, doing some dummy
     // operations along the way.

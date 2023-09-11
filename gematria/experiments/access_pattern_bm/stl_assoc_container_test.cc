@@ -49,20 +49,21 @@ void BM_STLAssocContainer_NoFlush(benchmark::State &state) {
   auto container = CreateRandomSTLAssocContainer<Container>(size);
   std::unique_ptr<Container> mock;
   if (kBalanceFlushingTime) {
-    auto mock = CreateRandomSTLAssocContainer<Container>(size);
+    mock = CreateRandomSTLAssocContainer<Container>(size);
   }
 
   for (auto _ : state) {
     int sum = 0;
     if (kBalanceFlushingTime) {
+      state.PauseTiming();
       FlushSTLAssocContainerFromCache(mock.get());
+      state.ResumeTiming();
     }
 
     // Loop over the associative container, doing some dummy
     // operations along the way.
-    for (typename Container::iterator it = container->begin();
-         it != container->end(); ++it) {
-      sum += it->second;
+    for (const auto &[key, value] : *container) {
+      sum += value;
     }
 
     benchmark::DoNotOptimize(sum);
@@ -81,9 +82,11 @@ void BM_STLAssocContainer_Flush(benchmark::State &state) {
   // Create a random associative container.
   auto container = CreateRandomSTLAssocContainer<Container>(size);
 
-  int sum = 0;
   for (auto _ : state) {
+    int sum = 0;
+    state.PauseTiming();
     FlushSTLAssocContainerFromCache(container.get());
+    state.ResumeTiming();
 
     // Loop over the associative container, doing some dummy
     // operations along the way.
@@ -92,7 +95,6 @@ void BM_STLAssocContainer_Flush(benchmark::State &state) {
     }
 
     benchmark::DoNotOptimize(sum);
-    sum = 0;
   }
 }
 
