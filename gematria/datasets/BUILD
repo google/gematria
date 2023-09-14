@@ -39,6 +39,15 @@ cc_test(
     ],
 )
 
+cc_binary(
+    name = "find_accessed_addrs_from_bhive",
+    srcs = ["find_accessed_addrs_from_bhive.cc"],
+    deps = [
+        ":find_accessed_addrs",
+        "//gematria/utils:string",
+    ],
+)
+
 cc_library(
     name = "find_accessed_addrs",
     srcs = ["find_accessed_addrs.cc"],
