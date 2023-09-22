@@ -32,6 +32,7 @@ cc_library(
 cc_test(
     name = "linked_list_test",
     size = "small",
+    timeout = "moderate",
     srcs = COMMON_TEST_HDRS + [
         "linked_list.h",
         "linked_list_test.cc",
@@ -54,6 +55,7 @@ cc_library(
 cc_test(
     name = "contiguous_matrix_test",
     size = "small",
+    timeout = "moderate",
     srcs = COMMON_TEST_HDRS + [
         "contiguous_matrix.h",
         "contiguous_matrix_test.cc",
@@ -76,6 +78,7 @@ cc_library(
 cc_test(
     name = "vec_of_vec_matrix_test",
     size = "small",
+    timeout = "moderate",
     srcs = COMMON_TEST_HDRS + [
         "vec_of_vec_matrix.h",
         "vec_of_vec_matrix_test.cc",
@@ -90,6 +93,7 @@ cc_test(
 cc_test(
     name = "stl_container_test",
     size = "small",
+    timeout = "long",
     srcs = COMMON_TEST_HDRS + [
         "stl_container.h",
         "stl_container_test.cc",
@@ -103,6 +107,7 @@ cc_test(
 cc_test(
     name = "stl_assoc_container_test",
     size = "small",
+    timeout = "moderate",
     srcs = COMMON_TEST_HDRS + [
         "stl_assoc_container.h",
         "stl_assoc_container_test.cc",
