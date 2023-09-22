@@ -205,6 +205,8 @@ class BhiveImporterTest(absltest.TestCase):
         line="4829d38b44246c8b54246848c1fb034829d04839c3,10",
         base_address=600,
         throughput_scaling=2.0,
+        machine_code_hex_column_index=0,
+        throughput_column_index=1,
     )
     self.assertEqual(
         block_proto,
