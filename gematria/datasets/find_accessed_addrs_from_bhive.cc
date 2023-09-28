@@ -17,18 +17,27 @@
 #include <string>
 #include <string_view>
 
+#include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
 #include "gematria/datasets/find_accessed_addrs.h"
 #include "gematria/utils/string.h"
 
+ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
+ABSL_FLAG(bool, failures_only, false,
+          "Only produce output for blocks which FindAccessedAddrs fails on");
+
 int main(int argc, char* argv[]) {
-  if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <bhive csv filename>\n";
+  absl::ParseCommandLine(argc, argv);
+
+  std::string bhive_filename = absl::GetFlag(FLAGS_bhive_csv);
+  if (bhive_filename.empty()) {
+    std::cerr << "Error: --bhive_csv is required\n";
     return 1;
   }
 
+  std::ifstream bhive_csv_file(bhive_filename);
   int successful_calls = 0;
   int total_calls = 0;
-  std::ifstream bhive_csv_file(argv[1]);
   for (std::string line; std::getline(bhive_csv_file, line);) {
     auto comma_index = line.find(',');
     if (comma_index == std::string::npos) {
@@ -48,19 +57,21 @@ int main(int argc, char* argv[]) {
     if (addrs_or.ok()) {
       successful_calls++;
 
-      auto addrs = addrs_or.value();
-      std::cout << "Successfully found addresses for block '" << hex << "'"
-                << ". When mapped at 0x" << std::hex << addrs.code_location
-                << ", block accesses addresses in " << std::dec
-                << addrs.accessed_blocks.size() << " chunk(s) of size 0x"
-                << std::hex << addrs.block_size << ":";
+      if (!absl::GetFlag(FLAGS_failures_only)) {
+        auto addrs = addrs_or.value();
+        std::cout << "Successfully found addresses for block '" << hex << "'"
+                  << ". When mapped at 0x" << std::hex << addrs.code_location
+                  << ", block accesses addresses in " << std::dec
+                  << addrs.accessed_blocks.size() << " chunk(s) of size 0x"
+                  << std::hex << addrs.block_size << ":";
 
-      for (const auto& addr : addrs.accessed_blocks) {
-        std::cout << " 0x" << addr;
+        for (const auto& addr : addrs.accessed_blocks) {
+          std::cout << " 0x" << addr;
 
-        if (&addr != &addrs.accessed_blocks.back()) std::cout << ",";
+          if (&addr != &addrs.accessed_blocks.back()) std::cout << ",";
+        }
+        std::cout << "\n";
       }
-      std::cout << "\b\n";
     } else {
       std::cerr << "Failed to find addresses for block '" << hex
                 << "': " << addrs_or.status() << "\n";

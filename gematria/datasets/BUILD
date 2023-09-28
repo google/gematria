@@ -45,6 +45,8 @@ cc_binary(
     deps = [
         ":find_accessed_addrs",
         "//gematria/utils:string",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
     ],
 )
 
