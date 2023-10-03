@@ -14,12 +14,16 @@
 
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <string_view>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "gematria/datasets/bhive_importer.h"
 #include "gematria/datasets/find_accessed_addrs.h"
+#include "gematria/llvm/canonicalizer.h"
+#include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
 
 ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
@@ -34,6 +38,11 @@ int main(int argc, char* argv[]) {
     std::cerr << "Error: --bhive_csv is required\n";
     return 1;
   }
+
+  const std::unique_ptr<gematria::LlvmArchitectureSupport> llvm_support =
+      gematria::LlvmArchitectureSupport::X86_64();
+  gematria::X86Canonicalizer canonicalizer(&llvm_support->target_machine());
+  gematria::BHiveImporter bhive_importer(&canonicalizer);
 
   std::ifstream bhive_csv_file(bhive_filename);
   int successful_calls = 0;
@@ -75,6 +84,13 @@ int main(int argc, char* argv[]) {
     } else {
       std::cerr << "Failed to find addresses for block '" << hex
                 << "': " << addrs_or.status() << "\n";
+      auto proto = bhive_importer.BasicBlockProtoFromMachineCode(bytes);
+      if (proto.ok()) {
+        std::cerr << "Block disassembly:\n";
+        for (const auto& instr : proto->machine_instructions()) {
+          std::cerr << "\t" << instr.assembly() << "\n";
+        }
+      }
     }
     total_calls++;
   }

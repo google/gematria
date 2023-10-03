@@ -43,7 +43,10 @@ cc_binary(
     name = "find_accessed_addrs_from_bhive",
     srcs = ["find_accessed_addrs_from_bhive.cc"],
     deps = [
+        ":bhive_importer",
         ":find_accessed_addrs",
+        "//gematria/llvm:canonicalizer",
+        "//gematria/llvm:llvm_architecture_support",
         "//gematria/utils:string",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
