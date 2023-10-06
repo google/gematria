@@ -20,7 +20,6 @@
 
 #include "absl/status/status.h"
 #include "gematria/llvm/llvm_architecture_support.h"
-#include "gematria/proto/basic_block.pb.h"
 #include "gematria/testing/llvm.h"
 #include "gematria/testing/matchers.h"
 #include "gmock/gmock.h"
@@ -40,33 +39,23 @@ using ::testing::ElementsAreArray;
 using ::testing::Field;
 using ::testing::IsEmpty;
 using ::testing::Matcher;
-using ::testing::Property;
 using ::testing::ResultOf;
 
-template <typename InstructionMatcherType, typename MCInstMatcherType>
-testing::Matcher<DisassembledInstruction> IsDisassembledInstruction(
-    InstructionMatcherType instruction, MCInstMatcherType mcinst) {
-  return AllOf(
-      Field("instruction", &DisassembledInstruction::instruction, instruction),
-      Field("mc_inst", &DisassembledInstruction::mc_inst, mcinst));
-}
-
 template <typename AddressMatcher, typename AssemblyMatcher,
-          typename MachineCodeMatcher>
-Matcher<MachineInstructionProto> IsMachineInstructionProto(
+          typename MachineCodeMatcher, typename MCInstMatcherType>
+testing::Matcher<DisassembledInstruction> IsDisassembledInstruction(
     AddressMatcher address, AssemblyMatcher assembly,
-    MachineCodeMatcher machine_code) {
-  return AllOf(
-      Property("address", &MachineInstructionProto::address, address),
-      Property("assembly", &MachineInstructionProto::assembly, assembly),
-      Property("machine_code", &MachineInstructionProto::machine_code,
-               machine_code));
+    MachineCodeMatcher machine_code, MCInstMatcherType mcinst) {
+  return AllOf(Field("address", &DisassembledInstruction::address, address),
+               Field("assembly", &DisassembledInstruction::assembly, assembly),
+               Field("machine_code", &DisassembledInstruction::machine_code,
+                     machine_code),
+               Field("mc_inst", &DisassembledInstruction::mc_inst, mcinst));
 }
 
 Matcher<DisassembledInstruction> IsX86Nop(Matcher<uint64_t> address) {
   return IsDisassembledInstruction(
-      IsMachineInstructionProto(address, EqualsNormalizingWhitespace("nop"),
-                                "\x90"),
+      address, EqualsNormalizingWhitespace("nop"), "\x90",
       IsMCInst(
           /*opcode_matcher=*/ResultOf("llvm::X86::isNOP", &llvm::X86::isNOP,
                                       testing::IsTrue()),
@@ -75,8 +64,7 @@ Matcher<DisassembledInstruction> IsX86Nop(Matcher<uint64_t> address) {
 
 Matcher<DisassembledInstruction> IsX86MovRaxRbx(Matcher<uint64_t> address) {
   return IsDisassembledInstruction(
-      IsMachineInstructionProto(
-          address, EqualsNormalizingWhitespace("mov rax, rbx"), "\x48\x89\xd8"),
+      address, EqualsNormalizingWhitespace("mov rax, rbx"), "\x48\x89\xd8",
       IsMCInst(
           /*opcode_matcher=*/llvm::X86::MOV64rr,
           /*operands_matcher=*/ElementsAre(IsRegister(llvm::X86::RAX),

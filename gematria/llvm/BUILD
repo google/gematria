@@ -95,7 +95,6 @@ cc_library(
     hdrs = ["disassembler.h"],
     visibility = ["//:internal_users"],
     deps = [
-        "//gematria/proto:basic_block_cc_proto",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -113,7 +112,6 @@ cc_test(
     deps = [
         ":disassembler",
         ":llvm_architecture_support",
-        "//gematria/proto:basic_block_cc_proto",
         "//gematria/testing:llvm",
         "//gematria/testing:matchers",
         "@com_google_absl//absl/status",

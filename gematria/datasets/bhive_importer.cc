@@ -73,8 +73,11 @@ absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMachineCode(
   if (!instructions_or_status.ok()) return instructions_or_status.status();
 
   for (DisassembledInstruction& instruction : instructions_or_status.value()) {
-    *basic_block_proto.add_machine_instructions() =
-        std::move(instruction.instruction);
+    MachineInstructionProto& machine_instruction =
+        *basic_block_proto.add_machine_instructions();
+    machine_instruction.set_address(instruction.address);
+    machine_instruction.set_assembly(instruction.assembly);
+    machine_instruction.set_machine_code(instruction.machine_code);
     *basic_block_proto.add_canonicalized_instructions() = ProtoFromInstruction(
         canonicalizer_.InstructionFromMCInst(instruction.mc_inst));
   }

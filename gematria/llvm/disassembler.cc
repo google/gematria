@@ -15,6 +15,8 @@
 #include "gematria/llvm/disassembler.h"
 
 #include <cstdint>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/status/status.h"
@@ -63,7 +65,7 @@ absl::StatusOr<DisassembledInstruction> DisassembleOneInstruction(
   const uint64_t instruction_address =
       reinterpret_cast<uint64_t>(machine_code.data());
   uint64_t instruction_size = 0;
-  result.instruction.set_address(base_address);
+  result.address = base_address;
   using DecodeStatus = llvm::MCDisassembler::DecodeStatus;
   const DecodeStatus status = disassembler.getInstruction(
       result.mc_inst, instruction_size, data, instruction_address, output);
@@ -85,12 +87,10 @@ absl::StatusOr<DisassembledInstruction> DisassembleOneInstruction(
         ") is bigger than the input buffer (", machine_code.size(), ")."));
   }
 
-  std::string instruction_machine_code(machine_code.begin(),
-                                       machine_code.begin() + instruction_size);
-  result.instruction.set_machine_code(std::move(instruction_machine_code));
-  result.instruction.set_assembly(
-      AssemblyFromMCInst(instruction_info, register_info, subtarget_info,
-                         printer, result.mc_inst));
+  result.machine_code.assign(machine_code.begin(),
+                             machine_code.begin() + instruction_size);
+  result.assembly = AssemblyFromMCInst(instruction_info, register_info,
+                                       subtarget_info, printer, result.mc_inst);
   machine_code.remove_prefix(instruction_size);
   return result;
 }
@@ -115,7 +115,7 @@ absl::StatusOr<std::vector<DisassembledInstruction>> DisassembleAllInstructions(
           " with error: ", instruction_or_status.status().ToString()));
     }
     result.push_back(std::move(instruction_or_status).value());
-    num_consumed_bytes += result.back().instruction.machine_code().size();
+    num_consumed_bytes += result.back().machine_code.size();
   }
 
   return std::move(result);

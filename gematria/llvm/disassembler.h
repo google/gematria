@@ -16,25 +16,31 @@
 #define THIRD_PARTY_GEMATRIA_GEMATRIA_LLVM_DISASSEMBLER_H_
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
-#include "gematria/proto/basic_block.pb.h"
-#include "llvm/include/llvm/MC/MCDisassembler/MCDisassembler.h"
-#include "llvm/include/llvm/MC/MCInst.h"
-#include "llvm/include/llvm/MC/MCInstPrinter.h"
-#include "llvm/include/llvm/MC/MCInstrInfo.h"
-#include "llvm/include/llvm/MC/MCRegisterInfo.h"
-#include "llvm/include/llvm/MC/MCSubtargetInfo.h"
+#include "llvm/MC/MCDisassembler/MCDisassembler.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCInstPrinter.h"
+#include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/MC/MCSubtargetInfo.h"
 
 namespace gematria {
 
 // The result of disassembling an instruction. Contains the data of the
-// instruction in the form of the output llvm::MCInst and a
-// MachineInstructionProto that contains the data of the machine instruction.
+// instruction in the form of the output llvm::MCInst and the information needed
+// to fill in a MachineInstructionProto.
 struct DisassembledInstruction {
-  MachineInstructionProto instruction;
+  // The address of the instruction.
+  uint64_t address = 0;
+  // The assembly code of the instruction.
+  std::string assembly;
+  // The binary code of the instruction.
+  std::string machine_code;
+
   llvm::MCInst mc_inst;
 };
 

@@ -22,6 +22,7 @@
 #ifndef GEMATRIA_BASIC_BLOCK_BASIC_BLOCK_H_
 #define GEMATRIA_BASIC_BLOCK_BASIC_BLOCK_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <ostream>
 #include <string>
@@ -279,6 +280,11 @@ struct Instruction {
   // machine learning task easier, we present also the explicit output operands
   // to the ML models explicitly.
   std::vector<InstructionOperand> implicit_output_operands;
+
+  // The address of the instruction.
+  uint64_t address = 0;
+  // The size of the instruction.
+  size_t size = 0;
 };
 
 std::ostream& operator<<(std::ostream& os, const Instruction& instruction);
