@@ -87,10 +87,10 @@ absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMachineCode(
 absl::StatusOr<BasicBlockProto>
 BHiveImporter::BasicBlockProtoFromMachineCodeHex(
     std::string_view machine_code_hex, uint64_t base_address /*= 0*/) {
-  const absl::StatusOr<std::vector<uint8_t>> machine_code_bytes_or_status =
-      ParseHexString(machine_code_hex);
-  if (!machine_code_bytes_or_status.ok()) {
-    return machine_code_bytes_or_status.status();
+  const auto machine_code_bytes_or_status = ParseHexString(machine_code_hex);
+  if (!machine_code_bytes_or_status.has_value()) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("cannot parse: ", machine_code_hex));
   }
 
   return BasicBlockProtoFromMachineCode(machine_code_bytes_or_status.value(),

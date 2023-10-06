@@ -131,8 +131,11 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
     absl::StripAsciiWhitespace(&line);
     if (line.empty()) continue;
 
-    absl::StatusOr<std::vector<uint8_t>> machine_code = ParseHexString(line);
-    if (!machine_code.ok()) return machine_code.status();
+    auto machine_code = ParseHexString(line);
+    // TODO(mtrofin): the absl dependency is about to be removed, this is
+    // point-in-time
+    if (!machine_code.has_value())
+      return absl::InvalidArgumentError("cannot parse");
 
     absl::StatusOr<std::vector<DisassembledInstruction>>
         disassembled_instructions =

@@ -22,27 +22,26 @@
 #ifndef GEMATRIA_BASIC_BLOCK_BASIC_BLOCK_H_
 #define GEMATRIA_BASIC_BLOCK_BASIC_BLOCK_H_
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <ostream>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
-
-#include "absl/log/absl_check.h"
-#include "absl/strings/string_view.h"
 
 namespace gematria {
 
 // Tokens used for instruction canonicalization in Gematria. The values used
 // here must be kept in sync with the values defined in
 // gematria/basic_block/python/tokens.py.
-inline constexpr absl::string_view kDelimiterToken = "_D_";
-inline constexpr absl::string_view kImmediateToken = "_IMMEDIATE_";
-inline constexpr absl::string_view kAddressToken = "_ADDRESS_";
-inline constexpr absl::string_view kMemoryToken = "_MEMORY_";
-inline constexpr absl::string_view kNoRegisterToken = "_NO_REGISTER_";
-inline constexpr absl::string_view kDisplacementToken = "_DISPLACEMENT_";
+inline constexpr std::string_view kDelimiterToken = "_D_";
+inline constexpr std::string_view kImmediateToken = "_IMMEDIATE_";
+inline constexpr std::string_view kAddressToken = "_ADDRESS_";
+inline constexpr std::string_view kMemoryToken = "_MEMORY_";
+inline constexpr std::string_view kNoRegisterToken = "_NO_REGISTER_";
+inline constexpr std::string_view kDisplacementToken = "_DISPLACEMENT_";
 
 // The type of an operand of an instruction.
 enum class OperandType {
@@ -175,35 +174,35 @@ class InstructionOperand {
 
   // Returns the name of the register. Valid only when type() is kRegister.
   const std::string& register_name() const {
-    ABSL_DCHECK_EQ(type_, OperandType::kRegister);
+    assert(type_ == OperandType::kRegister);
     return register_name_;
   }
 
   // Returns the immediate value in the operand. Valid only when type() is
   // kImmediateValue.
   uint64_t immediate_value() const {
-    ABSL_DCHECK_EQ(type_, OperandType::kImmediateValue);
+    assert(type_ == OperandType::kImmediateValue);
     return immediate_value_;
   }
 
   // Returns the floating point immediate value in the operand. Valid only when
   // type() is kFpImmediateValue.
   double fp_immediate_value() const {
-    ABSL_DCHECK_EQ(type_, OperandType::kFpImmediateValue);
+    assert(type_ == OperandType::kFpImmediateValue);
     return fp_immediate_value_;
   }
 
   // Returns the address computation data structure in the operand. Valid only
   // when type() is kAddress.
   const AddressTuple& address() const {
-    ABSL_DCHECK_EQ(type_, OperandType::kAddress);
+    assert(type_ == OperandType::kAddress);
     return address_;
   }
 
   // Returns the alias group ID of the memory access in the operand. Valid only
   // when type() is kMemory.
   int alias_group_id() const {
-    ABSL_DCHECK_EQ(type_, OperandType::kMemory);
+    assert(type_ == OperandType::kMemory);
     return alias_group_id_;
   }
 

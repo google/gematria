@@ -56,8 +56,8 @@ int main(int argc, char* argv[]) {
 
     std::string_view hex = std::string_view(line).substr(0, comma_index);
     auto bytes_or = gematria::ParseHexString(hex);
-    if (!bytes_or.ok()) {
-      std::cerr << bytes_or.status() << "\n";
+    if (!bytes_or.has_value()) {
+      std::cerr << "could not parse: " << hex << "\n";
       return 3;
     }
 

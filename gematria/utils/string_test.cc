@@ -14,11 +14,11 @@
 
 #include "gematria/utils/string.h"
 
+#include <cstdint>
+#include <optional>
 #include <string_view>
 #include <vector>
 
-#include "absl/status/status.h"
-#include "gematria/testing/matchers.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -26,6 +26,7 @@ namespace gematria {
 namespace {
 
 using ::testing::ElementsAreArray;
+using ::testing::Optional;
 
 TEST(ParseHexStringTest, SomeValidHexStrings) {
   const struct {
@@ -39,9 +40,8 @@ TEST(ParseHexStringTest, SomeValidHexStrings) {
        {0xAB, 0xCD, 0xEF, 0x1, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF}},
   };
   for (const auto& test_case : kTestCases) {
-    SCOPED_TRACE(absl::StrCat("test_case.hex_string = ", test_case.hex_string));
     EXPECT_THAT(ParseHexString(test_case.hex_string),
-                IsOkAndHolds(ElementsAreArray(test_case.expected_bytes)));
+                Optional(ElementsAreArray(test_case.expected_bytes)));
   }
 }
 
@@ -52,17 +52,14 @@ TEST(ParseHexStringTest, SomeInvalidHexStrings) {
       // Invalid character in the string.
       "f00bar"};
   for (const std::string_view& test_case : kTestCases) {
-    EXPECT_THAT(ParseHexString(test_case),
-                StatusIs(absl::StatusCode::kInvalidArgument));
+    EXPECT_EQ(ParseHexString(test_case), std::nullopt);
   }
 }
 
-TEST(FormatAsHexStringTest, EmptySpan) {
-  EXPECT_EQ(FormatAsHexString(absl::Span<uint8_t>()), "");
-}
+TEST(FormatAsHexStringTest, EmptySpan) { EXPECT_EQ(FormatAsHexString(""), ""); }
 
 TEST(FormatAsHexStringTest, NonEmptySpan) {
-  static constexpr uint8_t kBytes[] = {0x1, 0x23, 0xAB, 0xCD};
+  static constexpr char kBytes[] = {0x1, 0x23, 0xAB, 0xCD};
   EXPECT_EQ(FormatAsHexString(kBytes), "0123abcd");
 }
 

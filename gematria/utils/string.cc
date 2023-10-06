@@ -15,11 +15,9 @@
 #include "gematria/utils/string.h"
 
 #include <cstdint>
+#include <optional>
 #include <string_view>
-
-#include "absl/status/status.h"
-#include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
+#include <vector>
 
 namespace gematria {
 namespace {
@@ -41,20 +39,17 @@ int ParseHexDigit(char digit) {
 
 }  // namespace
 
-absl::StatusOr<std::vector<uint8_t>> ParseHexString(
+std::optional<std::vector<uint8_t>> ParseHexString(
     std::string_view hex_string) {
   if (hex_string.size() % 2 != 0) {
-    return absl::InvalidArgumentError(
-        "The input string has invalid format. Expected an even number of hex "
-        "digits with no whitespace.");
+    return std::nullopt;
   }
   std::vector<uint8_t> res;
   while (!hex_string.empty()) {
     const int hex_value =
         (ParseHexDigit(hex_string[0]) << 4) + ParseHexDigit(hex_string[1]);
     if (hex_value >= 256) {
-      return absl::InvalidArgumentError(absl::StrCat(
-          "Invalid hex string format starting with: '", hex_string, "'"));
+      return std::nullopt;
     }
     res.push_back(hex_value);
     hex_string.remove_prefix(2);

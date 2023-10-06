@@ -14,14 +14,15 @@
 
 #include "gematria/basic_block/basic_block.h"
 
+#include <cassert>
+#include <ios>
 #include <ostream>
+#include <sstream>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 #include <vector>
-
-#include "absl/log/absl_check.h"
-#include "absl/strings/str_cat.h"
 
 namespace gematria {
 
@@ -54,28 +55,30 @@ bool AddressTuple::operator==(const AddressTuple& other) const {
 }
 
 std::string AddressTuple::ToString() const {
-  std::string buffer = "AddressTuple(";
+  std::stringstream buffer;
+  buffer << "AddressTuple(";
   if (!base_register.empty()) {
-    absl::StrAppend(&buffer, "base_register='", base_register, "', ");
+    buffer << "base_register='" << base_register << "', ";
   }
   if (displacement != 0) {
-    absl::StrAppend(&buffer, "displacement=", displacement, ", ");
+    buffer << "displacement=" << displacement << ", ";
   }
   if (!index_register.empty()) {
-    absl::StrAppend(&buffer, "index_Register='", index_register, "', ");
+    buffer << "index_Register='" << index_register << "', ";
   }
   if (!index_register.empty() || scaling != 0) {
-    absl::StrAppend(&buffer, "scaling=", scaling, ", ");
+    buffer << "scaling=" << scaling << ", ";
   }
   if (!segment_register.empty()) {
-    absl::StrAppend(&buffer, "segment_register='", segment_register, "', ");
+    buffer << "segment_register='" << segment_register << "', ";
   }
   // If we added any keyword args to the buffer, drop the last two characters
   // (a comma and a space). This is not strictly necessary, but it looks better.
-  ABSL_DCHECK_GE(buffer.size(), 2);
-  if (buffer.back() == ' ') buffer.resize(buffer.size() - 2);
-  buffer.push_back(')');
-  return buffer;
+  auto msg = buffer.str();
+  assert(msg.size() >= 2);
+  if (msg.back() == ' ') msg.resize(msg.size() - 2);
+  msg.push_back(')');
+  return msg;
 }
 
 std::ostream& operator<<(std::ostream& os, const AddressTuple& address_tuple) {
@@ -196,30 +199,29 @@ std::vector<std::string> InstructionOperand::AsTokenList() const {
 }
 
 std::string InstructionOperand::ToString() const {
-  std::string buffer = "InstructionOperand";
+  std::stringstream buffer;
+  buffer << "InstructionOperand";
   switch (type()) {
     case OperandType::kUnknown:
-      buffer += "()";
+      buffer << "()";
       break;
     case OperandType::kRegister:
-      absl::StrAppend(&buffer, ".from_register('", register_name(), "')");
+      buffer << ".from_register('" << register_name() << "')";
       break;
     case OperandType::kImmediateValue:
-      absl::StrAppend(&buffer, ".from_immediate_value(", immediate_value(),
-                      ")");
+      buffer << ".from_immediate_value(" << immediate_value() << ")";
       break;
     case OperandType::kFpImmediateValue:
-      absl::StrAppend(&buffer, ".from_fp_immediate_value(",
-                      fp_immediate_value(), ")");
+      buffer << ".from_fp_immediate_value(" << fp_immediate_value() << ")";
       break;
     case OperandType::kAddress:
-      absl::StrAppend(&buffer, ".from_address(", address().ToString(), ")");
+      buffer << ".from_address(" << address().ToString() << ")";
       break;
     case OperandType::kMemory:
-      absl::StrAppend(&buffer, ".from_memory(", alias_group_id(), ")");
+      buffer << ".from_memory(" << alias_group_id() << ")";
       break;
   }
-  return buffer;
+  return buffer.str();
 }
 
 std::ostream& operator<<(std::ostream& os, const InstructionOperand& operand) {
@@ -253,45 +255,48 @@ bool Instruction::operator==(const Instruction& other) const {
 }
 
 std::string Instruction::ToString() const {
-  std::string buffer = "Instruction(";
+  std::stringstream buffer;
+  buffer << "Instruction(";
   if (!mnemonic.empty()) {
-    absl::StrAppend(&buffer, "mnemonic='", mnemonic, "', ");
+    buffer << "mnemonic='" << mnemonic << "', ";
   }
   if (!llvm_mnemonic.empty()) {
-    absl::StrAppend(&buffer, "llvm_mnemonic='", llvm_mnemonic, "', ");
+    buffer << "llvm_mnemonic='" << llvm_mnemonic << "', ";
   }
   if (!prefixes.empty()) {
-    absl::StrAppend(&buffer, "prefixes=(");
+    buffer << "prefixes=(";
     for (const std::string& prefix : prefixes) {
-      absl::StrAppend(&buffer, "'", prefix, "', ");
+      buffer << "'" << prefix << "', ";
     }
     // Pop only the trailing space. For simplicity, we leave the trailing comma
     // which is required in case there is only one element.
-    buffer.pop_back();
-    buffer += "), ";
+    buffer.seekp(-1, std::ios_base::end);
+    buffer << "), ";
   }
 
   auto add_operand_list = [&buffer](
-                              absl::string_view name,
+                              std::string_view name,
                               const std::vector<InstructionOperand>& operands) {
     if (operands.empty()) return;
-    absl::StrAppend(&buffer, name, "=(");
+    buffer << name << "=(";
     for (const InstructionOperand& operand : operands) {
-      absl::StrAppend(&buffer, operand.ToString(), ", ");
+      buffer << operand.ToString() << ", ";
     }
     // Pop only the trailing space. For simplicity, we leave the trailing comma
     // which is required in case there is only one element.
-    buffer.pop_back();
-    buffer += "), ";
+    buffer.seekp(-1, std::ios_base::end);
+    buffer << "), ";
   };
   add_operand_list("input_operands", input_operands);
   add_operand_list("implicit_input_operands", implicit_input_operands);
   add_operand_list("output_operands", output_operands);
   add_operand_list("implicit_output_operands", implicit_output_operands);
-  ABSL_DCHECK_GE(buffer.size(), 2);
-  if (buffer.back() == ' ') buffer.resize(buffer.size() - 2);
-  buffer.push_back(')');
-  return buffer;
+
+  auto msg = buffer.str();
+  assert(msg.size() >= 2);
+  if (msg.back() == ' ') msg.resize(msg.size() - 2);
+  msg.push_back(')');
+  return msg;
 }
 
 void Instruction::AddTokensToList(std::vector<std::string>& tokens) const {
@@ -337,7 +342,7 @@ std::string BasicBlock::ToString() const {
   if (!instructions.empty()) {
     buffer += "instructions=InstructionList((";
     for (const Instruction& instruction : instructions) {
-      absl::StrAppend(&buffer, instruction.ToString());
+      buffer += instruction.ToString();
       buffer += ", ";
     }
     if (buffer.back() == ' ') buffer.pop_back();

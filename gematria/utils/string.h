@@ -16,10 +16,13 @@
 #define THIRD_PARTY_GEMATRIA_GEMATRIA_UTILS_STRING_H_
 
 #include <cstdint>
+#include <iomanip>
+#include <ios>
+#include <optional>
+#include <sstream>
+#include <string>
+#include <string_view>
 #include <vector>
-
-#include "absl/status/statusor.h"
-#include "absl/strings/escaping.h"
 
 namespace gematria {
 
@@ -29,14 +32,16 @@ namespace gematria {
 // vector {0xAB, 0xCD, 0xEF}.
 // Returns an error when the string has an odd length or it contains characters
 // that are not hex digits.
-absl::StatusOr<std::vector<uint8_t>> ParseHexString(
-    std::string_view hex_string);
+std::optional<std::vector<uint8_t>> ParseHexString(std::string_view hex_string);
 
 // Formats `bytes` as a hex string that can be parsed with ParseHexString().
-inline std::string FormatAsHexString(absl::Span<const uint8_t> bytes) {
-  std::string_view bytes_as_string(reinterpret_cast<const char*>(bytes.data()),
-                                   bytes.size());
-  return absl::BytesToHexString(bytes_as_string);
+inline std::string FormatAsHexString(std::string_view bytes) {
+  std::stringstream out;
+  out << std::hex;
+  for (const auto byte : bytes) {
+    out << std::setfill('0') << std::setw(2) << static_cast<int>(byte);
+  }
+  return out.str();
 }
 
 }  // namespace gematria
