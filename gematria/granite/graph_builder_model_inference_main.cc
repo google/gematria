@@ -19,12 +19,14 @@
 //     --gematria_tflite_file models/granite_model.tflite \
 //     --gematria_basic_block_hex_file /dev/stdin
 
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include <memory>
 #include <ostream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/flags/flag.h"
@@ -36,12 +38,14 @@
 #include "absl/strings/string_view.h"
 #include "base/init_google.h"
 #include "gematria/basic_block/basic_block.h"
-#include "gematria/basic_block/basic_block_protos.h"
-#include "gematria/datasets/bhive_importer.h"
 #include "gematria/granite/graph_builder_model_inference.h"
 #include "gematria/llvm/canonicalizer.h"
+#include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
-#include "gematria/proto/basic_block.pb.h"
+#include "gematria/utils/string.h"
+#include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCInstPrinter.h"
 #include "tensorflow/lite/model_builder.h"
 
 ABSL_FLAG(std::string, gematria_tflite_file, "",
@@ -83,7 +87,9 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
   GraphBuilderModelInference& inference = **inference_or_status;
 
   X86Canonicalizer canonicalizer(&(*llvm_support)->target_machine());
-  BHiveImporter bhive_importer(&canonicalizer);
+
+  std::unique_ptr<llvm::MCInstPrinter> inst_printer =
+      (*llvm_support)->CreateMCInstPrinter(0);
 
   const auto run_inference_for_batch =
       [&](const std::vector<BasicBlock>& batch) -> absl::Status {
@@ -125,19 +131,36 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
     absl::StripAsciiWhitespace(&line);
     if (line.empty()) continue;
 
-    // TODO(ondrasej): Parse directly to BasicBlock.
-    absl::StatusOr<BasicBlockProto> block_proto =
-        bhive_importer.BasicBlockProtoFromMachineCodeHex(line);
-    if (!block_proto.ok()) return block_proto.status();
+    absl::StatusOr<std::vector<uint8_t>> machine_code = ParseHexString(line);
+    if (!machine_code.ok()) return machine_code.status();
+
+    absl::StatusOr<std::vector<DisassembledInstruction>>
+        disassembled_instructions =
+            DisassembleAllInstructions((*llvm_support)->mc_disassembler(),
+                                       (*llvm_support)->mc_instr_info(),
+                                       (*llvm_support)->mc_register_info(),
+                                       (*llvm_support)->mc_subtarget_info(),
+                                       *inst_printer, 0, *machine_code);
+    std::vector<llvm::MCInst> mc_insts;
+    mc_insts.reserve(disassembled_instructions->size());
+    for (const DisassembledInstruction& disassembled_instruction :
+         *disassembled_instructions) {
+      mc_insts.push_back(std::move(disassembled_instruction.mc_inst));
+    }
+
+    absl::StatusOr<BasicBlock> basic_block =
+        canonicalizer.BasicBlockFromMCInst(mc_insts);
+
+    if (!basic_block.ok()) return basic_block.status();
 
     if (batch.size() < max_num_blocks_per_batch) {
-      batch.push_back(BasicBlockFromProto(*block_proto));
+      batch.push_back(*std::move(basic_block));
     } else {
       if (absl::Status status = run_inference_for_batch(batch); status.ok()) {
         return status;
       }
       batch.clear();
-      batch.push_back(BasicBlockFromProto(*block_proto));
+      batch.push_back(*std::move(basic_block));
     }
   }
   // Process all remaining blocks.
