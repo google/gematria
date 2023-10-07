@@ -18,10 +18,10 @@
 #ifndef GEMATRIA_MODEL_OOV_TOKEN_BEHAVIOR_H_
 #define GEMATRIA_MODEL_OOV_TOKEN_BEHAVIOR_H_
 
+#include <cstdlib>
+#include <iostream>
 #include <string>
 #include <utility>
-
-#include "absl/log/absl_check.h"
 
 namespace gematria {
 
@@ -52,8 +52,11 @@ class OutOfVocabularyTokenBehavior {
   // vocabulary.
   static OutOfVocabularyTokenBehavior ReplaceWithToken(
       std::string replacement_token) {
-    ABSL_CHECK(!replacement_token.empty())
-        << "The replacement token must not be empty.";
+    if (replacement_token.empty()) {
+      // TODO(ondrasej): Make the method retrun a status.
+      std::cerr << "The replacement token must not be empty.";
+      std::abort();
+    }
     return OutOfVocabularyTokenBehavior(BehaviorType::kReplaceToken,
                                         std::move(replacement_token));
   }

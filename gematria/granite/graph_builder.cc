@@ -15,16 +15,17 @@
 #include "gematria/granite/graph_builder.h"
 
 #include <algorithm>
+#include <cassert>
+#include <cstdlib>
+#include <iostream>
 #include <ostream>
+#include <sstream>
 #include <string>
+#include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
-#include "absl/log/absl_check.h"
-#include "absl/log/absl_log.h"
-#include "absl/log/die_if_null.h"
-#include "absl/strings/str_join.h"
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/model/oov_token_behavior.h"
 
@@ -34,26 +35,25 @@ namespace {
 constexpr BasicBlockGraphBuilder::NodeIndex kInvalidNode(-1);
 constexpr BasicBlockGraphBuilder::TokenIndex kInvalidTokenIndex(-1);
 
-absl::flat_hash_map<std::string, BasicBlockGraphBuilder::TokenIndex> MakeIndex(
+std::unordered_map<std::string, BasicBlockGraphBuilder::TokenIndex> MakeIndex(
     std::vector<std::string> items) {
-  absl::flat_hash_map<std::string, BasicBlockGraphBuilder::TokenIndex> result;
+  std::unordered_map<std::string, BasicBlockGraphBuilder::TokenIndex> result;
   for (BasicBlockGraphBuilder::TokenIndex i = 0; i < items.size(); ++i) {
     const auto insertion_result = result.emplace(std::move(items[i]), i);
     if (!insertion_result.second) {
-      ABSL_LOG(FATAL) << "Duplicate item: '" << insertion_result.first->first
-                      << "'";
+      // TODO(ondrasej): Make this return a status.
+      std::cerr << "Duplicate item: '" << insertion_result.first->first << "'";
+      std::abort();
     }
   }
   return result;
 }
 
 BasicBlockGraphBuilder::TokenIndex FindTokenOrDie(
-    const absl::flat_hash_map<std::string, BasicBlockGraphBuilder::TokenIndex>&
+    const std::unordered_map<std::string, BasicBlockGraphBuilder::TokenIndex>&
         tokens,
-    absl::string_view token) {
-  const auto it = tokens.find(token);
-  ABSL_CHECK(it != tokens.end()) << "Token was not found: '" << token << "'";
-  return it->second;
+    const std::string& token) {
+  return tokens.at(token);
 }
 
 template <typename MapType, typename KeyType, typename DefaultType>
@@ -102,7 +102,7 @@ std::ostream& operator<<(std::ostream& os, EdgeType edge_type) {
 
 BasicBlockGraphBuilder::AddBasicBlockTransaction::AddBasicBlockTransaction(
     BasicBlockGraphBuilder* graph_builder)
-    : graph_builder_(*ABSL_DIE_IF_NULL(graph_builder)),
+    : graph_builder_(*graph_builder),
       prev_num_nodes_per_block_size_(
           graph_builder->num_nodes_per_block_.size()),
       prev_num_edges_per_block_size_(
@@ -122,17 +122,17 @@ void BasicBlockGraphBuilder::AddBasicBlockTransaction::Commit() {
   is_committed_ = true;
 }
 
-#define GEMATRIA_CHECK_AND_RESIZE(vector_name)                             \
-  do {                                                                     \
-    const size_t original_size = prev_##vector_name##size_;                \
-    ABSL_CHECK_LE(original_size, graph_builder_.vector_name.size())        \
-        << "The size of " << #vector_name                                  \
-        << " has decreased. Did you call BasicBlockGraphBuilder::Reset()"; \
-    graph_builder_.vector_name.resize(original_size);                      \
+#define GEMATRIA_CHECK_AND_RESIZE(vector_name)                              \
+  do {                                                                      \
+    const size_t original_size = prev_##vector_name##size_;                 \
+    assert(original_size <= graph_builder_.vector_name.size() &&            \
+           "The size of " #vector_name                                      \
+           " has decreased. Did you call BasicBlockGraphBuilder::Reset()"); \
+    graph_builder_.vector_name.resize(original_size);                       \
   } while (false)
 
 void BasicBlockGraphBuilder::AddBasicBlockTransaction::Rollback() {
-  ABSL_CHECK(!is_committed_) << "The new basic block was already committed";
+  assert(!is_committed_);
   GEMATRIA_CHECK_AND_RESIZE(num_nodes_per_block_);
   GEMATRIA_CHECK_AND_RESIZE(num_edges_per_block_);
   GEMATRIA_CHECK_AND_RESIZE(node_types_);
@@ -146,17 +146,21 @@ void BasicBlockGraphBuilder::AddBasicBlockTransaction::Rollback() {
 #undef GEMATRIA_CHECK_AND_RESIZE
 
 BasicBlockGraphBuilder::BasicBlockGraphBuilder(
-    std::vector<std::string> node_tokens, absl::string_view immediate_token,
-    absl::string_view fp_immediate_token, absl::string_view address_token,
-    absl::string_view memory_token,
+    std::vector<std::string> node_tokens, std::string_view immediate_token,
+    std::string_view fp_immediate_token, std::string_view address_token,
+    std::string_view memory_token,
     OutOfVocabularyTokenBehavior
         out_of_vocabulary_behavior /* = ReturnError() */
     )
     : node_tokens_(MakeIndex(std::move(node_tokens))),
-      immediate_token_(FindTokenOrDie(node_tokens_, immediate_token)),
-      fp_immediate_token_(FindTokenOrDie(node_tokens_, fp_immediate_token)),
-      address_token_(FindTokenOrDie(node_tokens_, address_token)),
-      memory_token_(FindTokenOrDie(node_tokens_, memory_token)),
+      // TODO(ondrasej): Remove the std::string conversions once we switch to
+      // C++20 and std::unordered_map gains templated lookup functions.
+      immediate_token_(
+          FindTokenOrDie(node_tokens_, std::string(immediate_token))),
+      fp_immediate_token_(
+          FindTokenOrDie(node_tokens_, std::string(fp_immediate_token))),
+      address_token_(FindTokenOrDie(node_tokens_, std::string(address_token))),
+      memory_token_(FindTokenOrDie(node_tokens_, std::string(memory_token))),
       out_of_vocabulary_behavior_(out_of_vocabulary_behavior),
       replacement_token_(
           out_of_vocabulary_behavior.behavior_type() ==
@@ -253,8 +257,8 @@ void BasicBlockGraphBuilder::Reset() {
 
 bool BasicBlockGraphBuilder::AddInputOperand(
     NodeIndex instruction_node, const InstructionOperand& operand) {
-  ABSL_CHECK_GE(instruction_node, 0);
-  ABSL_CHECK_LT(instruction_node, num_nodes());
+  assert(instruction_node >= 0);
+  assert(instruction_node < num_nodes());
 
   switch (operand.type()) {
     case OperandType::kRegister: {
@@ -313,15 +317,16 @@ bool BasicBlockGraphBuilder::AddInputOperand(
     } break;
     case OperandType::kUnknown:
       // TODO(ondrasej): Return an error instead.
-      ABSL_LOG(FATAL) << "The operand proto is empty";
+      std::cerr << "The operand proto is empty";
+      std::abort();
   }
   return true;
 }
 
 bool BasicBlockGraphBuilder::AddOutputOperand(
     NodeIndex instruction_node, const InstructionOperand& operand) {
-  ABSL_CHECK_GE(instruction_node, 0);
-  ABSL_CHECK_LT(instruction_node, num_nodes());
+  assert(instruction_node >= 0);
+  assert(instruction_node < num_nodes());
 
   switch (operand.type()) {
     case OperandType::kRegister: {
@@ -334,9 +339,9 @@ bool BasicBlockGraphBuilder::AddOutputOperand(
     case OperandType::kImmediateValue:
     case OperandType::kFpImmediateValue:
     case OperandType::kAddress:
-      ABSL_LOG(FATAL)
-          << "Immediate values, floating-point immediate values and "
-             "address expressions can't be output operands.";
+      std::cerr << "Immediate values, floating-point immediate values and "
+                   "address expressions can't be output operands.";
+      std::abort();
       break;
     case OperandType::kMemory: {
       const NodeIndex alias_group_node =
@@ -346,13 +351,14 @@ bool BasicBlockGraphBuilder::AddOutputOperand(
     } break;
     case OperandType::kUnknown:
       // TODO(ondrasej): Return an error.
-      ABSL_LOG(FATAL) << "The operand proto is empty";
+      std::cerr << "The operand proto is empty";
+      std::abort();
   }
   return true;
 }
 
 bool BasicBlockGraphBuilder::AddDependencyOnRegister(
-    NodeIndex dependent_node, absl::string_view register_name,
+    NodeIndex dependent_node, const std::string& register_name,
     EdgeType edge_type) {
   NodeIndex& operand_node =
       LookupOrInsert(register_nodes_, register_name, kInvalidNode);
@@ -375,13 +381,14 @@ BasicBlockGraphBuilder::NodeIndex BasicBlockGraphBuilder::AddNode(
 }
 
 BasicBlockGraphBuilder::NodeIndex BasicBlockGraphBuilder::AddNode(
-    NodeType node_type, absl::string_view token) {
+    NodeType node_type, const std::string& token) {
   const auto it = node_tokens_.find(token);
   TokenIndex token_index = kInvalidTokenIndex;
   if (it != node_tokens_.end()) {
     token_index = it->second;
   } else {
-    ABSL_LOG(WARNING) << "Unexpected node token: '" << token << "'";
+    // TODO(ondrasej): Make this error message optional.
+    std::cerr << "Unexpected node token: '" << token << "'";
     switch (out_of_vocabulary_behavior_.behavior_type()) {
       case OutOfVocabularyTokenBehavior::BehaviorType::kReturnError:
         return kInvalidNode;
@@ -394,10 +401,10 @@ BasicBlockGraphBuilder::NodeIndex BasicBlockGraphBuilder::AddNode(
 
 void BasicBlockGraphBuilder::AddEdge(EdgeType edge_type, NodeIndex sender,
                                      NodeIndex receiver) {
-  ABSL_CHECK_GE(sender, 0);
-  ABSL_CHECK_LT(sender, num_nodes());
-  ABSL_CHECK_GE(receiver, 0);
-  ABSL_CHECK_LT(receiver, num_nodes());
+  assert(sender >= 0);
+  assert(sender < num_nodes());
+  assert(receiver >= 0);
+  assert(receiver < num_nodes());
   edge_senders_.push_back(sender);
   edge_receivers_.push_back(receiver);
   edge_types_.push_back(edge_type);
@@ -434,35 +441,45 @@ std::vector<int> BasicBlockGraphBuilder::DeltaBlockIndex() const {
     }
     delta_block_index.push_back(block);
   }
-  ABSL_CHECK_EQ(block, num_graphs() - 1);
-  ABSL_CHECK_EQ(block_end, num_nodes());
-  ABSL_CHECK_EQ(delta_block_index.size(), num_instructions);
+  assert(block == num_graphs() - 1);
+  assert(block_end == num_nodes());
+  assert(delta_block_index.size() == num_instructions);
   return delta_block_index;
 }
 
 namespace {
 template <typename Container>
-void StrAppendList(std::string* buffer, absl::string_view list_name,
+void StrAppendList(std::stringstream& buffer, std::string_view list_name,
                    const Container& items) {
-  absl::StrAppend(buffer, list_name, " = [", absl::StrJoin(items, ","), "]\n");
+  buffer << list_name << " = [";
+  bool first = true;
+  for (const auto& item : items) {
+    if (!first) {
+      buffer << ",";
+      first = false;
+    }
+    buffer << item;
+  }
+  buffer << "]\n";
 }
 }  // namespace
 
 std::string BasicBlockGraphBuilder::DebugString() const {
-  std::string buffer;
-  absl::StrAppend(&buffer, "num_graphs = ", num_graphs(), "\n");
-  absl::StrAppend(&buffer, "num_nodes = ", num_nodes(), "\n");
-  absl::StrAppend(&buffer, "num_edges = ", num_edges(), "\n");
-  absl::StrAppend(&buffer, "num_node_tokens = ", num_node_tokens(), "\n");
-  StrAppendList(&buffer, "num_nodes_per_block", num_nodes_per_block());
-  StrAppendList(&buffer, "num_edges_per_block", num_edges_per_block());
-  StrAppendList(&buffer, "node_types", node_types());
-  StrAppendList(&buffer, "edge_senders", edge_senders());
-  StrAppendList(&buffer, "edge_receivers", edge_receivers());
-  StrAppendList(&buffer, "edge_types", edge_types());
-  StrAppendList(&buffer, "InstructionNodeMask", InstructionNodeMask());
-  StrAppendList(&buffer, "DeltaBlockIndex", DeltaBlockIndex());
-  return buffer;
+  std::stringstream buffer;
+
+  buffer << "num_graphs = " << num_graphs() << "\n";
+  buffer << "num_nodes = " << num_nodes() << "\n";
+  buffer << "num_edges = " << num_edges() << "\n";
+  buffer << "num_node_tokens = " << num_node_tokens() << "\n";
+  StrAppendList(buffer, "num_nodes_per_block", num_nodes_per_block());
+  StrAppendList(buffer, "num_edges_per_block", num_edges_per_block());
+  StrAppendList(buffer, "node_types", node_types());
+  StrAppendList(buffer, "edge_senders", edge_senders());
+  StrAppendList(buffer, "edge_receivers", edge_receivers());
+  StrAppendList(buffer, "edge_types", edge_types());
+  StrAppendList(buffer, "InstructionNodeMask", InstructionNodeMask());
+  StrAppendList(buffer, "DeltaBlockIndex", DeltaBlockIndex());
+  return buffer.str();
 }
 
 }  // namespace gematria

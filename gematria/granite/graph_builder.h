@@ -89,13 +89,13 @@
 #ifndef GEMATRIA_GRANITE_GRAPH_BUILDER_H_
 #define GEMATRIA_GRANITE_GRAPH_BUILDER_H_
 
+#include <cstddef>
 #include <ostream>
 #include <string>
-#include <utility>
+#include <string_view>
+#include <unordered_map>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
-#include "absl/strings/string_view.h"
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/model/oov_token_behavior.h"
 
@@ -168,9 +168,9 @@ class BasicBlockGraphBuilder {
   // The values of immediate_token, fp_immediate_token, address_token and
   // memory_token must appear in node_tokens.
   BasicBlockGraphBuilder(
-      std::vector<std::string> node_tokens, absl::string_view immediate_token,
-      absl::string_view fp_immediate_token, absl::string_view address_token,
-      absl::string_view memory_token,
+      std::vector<std::string> node_tokens, std::string_view immediate_token,
+      std::string_view fp_immediate_token, std::string_view address_token,
+      std::string_view memory_token,
       OutOfVocabularyTokenBehavior out_of_vocabulary_behavior =
           OutOfVocabularyTokenBehavior::ReturnError());
 
@@ -351,7 +351,7 @@ class BasicBlockGraphBuilder {
   // Adds dependency of a node (instruction or an address computation node) on
   // a register. Adds the register node if it doesn't exist in the graph.
   bool AddDependencyOnRegister(NodeIndex dependent_node,
-                               absl::string_view register_name,
+                               const std::string& register_name,
                                EdgeType edge_type);
 
   // Adds a new node to the batch; the feature of the node is given directly by
@@ -360,13 +360,13 @@ class BasicBlockGraphBuilder {
   // Adds a new edge to the batch; the feature of the node is determined from
   // the token associated with the node. Returns kInvalidNode when the node was
   // not added.
-  NodeIndex AddNode(NodeType node_type, absl::string_view token);
+  NodeIndex AddNode(NodeType node_type, const std::string& token);
   // Adds a new edge to the batch.
   void AddEdge(EdgeType edge_type, NodeIndex sender, NodeIndex receiver);
 
   // Mapping from string node tokens to indices of embedding vectors used in
   // the models.
-  const absl::flat_hash_map<std::string, TokenIndex> node_tokens_;
+  const std::unordered_map<std::string, TokenIndex> node_tokens_;
   // Tokens corresponding to nodes in the batch that are not associated directly
   // with a token of the assembly language.
   const TokenIndex immediate_token_;
@@ -389,8 +389,8 @@ class BasicBlockGraphBuilder {
 
   std::vector<std::vector<int>> global_features_;
 
-  absl::flat_hash_map<absl::string_view, NodeIndex> register_nodes_;
-  absl::flat_hash_map<int, NodeIndex> alias_group_nodes_;
+  std::unordered_map<std::string_view, NodeIndex> register_nodes_;
+  std::unordered_map<int, NodeIndex> alias_group_nodes_;
 };
 
 }  // namespace gematria
