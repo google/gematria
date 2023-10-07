@@ -14,6 +14,7 @@
 
 #include "gematria/llvm/llvm_architecture_support.h"
 
+#include "gematria/llvm/llvm_to_absl.h"
 #include "pybind11/detail/common.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
@@ -38,7 +39,12 @@ PYBIND11_MODULE(llvm_architecture_support, m) {
       only meant to be used as a token passed to Gematria C++ classes and
       functions that use LLVM APIs and expect LLVM objects as their inputs.)")
       .def_static(  //
-          "from_triple", &LlvmArchitectureSupport::FromTriple,
+          "from_triple",
+          [](std::string_view llvm_triple, std::string_view cpu,
+             std::string_view cpu_features) {
+            return LlvmExpectedToStatusOr(LlvmArchitectureSupport::FromTriple(
+                llvm_triple, cpu, cpu_features));
+          },
           py::arg("llvm_triple"), py::arg("cpu") = std::string(),
           py::arg("cpu_features") = std::string(),
           R"(Returns a new LlvmArchitectureSupport from an LLVM triple.

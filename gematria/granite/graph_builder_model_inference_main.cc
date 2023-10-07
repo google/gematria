@@ -38,6 +38,7 @@
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
+#include "gematria/llvm/llvm_to_absl.h"
 #include "gematria/utils/string.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCInst.h"
@@ -67,7 +68,8 @@ void PrintPredictionsToStdout(
 absl::Status ProcessBasicBlocksFromCommandLineFlags() {
   constexpr char kLlvmTriple[] = "x86_64-unknown-unknown";
   absl::StatusOr<std::unique_ptr<LlvmArchitectureSupport>> llvm_support =
-      LlvmArchitectureSupport::FromTriple(kLlvmTriple, "", "");
+      LlvmExpectedToStatusOr(
+          LlvmArchitectureSupport::FromTriple(kLlvmTriple, "", ""));
   if (!llvm_support.ok()) return llvm_support.status();
 
   const std::unique_ptr<tflite::FlatBufferModel> model =

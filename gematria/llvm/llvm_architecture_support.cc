@@ -14,23 +14,22 @@
 
 #include "gematria/llvm/llvm_architecture_support.h"
 
+#include <cassert>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
 
-#include "absl/log/check.h"
-#include "absl/log/die_if_null.h"
-#include "absl/status/status.h"
-#include "absl/status/statusor.h"
-#include "absl/strings/str_cat.h"
-#include "absl/strings/string_view.h"
-#include "llvm/include/llvm-c/Target.h"
-#include "llvm/include/llvm/ADT/StringRef.h"
-#include "llvm/include/llvm/MC/MCContext.h"
-#include "llvm/include/llvm/MC/TargetRegistry.h"
-#include "llvm/include/llvm/Target/TargetOptions.h"
+#include "llvm-c/Target.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/Twine.h"
+#include "llvm/MC/MCContext.h"
+#include "llvm/MC/TargetRegistry.h"
+#include "llvm/Support/Errc.h"
+#include "llvm/Support/Error.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Target/TargetOptions.h"
 
 namespace gematria {
 namespace {
@@ -47,12 +46,12 @@ void InitializeLlvmOnce() {
     LLVMInitializeX86Disassembler();
     return true;
   }();
-  CHECK(initialize_llvm_internals);
+  (void)initialize_llvm_internals;
 }
 
 }  // namespace
 
-absl::StatusOr<std::unique_ptr<LlvmArchitectureSupport>>
+llvm::Expected<std::unique_ptr<LlvmArchitectureSupport>>
 LlvmArchitectureSupport::FromTriple(std::string_view llvm_triple,
                                     std::string_view cpu,
                                     std::string_view cpu_features) {
@@ -62,11 +61,12 @@ LlvmArchitectureSupport::FromTriple(std::string_view llvm_triple,
   std::string lookup_error;
   // TODO(ondrasej): Remove the std::string() conversion once it's no longer
   // needed.
-  const llvm::Target* const llvm_target = llvm::TargetRegistry::lookupTarget(
-      std::string(llvm_triple), lookup_error);
+  const llvm::Target* const llvm_target =
+      llvm::TargetRegistry::lookupTarget(llvm_triple, lookup_error);
   if (llvm_target == nullptr) {
-    return absl::NotFoundError(
-        absl::StrCat("Could not find target for triple: ", llvm_triple));
+    return llvm::make_error<llvm::StringError>(
+        llvm::errc::not_supported,
+        llvm::Twine("Could not find target for triple: ") + llvm_triple);
   }
 
   return std::unique_ptr<LlvmArchitectureSupport>(
@@ -74,17 +74,20 @@ LlvmArchitectureSupport::FromTriple(std::string_view llvm_triple,
 }
 
 std::unique_ptr<LlvmArchitectureSupport> LlvmArchitectureSupport::X86_64() {
-  absl::StatusOr<std::unique_ptr<LlvmArchitectureSupport>> x86_64_or_status =
-      FromTriple("x86_64", "", "");
-  CHECK_OK(x86_64_or_status);
-  return std::move(x86_64_or_status).value();
+  auto x86_64_or_status = FromTriple("x86_64", "", "");
+  if (!x86_64_or_status) {
+    llvm::errs() << x86_64_or_status.takeError();
+    assert(false);
+    return nullptr;
+  }
+  return std::move(*x86_64_or_status);
 }
 
 LlvmArchitectureSupport::LlvmArchitectureSupport(std::string_view llvm_triple,
                                                  std::string_view cpu,
                                                  std::string_view cpu_features,
                                                  const llvm::Target* target)
-    : target_(ABSL_DIE_IF_NULL(target)) {
+    : target_(target) {
   llvm::TargetOptions target_options;
   target_machine_.reset(target_->createTargetMachine(
       /*TT=*/llvm_triple, /*CPU=*/cpu, /*Features=*/cpu_features,

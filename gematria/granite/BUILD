@@ -92,6 +92,7 @@ cc_binary(
         "//gematria/llvm:canonicalizer",
         "//gematria/llvm:disassembler",
         "//gematria/llvm:llvm_architecture_support",
+        "//gematria/llvm:llvm_to_absl",
         "//gematria/utils:string",
         "//third_party/tensorflow/lite:framework_stable",
         "@com_google_absl//absl/flags:flag",

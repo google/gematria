@@ -18,16 +18,16 @@
 #include <memory>
 #include <string_view>
 
-#include "absl/status/statusor.h"
-#include "llvm/include/llvm/MC/MCAsmInfo.h"
-#include "llvm/include/llvm/MC/MCContext.h"
-#include "llvm/include/llvm/MC/MCDisassembler/MCDisassembler.h"
-#include "llvm/include/llvm/MC/MCInstPrinter.h"
-#include "llvm/include/llvm/MC/MCInstrInfo.h"
-#include "llvm/include/llvm/MC/MCRegisterInfo.h"
-#include "llvm/include/llvm/MC/MCSubtargetInfo.h"
-#include "llvm/include/llvm/MC/TargetRegistry.h"
-#include "llvm/include/llvm/Target/TargetMachine.h"
+#include "llvm/MC/MCAsmInfo.h"
+#include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCDisassembler/MCDisassembler.h"
+#include "llvm/MC/MCInstPrinter.h"
+#include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/MC/MCSubtargetInfo.h"
+#include "llvm/MC/TargetRegistry.h"
+#include "llvm/Support/Error.h"
+#include "llvm/Target/TargetMachine.h"
 
 namespace gematria {
 
@@ -37,7 +37,7 @@ class LlvmArchitectureSupport {
  public:
   // Creates the architecture support from an LLVM triple. Returns an error when
   // the architecture can't be created.
-  static absl::StatusOr<std::unique_ptr<LlvmArchitectureSupport>> FromTriple(
+  static llvm::Expected<std::unique_ptr<LlvmArchitectureSupport>> FromTriple(
       std::string_view llvm_triple, std::string_view cpu,
       std::string_view cpu_features);
 

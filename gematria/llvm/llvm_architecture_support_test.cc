@@ -16,6 +16,8 @@
 
 #include <memory>
 
+#include "absl/status/status.h"
+#include "gematria/llvm/llvm_to_absl.h"
 #include "gematria/testing/matchers.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -31,8 +33,8 @@ TEST(LlvmArchitectureSupportTest, X86_64) {
 }
 
 TEST(LlvmArchitectureSupportTest, FromTriple) {
-  absl::StatusOr<std::unique_ptr<LlvmArchitectureSupport>> x86_64_or_status =
-      LlvmArchitectureSupport::FromTriple("x86_64", "", "");
+  auto x86_64_or_status = LlvmExpectedToStatusOr(
+      LlvmArchitectureSupport::FromTriple("x86_64", "", ""));
   ASSERT_OK(x86_64_or_status);
   std::unique_ptr<LlvmArchitectureSupport> x86_64 =
       std::move(x86_64_or_status).value();
@@ -42,10 +44,10 @@ TEST(LlvmArchitectureSupportTest, FromTriple) {
 }
 
 TEST(LlvmArchitectureSupportTest, FromTriple_Invalid) {
-  absl::StatusOr<std::unique_ptr<LlvmArchitectureSupport>> x86_64_or_status =
-      LlvmArchitectureSupport::FromTriple("an_architecture_that_does_not_exist",
-                                          "", "");
-  EXPECT_THAT(x86_64_or_status, StatusIs(absl::StatusCode::kNotFound));
+  auto x86_64_or_status =
+      LlvmExpectedToStatusOr(LlvmArchitectureSupport::FromTriple(
+          "an_architecture_that_does_not_exist", "", ""));
+  EXPECT_THAT(x86_64_or_status, StatusIs(absl::StatusCode::kInternal));
 }
 
 }  // namespace

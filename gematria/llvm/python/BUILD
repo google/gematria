@@ -35,6 +35,7 @@ gematria_pybind_extension(
     visibility = ["//:internal_users"],
     deps = [
         "//gematria/llvm:llvm_architecture_support",
+        "//gematria/llvm:llvm_to_absl",
         "@pybind11_abseil_repo//pybind11_abseil:status_casters",
     ],
 )

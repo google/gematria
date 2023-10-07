@@ -128,11 +128,6 @@ cc_library(
     visibility = ["//:internal_users"],
     deps = [
         ":llvm_target_x86",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/log:die_if_null",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
         "@llvm-project//llvm:MC",
         "@llvm-project//llvm:MCDisassembler",
         "@llvm-project//llvm:Support",
@@ -146,7 +141,9 @@ cc_test(
     srcs = ["llvm_architecture_support_test.cc"],
     deps = [
         ":llvm_architecture_support",
+        ":llvm_to_absl",
         "//gematria/testing:matchers",
+        "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -165,6 +162,7 @@ cc_library(
 cc_library(
     name = "llvm_to_absl",
     hdrs = ["llvm_to_absl.h"],
+    visibility = ["//:internal_users"],
     deps = [
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
