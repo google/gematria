@@ -161,3 +161,25 @@ cc_library(
     ],
     alwayslink = 1,
 )
+
+cc_library(
+    name = "llvm_to_absl",
+    hdrs = ["llvm_to_absl.h"],
+    deps = [
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+cc_test(
+    name = "llvm_to_absl_test",
+    srcs = ["llvm_to_absl_test.cc"],
+    deps = [
+        ":llvm_to_absl",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Support",
+    ],
+)
