@@ -43,6 +43,7 @@
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstPrinter.h"
+#include "llvm/Support/Error.h"
 #include "tensorflow/lite/model_builder.h"
 
 ABSL_FLAG(std::string, gematria_tflite_file, "",
@@ -135,13 +136,16 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
     if (!machine_code.has_value())
       return absl::InvalidArgumentError("cannot parse");
 
-    absl::StatusOr<std::vector<DisassembledInstruction>>
+    llvm::Expected<std::vector<DisassembledInstruction>>
         disassembled_instructions =
             DisassembleAllInstructions((*llvm_support)->mc_disassembler(),
                                        (*llvm_support)->mc_instr_info(),
                                        (*llvm_support)->mc_register_info(),
                                        (*llvm_support)->mc_subtarget_info(),
                                        *inst_printer, 0, *machine_code);
+    if (llvm::Error error = disassembled_instructions.takeError()) {
+      return LlvmErrorToStatus(std::move(error));
+    }
     std::vector<llvm::MCInst> mc_insts;
     mc_insts.reserve(disassembled_instructions->size());
     for (const DisassembledInstruction& disassembled_instruction :
@@ -149,20 +153,13 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
       mc_insts.push_back(std::move(disassembled_instruction.mc_inst));
     }
 
-    absl::StatusOr<BasicBlock> basic_block =
-        canonicalizer.BasicBlockFromMCInst(mc_insts);
-
-    if (!basic_block.ok()) return basic_block.status();
-
-    if (batch.size() < max_num_blocks_per_batch) {
-      batch.push_back(*std::move(basic_block));
-    } else {
+    if (batch.size() == max_num_blocks_per_batch) {
       if (absl::Status status = run_inference_for_batch(batch); status.ok()) {
         return status;
       }
       batch.clear();
-      batch.push_back(*std::move(basic_block));
     }
+    batch.push_back(canonicalizer.BasicBlockFromMCInst(mc_insts));
   }
   // Process all remaining blocks.
   if (!batch.empty()) {

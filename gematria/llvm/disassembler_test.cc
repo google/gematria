@@ -20,14 +20,16 @@
 
 #include "absl/status/status.h"
 #include "gematria/llvm/llvm_architecture_support.h"
+#include "gematria/llvm/llvm_to_absl.h"
 #include "gematria/testing/llvm.h"
 #include "gematria/testing/matchers.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "llvm/include/llvm/MC/MCInst.h"
-#include "llvm/include/llvm/MC/MCInstBuilder.h"
-#include "llvm/include/llvm/MC/MCInstPrinter.h"
-#include "llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
+#include "lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCInstBuilder.h"
+#include "llvm/MC/MCInstPrinter.h"
 
 namespace gematria {
 namespace {
@@ -118,15 +120,15 @@ using DisassembleOneInstructionTest = DisassemblerTest;
 TEST_F(DisassembleOneInstructionTest, X86_Nop) {
   static constexpr uint8_t kInstructionData[] = {0x90};
   static constexpr uint64_t kAddress = 200;
-  absl::Span<const uint8_t> instruction(kInstructionData);
+  llvm::ArrayRef<uint8_t> instruction(kInstructionData);
   std::unique_ptr<llvm::MCInstPrinter> mc_inst_printer =
       llvm_x86_64_->CreateMCInstPrinter(1);
 
   EXPECT_THAT(
-      DisassembleOneInstruction(
+      LlvmExpectedToStatusOr(DisassembleOneInstruction(
           llvm_x86_64_->mc_disassembler(), llvm_x86_64_->mc_instr_info(),
           llvm_x86_64_->mc_register_info(), llvm_x86_64_->mc_subtarget_info(),
-          *mc_inst_printer, kAddress, instruction),
+          *mc_inst_printer, kAddress, instruction)),
       IsOkAndHolds(IsX86Nop(kAddress)));
   EXPECT_THAT(instruction, IsEmpty());
 }
@@ -134,15 +136,15 @@ TEST_F(DisassembleOneInstructionTest, X86_Nop) {
 TEST_F(DisassembleOneInstructionTest, X86_NopNopNop) {
   static constexpr uint8_t kInstructionData[] = {0x90, 0x90, 0x90};
   static constexpr uint64_t kAddress = 300;
-  absl::Span<const uint8_t> instruction(kInstructionData);
+  llvm::ArrayRef<uint8_t> instruction(kInstructionData);
   std::unique_ptr<llvm::MCInstPrinter> mc_inst_printer =
       llvm_x86_64_->CreateMCInstPrinter(1);
 
   EXPECT_THAT(
-      DisassembleOneInstruction(
+      LlvmExpectedToStatusOr(DisassembleOneInstruction(
           llvm_x86_64_->mc_disassembler(), llvm_x86_64_->mc_instr_info(),
           llvm_x86_64_->mc_register_info(), llvm_x86_64_->mc_subtarget_info(),
-          *mc_inst_printer, kAddress, instruction),
+          *mc_inst_printer, kAddress, instruction)),
       IsOkAndHolds(IsX86Nop(kAddress)));
   EXPECT_THAT(instruction, ElementsAre(0x90, 0x90));
 }
@@ -150,46 +152,46 @@ TEST_F(DisassembleOneInstructionTest, X86_NopNopNop) {
 TEST_F(DisassembleOneInstructionTest, X86_MovRaxRbx) {
   static constexpr uint8_t kInstructionData[] = {0x48, 0x89, 0xd8};
   static constexpr uint64_t kAddress = 400;
-  absl::Span<const uint8_t> instruction(kInstructionData);
+  llvm::ArrayRef<uint8_t> instruction(kInstructionData);
   std::unique_ptr<llvm::MCInstPrinter> mc_inst_printer =
       llvm_x86_64_->CreateMCInstPrinter(1);
 
   EXPECT_THAT(
-      DisassembleOneInstruction(
+      LlvmExpectedToStatusOr(DisassembleOneInstruction(
           llvm_x86_64_->mc_disassembler(), llvm_x86_64_->mc_instr_info(),
           llvm_x86_64_->mc_register_info(), llvm_x86_64_->mc_subtarget_info(),
-          *mc_inst_printer, kAddress, instruction),
+          *mc_inst_printer, kAddress, instruction)),
       IsOkAndHolds(IsX86MovRaxRbx(kAddress)));
   EXPECT_THAT(instruction, IsEmpty());
 }
 
 TEST_F(DisassembleOneInstructionTest, X86_EmptyInput) {
   static constexpr uint64_t kAddress = 500;
-  absl::Span<const uint8_t> instruction;
+  llvm::ArrayRef<uint8_t> instruction;
   std::unique_ptr<llvm::MCInstPrinter> mc_inst_printer =
       llvm_x86_64_->CreateMCInstPrinter(1);
 
   EXPECT_THAT(
-      DisassembleOneInstruction(
+      LlvmExpectedToStatusOr(DisassembleOneInstruction(
           llvm_x86_64_->mc_disassembler(), llvm_x86_64_->mc_instr_info(),
           llvm_x86_64_->mc_register_info(), llvm_x86_64_->mc_subtarget_info(),
-          *mc_inst_printer, kAddress, instruction),
-      StatusIs(absl::StatusCode::kInvalidArgument));
+          *mc_inst_printer, kAddress, instruction)),
+      StatusIs(absl::StatusCode::kInternal));
 }
 
 TEST_F(DisassembleOneInstructionTest, X86_IncompleteMovRaxRbx) {
   static constexpr uint8_t kInstructionData[] = {0x48, 0x89};
   static constexpr uint64_t kAddress = 301;
-  absl::Span<const uint8_t> instruction(kInstructionData);
+  llvm::ArrayRef<uint8_t> instruction(kInstructionData);
   std::unique_ptr<llvm::MCInstPrinter> mc_inst_printer =
       llvm_x86_64_->CreateMCInstPrinter(1);
 
   EXPECT_THAT(
-      DisassembleOneInstruction(
+      LlvmExpectedToStatusOr(DisassembleOneInstruction(
           llvm_x86_64_->mc_disassembler(), llvm_x86_64_->mc_instr_info(),
           llvm_x86_64_->mc_register_info(), llvm_x86_64_->mc_subtarget_info(),
-          *mc_inst_printer, kAddress, instruction),
-      StatusIs(absl::StatusCode::kInvalidArgument));
+          *mc_inst_printer, kAddress, instruction)),
+      StatusIs(absl::StatusCode::kInternal));
   EXPECT_THAT(instruction, ElementsAreArray(kInstructionData));
 }
 
@@ -197,15 +199,15 @@ using DisassembleAllInstructionsTest = DisassemblerTest;
 
 TEST_F(DisassembleAllInstructionsTest, NoInstructions) {
   static constexpr uint64_t kAddress = 302;
-  absl::Span<const uint8_t> instruction;
+  llvm::ArrayRef<uint8_t> instruction;
   std::unique_ptr<llvm::MCInstPrinter> mc_inst_printer =
       llvm_x86_64_->CreateMCInstPrinter(1);
 
   EXPECT_THAT(
-      DisassembleAllInstructions(
+      LlvmExpectedToStatusOr(DisassembleAllInstructions(
           llvm_x86_64_->mc_disassembler(), llvm_x86_64_->mc_instr_info(),
           llvm_x86_64_->mc_register_info(), llvm_x86_64_->mc_subtarget_info(),
-          *mc_inst_printer, kAddress, instruction),
+          *mc_inst_printer, kAddress, instruction)),
       IsOkAndHolds(IsEmpty()));
 }
 
@@ -216,10 +218,10 @@ TEST_F(DisassembleAllInstructionsTest, X86_Nop) {
       llvm_x86_64_->CreateMCInstPrinter(1);
 
   EXPECT_THAT(
-      DisassembleAllInstructions(
+      LlvmExpectedToStatusOr(DisassembleAllInstructions(
           llvm_x86_64_->mc_disassembler(), llvm_x86_64_->mc_instr_info(),
           llvm_x86_64_->mc_register_info(), llvm_x86_64_->mc_subtarget_info(),
-          *mc_inst_printer, kAddress, kInstructionData),
+          *mc_inst_printer, kAddress, kInstructionData)),
       IsOkAndHolds(ElementsAre(IsX86Nop(kAddress))));
 }
 
@@ -231,10 +233,10 @@ TEST_F(DisassembleAllInstructionsTest, X86_NopNopNop) {
       llvm_x86_64_->CreateMCInstPrinter(1);
 
   EXPECT_THAT(
-      DisassembleAllInstructions(
+      LlvmExpectedToStatusOr(DisassembleAllInstructions(
           llvm_x86_64_->mc_disassembler(), llvm_x86_64_->mc_instr_info(),
           llvm_x86_64_->mc_register_info(), llvm_x86_64_->mc_subtarget_info(),
-          *mc_inst_printer, kAddress, kInstructionData),
+          *mc_inst_printer, kAddress, kInstructionData)),
       IsOkAndHolds(ElementsAre(IsX86Nop(kAddress),
                                IsX86Nop(kAddress + kNopSize),
                                IsX86Nop(kAddress + 2 * kNopSize))));
@@ -249,10 +251,10 @@ TEST_F(DisassembleOneInstructionTest, X86_NopMovRaxRbxNop) {
       llvm_x86_64_->CreateMCInstPrinter(1);
 
   EXPECT_THAT(
-      DisassembleAllInstructions(
+      LlvmExpectedToStatusOr(DisassembleAllInstructions(
           llvm_x86_64_->mc_disassembler(), llvm_x86_64_->mc_instr_info(),
           llvm_x86_64_->mc_register_info(), llvm_x86_64_->mc_subtarget_info(),
-          *mc_inst_printer, kAddress, kInstructionData),
+          *mc_inst_printer, kAddress, kInstructionData)),
       IsOkAndHolds(ElementsAre(IsX86Nop(kAddress),
                                IsX86MovRaxRbx(kAddress + kNopSize),
                                IsX86Nop(kAddress + kNopSize + kMov64RRSize))));
@@ -268,16 +270,16 @@ TEST_F(DisassembleOneInstructionTest, X86_InvalidInstructionSequence) {
                                                  // Incomplete mov rax, rbx
                                                  0x48, 0x89};
   static constexpr uint64_t kAddress = 304;
-  absl::Span<const uint8_t> instruction(kInstructionData);
+  llvm::ArrayRef<uint8_t> instruction(kInstructionData);
   std::unique_ptr<llvm::MCInstPrinter> mc_inst_printer =
       llvm_x86_64_->CreateMCInstPrinter(1);
 
   EXPECT_THAT(
-      DisassembleAllInstructions(
+      LlvmExpectedToStatusOr(DisassembleAllInstructions(
           llvm_x86_64_->mc_disassembler(), llvm_x86_64_->mc_instr_info(),
           llvm_x86_64_->mc_register_info(), llvm_x86_64_->mc_subtarget_info(),
-          *mc_inst_printer, kAddress, instruction),
-      StatusIs(absl::StatusCode::kInvalidArgument));
+          *mc_inst_printer, kAddress, instruction)),
+      StatusIs(absl::StatusCode::kInternal));
 }
 
 }  // namespace

@@ -213,7 +213,7 @@ TEST_F(BHiveImporterTest, InvalidMachineCode) {
                                                      kScaling),
               StatusIs(absl::StatusCode::kInvalidArgument));
   EXPECT_THAT(x86_bhive_importer_->BasicBlockProtoFromMachineCodeHex("4929"),
-              StatusIs(absl::StatusCode::kInvalidArgument));
+              StatusIs(absl::StatusCode::kInternal));
 }
 
 TEST_F(BHiveImporterTest, NonStandardColumns) {

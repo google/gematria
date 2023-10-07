@@ -19,14 +19,14 @@
 #include <string>
 #include <vector>
 
-#include "absl/status/statusor.h"
-#include "absl/types/span.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/MC/MCDisassembler/MCDisassembler.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstPrinter.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
+#include "llvm/Support/Error.h"
 
 namespace gematria {
 
@@ -56,12 +56,12 @@ std::string AssemblyFromMCInst(const llvm::MCInstrInfo& instruction_info,
 // all its bytes from `machine_code`. Uses base_address as the address of the
 // instruction in the output proto.
 // On error, returns an error message and leaves `machine_code` unchanged.
-absl::StatusOr<DisassembledInstruction> DisassembleOneInstruction(
+llvm::Expected<DisassembledInstruction> DisassembleOneInstruction(
     const llvm::MCDisassembler& disassembler,
     const llvm::MCInstrInfo& instruction_info,
     const llvm::MCRegisterInfo& register_info,
     const llvm::MCSubtargetInfo& subtarget_info, llvm::MCInstPrinter& printer,
-    uint64_t base_address, absl::Span<const uint8_t>& machine_code);
+    uint64_t base_address, llvm::ArrayRef<uint8_t>& machine_code);
 
 // Disassembles all instructions from `machine_code`. Succeeds only when all
 // bytes have been consumed, i.e. it is an error if some number of bytes towards
@@ -69,12 +69,12 @@ absl::StatusOr<DisassembledInstruction> DisassembleOneInstruction(
 // instruction in the block. The address of the following instruction is
 // computed as the sum of the base address and the size of the instructions that
 // precede it in the block.
-absl::StatusOr<std::vector<DisassembledInstruction>> DisassembleAllInstructions(
+llvm::Expected<std::vector<DisassembledInstruction>> DisassembleAllInstructions(
     const llvm::MCDisassembler& disassembler,
     const llvm::MCInstrInfo& instruction_info,
     const llvm::MCRegisterInfo& register_info,
     const llvm::MCSubtargetInfo& subtarget_info, llvm::MCInstPrinter& printer,
-    uint64_t base_address, absl::Span<const uint8_t> machine_code);
+    uint64_t base_address, llvm::ArrayRef<uint8_t> machine_code);
 
 }  // namespace gematria
 

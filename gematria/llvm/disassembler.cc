@@ -19,17 +19,15 @@
 #include <utility>
 #include <vector>
 
-#include "absl/status/status.h"
-#include "absl/status/statusor.h"
-#include "absl/strings/str_cat.h"
-#include "absl/types/span.h"
-#include "llvm/include/llvm/ADT/ArrayRef.h"
-#include "llvm/include/llvm/MC/MCDisassembler/MCDisassembler.h"
-#include "llvm/include/llvm/MC/MCInstPrinter.h"
-#include "llvm/include/llvm/MC/MCInstrInfo.h"
-#include "llvm/include/llvm/MC/MCRegisterInfo.h"
-#include "llvm/include/llvm/MC/MCSubtargetInfo.h"
-#include "llvm/include/llvm/Support/raw_ostream.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/MC/MCDisassembler/MCDisassembler.h"
+#include "llvm/MC/MCInstPrinter.h"
+#include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/MC/MCSubtargetInfo.h"
+#include "llvm/Support/Errc.h"
+#include "llvm/Support/Error.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace gematria {
 
@@ -45,20 +43,22 @@ std::string AssemblyFromMCInst(const llvm::MCInstrInfo& instruction_info,
   return assembly_code;
 }
 
-absl::StatusOr<DisassembledInstruction> DisassembleOneInstruction(
+llvm::Expected<DisassembledInstruction> DisassembleOneInstruction(
     const llvm::MCDisassembler& disassembler,
     const llvm::MCInstrInfo& instruction_info,
     const llvm::MCRegisterInfo& register_info,
     const llvm::MCSubtargetInfo& subtarget_info, llvm::MCInstPrinter& printer,
-    uint64_t base_address, absl::Span<const uint8_t>& machine_code) {
-  if (machine_code.empty())
-    return absl::InvalidArgumentError("The input is empty");
+    uint64_t base_address, llvm::ArrayRef<uint8_t>& machine_code) {
+  if (machine_code.empty()) {
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "The input is empty");
+  }
 
   std::string disassembler_output_buffer;
   llvm::raw_string_ostream output(disassembler_output_buffer);
 
   DisassembledInstruction result;
-  llvm::ArrayRef<uint8_t> data(machine_code.data(), machine_code.size());
+  llvm::ArrayRef<uint8_t> data = machine_code;
   // Use the current position of the instruction in memory as its address. This
   // is most likely not the "true" address, but in most cases it's the best we
   // get, and it is the address at which the instruction is parsed.
@@ -73,48 +73,53 @@ absl::StatusOr<DisassembledInstruction> DisassembleOneInstruction(
     case DecodeStatus::Success:
       break;
     case DecodeStatus::Fail:
-      return absl::InvalidArgumentError(
-          absl::StrCat("Disassembling the instruction failed: ",
-                       disassembler_output_buffer));
+      return llvm::createStringError(llvm::errc::invalid_argument,
+                                     "Disassembling the instruction failed: %s",
+                                     disassembler_output_buffer.c_str());
     case DecodeStatus::SoftFail:
-      return absl::InvalidArgumentError(
-          absl::StrCat("Incomplete instruction: ", disassembler_output_buffer));
+      return llvm::createStringError(llvm::errc::invalid_argument,
+                                     "Incomplete instruction: %s",
+                                     disassembler_output_buffer.c_str());
   }
 
   if (instruction_size > machine_code.size()) {
-    return absl::InternalError(absl::StrCat(
-        "The instruction size (", instruction_size,
-        ") is bigger than the input buffer (", machine_code.size(), ")."));
+    return llvm::createStringError(
+        llvm::errc::invalid_argument,
+        "The instruction size (%d) is bigger than the input buffer (%d)",
+        instruction_size, machine_code.size());
   }
 
   result.machine_code.assign(machine_code.begin(),
                              machine_code.begin() + instruction_size);
   result.assembly = AssemblyFromMCInst(instruction_info, register_info,
                                        subtarget_info, printer, result.mc_inst);
-  machine_code.remove_prefix(instruction_size);
+  machine_code = machine_code.drop_front(instruction_size);
   return result;
 }
 
-absl::StatusOr<std::vector<DisassembledInstruction>> DisassembleAllInstructions(
+llvm::Expected<std::vector<DisassembledInstruction>> DisassembleAllInstructions(
     const llvm::MCDisassembler& disassembler,
     const llvm::MCInstrInfo& instruction_info,
     const llvm::MCRegisterInfo& register_info,
     const llvm::MCSubtargetInfo& subtarget_info, llvm::MCInstPrinter& printer,
-    uint64_t base_address, absl::Span<const uint8_t> machine_code) {
+    uint64_t base_address, llvm::ArrayRef<uint8_t> machine_code) {
   std::vector<DisassembledInstruction> result;
 
   int num_consumed_bytes = 0;
   while (!machine_code.empty()) {
-    absl::StatusOr<DisassembledInstruction> instruction_or_status =
+    llvm::Expected<DisassembledInstruction> instruction_or_status =
         DisassembleOneInstruction(
             disassembler, instruction_info, register_info, subtarget_info,
             printer, base_address + num_consumed_bytes, machine_code);
-    if (!instruction_or_status.ok()) {
-      return absl::InvalidArgumentError(absl::StrCat(
-          "Parsing of machine code failed at byte ", num_consumed_bytes,
-          " with error: ", instruction_or_status.status().ToString()));
+    if (llvm::Error error = instruction_or_status.takeError()) {
+      std::string buffer;
+      llvm::raw_string_ostream outs(buffer);
+      return llvm::createStringError(
+          llvm::errc::invalid_argument,
+          "Parsing of machine code failed at byte %d with error %s",
+          num_consumed_bytes, buffer.c_str());
     }
-    result.push_back(std::move(instruction_or_status).value());
+    result.push_back(*std::move(instruction_or_status));
     num_consumed_bytes += result.back().machine_code.size();
   }
 

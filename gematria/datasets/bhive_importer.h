@@ -23,14 +23,14 @@
 #include <string_view>
 
 #include "absl/status/statusor.h"
-#include "absl/types/span.h"
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/proto/basic_block.pb.h"
 #include "gematria/proto/throughput.pb.h"
-#include "llvm/include/llvm/MC/MCContext.h"
-#include "llvm/include/llvm/MC/MCDisassembler/MCDisassembler.h"
-#include "llvm/include/llvm/MC/MCInstPrinter.h"
-#include "llvm/include/llvm/Target/TargetMachine.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCDisassembler/MCDisassembler.h"
+#include "llvm/MC/MCInstPrinter.h"
+#include "llvm/Target/TargetMachine.h"
 
 namespace gematria {
 
@@ -53,7 +53,7 @@ class BHiveImporter {
   // provided canonicalizer.
 
   absl::StatusOr<BasicBlockProto> BasicBlockProtoFromMachineCode(
-      absl::Span<const uint8_t> machine_code, uint64_t base_address = 0);
+      llvm::ArrayRef<uint8_t> machine_code, uint64_t base_address = 0);
   // A version of BasicBlockProtoFromMachineCode() where the machine code bytes
   // are provided in the form of a sequence of hex digits, two digits per byte,
   // with no separators between them. For example, the string "AABB11"

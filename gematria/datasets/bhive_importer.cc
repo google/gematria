@@ -28,14 +28,16 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_split.h"
-#include "absl/types/span.h"
 #include "gematria/basic_block/basic_block_protos.h"
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/disassembler.h"
+#include "gematria/llvm/llvm_to_absl.h"
 #include "gematria/proto/basic_block.pb.h"
 #include "gematria/proto/throughput.pb.h"
 #include "gematria/utils/string.h"
-#include "llvm/include/llvm/MC/TargetRegistry.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/MC/TargetRegistry.h"
+#include "llvm/Support/Error.h"
 
 namespace gematria {
 namespace {
@@ -62,17 +64,19 @@ BHiveImporter::BHiveImporter(const Canonicalizer* canonicalizer)
           *target_machine_.getMCRegisterInfo())) {}
 
 absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMachineCode(
-    absl::Span<const uint8_t> machine_code, uint64_t base_address /*= 0*/) {
+    llvm::ArrayRef<uint8_t> machine_code, uint64_t base_address /*= 0*/) {
   BasicBlockProto basic_block_proto;
-  absl::StatusOr<std::vector<DisassembledInstruction>> instructions_or_status =
+  llvm::Expected<std::vector<DisassembledInstruction>> instructions =
       DisassembleAllInstructions(*disassembler_,
                                  *target_machine_.getMCInstrInfo(),
                                  *target_machine_.getMCRegisterInfo(),
                                  *target_machine_.getMCSubtargetInfo(),
                                  *mc_inst_printer_, base_address, machine_code);
-  if (!instructions_or_status.ok()) return instructions_or_status.status();
+  if (llvm::Error error = instructions.takeError()) {
+    return LlvmErrorToStatus(std::move(error));
+  }
 
-  for (DisassembledInstruction& instruction : instructions_or_status.value()) {
+  for (DisassembledInstruction& instruction : *instructions) {
     MachineInstructionProto& machine_instruction =
         *basic_block_proto.add_machine_instructions();
     machine_instruction.set_address(instruction.address);
@@ -133,7 +137,7 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseBHiveCsvLine(
   }
 
   ThroughputWithSourceProto& throughput = *proto.add_inverse_throughputs();
-  throughput.set_source(std::string(source_name));
+  throughput.set_source(source_name);
   throughput.add_inverse_throughput_cycles(throughput_cycles *
                                            throughput_scaling);
 

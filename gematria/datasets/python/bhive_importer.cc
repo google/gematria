@@ -18,6 +18,7 @@
 #include <string_view>
 
 #include "gematria/llvm/canonicalizer.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "pybind11/cast.h"
 #include "pybind11/detail/common.h"
 #include "pybind11/pybind11.h"
@@ -50,7 +51,7 @@ PYBIND11_MODULE(bhive_importer, m) {
             // We need to explicitly "convert" from a Python bytes object to
             // an array of uint8_t.
             std::string_view machine_code_view = machine_code;
-            absl::Span<const uint8_t> machine_code_bytes(
+            llvm::ArrayRef<uint8_t> machine_code_bytes(
                 reinterpret_cast<const uint8_t*>(machine_code_view.data()),
                 machine_code_view.size());
             return self.BasicBlockProtoFromMachineCode(machine_code_bytes,

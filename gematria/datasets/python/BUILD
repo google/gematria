@@ -24,6 +24,7 @@ gematria_pybind_extension(
         "//gematria/datasets:bhive_importer",
         "//gematria/llvm:canonicalizer",
         "@com_google_pybind11_protobuf//pybind11_protobuf:native_proto_caster",
+        "@llvm-project//llvm:Support",
         "@pybind11_abseil_repo//pybind11_abseil:status_casters",
     ],
 )

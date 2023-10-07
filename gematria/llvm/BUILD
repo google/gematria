@@ -95,10 +95,6 @@ cc_library(
     hdrs = ["disassembler.h"],
     visibility = ["//:internal_users"],
     deps = [
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/types:span",
         "@llvm-project//llvm:MC",
         "@llvm-project//llvm:MCDisassembler",
         "@llvm-project//llvm:Support",
@@ -112,11 +108,13 @@ cc_test(
     deps = [
         ":disassembler",
         ":llvm_architecture_support",
+        ":llvm_to_absl",
         "//gematria/testing:llvm",
         "//gematria/testing:matchers",
         "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:MC",
+        "@llvm-project//llvm:Support",
         "@llvm-project//llvm:X86UtilsAndDesc",
     ],
 )

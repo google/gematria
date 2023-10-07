@@ -11,6 +11,7 @@ cc_library(
         "//gematria/basic_block:basic_block_protos",
         "//gematria/llvm:canonicalizer",
         "//gematria/llvm:disassembler",
+        "//gematria/llvm:llvm_to_absl",
         "//gematria/proto:basic_block_cc_proto",
         "//gematria/proto:throughput_cc_proto",
         "//gematria/utils:string",
@@ -19,9 +20,9 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/types:span",
         "@llvm-project//llvm:MC",
         "@llvm-project//llvm:MCDisassembler",
+        "@llvm-project//llvm:Support",
         "@llvm-project//llvm:Target",
     ],
 )
