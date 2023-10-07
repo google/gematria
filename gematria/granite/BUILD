@@ -95,11 +95,10 @@ cc_binary(
         "//gematria/utils:string",
         "//third_party/tensorflow/lite:framework_stable",
         "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/log:absl_check",
-        "@com_google_absl//absl/log:absl_log",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@llvm-project//llvm:MC",
+        "@llvm-project//llvm:Support",
     ],
 )

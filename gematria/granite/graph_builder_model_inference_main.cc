@@ -19,7 +19,6 @@
 //     --gematria_tflite_file models/granite_model.tflite \
 //     --gematria_basic_block_hex_file /dev/stdin
 
-#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -30,12 +29,9 @@
 #include <vector>
 
 #include "absl/flags/flag.h"
-#include "absl/log/absl_check.h"
-#include "absl/log/absl_log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
-#include "absl/strings/string_view.h"
 #include "base/init_google.h"
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/granite/graph_builder_model_inference.h"
@@ -99,7 +95,7 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
     for (const BasicBlock& block : batch) {
       is_valid_block.push_back(inference.AddBasicBlockToBatch(block));
       if (!is_valid_block.back()) {
-        ABSL_LOG(WARNING) << "Invalid basic block:\n" << block.ToString();
+        std::cerr << "Invalid basic block:\n" << block.ToString() << "\n";
       }
     }
     const absl::StatusOr<std::vector<GraphBuilderModelInference::OutputType>>
@@ -181,6 +177,11 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
 
 int main(int argc, char* argv[]) {
   InitGoogle(argv[0], &argc, &argv, true);
-  ABSL_CHECK_OK(gematria::ProcessBasicBlocksFromCommandLineFlags());
+  const absl::Status status =
+      gematria::ProcessBasicBlocksFromCommandLineFlags();
+  if (!status.ok()) {
+    std::cerr << status.ToString();
+    return 1;
+  }
   return 0;
 }
