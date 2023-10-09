@@ -17,38 +17,39 @@
 #include <utility>
 
 #include "absl/status/status.h"
+#include "gematria/testing/matchers.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 
+namespace gematria {
 namespace {
-using testing::status::StatusIs;
 
 TEST(LlvmErrorToStatus, Success) {
   llvm::Error e = llvm::Error::success();
-  EXPECT_OK(gematria::LlvmErrorToStatus(std::move(e)));
+  EXPECT_OK(LlvmErrorToStatus(std::move(e)));
 }
 
 TEST(LlvmErrorToStatus, Failure) {
   llvm::Error e =
       llvm::make_error<llvm::StringError>(llvm::errc::io_error, "broken!");
   EXPECT_THAT(
-      gematria::LlvmErrorToStatus(std::move(e)),
+      LlvmErrorToStatus(std::move(e)),
       StatusIs(absl::StatusCode::kInternal, testing::HasSubstr("broken!")));
 }
 
 TEST(LlvmExpectedToStatusOr, Success) {
   llvm::Expected<int> e = 42;
-  EXPECT_THAT(gematria::LlvmExpectedToStatusOr(std::move(e)),
-              testing::status::IsOkAndHolds(42));
+  EXPECT_THAT(LlvmExpectedToStatusOr(std::move(e)), IsOkAndHolds(42));
 }
 
 TEST(LlvmExpectedToStatusOr, Failure) {
   llvm::Expected<int> e =
       llvm::make_error<llvm::StringError>(llvm::errc::io_error, "broken!");
   EXPECT_THAT(
-      gematria::LlvmExpectedToStatusOr(std::move(e)),
+      LlvmExpectedToStatusOr(std::move(e)),
       StatusIs(absl::StatusCode::kInternal, testing::HasSubstr("broken!")));
 }
 }  // namespace
+}  // namespace gematria

@@ -18,6 +18,7 @@ cc_test(
     name = "llvm_test",
     size = "small",
     srcs = ["llvm_test.cc"],
+    copts = ["-Iexternal/llvm-project/llvm"],
     deps = [
         ":llvm",
         "@com_google_googletest//:gtest_main",

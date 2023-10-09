@@ -12,7 +12,7 @@ package(
 gematria_pybind_extension(
     name = "bhive_importer",
     srcs = ["bhive_importer.cc"],
-    pytype_deps = [
+    py_deps = [
         "//gematria/llvm/python:canonicalizer",
         "//gematria/proto:basic_block_py_pb2",
         "//gematria/proto:canonicalized_instruction_py_pb2",

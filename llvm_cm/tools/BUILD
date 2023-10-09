@@ -1,35 +1,3 @@
 package(
     default_visibility = ["//visibility:public"],
 )
-
-cc_binary(
-    name = "llvm-cm",
-    srcs = ["llvm-cm/llvm-cm.cpp"],
-    deps = [
-        "//gematria/basic_block",
-        "//gematria/granite:graph_builder_model_inference",
-        "//gematria/llvm:canonicalizer",
-        "//third_party/tensorflow/lite:framework",
-        "//third_party/tensorflow/lite/c:c_api_types",
-        "//third_party/tensorflow/lite/c:common",
-        "//third_party/tensorflow/lite/kernels:builtin_ops",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/types:span",
-        "@llvm-project//llvm:AllTargetsCodeGens",
-        "@llvm-project//llvm:AllTargetsDisassemblers",
-        "@llvm-project//llvm:BinaryFormat",
-        "@llvm-project//llvm:DebugInfo",
-        "@llvm-project//llvm:MC",
-        "@llvm-project//llvm:MCDisassembler",
-        "@llvm-project//llvm:MCParser",
-        "@llvm-project//llvm:Object",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//llvm:Target",
-        "@llvm-project//llvm:X86CodeGen",
-        "@llvm-project//llvm:X86UtilsAndDesc",
-        "@llvm-project//llvm:config",
-    ],
-)

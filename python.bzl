@@ -13,7 +13,7 @@
 # limitations under the License.
 """Contains portable rules for building and testing Python code."""
 
-load("@org_tensorflow//tensorflow:tensorflow.default.bzl", "pybind_extension")
+load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
 load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
 
 def gematria_py_binary(name = None, **kwargs):
@@ -25,8 +25,5 @@ def gematria_py_library(name = None, **kwargs):
 def gematria_py_test(name = None, **kwargs):
     py_test(name = name, **kwargs)
 
-def gematria_pybind_extension(name = None, deps = None, **kwargs):
-    if deps == None:
-        deps = []
-    deps.append("@pybind11")
-    pybind_extension(name = name, deps = deps, **kwargs)
+def gematria_pybind_extension(name = None, **kwargs):
+    pybind_extension(name = name, **kwargs)

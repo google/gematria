@@ -11,7 +11,7 @@ package(
 gematria_pybind_extension(
     name = "canonicalizer",
     srcs = ["canonicalizer.cc"],
-    pytype_deps = [":llvm_architecture_support"],
+    py_deps = [":llvm_architecture_support"],
     visibility = ["//:internal_users"],
     deps = [
         "//gematria/llvm:canonicalizer",

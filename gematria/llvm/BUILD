@@ -25,6 +25,7 @@ cc_test(
     name = "asm_parser_test",
     size = "small",
     srcs = ["asm_parser_test.cc"],
+    copts = ["-Iexternal/llvm-project/llvm"],
     deps = [
         ":asm_parser",
         ":llvm_architecture_support",
@@ -42,6 +43,7 @@ cc_library(
     name = "canonicalizer",
     srcs = ["canonicalizer.cc"],
     hdrs = ["canonicalizer.h"],
+    copts = ["-Iexternal/llvm-project/llvm"],
     visibility = ["//:external_users"],
     deps = [
         "//gematria/basic_block",
@@ -105,6 +107,7 @@ cc_test(
     name = "disassembler_test",
     size = "small",
     srcs = ["disassembler_test.cc"],
+    copts = ["-Iexternal/llvm-project/llvm"],
     deps = [
         ":disassembler",
         ":llvm_architecture_support",
@@ -173,6 +176,7 @@ cc_test(
     srcs = ["llvm_to_absl_test.cc"],
     deps = [
         ":llvm_to_absl",
+        "//gematria/testing:matchers",
         "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",

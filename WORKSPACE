@@ -165,9 +165,9 @@ new_git_repository(
 
 # LLVM and its dependencies
 
-LLVM_COMMIT = "868591501c61bc1aa56da537bab85cc67439f16d"
+LLVM_COMMIT = "2a1f1b5fde0a2e03f94fa2cb5c7765d405fda0de"
 
-LLVM_SHA256 = "7790344f8245cb6a60ec8cbdadd46640ef8cc217c8cadc6b4481da473292f77b"
+LLVM_SHA256 = "f91c596575c69d9861892fdf57ad54d1fb31ab1a4eb5897f3bd58383ed69f838"
 
 http_archive(
     name = "llvm-raw",
@@ -177,31 +177,29 @@ http_archive(
     urls = ["https://github.com/llvm/llvm-project/archive/{commit}.zip".format(commit = LLVM_COMMIT)],
 )
 
-load("@llvm-raw//utils/bazel:configure.bzl", "llvm_configure", "llvm_disable_optional_support_deps")
+load("@llvm-raw//utils/bazel:configure.bzl",
+ "llvm_configure")
 
 llvm_configure(name = "llvm-project")
 
-llvm_disable_optional_support_deps()
-
 http_archive(
-    name = "llvm_zlib",
-    build_file = "@llvm-raw//utils/bazel/third_party_build:zlib.BUILD",
-    sha256 = "91844808532e5ce316b3c010929493c0244f3d37593afd6de04f71821d5136d9",
-    strip_prefix = "zlib-1.2.12",
-    urls = [
-        "https://storage.googleapis.com/mirror.tensorflow.org/zlib.net/zlib-1.2.12.tar.gz",
-        "https://zlib.net/zlib-1.2.12.tar.gz",
-    ],
+  name = "llvm_zlib",
+  build_file = "@llvm-raw//utils/bazel/third_party_build:zlib-ng.BUILD",
+  sha256 = "e36bb346c00472a1f9ff2a0a4643e590a254be6379da7cddd9daeb9a7f296731",
+  strip_prefix = "zlib-ng-2.0.7",
+  urls = [
+      "https://github.com/zlib-ng/zlib-ng/archive/refs/tags/2.0.7.zip",
+  ],
 )
 
 http_archive(
-    name = "llvm_zstd",
-    build_file = "@llvm-raw//utils/bazel/third_party_build:zstd.BUILD",
-    sha256 = "7c42d56fac126929a6a85dbc73ff1db2411d04f104fae9bdea51305663a83fd0",
-    strip_prefix = "zstd-1.5.2",
-    urls = [
-        "https://github.com/facebook/zstd/releases/download/v1.5.2/zstd-1.5.2.tar.gz",
-    ],
+  name = "llvm_zstd",
+  build_file = "@llvm-raw//utils/bazel/third_party_build:zstd.BUILD",
+  sha256 = "7c42d56fac126929a6a85dbc73ff1db2411d04f104fae9bdea51305663a83fd0",
+  strip_prefix = "zstd-1.5.2",
+  urls = [
+      "https://github.com/facebook/zstd/releases/download/v1.5.2/zstd-1.5.2.tar.gz"
+  ],
 )
 
 # compile_commands.json extraction for clangd
