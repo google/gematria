@@ -29,8 +29,6 @@
 #include <vector>
 
 #include "absl/flags/flag.h"
-#include "absl/status/status.h"
-#include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
 #include "base/init_google.h"
 #include "gematria/basic_block/basic_block.h"
@@ -38,12 +36,13 @@
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
-#include "gematria/llvm/llvm_to_absl.h"
 #include "gematria/utils/string.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstPrinter.h"
+#include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/raw_ostream.h"
 #include "tensorflow/lite/model_builder.h"
 
 ABSL_FLAG(std::string, gematria_tflite_file, "",
@@ -66,24 +65,24 @@ void PrintPredictionsToStdout(
   }
 }
 
-absl::Status ProcessBasicBlocksFromCommandLineFlags() {
+llvm::Error ProcessBasicBlocksFromCommandLineFlags() {
   constexpr char kLlvmTriple[] = "x86_64-unknown-unknown";
-  absl::StatusOr<std::unique_ptr<LlvmArchitectureSupport>> llvm_support =
-      LlvmExpectedToStatusOr(
-          LlvmArchitectureSupport::FromTriple(kLlvmTriple, "", ""));
-  if (!llvm_support.ok()) return llvm_support.status();
+  llvm::Expected<std::unique_ptr<LlvmArchitectureSupport>> llvm_support =
+      LlvmArchitectureSupport::FromTriple(kLlvmTriple, "", "");
+  if (llvm::Error error = llvm_support.takeError()) return error;
 
   const std::unique_ptr<tflite::FlatBufferModel> model =
       tflite::FlatBufferModel::BuildFromFile(
           absl::GetFlag(FLAGS_gematria_tflite_file).c_str());
   if (model == nullptr) {
-    return absl::UnknownError("Could not load the ");
+    return llvm::createStringError(llvm::errc::io_error,
+                                   "Could not load the TfLite model.");
   }
-  absl::StatusOr<std::unique_ptr<GraphBuilderModelInference>>
-      inference_or_status =
+  llvm::Expected<std::unique_ptr<GraphBuilderModelInference>>
+      expected_inference =
           GraphBuilderModelInference::FromTfLiteModel(model.get());
-  if (!inference_or_status.ok()) return inference_or_status.status();
-  GraphBuilderModelInference& inference = **inference_or_status;
+  if (llvm::Error error = expected_inference.takeError()) return error;
+  GraphBuilderModelInference& inference = **expected_inference;
 
   X86Canonicalizer canonicalizer(&(*llvm_support)->target_machine());
 
@@ -91,7 +90,7 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
       (*llvm_support)->CreateMCInstPrinter(0);
 
   const auto run_inference_for_batch =
-      [&](const std::vector<BasicBlock>& batch) -> absl::Status {
+      [&](const std::vector<BasicBlock>& batch) -> llvm::Error {
     inference.Reset();
     std::vector<bool> is_valid_block;
     is_valid_block.reserve(batch.size());
@@ -101,9 +100,9 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
         std::cerr << "Invalid basic block:\n" << block.ToString() << "\n";
       }
     }
-    const absl::StatusOr<std::vector<GraphBuilderModelInference::OutputType>>
+    llvm::Expected<std::vector<GraphBuilderModelInference::OutputType>>
         predictions = inference.RunInference();
-    if (!predictions.ok()) return predictions.status();
+    if (llvm::Error error = predictions.takeError()) return error;
 
     int prediction_index = 0;
     for (const bool is_valid : is_valid_block) {
@@ -114,7 +113,7 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
       }
       std::cout << std::endl;
     }
-    return absl::OkStatus();
+    return llvm::Error::success();
   };
 
   const int max_num_blocks_per_batch =
@@ -131,10 +130,11 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
     if (line.empty()) continue;
 
     auto machine_code = ParseHexString(line);
-    // TODO(mtrofin): the absl dependency is about to be removed, this is
-    // point-in-time
-    if (!machine_code.has_value())
-      return absl::InvalidArgumentError("cannot parse");
+    if (!machine_code.has_value()) {
+      return llvm::createStringError(llvm::errc::invalid_argument,
+                                     "Can't parse input line: %s",
+                                     line.c_str());
+    }
 
     llvm::Expected<std::vector<DisassembledInstruction>>
         disassembled_instructions =
@@ -144,7 +144,7 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
                                        (*llvm_support)->mc_subtarget_info(),
                                        *inst_printer, 0, *machine_code);
     if (llvm::Error error = disassembled_instructions.takeError()) {
-      return LlvmErrorToStatus(std::move(error));
+      return error;
     }
     std::vector<llvm::MCInst> mc_insts;
     mc_insts.reserve(disassembled_instructions->size());
@@ -154,8 +154,8 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
     }
 
     if (batch.size() == max_num_blocks_per_batch) {
-      if (absl::Status status = run_inference_for_batch(batch); status.ok()) {
-        return status;
+      if (llvm::Error error = run_inference_for_batch(batch)) {
+        return error;
       }
       batch.clear();
     }
@@ -163,12 +163,12 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
   }
   // Process all remaining blocks.
   if (!batch.empty()) {
-    if (absl::Status status = run_inference_for_batch(batch); status.ok()) {
-      return status;
+    if (llvm::Error error = run_inference_for_batch(batch)) {
+      return error;
     }
   }
 
-  return absl::OkStatus();
+  return llvm::Error::success();
 }
 
 }  // namespace
@@ -176,10 +176,9 @@ absl::Status ProcessBasicBlocksFromCommandLineFlags() {
 
 int main(int argc, char* argv[]) {
   InitGoogle(argv[0], &argc, &argv, true);
-  const absl::Status status =
-      gematria::ProcessBasicBlocksFromCommandLineFlags();
-  if (!status.ok()) {
-    std::cerr << status.ToString();
+  llvm::Error error = gematria::ProcessBasicBlocksFromCommandLineFlags();
+  if (error) {
+    llvm::errs() << error;
     return 1;
   }
   return 0;

@@ -26,8 +26,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/log/check.h"
-#include "absl/status/statusor.h"
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/granite/graph_builder_model_inference.h"
 #include "gematria/llvm/canonicalizer.h"
@@ -143,6 +141,19 @@ static void exitIf(bool Cond, Twine Message) {
   }
 }
 
+[[noreturn]] static void error(Error Err) {
+  logAllUnhandledErrors(std::move(Err), WithColor::error(outs()),
+                        "reading file: ");
+  outs().flush();
+  exit(1);
+}
+
+template <typename T>
+T unwrapOrError(Expected<T> EO) {
+  if (!EO) error(EO.takeError());
+  return std::move(*EO);
+}
+
 static bool instructionTerminatesBasicBlock(const MCInstrInfo &instruction_info,
                                             const MCInst &inst) {
   const MCInstrDesc &desc = instruction_info.get(inst.getOpcode());
@@ -216,14 +227,14 @@ class GraniteCostModel : public CostModel {
     std::unique_ptr<tflite::FlatBufferModel> InfModel =
         tflite::FlatBufferModel::BuildFromFile(EvaluatorFilename.c_str());
 
-    auto InferenceOr =
-        gematria::GraphBuilderModelInference::FromTfLiteModel(InfModel.get());
+    auto InferenceOr = unwrapOrError(
+        gematria::GraphBuilderModelInference::FromTfLiteModel(InfModel.get()));
 
     // TODO(dayannd): Change this to make use of Expected<>.
-    if (!InferenceOr.ok() || InferenceOr.value() == nullptr) return nullptr;
+    if (InferenceOr == nullptr) return nullptr;
 
-    return std::unique_ptr<CostModel>(new GraniteCostModel(
-        TM, std::move(InfModel), std::move(InferenceOr).value()));
+    return std::unique_ptr<CostModel>(
+        new GraniteCostModel(TM, std::move(InfModel), std::move(InferenceOr)));
   }
 
   uint64_t getNumBasicBlocks() override { return BasicBlocksAndFreq.size(); }
@@ -236,16 +247,14 @@ class GraniteCostModel : public CostModel {
              "Basic block could not be added to batch!");
     }
 
-    const absl::StatusOr<
-        std::vector<gematria::GraphBuilderModelInference::OutputType>>
-        Predictions = Inference->RunInference();
-    CHECK_OK(Predictions.status());
-    CHECK_EQ(Predictions->size(), BasicBlocksAndFreq.size());
+    const std::vector<gematria::GraphBuilderModelInference::OutputType>
+        Predictions = unwrapOrError(Inference->RunInference());
+    assert(Predictions.size() == BasicBlocksAndFreq.size());
     double LatencyAccumulator = 0.0;
 
     // The tasks: IVB, HSW, and SKL. We only care about SKL right now.
-    for (unsigned Block = 0; Block < Predictions->size(); ++Block) {
-      const auto &Costs = (*Predictions)[Block];
+    for (unsigned Block = 0; Block < Predictions.size(); ++Block) {
+      const auto &Costs = Predictions[Block];
       // All Gematria models are implemented as multi-task models, even if
       // they have just one output head (and `output` contains just a single
       // value).
@@ -314,19 +323,6 @@ static SectionFilter getToolSectionFilter(object::ObjectFile const &O,
         return true;
       },
       /*Obj=*/O);
-}
-
-[[noreturn]] static void error(Error Err) {
-  logAllUnhandledErrors(std::move(Err), WithColor::error(outs()),
-                        "reading file: ");
-  outs().flush();
-  exit(1);
-}
-
-template <typename T>
-T unwrapOrError(Expected<T> EO) {
-  if (!EO) error(EO.takeError());
-  return std::move(*EO);
 }
 
 // TODO(dayannd): Share this with llvm-objdump.cpp.

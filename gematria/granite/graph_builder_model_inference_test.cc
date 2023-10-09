@@ -14,7 +14,10 @@
 
 #include "gematria/granite/graph_builder_model_inference.h"
 
+#include <cassert>
 #include <cstddef>
+#include <cstdlib>
+#include <iostream>
 #include <iterator>
 #include <memory>
 #include <string>
@@ -22,8 +25,6 @@
 #include <vector>
 
 #include "absl/flags/flag.h"
-#include "absl/log/absl_check.h"
-#include "absl/log/absl_log.h"
 #include "absl/random/distributions.h"
 #include "absl/random/random.h"
 #include "absl/status/statusor.h"
@@ -32,9 +33,12 @@
 #include "file/base/path.h"
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/basic_block/basic_block_protos.h"
+#include "gematria/llvm/llvm_to_absl.h"
 #include "gematria/testing/parse_proto.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/Error.h"
 #include "tensorflow/lite/model_builder.h"
 #include "testing/base/public/googletest.h"
 
@@ -53,6 +57,13 @@ using ::testing::status::IsOkAndHolds;
 // here is used to make the floating point literals in the matchers shorter and
 // more readable.
 constexpr float kTolerance = 1e-3;
+
+void AbortOnError(llvm::Error error) {
+  if (error) {
+    llvm::dbgs() << "Fatal error: " << error << "\n";
+    std::abort();
+  }
+}
 
 // Basic blocks used in the tests.
 constexpr absl::string_view kBasicBlocks[] = {

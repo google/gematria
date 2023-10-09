@@ -18,10 +18,10 @@
 #include <memory>
 #include <vector>
 
-#include "absl/container/inlined_vector.h"
-#include "absl/status/statusor.h"
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/granite/graph_builder.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/Error.h"
 #include "tensorflow/lite/model_builder.h"
 
 namespace gematria {
@@ -35,13 +35,12 @@ namespace gematria {
 //
 // Typical usage:
 //   auto tflite_model = tflite::FlatBufferModel::BuildFromFile(...);
-//   absl::StatusOr<std::unique_ptr<GraphBuilderModelInference>>
-//       inference_or_status =
+//   auto inference =
 //       GraphBuilderModelInference::FromTfLiteModel(tflite_model.get());
 //   for (const BasicBlock& block : input_basic_blocks) {
-//     inference.AddBasicBlockToBatch(block);
+//     inference->AddBasicBlockToBatch(block);
 //   }
-//   const auto predictions = inference.RunInference();
+//   const auto predictions = inference->RunInference();
 class GraphBuilderModelInference {
  public:
   // The type used for predictions for a single basic block. All Gematria models
@@ -50,7 +49,7 @@ class GraphBuilderModelInference {
   // During inference, we return the outputs for all tasks (the values from all
   // output heads of the model) in a vector-like data structure. The precise
   // definition of this type may change in the future.
-  using OutputType = absl::InlinedVector<float, 4>;
+  using OutputType = llvm::SmallVector<float, 4>;
 
   // Creates the inference object from a model stored in the .tflite format.
   // Expects that the .tflite model contains also the definitions of node tokens
@@ -59,7 +58,7 @@ class GraphBuilderModelInference {
   // including the node token definitions.
   // Does not take ownership of `tflite_model`; the object must remain alive for
   // the whole lifetime of the inference object.
-  static absl::StatusOr<std::unique_ptr<GraphBuilderModelInference>>
+  static llvm::Expected<std::unique_ptr<GraphBuilderModelInference>>
   FromTfLiteModel(const tflite::FlatBufferModel* tflite_model);
 
   // Adds a basic block to the current batch. Returns true when the basic block
@@ -72,7 +71,7 @@ class GraphBuilderModelInference {
   // predictions for all basic blocks from the current batch in the order in
   // which they are added. The output for each basic block are the predictions
   // from all heads of the model.
-  absl::StatusOr<std::vector<OutputType>> RunInference();
+  llvm::Expected<std::vector<OutputType>> RunInference();
 
   // Removes all basic blocks from the current batch. Note that RunInference()
   // does not call this method automatically.

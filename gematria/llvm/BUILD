@@ -174,7 +174,6 @@ cc_test(
     deps = [
         ":llvm_to_absl",
         "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
     ],

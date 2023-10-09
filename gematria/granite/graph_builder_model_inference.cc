@@ -15,32 +15,31 @@
 #include "gematria/granite/graph_builder_model_inference.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
-#include "absl/container/inlined_vector.h"
-#include "absl/log/absl_check.h"
-#include "absl/log/die_if_null.h"
-#include "absl/status/status.h"
-#include "absl/status/statusor.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
-#include "absl/strings/string_view.h"
-#include "absl/types/span.h"
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/granite/graph_builder.h"
 #include "gematria/model/oov_token_behavior.h"
 #include "gematria/tflite/unsorted_segment_sum_op.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/Twine.h"
+#include "llvm/Support/Errc.h"
+#include "llvm/Support/Error.h"
 #include "tensorflow/lite/c/c_api_types.h"
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/interpreter_builder.h"
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/model_builder.h"
+#include "tensorflow/lite/portable_type_to_tflitetype.h"
 
 namespace gematria {
 namespace {
@@ -81,113 +80,206 @@ constexpr int kNumSpecialNodeTokens = 5;
 
 // The names of the tensors that contain the configuration of the graph builder
 // class.
-constexpr absl::string_view kNodeTokensTensorName = "TokenModel.token_list";
-constexpr absl::string_view kSpecialTokensTensorName =
+constexpr std::string_view kNodeTokensTensorName = "TokenModel.token_list";
+constexpr std::string_view kSpecialTokensTensorName =
     "GraphBuilderModelBase.special_tokens";
 
-// Fills a 1D tensor at the given index in `interpreter` from the given
-// std::vector. CHECK-fails if the tensor shape does not match the size of the
-// vector or the type of the tensor does not match the requested tensor element
-// type.
-template <typename TensorElementType, typename InputElementType>
-void FillTensorFromStdVector(tflite::Interpreter* interpreter,
-                             const std::vector<InputElementType>& input_vector,
-                             int tensor_index) {
-  const TfLiteTensor* const tensor = interpreter->input_tensor(tensor_index);
-  ABSL_CHECK_EQ(tensor->type, tflite::typeToTfLiteType<TensorElementType>());
-  ABSL_CHECK_EQ(tensor->dims->size, 1);
-  ABSL_CHECK_EQ(tensor->dims->data[0], input_vector.size());
+// Checks that:
+// 1. `tensor` != nullptr,
+// 2. `tensor` has type `tensor_type`.
+// 3. `tensor` has the number of dimensions corresponding to the number of
+// elements of `sizes`, and the sizes in those dimensions are equal to `sizes`.
+// Returns `llvm::Error::success()` when all checks pass, an error otherwise.
+//
+// TODO(ondrasej): See if we can replace this function and the one below with
+// TFModelEvaluatorImpl::checkReportAndInvalidate.
+template <typename... Args>
+llvm::Error CheckTensorTypeAndDimensions(int tensor_index,
+                                         const TfLiteTensor* tensor,
+                                         TfLiteType tensor_type,
+                                         Args... sizes) {
+  const int64_t sizes_array[] = {static_cast<int64_t>(sizes)...};
+  const int num_dimensions = std::size(sizes_array);
+  if (tensor == nullptr) {
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "Input tensor was not found at index %d.",
+                                   tensor_index);
+  }
+  if (tensor->type != tensor_type) {
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "Input tensor at index %d has invalid type.",
+                                   tensor_index);
+  }
+  if (tensor->dims->size != num_dimensions) {
+    return llvm::createStringError(
+        llvm::errc::invalid_argument,
+        "Input tensor at index %d has invalid number of dimensions. Expected "
+        "%d, found %d.",
+        tensor_index, num_dimensions, tensor->dims->size);
+  }
+  for (int i = 0; i < num_dimensions; ++i) {
+    if (tensor->dims->data[i] != sizes_array[i]) {
+      return llvm::createStringError(
+          llvm::errc::invalid_argument,
+          "Input tensor at index %d has unexpected size at dimension %d",
+          tensor_index, i);
+    }
+  }
 
+  return llvm::Error::success();
+}
+
+// Similar to `CheckTensorTypeAndDimensions`, but tests `tensor->dims_signature`
+// rather than `tensor->dims`.
+template <typename... Args>
+llvm::Error CheckTensorSignature(int tensor_index, const TfLiteTensor* tensor,
+                                 Args... sizes) {
+  const int sizes_array[] = {sizes...};
+  const int num_dimensions = std::size(sizes_array);
+  if (tensor == nullptr) {
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "Input tensor was not found at index %d.",
+                                   tensor_index);
+  }
+  if (tensor->dims_signature->size != num_dimensions) {
+    return llvm::createStringError(
+        llvm::errc::invalid_argument,
+        "Input tensor at index %d has invalid number of dimensions. Expected "
+        "%d, found %d.",
+        tensor_index, num_dimensions, tensor->dims_signature->size);
+  }
+  for (int i = 0; i < num_dimensions; ++i) {
+    if (tensor->dims_signature->data[i] != sizes_array[i]) {
+      return llvm::createStringError(
+          llvm::errc::invalid_argument,
+          "Input tensor at index %d has unexpected size at dimension %d",
+          tensor_index, i);
+    }
+  }
+
+  return llvm::Error::success();
+}
+
+// Fills a 1D tensor at the given index in `interpreter` from the given
+// std::vector. Returns an error if the tensor shape does not match the size of
+// the vector or the type of the tensor does not match the requested tensor
+// element type.
+template <typename TensorElementType, typename InputElementType>
+llvm::Error FillTensorFromStdVector(
+    tflite::Interpreter* interpreter,
+    const std::vector<InputElementType>& input_vector, int tensor_index) {
+  const TfLiteTensor* const tensor = interpreter->input_tensor(tensor_index);
+  if (llvm::Error error = CheckTensorTypeAndDimensions(
+          tensor_index, tensor, tflite::typeToTfLiteType<TensorElementType>(),
+          static_cast<int>(input_vector.size()))) {
+    return error;
+  }
   auto* const tensor_data =
       interpreter->typed_input_tensor<TensorElementType>(tensor_index);
   std::copy(input_vector.begin(), input_vector.end(), tensor_data);
+  return llvm::Error::success();
 }
 
 // Fills a 2D tensor at the given index in `interpreter` from a given matrix
 // represented as a vector of vectors. The data are added to the tensor in the
 // natural ordering (the inner vectors of the matrix are concatenated into the
 // flat tensor buffer).
-// CHECK-fails if the tensor shape does not match the shape of the matrix or the
-// type of the tensor does not match the requested tensor element type.
+// Returns an error if the tensor shape does not match the shape of the matrix
+// or the type of the tensor does not match the requested tensor element type.
 template <typename TensorElementType, typename InputElementType>
-void FillTensorFromStdVectorMatrix(
+llvm::Error FillTensorFromStdVectorMatrix(
     tflite::Interpreter* interpreter,
     const std::vector<std::vector<InputElementType>>& input_matrix,
     int tensor_index) {
   const TfLiteTensor* const tensor = interpreter->input_tensor(tensor_index);
-  ABSL_CHECK_EQ(tensor->type, tflite::typeToTfLiteType<TensorElementType>());
-  ABSL_CHECK_EQ(tensor->dims->size, 2);
-  ABSL_CHECK_EQ(tensor->dims->data[0], input_matrix.size());
+  if (llvm::Error error = CheckTensorTypeAndDimensions(
+          tensor_index, tensor, tflite::typeToTfLiteType<TensorElementType>(),
+          input_matrix.size(), input_matrix[0].size())) {
+    return error;
+  }
 
   const int expected_size = tensor->dims->data[1];
   auto* const tensor_data =
       interpreter->typed_input_tensor<TensorElementType>(tensor_index);
   for (int row = 0; row < input_matrix.size(); ++row) {
     const std::vector<TensorElementType>& row_data = input_matrix[row];
-    ABSL_CHECK_EQ(expected_size, row_data.size());
+    if (expected_size != row_data.size()) {
+      return llvm::createStringError(
+          llvm::errc::invalid_argument,
+          "Unexpected row data size. Expected %d, found %d", expected_size,
+          row_data.size());
+    }
     std::copy(row_data.begin(), row_data.end(),
               tensor_data + expected_size * row);
   }
+  return llvm::Error::success();
 }
 
 // Resizes a 1D tensor at the given index in `interpreter` to a given size.
 // Requires that the tensor is a 1D variable size tensor, i.e. its
 // dims_signature is [-1].
-void Resize1DTensor(tflite::Interpreter* interpreter, int tensor_index,
-                    int desired_size) {
-  ABSL_CHECK(interpreter != nullptr);
+llvm::Error Resize1DTensor(tflite::Interpreter* interpreter, int tensor_index,
+                           int desired_size) {
+  assert(interpreter != nullptr);
   const TfLiteTensor* const tensor = interpreter->input_tensor(tensor_index);
-  ABSL_CHECK(tensor != nullptr);
-  ABSL_CHECK(tensor->dims_signature != nullptr);
-  ABSL_CHECK_EQ(tensor->dims_signature->size, 1);
-  ABSL_CHECK_EQ(tensor->dims_signature->data[0], -1);
+  if (llvm::Error error = CheckTensorSignature(tensor_index, tensor, -1)) {
+    return error;
+  }
 
   const TfLiteStatus status =
       interpreter->ResizeInputTensor(tensor_index, {desired_size});
-  ABSL_CHECK_EQ(status, kTfLiteOk);
+  if (status != kTfLiteOk) {
+    return llvm::make_error<llvm::StringError>(
+        "Resizing the tensor failed with status " + llvm::Twine(status),
+        llvm::errc::invalid_argument);
+  }
+  return llvm::Error::success();
 }
 
 // Resizes a 2D tensor at the given index in `interpreter` to a given batch
 // size. Requires that the tensor is a 2D tensor where the first dimension has a
 // variable size, i.e. its dims_signature is [-1, expected_second_dimension].
-void Resize2DTensor(tflite::Interpreter* interpreter, int tensor_index,
-                    int desired_first_dimension_size,
-                    int expected_second_dimension_size) {
-  ABSL_CHECK(interpreter != nullptr);
+llvm::Error Resize2DTensor(tflite::Interpreter* interpreter, int tensor_index,
+                           int desired_first_dimension_size,
+                           int expected_second_dimension_size) {
+  assert(interpreter != nullptr);
   const TfLiteTensor* const tensor = interpreter->input_tensor(tensor_index);
-  ABSL_CHECK(tensor != nullptr);
-  ABSL_CHECK(tensor->dims_signature != nullptr);
-  ABSL_CHECK_EQ(tensor->dims_signature->size, 2);
-  ABSL_CHECK_EQ(tensor->dims_signature->data[0], -1);
-  ABSL_CHECK_EQ(tensor->dims_signature->data[1],
-                expected_second_dimension_size);
-
+  if (llvm::Error error = CheckTensorSignature(
+          tensor_index, tensor, -1, expected_second_dimension_size)) {
+    return error;
+  }
   const TfLiteStatus status = interpreter->ResizeInputTensor(
       tensor_index,
       {desired_first_dimension_size, expected_second_dimension_size});
-  ABSL_CHECK_EQ(status, kTfLiteOk);
+  if (status != kTfLiteOk) {
+    return llvm::make_error<llvm::StringError>(
+        "Resizing the tensor failed with status " + llvm::Twine(status),
+        llvm::errc::invalid_argument);
+  }
+  return llvm::Error::success();
 }
 
 // Finds a tensor in the model by its name. The name must be the same as used
 // when constructing the graph. `tensor_indices` is the list of candidate tensor
 // indices; typically, this is interpreter.inputs() or interpreter.outputs().
 // Returns an error when the tensor is not found.
-absl::StatusOr<int> TensorIndexByName(const tflite::Interpreter& interpreter,
-                                      absl::Span<const int> tensor_indices,
-                                      absl::string_view name) {
+llvm::Expected<int> TensorIndexByName(const tflite::Interpreter& interpreter,
+                                      llvm::ArrayRef<int> tensor_indices,
+                                      std::string_view name) {
   for (const int tensor_index : tensor_indices) {
     const TfLiteTensor* const tensor = interpreter.tensor(tensor_index);
     if (name == tensor->name) {
       return tensor_index;
     }
   }
-  return absl::NotFoundError(absl::StrCat("Tensor was not found: ", name));
+  return llvm::make_error<llvm::StringError>(
+      llvm::Twine("Tensor was not found") + name, llvm::errc::invalid_argument);
 }
 
 // Creates a new interpreter for `tflite_model`. Returns an error when the
 // interpreter can't be created, e.g. when the model uses unsupported TensorFlow
 // ops.
-absl::StatusOr<std::unique_ptr<tflite::Interpreter>> CreateInterpreter(
+llvm::Expected<std::unique_ptr<tflite::Interpreter>> CreateInterpreter(
     const FlatBufferModel& tflite_model) {
   tflite::ops::builtin::BuiltinOpResolver resolver;
   resolver.AddCustom(kUnsortedSegmentSumOpName, RegisterUnsortedSegmentSumOp());
@@ -195,10 +287,10 @@ absl::StatusOr<std::unique_ptr<tflite::Interpreter>> CreateInterpreter(
   const TfLiteStatus status =
       tflite::InterpreterBuilder(tflite_model, resolver)(&interpreter);
   if (status != kTfLiteOk) {
-    return absl::FailedPreconditionError("Could not create the interpreter.");
+    return llvm::make_error<llvm::StringError>(
+        "Could not create the interpreter.", llvm::errc::not_supported);
   }
-  ABSL_CHECK(interpreter != nullptr);
-
+  assert(interpreter != nullptr);
   return interpreter;
 }
 
@@ -207,14 +299,14 @@ absl::StatusOr<std::unique_ptr<tflite::Interpreter>> CreateInterpreter(
 // inputs.
 // Returns an error when the token list tensor is not found or when it is not
 // readable.
-absl::StatusOr<std::vector<std::string>> GetNodeTokenList(
+llvm::Expected<std::vector<std::string>> GetNodeTokenList(
     const tflite::Interpreter& interpreter) {
-  const absl::StatusOr<int> token_list_tensor_index = TensorIndexByName(
+  llvm::Expected<int> token_list_tensor_index = TensorIndexByName(
       interpreter, interpreter.outputs(), kNodeTokensTensorName);
-  if (!token_list_tensor_index.ok()) return token_list_tensor_index.status();
+  if (auto error = token_list_tensor_index.takeError()) return error;
   const TfLiteTensor* const token_list_tensor =
       interpreter.tensor(*token_list_tensor_index);
-  ABSL_CHECK(token_list_tensor != nullptr);
+  assert(token_list_tensor != nullptr);
 
   const size_t token_list_size_bytes = token_list_tensor->bytes;
   // The token list tensor is a Const operation, so it should be readable before
@@ -222,81 +314,83 @@ absl::StatusOr<std::vector<std::string>> GetNodeTokenList(
   const char* const token_list_raw_data = reinterpret_cast<const char*>(
       interpreter.typed_tensor<uint8_t>(*token_list_tensor_index));
   if (token_list_raw_data == nullptr) {
-    return absl::FailedPreconditionError("The token list could not be read");
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "The token list could not be read");
   }
-  const absl::string_view token_list_data(token_list_raw_data,
-                                          token_list_size_bytes);
+  const std::string_view token_list_data(token_list_raw_data,
+                                         token_list_size_bytes);
   return absl::StrSplit(token_list_data, '\0');
 }
 
 // Returns token name from `node_token_list` at `token_index`. Returns an error
 // when the token index is out of range.
-absl::StatusOr<std::string> GetNodeTokenAtIndex(
+llvm::Expected<std::string> GetNodeTokenAtIndex(
     const std::vector<std::string>& node_token_list, int token_index) {
   if (token_index < 0 || token_index >= node_token_list.size()) {
-    return absl::FailedPreconditionError(
-        absl::StrCat("The token index is out of range: ", token_index,
-                     ",node_token_list.size() is ", node_token_list.size()));
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "The token index is out of range: %d"
+                                   ", node_token_list.size() is %d",
+                                   token_index, node_token_list.size());
   }
   return node_token_list[token_index];
 }
 
 }  // namespace
 
-absl::StatusOr<std::unique_ptr<GraphBuilderModelInference>>
+llvm::Expected<std::unique_ptr<GraphBuilderModelInference>>
 GraphBuilderModelInference::FromTfLiteModel(
     const tflite::FlatBufferModel* tflite_model) {
   if (tflite_model == nullptr) {
-    return absl::InvalidArgumentError("tflite_model must not be nullptr");
+    return llvm::make_error<llvm::StringError>(
+        "tflite_model must not be nullptr", llvm::errc::invalid_argument);
   }
-  const absl::StatusOr<std::unique_ptr<tflite::Interpreter>> interpreter =
+  llvm::Expected<std::unique_ptr<tflite::Interpreter>> interpreter =
       CreateInterpreter(*tflite_model);
-  if (!interpreter.ok()) return interpreter.status();
+  if (auto error = interpreter.takeError()) return error;
 
   // Get the list of node tokens used in the model.
-  absl::StatusOr<std::vector<std::string>> node_token_list =
+  llvm::Expected<std::vector<std::string>> node_token_list =
       GetNodeTokenList(**interpreter);
-  if (!node_token_list.ok()) return node_token_list.status();
+  if (llvm::Error error = node_token_list.takeError()) return error;
 
   // Get the values of the special tensors used in the model.
-  const absl::StatusOr<int> special_tokens_tensor_index = TensorIndexByName(
+  llvm::Expected<int> special_tokens_tensor_index = TensorIndexByName(
       **interpreter, (*interpreter)->outputs(), kSpecialTokensTensorName);
-  if (!special_tokens_tensor_index.ok()) {
-    return special_tokens_tensor_index.status();
+  if (llvm::Error error = special_tokens_tensor_index.takeError()) {
+    return error;
   }
   const TfLiteTensor* const special_tokens_tensor =
       (*interpreter)->tensor(*special_tokens_tensor_index);
-  ABSL_CHECK(special_tokens_tensor != nullptr);
-  ABSL_CHECK(special_tokens_tensor->dims != nullptr);
-  if (special_tokens_tensor->dims->size != 1 ||
-      special_tokens_tensor->dims->data[0] != kNumSpecialNodeTokens) {
-    return absl::FailedPreconditionError(
-        "The special node token tensor has an unexpected structure");
+  if (llvm::Error error = CheckTensorTypeAndDimensions(
+          *special_tokens_tensor_index, special_tokens_tensor,
+          tflite::typeToTfLiteType<int32_t>(), kNumSpecialNodeTokens)) {
+    return error;
   }
   const int32_t* const special_tokens_tensor_data =
       (*interpreter)->typed_tensor<int32_t>(*special_tokens_tensor_index);
   if (special_tokens_tensor_data == nullptr) {
-    return absl::FailedPreconditionError(
+    return llvm::createStringError(
+        llvm::errc::invalid_argument,
         "The special token index tensor could not be read");
   }
   // We'll be std::move()-ing the node list vector in the same function call
   // where we use the token names. To be safe from any move effects, we make a
   // copy of all the tokens instead of taking a const reference.
-  const absl::StatusOr<std::string> immediate_token = GetNodeTokenAtIndex(
+  llvm::Expected<std::string> immediate_token = GetNodeTokenAtIndex(
       *node_token_list, special_tokens_tensor_data[kSpecialNodeTokenImmediate]);
-  if (!immediate_token.ok()) return immediate_token.status();
+  if (llvm::Error error = immediate_token.takeError()) return error;
 
-  const absl::StatusOr<std::string> fp_immediate_token = GetNodeTokenAtIndex(
+  llvm::Expected<std::string> fp_immediate_token = GetNodeTokenAtIndex(
       *node_token_list,
       special_tokens_tensor_data[kSpecialNodeTokenFpImmediate]);
-  if (!fp_immediate_token.ok()) return fp_immediate_token.status();
-  const absl::StatusOr<std::string> address_token = GetNodeTokenAtIndex(
+  if (llvm::Error error = fp_immediate_token.takeError()) return error;
+  llvm::Expected<std::string> address_token = GetNodeTokenAtIndex(
       *node_token_list, special_tokens_tensor_data[kSpecialNodeTokenAddress]);
-  if (!address_token.ok()) return address_token.status();
+  if (llvm::Error error = address_token.takeError()) return error;
 
-  const absl::StatusOr<std::string> memory_token = GetNodeTokenAtIndex(
+  llvm::Expected<std::string> memory_token = GetNodeTokenAtIndex(
       *node_token_list, special_tokens_tensor_data[kSpecialNodeTokenMemory]);
-  if (!memory_token.ok()) return memory_token.status();
+  if (llvm::Error error = memory_token.takeError()) return error;
   const int32_t replacement_token_index =
       special_tokens_tensor_data[kSpecialNodeTokenReplacement];
   // The out-of-vocabulary behavior is represented implicitly in the tensor:
@@ -307,9 +401,9 @@ GraphBuilderModelInference::FromTfLiteModel(
   OutOfVocabularyTokenBehavior out_of_vocabulary_behavior =
       OutOfVocabularyTokenBehavior::ReturnError();
   if (replacement_token_index >= 0) {
-    absl::StatusOr<std::string> replacement_token =
+    llvm::Expected<std::string> replacement_token =
         GetNodeTokenAtIndex(*node_token_list, replacement_token_index);
-    if (!replacement_token.ok()) return replacement_token.status();
+    if (llvm::Error error = replacement_token.takeError()) return error;
     out_of_vocabulary_behavior = OutOfVocabularyTokenBehavior::ReplaceWithToken(
         *std::move(replacement_token));
   }
@@ -329,16 +423,21 @@ GraphBuilderModelInference::FromTfLiteModel(
 GraphBuilderModelInference::GraphBuilderModelInference(
     std::unique_ptr<BasicBlockGraphBuilder> graph_builder,
     const FlatBufferModel* tflite_model)
-    : graph_builder_(std::move(graph_builder)),
-      tflite_model_(*ABSL_DIE_IF_NULL(tflite_model)) {
-  ABSL_CHECK(graph_builder_ != nullptr);
+    : graph_builder_(std::move(graph_builder)), tflite_model_(*tflite_model) {
+  assert(tflite_model != nullptr);
+  assert(graph_builder_ != nullptr);
 }
 
 bool GraphBuilderModelInference::AddBasicBlockToBatch(const BasicBlock& block) {
   return graph_builder_->AddBasicBlock(block);
 }
 
-absl::StatusOr<std::vector<GraphBuilderModelInference::OutputType>>
+#define GEMATRIA_RETURN_IF_ERROR(statement)            \
+  do {                                                 \
+    if (llvm::Error error = (statement)) return error; \
+  } while (false)
+
+llvm::Expected<std::vector<GraphBuilderModelInference::OutputType>>
 GraphBuilderModelInference::RunInference() {
   if (graph_builder_->num_graphs() == 0) {
     return std::vector<GraphBuilderModelInference::OutputType>();
@@ -347,14 +446,18 @@ GraphBuilderModelInference::RunInference() {
   // TODO(ondrasej): Reuse the interpreter across RunInference() calls. The
   // graph builder class is already stateful, so this should not be an issue
   // and it could save us some loading time.
-  absl::StatusOr<std::unique_ptr<tflite::Interpreter>> interpreter =
+  llvm::Expected<std::unique_ptr<tflite::Interpreter>> interpreter =
       CreateInterpreter(tflite_model_);
-  if (!interpreter.ok()) return interpreter.status();
+  if (llvm::Error error = interpreter.takeError()) return error;
 
   // TODO(ondrasej): Move all the checks of the model format to the
-  // initialization of the class. Ideally, return an absl::Status rather than
-  // CHECK-fail when the model does not meet expectations.
-  ABSL_CHECK_EQ((*interpreter)->inputs().size(), kNumInputTensors);
+  // initialization of the class.
+  if ((*interpreter)->inputs().size() != kNumInputTensors) {
+    return llvm::createStringError(
+        llvm::errc::invalid_argument,
+        "Unexpected number of input tensors. Expected %d, found %d.",
+        kNumInputTensors, (*interpreter)->inputs().size());
+  }
 
   const std::vector<bool> instruction_node_mask =
       graph_builder_->InstructionNodeMask();
@@ -362,74 +465,100 @@ GraphBuilderModelInference::RunInference() {
 
   // Resize the input tensors according to the size of the input data.
   // TODO(ondrasej): Replace the index-based lookups with name-based lookups.
-  Resize1DTensor(interpreter->get(), kDeltaBlockIndexTensor,
-                 static_cast<int>(delta_block_index.size()));
-  Resize1DTensor(interpreter->get(), kGraphNodesTensor,
-                 graph_builder_->num_nodes());
-  Resize1DTensor(interpreter->get(), kGraphEdgesTensor,
-                 graph_builder_->num_edges());
-  Resize1DTensor(interpreter->get(), kGraphReceiversTensor,
-                 static_cast<int>(graph_builder_->edge_receivers().size()));
-  Resize1DTensor(interpreter->get(), kGraphSendersTensor,
-                 static_cast<int>(graph_builder_->edge_senders().size()));
-  Resize1DTensor(
+
+  GEMATRIA_RETURN_IF_ERROR(
+      Resize1DTensor(interpreter->get(), kDeltaBlockIndexTensor,
+                     static_cast<int>(delta_block_index.size())));
+  GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(interpreter->get(), kGraphNodesTensor,
+                                          graph_builder_->num_nodes()));
+  GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(interpreter->get(), kGraphEdgesTensor,
+                                          graph_builder_->num_edges()));
+  GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(
+      interpreter->get(), kGraphReceiversTensor,
+      static_cast<int>(graph_builder_->edge_receivers().size())));
+  GEMATRIA_RETURN_IF_ERROR(
+      Resize1DTensor(interpreter->get(), kGraphSendersTensor,
+                     static_cast<int>(graph_builder_->edge_senders().size())));
+  GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(
       interpreter->get(), kGraphNEdgeTensor,
-      static_cast<int>(graph_builder_->num_nodes_per_block().size()));
-  Resize1DTensor(
+      static_cast<int>(graph_builder_->num_nodes_per_block().size())));
+  GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(
       interpreter->get(), kGraphNNodeTensor,
-      static_cast<int>(graph_builder_->num_edges_per_block().size()));
-  Resize1DTensor(interpreter->get(), kInstructionNodeMaskTensor,
-                 static_cast<int>(instruction_node_mask.size()));
-  Resize2DTensor(
+      static_cast<int>(graph_builder_->num_edges_per_block().size())));
+  GEMATRIA_RETURN_IF_ERROR(
+      Resize1DTensor(interpreter->get(), kInstructionNodeMaskTensor,
+                     static_cast<int>(instruction_node_mask.size())));
+  GEMATRIA_RETURN_IF_ERROR(Resize2DTensor(
       interpreter->get(), kGraphGlobalsTensor,
       /* desired_first_dimension_size = */ graph_builder_->num_graphs(),
-      /* expected_second_dimension_size = */ graph_builder_->num_node_tokens());
+      /* expected_second_dimension_size = */
+      graph_builder_->num_node_tokens()));
 
   if (const TfLiteStatus status = (*interpreter)->AllocateTensors();
       status != kTfLiteOk) {
-    return absl::UnknownError("Could not allocate memory for tensors");
+    return llvm::make_error<llvm::StringError>(
+        "Could not allocate memory for tensors", llvm::errc::not_enough_memory);
   }
 
   // Fill in the input tensors.
-  FillTensorFromStdVector<int32_t>(interpreter->get(), delta_block_index,
-                                   kDeltaBlockIndexTensor);
-  FillTensorFromStdVector<int32_t>(
-      interpreter->get(), graph_builder_->node_features(), kGraphNodesTensor);
-  FillTensorFromStdVector<int32_t>(
-      interpreter->get(), graph_builder_->EdgeFeatures(), kGraphEdgesTensor);
-  FillTensorFromStdVector<int32_t>(interpreter->get(),
-                                   graph_builder_->edge_receivers(),
-                                   kGraphReceiversTensor);
-  FillTensorFromStdVector<int32_t>(
-      interpreter->get(), graph_builder_->edge_senders(), kGraphSendersTensor);
-  FillTensorFromStdVector<int32_t>(interpreter->get(),
-                                   graph_builder_->num_nodes_per_block(),
-                                   kGraphNNodeTensor);
-  FillTensorFromStdVector<int32_t>(interpreter->get(),
-                                   graph_builder_->num_edges_per_block(),
-                                   kGraphNEdgeTensor);
-  FillTensorFromStdVector<bool>(interpreter->get(), instruction_node_mask,
-                                kInstructionNodeMaskTensor);
-  FillTensorFromStdVectorMatrix<int32_t>(interpreter->get(),
-                                         graph_builder_->global_features(),
-                                         kGraphGlobalsTensor);
+  if (llvm::Error error = FillTensorFromStdVector<int32_t>(
+          interpreter->get(), delta_block_index, kDeltaBlockIndexTensor)) {
+    return error;
+  }
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
+      interpreter->get(), graph_builder_->node_features(), kGraphNodesTensor));
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
+      interpreter->get(), graph_builder_->EdgeFeatures(), kGraphEdgesTensor));
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
+      interpreter->get(), graph_builder_->edge_receivers(),
+      kGraphReceiversTensor));
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
+      interpreter->get(), graph_builder_->edge_senders(), kGraphSendersTensor));
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
+      interpreter->get(), graph_builder_->num_nodes_per_block(),
+      kGraphNNodeTensor));
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
+      interpreter->get(), graph_builder_->num_edges_per_block(),
+      kGraphNEdgeTensor));
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<bool>(
+      interpreter->get(), instruction_node_mask, kInstructionNodeMaskTensor));
+  if (auto error = FillTensorFromStdVectorMatrix<int32_t>(
+          interpreter->get(), graph_builder_->global_features(),
+          kGraphGlobalsTensor)) {
+    return error;
+  }
 
   if (const TfLiteStatus status = (*interpreter)->Invoke();
       status != kTfLiteOk) {
-    return absl::UnknownError(
-        "Invoking the TensorFlow Lite interpreter failed");
+    return llvm::make_error<llvm::StringError>(
+        "Invoking the TensorFlow Lite interpreter failed",
+        llvm::errc::io_error);
   }
 
   const TfLiteTensor* const output_tensor = (*interpreter)->output_tensor(0);
-  ABSL_CHECK(output_tensor != nullptr);
-  ABSL_CHECK_EQ(output_tensor->dims->size, 2);
-  ABSL_CHECK_EQ(output_tensor->dims->data[0], graph_builder_->num_graphs());
+  if (output_tensor == nullptr) {
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "No output tensor at index 0.");
+  }
+  if (output_tensor->dims->size != 2) {
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "Unexpected number of dimensions of the "
+                                   "output tensor. Expected 2, found %d",
+                                   output_tensor->dims->size);
+  }
+  if (output_tensor->dims->data[0] != graph_builder_->num_graphs()) {
+    return llvm::createStringError(llvm::errc::result_out_of_range,
+                                   "Unexpected number of rows in the output "
+                                   "tensor. Expected %d, found %d.",
+                                   graph_builder_->num_graphs(),
+                                   output_tensor->dims->data[0]);
+  }
   const int num_tasks = output_tensor->dims->data[1];
   auto* const output_tensor_data =
       (*interpreter)->typed_output_tensor<float>(0);
-  ABSL_CHECK(output_tensor_data != nullptr);
+  assert(output_tensor_data != nullptr);
 
-  std::vector<absl::InlinedVector<float, 4>> output;
+  std::vector<OutputType> output;
   output.reserve(graph_builder_->num_graphs());
   for (int i = 0; i < graph_builder_->num_graphs(); ++i) {
     output.emplace_back(output_tensor_data + i * num_tasks,
@@ -437,6 +566,8 @@ GraphBuilderModelInference::RunInference() {
   }
   return output;
 }
+
+#undef GEMATRIA_RETURN_IF_ERROR
 
 void GraphBuilderModelInference::Reset() { graph_builder_->Reset(); }
 
