@@ -15,6 +15,7 @@
 #include "gematria/utils/string.h"
 
 #include <cstdint>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -62,7 +63,9 @@ TEST(FormatAsHexStringTest, EmptySpan) { EXPECT_EQ(FormatAsHexString(""), ""); }
 
 TEST(FormatAsHexStringTest, NonEmptySpan) {
   static constexpr char kBytes[] = {0x1, 0x23, 0xAB, 0xCD};
-  EXPECT_EQ(FormatAsHexString(kBytes), "0123abcd");
+  static constexpr std::string_view kBytesAsStringView(kBytes,
+                                                       std::size(kBytes));
+  EXPECT_EQ(FormatAsHexString(kBytesAsStringView), "0123abcd");
 }
 
 TEST(StrSplitAsCopyTest, EmptyText) {

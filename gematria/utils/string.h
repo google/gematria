@@ -38,7 +38,7 @@ std::optional<std::vector<uint8_t>> ParseHexString(std::string_view hex_string);
 inline std::string FormatAsHexString(std::string_view bytes) {
   std::stringstream out;
   out << std::hex;
-  for (const auto byte : bytes) {
+  for (const uint8_t byte : bytes) {
     out << std::setfill('0') << std::setw(2) << static_cast<int>(byte);
   }
   return out.str();
