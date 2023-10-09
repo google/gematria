@@ -53,6 +53,42 @@ $ bazel build ...
 $ bazel test ...
 ```
 
+#### Building with CMake
+
+A subset of the project, consisting of tools and libraries we eventually plan to
+merge in the LLVM monorepo, are built with cmake. The requirements are inherited
+from [LLVM](https://llvm.org/docs/GettingStarted.html#requirements), as we use
+LLVM's "external project" mechanism to build.
+
+First, build TFLite. In addition to the requirements above, see also
+[these prerequisites](https://github.com/google/ml-compiler-opt#prerequisites),
+noting the reference to the buildbot script which lists additional packages.
+
+Then:
+
+<!--* pragma: { seclinter_this_is_fine: true } *-->
+```shell
+mkdir /tmp/tflite && cd /tmp/tflite
+curl https://raw.githubusercontent.com/google/ml-compiler-opt/main/buildbot/build_tflite.sh | bash
+```
+<!--* pragma: { seclinter_this_is_fine: false } *-->
+
+This should produce a `/tmp/tflite/tflite.cmake`.
+
+```shell
+cd ${GEMATRIA_SRC}
+mkdir cmake-build && cd cmake-build
+cmake -GNinja -DCMAKE_BUILD_TYPE=Release \
+  -C /tmp/tflite/tflite.cmake \
+  ${LLVM_PROJECT_SRC}/llvm \
+  -DLLVM_EXTERNAL_PROJECTS=gematria \
+  -DLLVM_EXTERNAL_GEMATRIA_DIR=${GEMATRIA_SRC}
+ninja llvm-granite llvm-cm
+```
+
+Where `LLVM_PROJECT_SRC` is the absolute path to your local llvm repo, and
+`GEMATRIA_SRC` the path to this (the gematria) repo.
+
 ### Platform Support
 
 We develop and test our code on Linux and x86-64, and we test it on Mac OS X and

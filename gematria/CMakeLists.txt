@@ -1,0 +1,5 @@
+add_subdirectory(basic_block)
+add_subdirectory(granite)
+add_subdirectory(llvm)
+add_subdirectory(tflite)
+add_subdirectory(utils)
