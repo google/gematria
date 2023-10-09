@@ -82,7 +82,7 @@ cmake -GNinja -DCMAKE_BUILD_TYPE=Release \
   -C /tmp/tflite/tflite.cmake \
   ${LLVM_PROJECT_SRC}/llvm \
   -DLLVM_EXTERNAL_PROJECTS=gematria \
-  -DLLVM_EXTERNAL_GEMATRIA_DIR=${GEMATRIA_SRC}
+  -DLLVM_EXTERNAL_GEMATRIA_SOURCE_DIR=${GEMATRIA_SRC}
 ninja llvm-granite llvm-cm
 ```
 
