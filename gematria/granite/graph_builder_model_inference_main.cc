@@ -28,9 +28,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/flags/flag.h"
-#include "absl/strings/ascii.h"
-#include "base/init_google.h"
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/granite/graph_builder_model_inference.h"
 #include "gematria/llvm/canonicalizer.h"
@@ -40,22 +37,30 @@
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstPrinter.h"
+#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tensorflow/lite/model_builder.h"
 
-ABSL_FLAG(std::string, gematria_tflite_file, "",
-          "The path to the .tflite file that contains the trained model.");
-ABSL_FLAG(std::string, gematria_basic_block_hex_file, "",
-          "The file from which the tool reads basic blocks in the hex format "
-          "used in the BHive data set, one basic block per line.");
-ABSL_FLAG(int, gematria_max_blocks_per_batch, std::numeric_limits<int>::max(),
-          "The maximal number of blocks per batch. When non-positive, all "
-          "blocks are put into the same batch.");
-
 namespace gematria {
 namespace {
+
+namespace cl = llvm::cl;
+
+cl::opt<std::string> tflite_file(
+    "gematria_tflite_file", cl::value_desc("tflite_file"),
+    cl::desc("The path to the .tflite file that contains the trained model."));
+cl::opt<std::string> basic_block_hex_file(
+    "gematria_basic_block_hex_file", cl::value_desc("hex_file"),
+    cl::desc(
+        "The file from which the tool reads basic blocks in the hex format used"
+        " in the BHive data set, one basic block per line."));
+cl::opt<int> max_blocks_per_batch(
+    "gematria_max_blocks_per_batch", cl::init(std::numeric_limits<int>::max()),
+    cl::value_desc("num_blocks"),
+    cl::desc("The maximal number of blocks per batch. When non-positive, all"
+             " blocks are put into the same batch."));
 
 void PrintPredictionsToStdout(
     const GraphBuilderModelInference::OutputType& predictions) {
@@ -72,8 +77,7 @@ llvm::Error ProcessBasicBlocksFromCommandLineFlags() {
   if (llvm::Error error = llvm_support.takeError()) return error;
 
   const std::unique_ptr<tflite::FlatBufferModel> model =
-      tflite::FlatBufferModel::BuildFromFile(
-          absl::GetFlag(FLAGS_gematria_tflite_file).c_str());
+      tflite::FlatBufferModel::BuildFromFile(tflite_file.c_str());
   if (model == nullptr) {
     return llvm::createStringError(llvm::errc::io_error,
                                    "Could not load the TfLite model.");
@@ -116,17 +120,13 @@ llvm::Error ProcessBasicBlocksFromCommandLineFlags() {
     return llvm::Error::success();
   };
 
-  const int max_num_blocks_per_batch =
-      absl::GetFlag(FLAGS_gematria_max_blocks_per_batch);
-  const std::string hex_file_name =
-      absl::GetFlag(FLAGS_gematria_basic_block_hex_file);
   std::vector<BasicBlock> batch;
 
-  std::ifstream hex_file(hex_file_name);
+  std::ifstream hex_file(basic_block_hex_file);
   while (!hex_file.eof()) {
     std::string line;
     std::getline(hex_file, line);
-    absl::StripAsciiWhitespace(&line);
+    StripAsciiWhitespace(&line);
     if (line.empty()) continue;
 
     auto machine_code = ParseHexString(line);
@@ -153,7 +153,7 @@ llvm::Error ProcessBasicBlocksFromCommandLineFlags() {
       mc_insts.push_back(std::move(disassembled_instruction.mc_inst));
     }
 
-    if (batch.size() == max_num_blocks_per_batch) {
+    if (batch.size() == max_blocks_per_batch) {
       if (llvm::Error error = run_inference_for_batch(batch)) {
         return error;
       }
@@ -175,7 +175,7 @@ llvm::Error ProcessBasicBlocksFromCommandLineFlags() {
 }  // namespace gematria
 
 int main(int argc, char* argv[]) {
-  InitGoogle(argv[0], &argc, &argv, true);
+  llvm::cl::ParseCommandLineOptions(argc, argv);
   llvm::Error error = gematria::ProcessBasicBlocksFromCommandLineFlags();
   if (error) {
     llvm::errs() << error;

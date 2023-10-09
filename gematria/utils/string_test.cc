@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -25,6 +26,7 @@
 namespace gematria {
 namespace {
 
+using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 using ::testing::Optional;
 
@@ -61,6 +63,47 @@ TEST(FormatAsHexStringTest, EmptySpan) { EXPECT_EQ(FormatAsHexString(""), ""); }
 TEST(FormatAsHexStringTest, NonEmptySpan) {
   static constexpr char kBytes[] = {0x1, 0x23, 0xAB, 0xCD};
   EXPECT_EQ(FormatAsHexString(kBytes), "0123abcd");
+}
+
+TEST(StrSplitAsCopyTest, EmptyText) {
+  EXPECT_THAT(StrSplitAsCopy("", ';'), ElementsAre(""));
+}
+
+TEST(StrSplitAsCopyTest, NoSeparator) {
+  EXPECT_THAT(StrSplitAsCopy("foobar", ';'), ElementsAre("foobar"));
+}
+
+TEST(StrSplitAsCopyTest, Separators) {
+  EXPECT_THAT(StrSplitAsCopy(";foo;;bar;baz", ';'),
+              ElementsAre("", "foo", "", "bar", "baz"));
+}
+
+TEST(StrSplitAsCopyTest, SeparatorAtEnd) {
+  EXPECT_THAT(StrSplitAsCopy("foo;bar;", ';'), ElementsAre("foo", "bar", ""));
+}
+
+TEST(StripAsciiWhitespaceTest, EmptyText) {
+  std::string text;
+  StripAsciiWhitespace(&text);
+  EXPECT_EQ(text, "");
+}
+
+TEST(StripAsciiWhitespaceTest, NoLeadingOrTrailingWhitespace) {
+  std::string text = "foo \t\r\nbar";
+  StripAsciiWhitespace(&text);
+  EXPECT_EQ(text, "foo \t\r\nbar");
+}
+
+TEST(StripAsciiWhitespaceTest, LeadingAndTrailingWhitespace) {
+  std::string text = " \t\r\rfoobar\n\n\r \t";
+  StripAsciiWhitespace(&text);
+  EXPECT_EQ(text, "foobar");
+}
+
+TEST(StripAsciiWhitespaceTest, OnlyWhitespace) {
+  std::string text = "\t\r\t           \n\n\n\r";
+  StripAsciiWhitespace(&text);
+  EXPECT_EQ(text, "");
 }
 
 }  // namespace

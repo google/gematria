@@ -44,6 +44,14 @@ inline std::string FormatAsHexString(std::string_view bytes) {
   return out.str();
 }
 
+// Splits `text` by `separator`. Note that the returned split string is a copy
+// independent of the input text.
+std::vector<std::string> StrSplitAsCopy(std::string_view text, char separator);
+
+// Strips the leading and trailing whitespace from `text` and returns the
+// modified text.
+void StripAsciiWhitespace(std::string* text);
+
 }  // namespace gematria
 
 #endif  // THIRD_PARTY_GEMATRIA_GEMATRIA_UTILS_STRING_H_

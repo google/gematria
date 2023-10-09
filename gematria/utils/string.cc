@@ -14,8 +14,10 @@
 
 #include "gematria/utils/string.h"
 
+#include <cassert>
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -37,6 +39,10 @@ int ParseHexDigit(char digit) {
   return kInvalidHexDigit;
 }
 
+bool IsAsciiWhitespace(char c) {
+  return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+}
+
 }  // namespace
 
 std::optional<std::vector<uint8_t>> ParseHexString(
@@ -56,6 +62,29 @@ std::optional<std::vector<uint8_t>> ParseHexString(
   }
 
   return res;
+}
+
+std::vector<std::string> StrSplitAsCopy(std::string_view text, char separator) {
+  std::vector<std::string> splits;
+  std::string_view::size_type last_separator = 0;
+  std::string_view::size_type next_separator = text.find(separator);
+  while (next_separator != std::string_view::npos) {
+    splits.emplace_back(
+        text.substr(last_separator, next_separator - last_separator));
+    last_separator = next_separator + 1;
+    next_separator = text.find(separator, last_separator);
+  }
+  splits.emplace_back(text.substr(last_separator));
+  return splits;
+}
+
+void StripAsciiWhitespace(std::string* text) {
+  assert(text != nullptr);
+  auto begin = text->begin();
+  auto end = text->end();
+  while (begin != end && IsAsciiWhitespace(*begin)) ++begin;
+  while (begin != end && IsAsciiWhitespace(*(end - 1))) --end;
+  text->assign(begin, end);
 }
 
 }  // namespace gematria

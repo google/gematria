@@ -24,11 +24,11 @@
 #include <utility>
 #include <vector>
 
-#include "absl/strings/str_split.h"
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/granite/graph_builder.h"
 #include "gematria/model/oov_token_behavior.h"
 #include "gematria/tflite/unsorted_segment_sum_op.h"
+#include "gematria/utils/string.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/Errc.h"
@@ -319,7 +319,7 @@ llvm::Expected<std::vector<std::string>> GetNodeTokenList(
   }
   const std::string_view token_list_data(token_list_raw_data,
                                          token_list_size_bytes);
-  return absl::StrSplit(token_list_data, '\0');
+  return StrSplitAsCopy(token_list_data, '\0');
 }
 
 // Returns token name from `node_token_list` at `token_index`. Returns an error
