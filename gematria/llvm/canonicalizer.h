@@ -23,10 +23,10 @@
 #include <string>
 
 #include "gematria/basic_block/basic_block.h"
-#include "llvm/include/llvm/ADT/ArrayRef.h"
-#include "llvm/include/llvm/MC/MCInst.h"
-#include "llvm/include/llvm/MC/MCInstPrinter.h"
-#include "llvm/include/llvm/Target/TargetMachine.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCInstPrinter.h"
+#include "llvm/Target/TargetMachine.h"
 
 namespace gematria {
 
