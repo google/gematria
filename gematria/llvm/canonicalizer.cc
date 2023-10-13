@@ -19,6 +19,7 @@
 #include <string_view>
 
 #include "gematria/basic_block/basic_block.h"
+#include "lib/Target/X86/MCTargetDesc/X86BaseInfo.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/MC/MCInst.h"
@@ -28,7 +29,6 @@
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Target/TargetMachine.h"
-#include "lib/Target/X86/MCTargetDesc/X86BaseInfo.h"
 
 namespace gematria {
 namespace {
