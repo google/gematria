@@ -82,4 +82,19 @@ jobs:
         run: |
           cd /tmp/cmake-build
           ninja llvm-granite llvm-cm
-      
+  check-bazel:
+    name: Run bazel build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Cache Bazel
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/bazel
+        key: ${{ runner.os }}-bazel-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}
+        restore-keys: |
+          ${{ runner.os }}-bazel-
+    - name: Run build
+      run: bazel build ...
+
