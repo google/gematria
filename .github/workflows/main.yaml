@@ -48,3 +48,38 @@ jobs:
     - uses: thompsonja/bazel-buildifier@v0.4.0
       with:
         buildifier_version: v6.1.2
+  check-cmake-projects:
+    name: Check CMake-based projects
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hendrikmuhs/ccache-action@v1.2.10
+      - uses: ConorMacBride/install-package@v1.1.0
+        with:
+          apt: cmake ninja-build libpthreadpool-dev
+      - name: Get LLVM
+        run: git clone --depth 1 https://github.com/llvm/llvm-project.git /tmp/llvm-project
+      - name: Set up TFLite
+        run: |
+          mkdir /tmp/tflite
+          cd /tmp/tflite
+          export CMAKE_CXX_COMPILER_LAUNCHER=ccache
+          export CMAKE_C_COMPILER_LAUNCHER=ccache
+          curl https://raw.githubusercontent.com/google/ml-compiler-opt/main/buildbot/build_tflite.sh | bash
+      - name: cmake setup
+        run: |
+          mkdir /tmp/cmake-build
+          cd /tmp/cmake-build
+          cmake -GNinja -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_TARGETS_TO_BUILD=Native \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -C /tmp/tflite/tflite.cmake \
+            /tmp/llvm-project/llvm \
+            -DLLVM_EXTERNAL_PROJECTS=gematria \
+            -DLLVM_EXTERNAL_GEMATRIA_SOURCE_DIR=${{ github.workspace }}
+      - name: build
+        run: |
+          cd /tmp/cmake-build
+          ninja llvm-granite llvm-cm
+      
