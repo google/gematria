@@ -20,10 +20,10 @@
 #include <vector>
 
 #include "absl/status/statusor.h"
-#include "llvm/include/llvm/IR/InlineAsm.h"
-#include "llvm/include/llvm/MC/MCInst.h"
-#include "llvm/include/llvm/Support/MemoryBuffer.h"
-#include "llvm/include/llvm/Target/TargetMachine.h"
+#include "llvm/IR/InlineAsm.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Target/TargetMachine.h"
 
 namespace gematria {
 

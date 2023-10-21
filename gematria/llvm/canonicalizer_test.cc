@@ -22,9 +22,9 @@
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "llvm/include/llvm/IR/InlineAsm.h"
-#include "llvm/include/llvm/MC/MCInst.h"
-#include "llvm/include/llvm/MC/MCInstPrinter.h"
+#include "llvm/IR/InlineAsm.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCInstPrinter.h"
 
 namespace gematria {
 namespace {
