@@ -14,7 +14,12 @@
 
 name: Gematria CI
 
-on: [push, repository_dispatch, pull_request]
+on:
+  push:
+    branches:
+      - main
+  repository_dispatch:
+  pull_request:
 
 jobs:
   check-python-formatting:
