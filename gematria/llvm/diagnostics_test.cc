@@ -19,10 +19,10 @@
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "llvm/include/llvm/MC/MCContext.h"
-#include "llvm/include/llvm/Support/MemoryBuffer.h"
-#include "llvm/include/llvm/Support/SMLoc.h"
-#include "llvm/include/llvm/Support/SourceMgr.h"
+#include "llvm/MC/MCContext.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/SMLoc.h"
+#include "llvm/Support/SourceMgr.h"
 
 namespace gematria {
 namespace {

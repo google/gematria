@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "llvm/include/llvm/MC/MCInst.h"
+#include "llvm/MC/MCInst.h"
 
 namespace gematria {
 
