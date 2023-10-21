@@ -27,6 +27,9 @@ cc_library(
     srcs = ["linked_list.cc"],
     hdrs = ["linked_list.h"],
     copts = FEATURE_OPTS,
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
 )
 
 cc_test(
@@ -49,6 +52,9 @@ cc_library(
     srcs = ["contiguous_matrix.cc"],
     hdrs = ["contiguous_matrix.h"],
     copts = FEATURE_OPTS,
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
     deps = ["@com_google_absl//absl/base:core_headers"],
 )
 
@@ -72,6 +78,9 @@ cc_library(
     srcs = ["vec_of_vec_matrix.cc"],
     hdrs = ["vec_of_vec_matrix.h"],
     copts = FEATURE_OPTS,
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
     deps = ["@com_google_absl//absl/base:core_headers"],
 )
 
@@ -99,6 +108,9 @@ cc_test(
         "stl_container_test.cc",
     ],
     copts = BALANCE_FLUSHING_TIME_OPTS + FEATURE_OPTS,  # Since templated functions using _mm_clflushopt are defined in the header.
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
     deps = [
         "@com_github_google_benchmark//:benchmark_main",
     ],
@@ -113,6 +125,9 @@ cc_test(
         "stl_assoc_container_test.cc",
     ],
     copts = BALANCE_FLUSHING_TIME_OPTS + FEATURE_OPTS,  # Since templated functions using _mm_clflushopt are defined in the header.
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
     deps = [
         "@com_github_google_benchmark//:benchmark_main",
     ],
