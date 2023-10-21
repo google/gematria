@@ -29,6 +29,7 @@ cc_library(
     copts = FEATURE_OPTS,
     target_compatible_with = [
         "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
     ],
 )
 
@@ -54,6 +55,7 @@ cc_library(
     copts = FEATURE_OPTS,
     target_compatible_with = [
         "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
     ],
     deps = ["@com_google_absl//absl/base:core_headers"],
 )
@@ -80,6 +82,7 @@ cc_library(
     copts = FEATURE_OPTS,
     target_compatible_with = [
         "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
     ],
     deps = ["@com_google_absl//absl/base:core_headers"],
 )
@@ -110,6 +113,7 @@ cc_test(
     copts = BALANCE_FLUSHING_TIME_OPTS + FEATURE_OPTS,  # Since templated functions using _mm_clflushopt are defined in the header.
     target_compatible_with = [
         "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
     ],
     deps = [
         "@com_github_google_benchmark//:benchmark_main",
@@ -127,6 +131,7 @@ cc_test(
     copts = BALANCE_FLUSHING_TIME_OPTS + FEATURE_OPTS,  # Since templated functions using _mm_clflushopt are defined in the header.
     target_compatible_with = [
         "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
     ],
     deps = [
         "@com_github_google_benchmark//:benchmark_main",
