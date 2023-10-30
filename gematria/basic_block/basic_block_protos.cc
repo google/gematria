@@ -114,6 +114,21 @@ void ToRepeatedPtrField(
 
 }  // namespace
 
+RuntimeAnnotation RuntimeAnnotationFromProto(
+    const CanonicalizedInstructionProto::RuntimeAnnotation& proto) {
+  return RuntimeAnnotation(
+      /* pmu_event = */ proto.pmu_event(),
+      /* value = */ proto.value());
+}
+
+CanonicalizedInstructionProto::RuntimeAnnotation ProtoFromRuntimeAnnotation(
+    const RuntimeAnnotation& runtime_annotation) {
+  CanonicalizedInstructionProto::RuntimeAnnotation proto;
+  proto.set_pmu_event(runtime_annotation.pmu_event);
+  proto.set_value(runtime_annotation.value);
+  return proto;
+}
+
 Instruction InstructionFromProto(const CanonicalizedInstructionProto& proto) {
   return Instruction(
       /* mnemonic = */ proto.mnemonic(),
@@ -125,7 +140,9 @@ Instruction InstructionFromProto(const CanonicalizedInstructionProto& proto) {
       /* implicit_input_operands = */ ToVector(proto.implicit_input_operands()),
       /* output_operands = */ ToVector(proto.output_operands()),
       /* implicit_output_operands = */
-      ToVector(proto.implicit_output_operands()));
+      ToVector(proto.implicit_output_operands()),
+      /* cache_miss_frequency = */
+      RuntimeAnnotationFromProto(proto.cache_miss_frequency()));
 }
 
 CanonicalizedInstructionProto ProtoFromInstruction(

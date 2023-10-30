@@ -174,6 +174,12 @@ class BasicBlockFromProtoTest(absltest.TestCase):
                 output_operands=(
                     _CanonicalizedOperandProto(register_name='RCX'),
                 ),
+                cache_miss_frequency=(
+                    _CanonicalizedInstructionProto.RuntimeAnnotation(
+                        pmu_event='r20d1',
+                        value=0.875,
+                    )
+                ),
             ),
             _CanonicalizedInstructionProto(
                 mnemonic='MOVSB',
@@ -197,6 +203,12 @@ class BasicBlockFromProtoTest(absltest.TestCase):
                         )
                     ),
                 ),
+                cache_miss_frequency=(
+                    _CanonicalizedInstructionProto.RuntimeAnnotation(
+                        pmu_event='r20d1',
+                        value=0.5,
+                    )
+                ),
             ),
         )
     )
@@ -212,6 +224,10 @@ class BasicBlockFromProtoTest(absltest.TestCase):
             output_operands=basic_block.InstructionOperandList((
                 basic_block.InstructionOperand.from_register('RCX'),
             )),
+            cache_miss_frequency=basic_block.RuntimeAnnotation(
+                pmu_event='r20d1',
+                value=0.875,
+            ),
         ),
         basic_block.Instruction(
             mnemonic='MOVSB',
@@ -227,6 +243,10 @@ class BasicBlockFromProtoTest(absltest.TestCase):
                 basic_block.InstructionOperand.from_register('RDI'),
                 basic_block.InstructionOperand.from_memory(2),
             )),
+            cache_miss_frequency=basic_block.RuntimeAnnotation(
+                pmu_event='r20d1',
+                value=0.5,
+            ),
         ),
     )
     self.assertSequenceEqual(block.instructions, expected)

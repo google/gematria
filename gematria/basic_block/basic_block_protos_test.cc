@@ -144,6 +144,10 @@ TEST(ProtoFromInstructionOperandTest, Memory) {
       EqualsProto(R"pb(memory { alias_group_id: 123 })pb"));
 }
 
+// TODO(virajbshah): Add tests for RuntimeAnnotationFromProto and
+// ProtoFromRuntimeAnnotation.
+
+// TODO(virajbshah): Fix this test to support runtime annotations.
 TEST(InstructionFromProtoTest, AllFields) {
   const CanonicalizedInstructionProto proto = ParseTextProto(R"pb(
     mnemonic: "ADC"
@@ -198,6 +202,7 @@ TEST(ProtoFromInstructionTest, AllFields) {
               )pb"));
 }
 
+// TODO(virajbshah): Fix this test to support runtime annotations.
 TEST(BasicBlockFromProtoTest, SomeInstructions) {
   const BasicBlockProto proto = ParseTextProto(R"pb(
     canonicalized_instructions: {

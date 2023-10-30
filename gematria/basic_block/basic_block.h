@@ -218,6 +218,30 @@ class InstructionOperand {
 
 std::ostream& operator<<(std::ostream& os, const InstructionOperand& operand);
 
+// Represents a runtime-related measure/statistic paired with the instruction.
+struct RuntimeAnnotation {
+  RuntimeAnnotation() : value(-1){};
+
+  // Initializes all fields of the annotation.
+  RuntimeAnnotation(std::string pmu_event, double value);
+
+  RuntimeAnnotation(const RuntimeAnnotation&) = default;
+  RuntimeAnnotation(RuntimeAnnotation&&) = default;
+
+  RuntimeAnnotation& operator=(const RuntimeAnnotation&) = default;
+  RuntimeAnnotation& operator=(RuntimeAnnotation&&) = default;
+
+  bool operator==(const RuntimeAnnotation& other) const;
+  bool operator!=(const RuntimeAnnotation& other) const {
+    return !(*this == other);
+  }
+
+  std::string ToString() const;
+
+  std::string pmu_event;
+  double value;
+};
+
 // Represents a single instruction.
 struct Instruction {
   Instruction() {}
@@ -229,7 +253,8 @@ struct Instruction {
               std::vector<InstructionOperand> input_operands,
               std::vector<InstructionOperand> implicit_input_operands,
               std::vector<InstructionOperand> output_operands,
-              std::vector<InstructionOperand> implicit_output_operands);
+              std::vector<InstructionOperand> implicit_output_operands,
+              RuntimeAnnotation cache_miss_frequency = RuntimeAnnotation());
 
   Instruction(const Instruction&) = default;
   Instruction(Instruction&&) = default;
@@ -279,6 +304,10 @@ struct Instruction {
   // machine learning task easier, we present also the explicit output operands
   // to the ML models explicitly.
   std::vector<InstructionOperand> implicit_output_operands;
+
+  // The cache miss frequency of the instruction. Used to better model the
+  // overhead coming from LLC misses.
+  RuntimeAnnotation cache_miss_frequency;
 
   // The address of the instruction.
   uint64_t address = 0;

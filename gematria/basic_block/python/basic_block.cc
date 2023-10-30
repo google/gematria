@@ -185,6 +185,24 @@ PYBIND11_MODULE(basic_block, m) {
 
   py::bind_vector<std::vector<InstructionOperand>>(m, "InstructionOperandList");
 
+  py::class_<RuntimeAnnotation>(m, "RuntimeAnnotation")
+      .def(py::init<std::string /* pmu_event */, double /* value */>(),
+          py::arg("pmu_event") = std::string(),
+          py::arg("value") = 0)
+      .def("__repr__", &RuntimeAnnotation::ToString)
+      .def("__eq__", &RuntimeAnnotation::operator==)
+      .def("__copy__",
+          [](const RuntimeAnnotation& annotation) {
+            return RuntimeAnnotation(annotation);
+          })
+      .def("__deepcopy__",
+          [](const RuntimeAnnotation& annotation, py::dict) {
+            return RuntimeAnnotation(annotation);
+          },
+          py::arg("memo"))
+      .def_readonly("pmu_event", &RuntimeAnnotation::pmu_event)
+      .def_readonly("value", &RuntimeAnnotation::value);
+
   py::class_<Instruction>(m, "Instruction")
       .def(
           py::init<
@@ -192,8 +210,9 @@ PYBIND11_MODULE(basic_block, m) {
               std::vector<std::string> /* prefixes */,
               std::vector<InstructionOperand> /* input_operands */,
               std::vector<InstructionOperand> /* implicit_input_operands */,
-              std::vector<InstructionOperand> /* output_oeprands */,
-              std::vector<InstructionOperand> /* implicit_output_operands */>(),
+              std::vector<InstructionOperand> /* output_operands */,
+              std::vector<InstructionOperand> /* implicit_output_operands */,
+              RuntimeAnnotation /* cache_miss_frequency */>(),
           py::arg("mnemonic") = std::string(),
           py::arg("llvm_mnemonic") = std::string(),
           py::arg("prefixes") = std::vector<std::string>(),
@@ -202,7 +221,8 @@ PYBIND11_MODULE(basic_block, m) {
               std::vector<InstructionOperand>(),
           py::arg("output_operands") = std::vector<InstructionOperand>(),
           py::arg("implicit_output_operands") =
-              std::vector<InstructionOperand>())
+              std::vector<InstructionOperand>(),
+          py::arg("cache_miss_frequency") = RuntimeAnnotation())
       .def("__str__", &Instruction::ToString)
       .def("__repr__", &Instruction::ToString)
       .def("__eq__", &Instruction::operator==)

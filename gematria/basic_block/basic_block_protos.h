@@ -41,6 +41,14 @@ InstructionOperand InstructionOperandFromProto(
 CanonicalizedOperandProto ProtoFromInstructionOperand(
     const InstructionOperand& operand);
 
+// Creates a runtime annotation data structure from a proto.
+RuntimeAnnotation RuntimeAnnotationFromProto(
+    const CanonicalizedInstructionProto::RuntimeAnnotation& proto);
+
+// Creates a proto representing the given runtime annotation.
+CanonicalizedInstructionProto::RuntimeAnnotation ProtoFromRuntimeAnnotation(
+    const RuntimeAnnotation& runtime_annotation);
+
 // Creates an instruction data structure from a proto.
 Instruction InstructionFromProto(const CanonicalizedInstructionProto& proto);
 
