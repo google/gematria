@@ -51,6 +51,7 @@ cc_library(
         "@llvm-project//llvm:Support",
         "@llvm-project//llvm:Target",
         "@llvm-project//llvm:X86UtilsAndDesc",
+        "@llvm-project//llvm:CodeGen",
     ],
 )
 
@@ -65,6 +66,7 @@ cc_test(
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:MC",
         "@llvm-project//llvm:ir_headers",
+        "@llvm-project//llvm:CodeGen",
     ],
 )
 

@@ -29,6 +29,7 @@
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/CodeGen/MachineInstr.h"
 
 namespace gematria {
 namespace {
@@ -53,6 +54,8 @@ void ReplaceExprOperands(llvm::MCInst& instruction) {
     }
   }
 }
+
+// TODO: Write ReplaceExprOperands for MI (replace unsupported operand)
 
 }  // namespace
 
@@ -159,6 +162,67 @@ X86Canonicalizer::X86Canonicalizer(const llvm::TargetMachine* target_machine)
 }
 
 X86Canonicalizer::~X86Canonicalizer() = default;
+
+
+// TODO:PlatformSpecificInstructionFromMI(const llvm::MachineInstrunction)
+Instruction X86Canonicalizer::PlatformSpecificInstructionFromMachineInstr(const llvm::MachineInstr & MI) const {
+  // NOTE (lukezhuz): For now, we assume that all memory references are aliased.
+  // This is an overly conservative but safe choice. Note that Ithemal chose the
+  // other extreme where no two memory accesses are aliased - we may want to
+  // support this use case too.
+  constexpr int kWholeMemoryAliasGroup = 1;
+
+  const llvm::MCRegisterInfo& register_info =
+      *target_machine_.getMCRegisterInfo();
+  const llvm::MCInstrInfo& instr_info = *target_machine_.getMCInstrInfo();
+
+  Instruction instruction;
+  instruction.llvm_mnemonic =
+      target_machine_.getMCInstrInfo()->getName(MI.getOpcode());
+  // TODO: Write AddX86VendorMnemonicAndPrefixes method for MI
+  AddX86VendorMnemonicAndPrefixes(*mcinst_printer_,
+                                  *target_machine_.getMCSubtargetInfo(), MI,
+                                  instruction);
+
+  const llvm::MCInstrDesc& descriptor = instr_info.get(MI.getOpcode());
+  if (descriptor.mayLoad()) {
+    instruction.input_operands.push_back(
+        InstructionOperand::MemoryLocation(kWholeMemoryAliasGroup));
+  }
+  if (descriptor.mayStore()) {
+    instruction.output_operands.push_back(
+        InstructionOperand::MemoryLocation(kWholeMemoryAliasGroup));
+  }
+
+  const int memory_operand_index = GetX86MemoryOperandPosition(descriptor);
+  for (int operand_index = 0; operand_index < descriptor.getNumOperands();
+       ++operand_index) {
+    const bool is_output_operand = operand_index < descriptor.getNumDefs();
+    const bool is_address_computation_tuple =
+        operand_index == memory_operand_index;
+    // TODO: Write AddOperand method for MI
+    AddOperand(MI, /*operand_index=*/operand_index,
+               /*is_output_operand=*/is_output_operand,
+               /*is_address_computation_tuple=*/is_address_computation_tuple,
+               instruction);
+    if (is_address_computation_tuple) {
+      // A memory reference is represented as a 5-tuple. The whole 5-tuple is
+      // processed in one CanonicalizeOperand() call and we need to skip the
+      // remaining 4 elements here.
+      operand_index += 4;
+    }
+  }
+  
+  for (llvm::MCPhysReg implicit_output_register : descriptor.implicit_defs()) {
+    instruction.implicit_output_operands.push_back(InstructionOperand::Register(
+        register_info.getName(implicit_output_register)));
+  }
+  for (llvm::MCPhysReg implicit_input_register : descriptor.implicit_uses()) {
+    instruction.implicit_input_operands.push_back(InstructionOperand::Register(
+        register_info.getName(implicit_input_register)));
+  }
+}
+
 
 Instruction X86Canonicalizer::PlatformSpecificInstructionFromMCInst(
     const llvm::MCInst& mcinst) const {
