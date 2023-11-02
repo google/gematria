@@ -80,6 +80,20 @@ class BHiveImporter {
   absl::StatusOr<bool> LoadMIRModule(
     std::string_view file_name
   );
+
+  // Parses a MIR basic block with throughput from one BHive CSV line. Expects that
+  // the line has the format "{BB_name},{throughput}" where {machine_code}
+  // is the machine code of the basic block in the hex format accepted by
+  // ParseBasicBlockFromMachineCodeHex(), and {throughput} is the inverse
+  // throughput of the basic block in text format.
+  // Optionally applies `throughput_scaling` to the throughput value, and uses
+  // `base_address` as the address of the first instruction in the basic block. 
+  // NOTE: YOU MUST RUN LoadMIRModule before calling this function
+  absl::StatusOr<BasicBlockWithThroughputProto> ParseMIRCsvLine(
+      std::string_view source_name, std::string_view line,
+      size_t BB_name_index, size_t throughput_column_index,
+      double throughput_scaling = 1.0, uint64_t base_address = 0);
+
  private:
   const Canonicalizer& canonicalizer_;
   const llvm::TargetMachine& target_machine_;

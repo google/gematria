@@ -149,7 +149,83 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseBHiveCsvLine(
   return proto;
 }
 
+absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMBBName(
+    std::string_view MBB_name, uint64_t base_address /*= 0*/) {
+  BasicBlockProto basic_block_proto;
+  // llvm::Expected<std::vector<DisassembledInstruction>> instructions =
+  //     DisassembleAllInstructions(*disassembler_,
+  //                                *target_machine_.getMCInstrInfo(),
+  //                                *target_machine_.getMCRegisterInfo(),
+  //                                *target_machine_.getMCSubtargetInfo(),
+  //                                *mc_inst_printer_, base_address, machine_code);
+  // if (llvm::Error error = instructions.takeError()) {
+  //   return LlvmErrorToStatus(std::move(error));
+  // }
+
+  // for (DisassembledInstruction& instruction : *instructions) {
+  // NOT VERY IMPORTANT THESE 3 LINES
+  //   MachineInstructionProto& machine_instruction =
+  //       *basic_block_proto.add_machine_instructions();
+  //   machine_instruction.set_address(instruction.address);
+  //   machine_instruction.set_assembly(instruction.assembly);
+  //   machine_instruction.set_machine_code(instruction.machine_code);
+  // VERY IMPORTANT!!! Do this first TODO: change this to use the unique name to get the MBB
+  //   *basic_block_proto.add_canonicalized_instructions() = ProtoFromInstruction(
+  //       canonicalizer_.InstructionFromMCInst(instruction.mc_inst));
+  // }
+
+  return basic_block_proto;
+}
+
+absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseMIRCsvLine(
+    std::string_view source_name, std::string_view line,
+    size_t BB_name_index, size_t throughput_column_index,
+    double throughput_scaling /*= 1.0*/, uint64_t base_address /*= 0*/) {
+  const absl::InlinedVector<std::string_view, 2> columns =
+      absl::StrSplit(line, ',');
+  const int min_required_num_columns =
+      std::max(BB_name_index, throughput_column_index) + 1;
+  if (columns.size() < min_required_num_columns) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "Expected `line` to have at least %d columns, found %d: %s",
+        min_required_num_columns, columns.size(), line));
+  }
+  if (BB_name_index == throughput_column_index) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "Expected BB name column and throughput column indices to be "
+        "different, but were both %d: %s",
+        BB_name_index, line));
+  }
+  const std::string_view BB_unique_name =
+      columns[BB_name_index];
+  const std::string_view throughput_str = columns[throughput_column_index];
+
+  BasicBlockWithThroughputProto proto;
+
+  // TODO: change this to use the unique name to get the MBB
+  // absl::StatusOr<BasicBlockProto> block_proto_or_status =
+  //     BasicBlockProtoFromMachineCodeHex(machine_code_hex, base_address);
+  // if (!block_proto_or_status.ok()) return block_proto_or_status.status();
+  // *proto.mutable_basic_block() = std::move(block_proto_or_status).value();
+
+  double throughput_cycles = 0.0;
+  if (!absl::SimpleAtod(throughput_str, &throughput_cycles)) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("Could not parse throughput value ", throughput_str));
+  }
+
+  ThroughputWithSourceProto& throughput = *proto.add_inverse_throughputs();
+  throughput.set_source(source_name);
+  throughput.add_inverse_throughput_cycles(throughput_cycles *
+                                           throughput_scaling);
+
+  return proto;
+}
+
 absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name){
+  // clear previous loaded module
+  name_to_mbb_.clear();
+
   // create MIR Parser and read all MBB to the map based on their unique name
   llvm::LLVMContext context;
   llvm::SMDiagnostic diag;
