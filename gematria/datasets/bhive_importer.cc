@@ -38,6 +38,11 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Error.h"
+#include "llvm/CodeGen/MachineModuleInfo.h"
+#include "llvm/CodeGen/MachineFunction.h"
+#include "llvm/Support/SourceMgr.h"
+#include "llvm/Support/WithColor.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace gematria {
 namespace {
@@ -142,6 +147,68 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseBHiveCsvLine(
                                            throughput_scaling);
 
   return proto;
+}
+
+absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name){
+  // create MIR Parser and read all MBB to the map based on their unique name
+  llvm::LLVMContext context;
+  llvm::SMDiagnostic diag;
+
+  // Set attributes on functions as loaded from MIR from command line arguments.
+  // auto setMIRFunctionAttributes = [&CPUStr, &FeaturesStr](Function &F) {
+  //   llvm::codegen::setFunctionAttributes(CPUStr, FeaturesStr, F);
+  // };
+
+  std::unique_ptr<llvm::MIRParser> mir_parser = llvm::createMIRParserFromFile(file_name, diag, context);
+  if (!mir_parser) {
+    diag.print("test ", llvm::WithColor::error(llvm::errs(), "test"));
+    return absl::InvalidArgumentError(
+        absl::StrCat("Could not create MIR parser for file ", file_name));
+  }
+
+  // Parse the LLVM IR module (if any)
+  std::unique_ptr<llvm::Module> mir_module = mir_parser->parseIRModule();
+  if (!mir_module) {
+      // Handle error
+      return absl::InvalidArgumentError(
+        absl::StrCat("Could not parse MIR module for file ", file_name));
+  }
+
+  // Prepare MachineModuleInfo
+  auto *llvmTargetMachine = dynamic_cast<const llvm::LLVMTargetMachine*>(&target_machine_);
+  if (llvmTargetMachine == nullptr) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("Could not cast target machine for file ", file_name));
+  } 
+  llvm::MachineModuleInfo MMI(llvmTargetMachine);
+
+  // Parse the MachineFunctions and add them to MMI
+  if (mir_parser->parseMachineFunctions(*mir_module, MMI)) {
+      // Handle error
+      return absl::InvalidArgumentError(
+        absl::StrCat("Could not parse MachineFunctions for file ", file_name));
+  }
+
+  // Now iterate over the MachineFunctions and their MachineBasicBlocks
+    for (auto &F : *mir_module) {
+        if (F.isDeclaration()) continue;
+        llvm::MachineFunction &MF = MMI.getOrCreateMachineFunction(F);
+        for (auto &MBB : MF) {
+            // assert name is unique
+            if (name_to_mbb_.find(MBB.getName()) != name_to_mbb_.end()) {
+              // clear this key-value pair
+              name_to_mbb_.erase(MBB.getName());
+            } else {
+              name_to_mbb_[MBB.getName()] = &MBB;
+            }
+            // // Pretty print the machine block with its name
+            // llvm::outs() << "MachineBasicBlock: " << MBB.getName() << "\n";
+            // MBB.print(llvm::outs());
+            // llvm::outs() << "\n";
+        }
+    }
+
+    return true;
 }
 
 }  // namespace gematria

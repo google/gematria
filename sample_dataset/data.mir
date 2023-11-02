@@ -1,0 +1,3058 @@
+--- |
+  ; ModuleID = 'harness_comment.bc'
+  source_filename = "harness.c"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target triple = "x86_64-pc-linux-gnu"
+  
+  %union.anon = type { i64 }
+  %union.anon.0 = type { i32 }
+  %union.anon.1 = type { i64 }
+  %union.anon.2 = type { i64 }
+  %struct.user_regs_struct = type { i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64 }
+  %struct.rdpmc_ctx = type { i32, ptr }
+  %struct.siginfo_t = type { i32, i32, i32, i32, %union.anon.4 }
+  %union.anon.4 = type { %struct.anon.8, [80 x i8] }
+  %struct.anon.8 = type { i32, i32, i32, i64, i64 }
+  %struct.cpu_set_t = type { [16 x i64] }
+  %struct.perf_event_mmap_page = type { i32, i32, i32, i32, i64, i64, i64, %union.anon.3, i16, i16, i32, i64, i64, i32, i32, i64, i64, [928 x i8], i64, i64, i64, i64, i64, i64, i64, i64 }
+  %union.anon.3 = type { i64 }
+  
+  @l1_read_attr = dso_local global { i32, i32, i64, %union.anon, i64, i64, i8, i8, i8, i8, i8, i8, i8, i8, %union.anon.0, i32, %union.anon.1, %union.anon.2, i64, i64, i32, i32, i64, i32, i16, i16, i32, i32, i64 } { i32 3, i32 64, i64 65536, %union.anon zeroinitializer, i64 16, i64 0, i8 32, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, %union.anon.0 zeroinitializer, i32 0, %union.anon.1 zeroinitializer, %union.anon.2 zeroinitializer, i64 0, i64 0, i32 0, i32 0, i64 0, i32 0, i16 0, i16 0, i32 0, i32 0, i64 0 }, align 8
+  @l1_write_attr = dso_local global { i32, i32, i64, %union.anon, i64, i64, i8, i8, i8, i8, i8, i8, i8, i8, %union.anon.0, i32, %union.anon.1, %union.anon.2, i64, i64, i32, i32, i64, i32, i16, i16, i32, i32, i64 } { i32 3, i32 64, i64 65792, %union.anon zeroinitializer, i64 16, i64 0, i8 32, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, %union.anon.0 zeroinitializer, i32 0, %union.anon.1 zeroinitializer, %union.anon.2 zeroinitializer, i64 0, i64 0, i32 0, i32 0, i64 0, i32 0, i16 0, i16 0, i32 0, i32 0, i64 0 }, align 8
+  @icache_attr = dso_local global { i32, i32, i64, %union.anon, i64, i64, i8, i8, i8, i8, i8, i8, i8, i8, %union.anon.0, i32, %union.anon.1, %union.anon.2, i64, i64, i32, i32, i64, i32, i16, i16, i32, i32, i64 } { i32 3, i32 64, i64 65537, %union.anon zeroinitializer, i64 16, i64 0, i8 32, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, %union.anon.0 zeroinitializer, i32 0, %union.anon.1 zeroinitializer, %union.anon.2 zeroinitializer, i64 0, i64 0, i32 0, i32 0, i64 0, i32 0, i16 0, i16 0, i32 0, i32 0, i64 0 }, align 8
+  @ctx_swtch_attr = dso_local global { i32, i32, i64, %union.anon, i64, i64, i8, i8, i8, i8, i8, i8, i8, i8, %union.anon.0, i32, %union.anon.1, %union.anon.2, i64, i64, i32, i32, i64, i32, i16, i16, i32, i32, i64 } { i32 1, i32 0, i64 3, %union.anon zeroinitializer, i64 0, i64 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, i8 0, %union.anon.0 zeroinitializer, i32 0, %union.anon.1 zeroinitializer, %union.anon.2 zeroinitializer, i64 0, i64 0, i32 0, i32 0, i64 0, i32 0, i16 0, i16 0, i32 0, i32 0, i64 0 }, align 8
+  @x = dso_local global i8 0, align 1
+  @.str = private unnamed_addr constant [35 x i8] c"RESTARTING AT %p, fault addr = %p\0A\00", align 1
+  @.str.1 = private unnamed_addr constant [9 x i8] c"get regs\00", align 1
+  @.str.2 = private unnamed_addr constant [9 x i8] c"set regs\00", align 1
+  @.str.3 = private unnamed_addr constant [5 x i8] c"cont\00", align 1
+  @.str.4 = private unnamed_addr constant [13 x i8] c"mmap aux mem\00", align 1
+  @.str.5 = private unnamed_addr constant [32 x i8] c"bad inst is at %p, signal = %d\0A\00", align 1
+  @.str.6 = private unnamed_addr constant [17 x i8] c"VAL OF RSP = %p\0A\00", align 1
+  @first_legal_aux_mem_access = external global [0 x i8], align 1
+  @.str.7 = private unnamed_addr constant [18 x i8] c"L1 READ IDX = %d\0A\00", align 1
+  @.str.8 = private unnamed_addr constant [19 x i8] c"L1 WRITE IDX = %d\0A\00", align 1
+  @.str.9 = private unnamed_addr constant [17 x i8] c"ICACHE IDX = %d\0A\00", align 1
+  @end_tmpl_end = external global [0 x i8], align 1
+  @end_tmpl_begin = external global [0 x i8], align 1
+  @code_begin = external global [0 x i8], align 1
+  @code_end = external global [0 x i8], align 1
+  @.str.11 = private unnamed_addr constant [9 x i8] c"mprotect\00", align 1
+  @l1_read_misses_a = external local_unnamed_addr global [0 x i8], align 1
+  @l1_read_misses_b = external local_unnamed_addr global [0 x i8], align 1
+  @l1_write_misses_a = external local_unnamed_addr global [0 x i8], align 1
+  @l1_write_misses_b = external local_unnamed_addr global [0 x i8], align 1
+  @icache_misses_a = external local_unnamed_addr global [0 x i8], align 1
+  @icache_misses_b = external local_unnamed_addr global [0 x i8], align 1
+  @str = private unnamed_addr constant [33 x i8] c"unable to count context switches\00", align 1
+  
+  ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
+  define dso_local ptr @round_to_page_start(ptr noundef %0) local_unnamed_addr #0 {
+  BB_0:
+    call void asm sideeffect "# LLVM BB: BB_0", ""()
+    %1 = ptrtoint ptr %0 to i64
+    %2 = and i64 %1, -4096
+    %3 = inttoptr i64 %2 to ptr
+    ret ptr %3
+  }
+  
+  ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
+  define dso_local ptr @round_to_next_page(ptr noundef %0) local_unnamed_addr #0 {
+  BB_1:
+    call void asm sideeffect "# LLVM BB: BB_1", ""()
+    %1 = ptrtoint ptr %0 to i64
+    %2 = add i64 %1, 4096
+    %3 = and i64 %2, -4096
+    %4 = inttoptr i64 %3 to ptr
+    ret ptr %4
+  }
+  
+  ; Function Attrs: nounwind uwtable
+  define dso_local void @attach_to_child(i32 noundef %0, i32 noundef %1) local_unnamed_addr #1 {
+  BB_2:
+    call void asm sideeffect "# LLVM BB: BB_2", ""()
+    %2 = tail call i64 (i32, ...) @ptrace(i32 noundef 16902, i32 noundef %0, ptr noundef null, ptr noundef null) #13
+    %3 = tail call i64 @write(i32 noundef %1, ptr noundef nonnull @x, i64 noundef 1) #13
+    %4 = tail call i32 @close(i32 noundef %1) #13
+    ret void
+  }
+  
+  ; Function Attrs: nounwind
+  declare i64 @ptrace(i32 noundef, ...) local_unnamed_addr #2
+  
+  ; Function Attrs: nofree
+  declare noundef i64 @write(i32 noundef, ptr nocapture noundef readonly, i64 noundef) local_unnamed_addr #3
+  
+  declare i32 @close(i32 noundef) local_unnamed_addr #4
+  
+  ; Function Attrs: nounwind uwtable
+  define dso_local i32 @create_shm_fd(ptr noundef %0) local_unnamed_addr #1 {
+  BB_3:
+    call void asm sideeffect "# LLVM BB: BB_3", ""()
+    %1 = tail call i32 @shm_open(ptr noundef %0, i32 noundef 66, i32 noundef 511) #13
+    %2 = tail call i32 @shm_unlink(ptr noundef %0) #13
+    %3 = tail call i32 @ftruncate(i32 noundef %1, i64 noundef 12288) #13
+    ret i32 %1
+  }
+  
+  declare i32 @shm_open(ptr noundef, i32 noundef, i32 noundef) local_unnamed_addr #4
+  
+  declare i32 @shm_unlink(ptr noundef) local_unnamed_addr #4
+  
+  ; Function Attrs: nounwind
+  declare i32 @ftruncate(i32 noundef, i64 noundef) local_unnamed_addr #2
+  
+  ; Function Attrs: nounwind uwtable
+  define dso_local i32 @perf_event_open(ptr noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3, i64 noundef %4) local_unnamed_addr #1 {
+  BB_4:
+    call void asm sideeffect "# LLVM BB: BB_4", ""()
+    %5 = tail call i64 (i64, ...) @syscall(i64 noundef 298, ptr noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3, i64 noundef %4) #13
+    %6 = trunc i64 %5 to i32
+    ret i32 %6
+  }
+  
+  ; Function Attrs: nounwind
+  declare i64 @syscall(i64 noundef, ...) local_unnamed_addr #2
+  
+  ; Function Attrs: nounwind uwtable
+  define dso_local void @restart_child(i32 noundef %0, ptr noundef %1, ptr noundef %2, i32 noundef %3) local_unnamed_addr #1 {
+  BB_5:
+    call void asm sideeffect "# LLVM BB: BB_5", ""()
+    %4 = alloca %struct.user_regs_struct, align 8
+    %5 = tail call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str, ptr noundef %1, ptr noundef %2)
+    %6 = bitcast ptr %4 to ptr
+    call void @llvm.lifetime.start.p0(i64 216, ptr nonnull %6) #13
+    %7 = call i64 (i32, ...) @ptrace(i32 noundef 12, i32 noundef %0, ptr noundef null, ptr noundef nonnull %4) #13
+    call void @perror(ptr noundef @.str.1) #14
+    %8 = ptrtoint ptr %1 to i64
+    %9 = getelementptr inbounds %struct.user_regs_struct, ptr %4, i64 0, i32 16
+    store i64 %8, ptr %9, align 8, !tbaa !5
+    %10 = ptrtoint ptr %2 to i64
+    %11 = getelementptr inbounds %struct.user_regs_struct, ptr %4, i64 0, i32 10
+    store i64 %10, ptr %11, align 8, !tbaa !10
+    %12 = sext i32 %3 to i64
+    %13 = getelementptr inbounds %struct.user_regs_struct, ptr %4, i64 0, i32 6
+    store i64 %12, ptr %13, align 8, !tbaa !11
+    %14 = getelementptr inbounds %struct.user_regs_struct, ptr %4, i64 0, i32 2
+    %15 = bitcast ptr %14 to ptr
+    store <2 x i64> <i64 3, i64 1>, ptr %15, align 8, !tbaa !12
+    %16 = call i64 (i32, ...) @ptrace(i32 noundef 13, i32 noundef %0, ptr noundef null, ptr noundef nonnull %4) #13
+    call void @perror(ptr noundef @.str.2) #14
+    %17 = call i64 (i32, ...) @ptrace(i32 noundef 7, i32 noundef %0, ptr noundef null, ptr noundef null) #13
+    call void @perror(ptr noundef @.str.3) #14
+    call void @llvm.lifetime.end.p0(i64 216, ptr nonnull %6) #13
+    ret void
+  }
+  
+  ; Function Attrs: nofree nounwind
+  declare noundef i32 @printf(ptr nocapture noundef readonly, ...) local_unnamed_addr #5
+  
+  ; Function Attrs: nofree nounwind
+  declare void @perror(ptr nocapture noundef readonly) local_unnamed_addr #5
+  
+  ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(write) uwtable
+  define dso_local void @emit_mov_rcx(ptr nocapture noundef writeonly %0, i32 noundef %1) local_unnamed_addr #6 {
+  BB_6:
+    call void asm sideeffect "# LLVM BB: BB_6", ""()
+    %2 = icmp slt i32 %1, 0
+    br i1 %2, label %BB_8, label %BB_7
+  
+  BB_7:                                             ; preds = %BB_6
+    call void asm sideeffect "# LLVM BB: BB_7", ""()
+    store i8 -71, ptr %0, align 1, !tbaa !13
+    %3 = trunc i32 %1 to i8
+    %4 = getelementptr inbounds i8, ptr %0, i64 1
+    store i8 %3, ptr %4, align 1, !tbaa !13
+    %5 = getelementptr inbounds i8, ptr %0, i64 2
+    store i8 0, ptr %5, align 1, !tbaa !13
+    %6 = getelementptr inbounds i8, ptr %0, i64 3
+    store i8 0, ptr %6, align 1, !tbaa !13
+    %7 = getelementptr inbounds i8, ptr %0, i64 4
+    store i8 0, ptr %7, align 1, !tbaa !13
+    br label %BB_8
+  
+  BB_8:                                             ; preds = %BB_7, %BB_6
+    call void asm sideeffect "# LLVM BB: BB_8", ""()
+    ret void
+  }
+  
+  ; Function Attrs: nounwind uwtable
+  define dso_local i32 @is_event_supported(ptr noundef %0) local_unnamed_addr #1 {
+  BB_9:
+    call void asm sideeffect "# LLVM BB: BB_9", ""()
+    %1 = alloca %struct.rdpmc_ctx, align 8
+    %2 = bitcast ptr %1 to ptr
+    call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %2) #13
+    %3 = call i32 @rdpmc_open_attr(ptr noundef %0, ptr noundef nonnull %1, ptr noundef null) #13
+    %4 = icmp eq i32 %3, 0
+    %5 = zext i1 %4 to i32
+    call void @rdpmc_close(ptr noundef nonnull %1) #13
+    call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %2) #13
+    ret i32 %5
+  }
+  
+  declare i32 @rdpmc_open_attr(ptr noundef, ptr noundef, ptr noundef) local_unnamed_addr #4
+  
+  declare void @rdpmc_close(ptr noundef) local_unnamed_addr #4
+  
+  ; Function Attrs: nounwind uwtable
+  define dso_local ptr @measure(ptr nocapture noundef readonly %0, i64 noundef %1, i32 noundef %2, ptr nocapture noundef writeonly %3, ptr nocapture noundef writeonly %4, ptr nocapture noundef writeonly %5, i32 noundef %6) local_unnamed_addr #1 {
+  BB_10:
+    call void asm sideeffect "# LLVM BB: BB_10", ""()
+    %7 = alloca %struct.user_regs_struct, align 8
+    %8 = alloca %struct.user_regs_struct, align 8
+    %9 = alloca %struct.rdpmc_ctx, align 8
+    %10 = alloca %struct.rdpmc_ctx, align 8
+    %11 = alloca %struct.rdpmc_ctx, align 8
+    %12 = alloca [2 x i32], align 4
+    %13 = alloca i32, align 4
+    %14 = alloca %struct.siginfo_t, align 8
+    %15 = alloca %struct.user_regs_struct, align 8
+    %16 = alloca %struct.rdpmc_ctx, align 8
+    %17 = alloca %struct.cpu_set_t, align 8
+    %18 = bitcast ptr %12 to ptr
+    call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %18) #13
+    %19 = getelementptr inbounds [2 x i32], ptr %12, i64 0, i64 0
+    %20 = call i32 @pipe(ptr noundef nonnull %19) #13
+    %21 = call ptr @mmap(ptr noundef null, i64 noundef 8192, i32 noundef 3, i32 noundef 1, i32 noundef %6, i64 noundef 4096) #13
+    call void @perror(ptr noundef @.str.4) #14
+    call void @llvm.memset.p0.i64(ptr noundef nonnull align 1 dereferenceable(8192) %21, i8 0, i64 8192, i1 false)
+    %22 = call i32 @fork() #13
+    %23 = icmp eq i32 %22, 0
+    br i1 %23, label %BB_25, label %BB_11
+  
+  BB_11:                                            ; preds = %BB_10
+    call void asm sideeffect "# LLVM BB: BB_11", ""()
+    %24 = load i32, ptr %19, align 4, !tbaa !14
+    %25 = call i32 @close(i32 noundef %24) #13
+    %26 = call ptr @mmap(ptr noundef null, i64 noundef 4096, i32 noundef 3, i32 noundef 1, i32 noundef %6, i64 noundef 0) #13
+    %27 = getelementptr inbounds i8, ptr %21, i64 32
+    %28 = bitcast ptr %27 to ptr
+    %29 = getelementptr inbounds [2 x i32], ptr %12, i64 0, i64 1
+    %30 = load i32, ptr %29, align 4, !tbaa !14
+    %31 = call i64 (i32, ...) @ptrace(i32 noundef 16902, i32 noundef %22, ptr noundef null, ptr noundef null) #13
+    %32 = call i64 @write(i32 noundef %30, ptr noundef nonnull @x, i64 noundef 1) #13
+    %33 = call i32 @close(i32 noundef %30) #13
+    %34 = bitcast ptr %11 to ptr
+    call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %34) #13
+    %35 = call i32 @rdpmc_open_attr(ptr noundef @l1_read_attr, ptr noundef nonnull %11, ptr noundef null) #13
+    %36 = icmp eq i32 %35, 0
+    %37 = zext i1 %36 to i32
+    call void @rdpmc_close(ptr noundef nonnull %11) #13
+    call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %34) #13
+    store i32 %37, ptr %3, align 4, !tbaa !14
+    %38 = bitcast ptr %10 to ptr
+    call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %38) #13
+    %39 = call i32 @rdpmc_open_attr(ptr noundef @l1_write_attr, ptr noundef nonnull %10, ptr noundef null) #13
+    %40 = icmp eq i32 %39, 0
+    %41 = zext i1 %40 to i32
+    call void @rdpmc_close(ptr noundef nonnull %10) #13
+    call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %38) #13
+    store i32 %41, ptr %4, align 4, !tbaa !14
+    %42 = bitcast ptr %9 to ptr
+    call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %42) #13
+    %43 = call i32 @rdpmc_open_attr(ptr noundef @icache_attr, ptr noundef nonnull %9, ptr noundef null) #13
+    %44 = icmp eq i32 %43, 0
+    %45 = zext i1 %44 to i32
+    call void @rdpmc_close(ptr noundef nonnull %9) #13
+    call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %42) #13
+    store i32 %45, ptr %5, align 4, !tbaa !14
+    %46 = bitcast ptr %13 to ptr
+    %47 = bitcast ptr %14 to ptr
+    %48 = bitcast ptr %15 to ptr
+    %49 = getelementptr inbounds %struct.user_regs_struct, ptr %15, i64 0, i32 16
+    %50 = getelementptr inbounds %struct.siginfo_t, ptr %14, i64 0, i32 0
+    %51 = getelementptr inbounds %struct.user_regs_struct, ptr %15, i64 0, i32 19
+    %52 = getelementptr inbounds %struct.siginfo_t, ptr %14, i64 0, i32 4
+    %53 = bitcast ptr %52 to ptr
+    %54 = bitcast ptr %7 to ptr
+    %55 = getelementptr inbounds %struct.user_regs_struct, ptr %7, i64 0, i32 16
+    %56 = getelementptr inbounds %struct.user_regs_struct, ptr %7, i64 0, i32 10
+    %57 = sext i32 %6 to i64
+    %58 = getelementptr inbounds %struct.user_regs_struct, ptr %7, i64 0, i32 6
+    %59 = getelementptr inbounds %struct.user_regs_struct, ptr %7, i64 0, i32 2
+    %60 = bitcast ptr %8 to ptr
+    %61 = getelementptr inbounds %struct.user_regs_struct, ptr %8, i64 0, i32 16
+    %62 = getelementptr inbounds %struct.user_regs_struct, ptr %8, i64 0, i32 10
+    %63 = getelementptr inbounds %struct.user_regs_struct, ptr %8, i64 0, i32 6
+    %64 = getelementptr inbounds %struct.user_regs_struct, ptr %8, i64 0, i32 2
+    %65 = bitcast ptr %59 to ptr
+    %66 = bitcast ptr %64 to ptr
+    br label %BB_12
+  
+  BB_12:                                            ; preds = %BB_23, %BB_11
+    %67 = phi ptr [ null, %BB_11 ], [ %94, %BB_23 ]
+    %68 = phi i32 [ 0, %BB_11 ], [ %108, %BB_23 ]
+    %69 = phi i32 [ 0, %BB_11 ], [ %109, %BB_23 ]
+    call void asm sideeffect "# LLVM BB: BB_12", ""()
+    call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %46) #13
+    %70 = call i32 @wait(ptr noundef nonnull %13) #13
+    %71 = load i32, ptr %13, align 4, !tbaa !14
+    %72 = and i32 %71, 127
+    %73 = icmp eq i32 %72, 0
+    %74 = icmp eq i32 %70, -1
+    %75 = select i1 %73, i1 true, i1 %74
+    br i1 %75, label %BB_13, label %BB_14
+  
+  BB_13:                                            ; preds = %BB_12
+    call void asm sideeffect "# LLVM BB: BB_13", ""()
+    %76 = and i32 %71, 65280
+    %77 = icmp eq i32 %76, 0
+    %78 = select i1 %77, ptr %28, ptr null
+    call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %46) #13
+    br label %BB_40
+  
+  BB_14:                                            ; preds = %BB_12
+    call void asm sideeffect "# LLVM BB: BB_14", ""()
+    %79 = icmp eq i32 %68, 0
+    br i1 %79, label %BB_16, label %BB_15
+  
+  BB_15:                                            ; preds = %BB_14
+    call void asm sideeffect "# LLVM BB: BB_15", ""()
+    call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %46) #13
+    br label %BB_24
+  
+  BB_16:                                            ; preds = %BB_14
+    call void asm sideeffect "# LLVM BB: BB_16", ""()
+    call void @llvm.lifetime.start.p0(i64 128, ptr nonnull %47) #13
+    %80 = call i64 (i32, ...) @ptrace(i32 noundef 16898, i32 noundef %70, ptr noundef null, ptr noundef nonnull %14) #13
+    call void @llvm.lifetime.start.p0(i64 216, ptr nonnull %48) #13
+    %81 = call i64 (i32, ...) @ptrace(i32 noundef 12, i32 noundef %70, ptr noundef null, ptr noundef nonnull %15) #13
+    %82 = load i64, ptr %49, align 8, !tbaa !5
+    %83 = inttoptr i64 %82 to ptr
+    %84 = load i32, ptr %50, align 8, !tbaa !16
+    %85 = call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str.5, ptr noundef %83, i32 noundef %84)
+    %86 = load i64, ptr %51, align 8, !tbaa !18
+    %87 = inttoptr i64 %86 to ptr
+    %88 = call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str.6, ptr noundef %87)
+    %89 = load i32, ptr %50, align 8, !tbaa !16
+    switch i32 %89, label %BB_22 [
+      i32 11, label %BB_17
+      i32 5, label %BB_17
+    ]
+  
+  BB_17:                                            ; preds = %BB_16, %BB_16
+    call void asm sideeffect "# LLVM BB: BB_17", ""()
+    %90 = load ptr, ptr %53, align 8, !tbaa !13
+    %91 = icmp eq i32 %89, 5
+    %92 = select i1 %91, ptr inttoptr (i64 36847616 to ptr), ptr %90
+    %93 = load i64, ptr %49, align 8, !tbaa !5
+    %94 = inttoptr i64 %93 to ptr
+    %95 = icmp eq ptr %67, %94
+    br i1 %95, label %BB_22, label %BB_18
+  
+  BB_18:                                            ; preds = %BB_17
+    call void asm sideeffect "# LLVM BB: BB_18", ""()
+    %96 = icmp eq ptr %94, @first_legal_aux_mem_access
+    br i1 %96, label %BB_19, label %BB_20
+  
+  BB_19:                                            ; preds = %BB_18
+    call void asm sideeffect "# LLVM BB: BB_19", ""()
+    %97 = call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str, ptr noundef @map_aux_and_restart, ptr noundef %92) #13
+    call void @llvm.lifetime.start.p0(i64 216, ptr nonnull %60) #13
+    %98 = call i64 (i32, ...) @ptrace(i32 noundef 12, i32 noundef %70, ptr noundef null, ptr noundef nonnull %8) #13
+    call void @perror(ptr noundef @.str.1) #15
+    store i64 ptrtoint (ptr @map_aux_and_restart to i64), ptr %61, align 8, !tbaa !5
+    %99 = ptrtoint ptr %92 to i64
+    store i64 %99, ptr %62, align 8, !tbaa !10
+    store i64 %57, ptr %63, align 8, !tbaa !11
+    store <2 x i64> <i64 3, i64 1>, ptr %66, align 8, !tbaa !12
+    %100 = call i64 (i32, ...) @ptrace(i32 noundef 13, i32 noundef %70, ptr noundef null, ptr noundef nonnull %8) #13
+    call void @perror(ptr noundef @.str.2) #15
+    %101 = call i64 (i32, ...) @ptrace(i32 noundef 7, i32 noundef %70, ptr noundef null, ptr noundef null) #13
+    call void @perror(ptr noundef @.str.3) #15
+    call void @llvm.lifetime.end.p0(i64 216, ptr nonnull %60) #13
+    br label %BB_23
+  
+  BB_20:                                            ; preds = %BB_18
+    call void asm sideeffect "# LLVM BB: BB_20", ""()
+    %102 = icmp eq ptr %92, inttoptr (i64 123145302310912 to ptr)
+    br i1 %102, label %BB_22, label %BB_21
+  
+  BB_21:                                            ; preds = %BB_20
+    call void asm sideeffect "# LLVM BB: BB_21", ""()
+    %103 = call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str, ptr noundef @map_and_restart, ptr noundef %92) #13
+    call void @llvm.lifetime.start.p0(i64 216, ptr nonnull %54) #13
+    %104 = call i64 (i32, ...) @ptrace(i32 noundef 12, i32 noundef %70, ptr noundef null, ptr noundef nonnull %7) #13
+    call void @perror(ptr noundef @.str.1) #15
+    store i64 ptrtoint (ptr @map_and_restart to i64), ptr %55, align 8, !tbaa !5
+    %105 = ptrtoint ptr %92 to i64
+    store i64 %105, ptr %56, align 8, !tbaa !10
+    store i64 %57, ptr %58, align 8, !tbaa !11
+    store <2 x i64> <i64 3, i64 1>, ptr %65, align 8, !tbaa !12
+    %106 = call i64 (i32, ...) @ptrace(i32 noundef 13, i32 noundef %70, ptr noundef null, ptr noundef nonnull %7) #13
+    call void @perror(ptr noundef @.str.2) #15
+    %107 = call i64 (i32, ...) @ptrace(i32 noundef 7, i32 noundef %70, ptr noundef null, ptr noundef null) #13
+    call void @perror(ptr noundef @.str.3) #15
+    call void @llvm.lifetime.end.p0(i64 216, ptr nonnull %54) #13
+    br label %BB_23
+  
+  BB_22:                                            ; preds = %BB_20, %BB_17, %BB_16
+    call void asm sideeffect "# LLVM BB: BB_22", ""()
+    call void @llvm.lifetime.end.p0(i64 216, ptr nonnull %48) #13
+    call void @llvm.lifetime.end.p0(i64 128, ptr nonnull %47) #13
+    call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %46) #13
+    br label %BB_24
+  
+  BB_23:                                            ; preds = %BB_21, %BB_19
+    %108 = phi i32 [ 1, %BB_19 ], [ 0, %BB_21 ]
+    call void asm sideeffect "# LLVM BB: BB_23", ""()
+    call void @llvm.lifetime.end.p0(i64 216, ptr nonnull %48) #13
+    call void @llvm.lifetime.end.p0(i64 128, ptr nonnull %47) #13
+    call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %46) #13
+    %109 = add nuw nsw i32 %69, 1
+    %110 = icmp eq i32 %109, 1024
+    br i1 %110, label %BB_24, label %BB_12, !llvm.loop !19
+  
+  BB_24:                                            ; preds = %BB_23, %BB_22, %BB_15
+    call void asm sideeffect "# LLVM BB: BB_24", ""()
+    %111 = call i32 @kill(i32 noundef %70, i32 noundef 9) #13
+    br label %BB_40
+  
+  BB_25:                                            ; preds = %BB_10
+    call void asm sideeffect "# LLVM BB: BB_25", ""()
+    %112 = bitcast ptr %16 to ptr
+    call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %112) #13
+    %113 = call i32 @rdpmc_open_attr(ptr noundef @l1_read_attr, ptr noundef nonnull %16, ptr noundef null) #13
+    %114 = getelementptr inbounds %struct.rdpmc_ctx, ptr %16, i64 0, i32 1
+    %115 = load ptr, ptr %114, align 8, !tbaa !21
+    %116 = getelementptr inbounds %struct.perf_event_mmap_page, ptr %115, i64 0, i32 3
+    %117 = load i32, ptr %116, align 4, !tbaa !24
+    %118 = add i32 %117, -1
+    %119 = call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str.7, i32 noundef %117)
+    %120 = call i32 @rdpmc_open_attr(ptr noundef @l1_write_attr, ptr noundef nonnull %16, ptr noundef null) #13
+    %121 = load ptr, ptr %114, align 8, !tbaa !21
+    %122 = getelementptr inbounds %struct.perf_event_mmap_page, ptr %121, i64 0, i32 3
+    %123 = load i32, ptr %122, align 4, !tbaa !24
+    %124 = add i32 %123, -1
+    %125 = call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str.8, i32 noundef %123)
+    %126 = call i32 @rdpmc_open_attr(ptr noundef @icache_attr, ptr noundef nonnull %16, ptr noundef null) #13
+    %127 = load ptr, ptr %114, align 8, !tbaa !21
+    %128 = getelementptr inbounds %struct.perf_event_mmap_page, ptr %127, i64 0, i32 3
+    %129 = load i32, ptr %128, align 4, !tbaa !24
+    %130 = add i32 %129, -1
+    %131 = call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str.9, i32 noundef %129)
+    %132 = call i32 @rdpmc_open_attr(ptr noundef @ctx_swtch_attr, ptr noundef nonnull %16, ptr noundef null) #13
+    %133 = icmp eq i32 %132, 0
+    br i1 %133, label %BB_27, label %BB_26
+  
+  BB_26:                                            ; preds = %BB_25
+    call void asm sideeffect "# LLVM BB: BB_26", ""()
+    %134 = call i32 @puts(ptr nonnull dereferenceable(1) @str)
+    call void @abort() #16
+    unreachable
+  
+  BB_27:                                            ; preds = %BB_25
+    call void asm sideeffect "# LLVM BB: BB_27", ""()
+    %135 = getelementptr inbounds %struct.rdpmc_ctx, ptr %16, i64 0, i32 0
+    %136 = load i32, ptr %135, align 8, !tbaa !27
+    %137 = call i32 @dup2(i32 noundef %136, i32 noundef 100) #13
+    %138 = zext i32 %2 to i64
+    %139 = mul i64 %138, %1
+    %140 = add i64 %139, add (i64 sub (i64 ptrtoint (ptr @end_tmpl_end to i64), i64 ptrtoint (ptr @end_tmpl_begin to i64)), i64 5)
+    %141 = getelementptr inbounds [0 x i8], ptr @code_end, i64 0, i64 %140
+    %142 = ptrtoint ptr %141 to i64
+    %143 = add i64 %142, 4096
+    %144 = and i64 %143, -4096
+    %145 = tail call ptr @__errno_location() #17
+    store i32 0, ptr %145, align 4, !tbaa !14
+    %constexpr = and i64 ptrtoint (ptr @code_begin to i64), -4096
+    %146 = sub i64 %144, %constexpr
+    %constexpr1 = and i64 ptrtoint (ptr @code_begin to i64), -4096
+    %constexpr2 = inttoptr i64 %constexpr1 to ptr
+    %147 = call i32 @mprotect(ptr noundef %constexpr2, i64 noundef %146, i32 noundef 3) #13
+    call void @perror(ptr noundef @.str.11) #14
+    %148 = icmp slt i32 %118, 0
+    br i1 %148, label %BB_29, label %BB_28
+  
+  BB_28:                                            ; preds = %BB_27
+    call void asm sideeffect "# LLVM BB: BB_28", ""()
+    store i8 -71, ptr @l1_read_misses_a, align 1, !tbaa !13
+    %149 = trunc i32 %118 to i8
+    store i8 %149, ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_a, i64 0, i64 1), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_a, i64 0, i64 2), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_a, i64 0, i64 3), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_a, i64 0, i64 4), align 1, !tbaa !13
+    store i8 -71, ptr @l1_read_misses_b, align 1, !tbaa !13
+    store i8 %149, ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_b, i64 0, i64 1), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_b, i64 0, i64 2), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_b, i64 0, i64 3), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_b, i64 0, i64 4), align 1, !tbaa !13
+    br label %BB_29
+  
+  BB_29:                                            ; preds = %BB_28, %BB_27
+    call void asm sideeffect "# LLVM BB: BB_29", ""()
+    %150 = icmp slt i32 %124, 0
+    br i1 %150, label %BB_31, label %BB_30
+  
+  BB_30:                                            ; preds = %BB_29
+    call void asm sideeffect "# LLVM BB: BB_30", ""()
+    store i8 -71, ptr @l1_write_misses_a, align 1, !tbaa !13
+    %151 = trunc i32 %124 to i8
+    store i8 %151, ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_a, i64 0, i64 1), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_a, i64 0, i64 2), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_a, i64 0, i64 3), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_a, i64 0, i64 4), align 1, !tbaa !13
+    store i8 -71, ptr @l1_write_misses_b, align 1, !tbaa !13
+    store i8 %151, ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_b, i64 0, i64 1), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_b, i64 0, i64 2), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_b, i64 0, i64 3), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_b, i64 0, i64 4), align 1, !tbaa !13
+    br label %BB_31
+  
+  BB_31:                                            ; preds = %BB_30, %BB_29
+    call void asm sideeffect "# LLVM BB: BB_31", ""()
+    %152 = icmp slt i32 %130, 0
+    br i1 %152, label %BB_33, label %BB_32
+  
+  BB_32:                                            ; preds = %BB_31
+    call void asm sideeffect "# LLVM BB: BB_32", ""()
+    store i8 -71, ptr @icache_misses_a, align 1, !tbaa !13
+    %153 = trunc i32 %130 to i8
+    store i8 %153, ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_a, i64 0, i64 1), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_a, i64 0, i64 2), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_a, i64 0, i64 3), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_a, i64 0, i64 4), align 1, !tbaa !13
+    store i8 -71, ptr @icache_misses_b, align 1, !tbaa !13
+    store i8 %153, ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_b, i64 0, i64 1), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_b, i64 0, i64 2), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_b, i64 0, i64 3), align 1, !tbaa !13
+    store i8 0, ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_b, i64 0, i64 4), align 1, !tbaa !13
+    br label %BB_33
+  
+  BB_33:                                            ; preds = %BB_32, %BB_31
+    call void asm sideeffect "# LLVM BB: BB_33", ""()
+    %154 = icmp eq i32 %2, 0
+    br i1 %154, label %BB_39, label %BB_34
+  
+  BB_34:                                            ; preds = %BB_33
+    call void asm sideeffect "# LLVM BB: BB_34", ""()
+    %155 = add i32 %2, -1
+    %156 = and i32 %2, 3
+    %157 = icmp ult i32 %155, 3
+    br i1 %157, label %BB_37, label %BB_35
+  
+  BB_35:                                            ; preds = %BB_34
+    call void asm sideeffect "# LLVM BB: BB_35", ""()
+    %158 = and i32 %2, -4
+    br label %BB_36
+  
+  BB_36:                                            ; preds = %BB_36, %BB_35
+    %159 = phi ptr [ @code_end, %BB_35 ], [ %164, %BB_36 ]
+    %160 = phi i32 [ 0, %BB_35 ], [ %165, %BB_36 ]
+    call void asm sideeffect "# LLVM BB: BB_36", ""()
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %159, ptr align 1 %0, i64 %1, i1 false)
+    %161 = getelementptr inbounds i8, ptr %159, i64 %1
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %161, ptr align 1 %0, i64 %1, i1 false)
+    %162 = getelementptr inbounds i8, ptr %161, i64 %1
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %162, ptr align 1 %0, i64 %1, i1 false)
+    %163 = getelementptr inbounds i8, ptr %162, i64 %1
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %163, ptr align 1 %0, i64 %1, i1 false)
+    %164 = getelementptr inbounds i8, ptr %163, i64 %1
+    %165 = add i32 %160, 4
+    %166 = icmp eq i32 %165, %158
+    br i1 %166, label %BB_37, label %BB_36, !llvm.loop !28
+  
+  BB_37:                                            ; preds = %BB_36, %BB_34
+    %167 = phi ptr [ undef, %BB_34 ], [ %164, %BB_36 ]
+    %168 = phi ptr [ @code_end, %BB_34 ], [ %164, %BB_36 ]
+    call void asm sideeffect "# LLVM BB: BB_37", ""()
+    %169 = icmp eq i32 %156, 0
+    br i1 %169, label %BB_39, label %BB_38
+  
+  BB_38:                                            ; preds = %BB_38, %BB_37
+    %170 = phi ptr [ %172, %BB_38 ], [ %168, %BB_37 ]
+    %171 = phi i32 [ %173, %BB_38 ], [ 0, %BB_37 ]
+    call void asm sideeffect "# LLVM BB: BB_38", ""()
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %170, ptr align 1 %0, i64 %1, i1 false)
+    %172 = getelementptr inbounds i8, ptr %170, i64 %1
+    %173 = add i32 %171, 1
+    %174 = icmp eq i32 %173, %156
+    br i1 %174, label %BB_39, label %BB_38, !llvm.loop !29
+  
+  BB_39:                                            ; preds = %BB_38, %BB_37, %BB_33
+    %175 = phi ptr [ @code_end, %BB_33 ], [ %167, %BB_37 ], [ %172, %BB_38 ]
+    call void asm sideeffect "# LLVM BB: BB_39", ""()
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %175, ptr align 1 @end_tmpl_begin, i64 sub (i64 ptrtoint (ptr @end_tmpl_end to i64), i64 ptrtoint (ptr @end_tmpl_begin to i64)), i1 false)
+    %176 = getelementptr inbounds i8, ptr %175, i64 sub (i64 ptrtoint (ptr @end_tmpl_end to i64), i64 ptrtoint (ptr @end_tmpl_begin to i64))
+    store i8 -23, ptr %176, align 1, !tbaa !13
+    %177 = trunc i64 %139 to i32
+    %178 = add i32 %177, trunc (i64 add (i64 sub (i64 ptrtoint (ptr @end_tmpl_end to i64), i64 ptrtoint (ptr @end_tmpl_begin to i64)), i64 10) to i32)
+    %179 = sub i32 0, %178
+    %180 = getelementptr inbounds i8, ptr %175, i64 add (i64 sub (i64 ptrtoint (ptr @end_tmpl_end to i64), i64 ptrtoint (ptr @end_tmpl_begin to i64)), i64 1)
+    %181 = bitcast ptr %180 to ptr
+    store i32 %179, ptr %181, align 4, !tbaa !14
+    store i32 0, ptr %145, align 4, !tbaa !14
+    %constexpr3 = and i64 ptrtoint (ptr @code_begin to i64), -4096
+    %constexpr4 = inttoptr i64 %constexpr3 to ptr
+    %182 = call i32 @mprotect(ptr noundef %constexpr4, i64 noundef %146, i32 noundef 4) #13
+    call void @perror(ptr noundef @.str.11) #14
+    %183 = getelementptr inbounds [2 x i32], ptr %12, i64 0, i64 1
+    %184 = load i32, ptr %183, align 4, !tbaa !14
+    %185 = call i32 @close(i32 noundef %184) #13
+    %186 = load i32, ptr %19, align 4, !tbaa !14
+    %187 = call i64 @read(i32 noundef %186, ptr noundef nonnull @x, i64 noundef 1) #13
+    %188 = call i32 @dup2(i32 noundef %6, i32 noundef 42) #13
+    %189 = bitcast ptr %17 to ptr
+    call void @llvm.lifetime.start.p0(i64 128, ptr nonnull %189) #13
+    %190 = getelementptr inbounds %struct.cpu_set_t, ptr %17, i64 0, i32 0, i64 1
+    %191 = bitcast ptr %190 to ptr
+    call void @llvm.memset.p0.i64(ptr noundef nonnull align 8 dereferenceable(128) %191, i8 0, i64 120, i1 false)
+    %192 = getelementptr inbounds %struct.cpu_set_t, ptr %17, i64 0, i32 0, i64 0
+    store i64 2, ptr %192, align 8, !tbaa !31
+    %193 = call i32 @sched_setaffinity(i32 noundef 0, i64 noundef 128, ptr noundef nonnull %17) #13
+    %194 = call i32 @setpriority(i32 noundef 0, i32 noundef 0, i32 noundef 0) #13
+    call void (i64, ...) @run_test(i64 noundef %140) #13
+    call void @llvm.lifetime.end.p0(i64 128, ptr nonnull %189) #13
+    call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %112) #13
+    br label %BB_40
+  
+  BB_40:                                            ; preds = %BB_39, %BB_24, %BB_13
+    %195 = phi ptr [ null, %BB_39 ], [ null, %BB_24 ], [ %78, %BB_13 ]
+    call void asm sideeffect "# LLVM BB: BB_40", ""()
+    call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %18) #13
+    ret ptr %195
+  }
+  
+  ; Function Attrs: nounwind
+  declare i32 @pipe(ptr noundef) local_unnamed_addr #2
+  
+  ; Function Attrs: nounwind
+  declare ptr @mmap(ptr noundef, i64 noundef, i32 noundef, i32 noundef, i32 noundef, i64 noundef) local_unnamed_addr #2
+  
+  ; Function Attrs: nofree nounwind
+  declare i32 @fork() local_unnamed_addr #5
+  
+  declare i32 @wait(ptr noundef) local_unnamed_addr #4
+  
+  declare void @map_and_restart(...) #4
+  
+  declare void @map_aux_and_restart(...) #4
+  
+  ; Function Attrs: nounwind
+  declare i32 @kill(i32 noundef, i32 noundef) local_unnamed_addr #2
+  
+  ; Function Attrs: noreturn nounwind
+  declare void @abort() local_unnamed_addr #7
+  
+  ; Function Attrs: nounwind
+  declare i32 @dup2(i32 noundef, i32 noundef) local_unnamed_addr #2
+  
+  ; Function Attrs: mustprogress nofree nosync nounwind willreturn memory(none)
+  declare ptr @__errno_location() local_unnamed_addr #8
+  
+  ; Function Attrs: nounwind
+  declare i32 @mprotect(ptr noundef, i64 noundef, i32 noundef) local_unnamed_addr #2
+  
+  ; Function Attrs: nofree
+  declare noundef i64 @read(i32 noundef, ptr nocapture noundef, i64 noundef) local_unnamed_addr #3
+  
+  ; Function Attrs: nounwind
+  declare i32 @sched_setaffinity(i32 noundef, i64 noundef, ptr noundef) local_unnamed_addr #2
+  
+  ; Function Attrs: nounwind
+  declare i32 @setpriority(i32 noundef, i32 noundef, i32 noundef) local_unnamed_addr #2
+  
+  declare void @run_test(...) local_unnamed_addr #4
+  
+  ; Function Attrs: nofree nounwind
+  declare noundef i32 @puts(ptr nocapture noundef readonly) local_unnamed_addr #9
+  
+  ; Function Attrs: nocallback nofree nosync nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.lifetime.start.p0(i64 immarg, ptr nocapture) #10
+  
+  ; Function Attrs: nocallback nofree nosync nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.lifetime.end.p0(i64 immarg, ptr nocapture) #10
+  
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: write)
+  declare void @llvm.memset.p0.i64(ptr nocapture writeonly, i8, i64, i1 immarg) #11
+  
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #12
+  
+  attributes #0 = { mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+  attributes #1 = { nounwind uwtable "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+  attributes #2 = { nounwind "frame-pointer"="none" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+  attributes #3 = { nofree "frame-pointer"="none" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+  attributes #4 = { "frame-pointer"="none" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+  attributes #5 = { nofree nounwind "frame-pointer"="none" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+  attributes #6 = { mustprogress nofree norecurse nosync nounwind willreturn memory(write) uwtable "frame-pointer"="none" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+  attributes #7 = { noreturn nounwind "frame-pointer"="none" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+  attributes #8 = { mustprogress nofree nosync nounwind willreturn memory(none) "frame-pointer"="none" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+  attributes #9 = { nofree nounwind }
+  attributes #10 = { nocallback nofree nosync nounwind willreturn memory(argmem: readwrite) }
+  attributes #11 = { nocallback nofree nounwind willreturn memory(argmem: write) }
+  attributes #12 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+  attributes #13 = { nounwind }
+  attributes #14 = { cold }
+  attributes #15 = { cold nounwind }
+  attributes #16 = { noreturn nounwind }
+  attributes #17 = { nounwind willreturn memory(none) }
+  
+  !llvm.module.flags = !{!0, !1, !2, !3}
+  !llvm.ident = !{!4}
+  
+  !0 = !{i32 1, !"wchar_size", i32 4}
+  !1 = !{i32 8, !"PIC Level", i32 2}
+  !2 = !{i32 7, !"PIE Level", i32 2}
+  !3 = !{i32 7, !"uwtable", i32 1}
+  !4 = !{!"Ubuntu clang version 14.0.0-1ubuntu1.1"}
+  !5 = !{!6, !7, i64 128}
+  !6 = !{!"user_regs_struct", !7, i64 0, !7, i64 8, !7, i64 16, !7, i64 24, !7, i64 32, !7, i64 40, !7, i64 48, !7, i64 56, !7, i64 64, !7, i64 72, !7, i64 80, !7, i64 88, !7, i64 96, !7, i64 104, !7, i64 112, !7, i64 120, !7, i64 128, !7, i64 136, !7, i64 144, !7, i64 152, !7, i64 160, !7, i64 168, !7, i64 176, !7, i64 184, !7, i64 192, !7, i64 200, !7, i64 208}
+  !7 = !{!"long long", !8, i64 0}
+  !8 = !{!"omnipotent char", !9, i64 0}
+  !9 = !{!"Simple C/C++ TBAA"}
+  !10 = !{!6, !7, i64 80}
+  !11 = !{!6, !7, i64 48}
+  !12 = !{!7, !7, i64 0}
+  !13 = !{!8, !8, i64 0}
+  !14 = !{!15, !15, i64 0}
+  !15 = !{!"int", !8, i64 0}
+  !16 = !{!17, !15, i64 0}
+  !17 = !{!"", !15, i64 0, !15, i64 4, !15, i64 8, !15, i64 12, !8, i64 16}
+  !18 = !{!6, !7, i64 152}
+  !19 = distinct !{!19, !20}
+  !20 = !{!"llvm.loop.mustprogress"}
+  !21 = !{!22, !23, i64 8}
+  !22 = !{!"rdpmc_ctx", !15, i64 0, !23, i64 8}
+  !23 = !{!"any pointer", !8, i64 0}
+  !24 = !{!25, !15, i64 12}
+  !25 = !{!"perf_event_mmap_page", !15, i64 0, !15, i64 4, !15, i64 8, !15, i64 12, !7, i64 16, !7, i64 24, !7, i64 32, !8, i64 40, !26, i64 48, !26, i64 50, !15, i64 52, !7, i64 56, !7, i64 64, !15, i64 72, !15, i64 76, !7, i64 80, !7, i64 88, !8, i64 96, !7, i64 1024, !7, i64 1032, !7, i64 1040, !7, i64 1048, !7, i64 1056, !7, i64 1064, !7, i64 1072, !7, i64 1080}
+  !26 = !{!"short", !8, i64 0}
+  !27 = !{!22, !15, i64 0}
+  !28 = distinct !{!28, !20}
+  !29 = distinct !{!29, !30}
+  !30 = !{!"llvm.loop.unroll.disable"}
+  !31 = !{!32, !32, i64 0}
+  !32 = !{!"long", !8, i64 0}
+
+...
+---
+name:            round_to_page_start
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   false
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: gr64, preferred-register: '' }
+  - { id: 1, class: gr64, preferred-register: '' }
+  - { id: 2, class: gr64, preferred-register: '' }
+  - { id: 3, class: gr64, preferred-register: '' }
+  - { id: 4, class: gr64, preferred-register: '' }
+  - { id: 5, class: gr64, preferred-register: '' }
+liveins:
+  - { reg: '$rdi', virtual-reg: '%0' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0.BB_0:
+    liveins: $rdi
+  
+    %0:gr64 = COPY $rdi
+    %1:gr64 = COPY killed %0
+    INLINEASM &"# LLVM BB: BB_0", 1 /* sideeffect attdialect */
+    %5:gr64 = AND64ri32 %1, -4096, implicit-def $eflags
+    $rax = COPY %5
+    RET64 implicit $rax
+
+...
+---
+name:            round_to_next_page
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   false
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: gr64, preferred-register: '' }
+  - { id: 1, class: gr64, preferred-register: '' }
+  - { id: 2, class: gr64, preferred-register: '' }
+  - { id: 3, class: gr64, preferred-register: '' }
+  - { id: 4, class: gr64, preferred-register: '' }
+  - { id: 5, class: gr64, preferred-register: '' }
+  - { id: 6, class: gr64, preferred-register: '' }
+  - { id: 7, class: gr64, preferred-register: '' }
+liveins:
+  - { reg: '$rdi', virtual-reg: '%0' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0.BB_1:
+    liveins: $rdi
+  
+    %0:gr64 = COPY $rdi
+    %1:gr64 = COPY killed %0
+    INLINEASM &"# LLVM BB: BB_1", 1 /* sideeffect attdialect */
+    %7:gr64 = ADD64ri32 %1, 4096, implicit-def $eflags
+    %5:gr64 = AND64ri32 %7, -4096, implicit-def $eflags
+    $rax = COPY %5
+    RET64 implicit $rax
+
+...
+---
+name:            attach_to_child
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   false
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: gr32, preferred-register: '' }
+  - { id: 1, class: gr32, preferred-register: '' }
+  - { id: 2, class: gr32, preferred-register: '' }
+  - { id: 3, class: gr32, preferred-register: '' }
+  - { id: 4, class: gr32, preferred-register: '' }
+  - { id: 5, class: gr64, preferred-register: '' }
+  - { id: 6, class: gr8, preferred-register: '' }
+  - { id: 7, class: gr32, preferred-register: '' }
+  - { id: 8, class: gr64, preferred-register: '' }
+  - { id: 9, class: gr64, preferred-register: '' }
+  - { id: 10, class: gr64, preferred-register: '' }
+  - { id: 11, class: gr64, preferred-register: '' }
+liveins:
+  - { reg: '$edi', virtual-reg: '%0' }
+  - { reg: '$esi', virtual-reg: '%2' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        true
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     true
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0.BB_2:
+    liveins: $edi, $esi
+  
+    %2:gr32 = COPY $esi
+    %0:gr32 = COPY $edi
+    %1:gr32 = COPY killed %0
+    %3:gr32 = COPY killed %2
+    INLINEASM &"# LLVM BB: BB_2", 1 /* sideeffect attdialect */
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %4:gr32 = MOV32r0 implicit-def dead $eflags
+    %5:gr64 = SUBREG_TO_REG 0, %4, %subreg.sub_32bit
+    %6:gr8 = COPY %4.sub_8bit
+    %7:gr32 = MOV32ri 16902
+    $edi = COPY %7
+    $esi = COPY %1
+    $rdx = COPY %5
+    $rcx = COPY %5
+    $al = COPY %6
+    CALL64pcrel32 target-flags(x86-plt) @ptrace, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $esi, implicit $rdx, implicit $rcx, implicit $al, implicit-def $rsp, implicit-def $ssp, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %8:gr64 = COPY $rax
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %9:gr64 = MOV32ri64 @x
+    %10:gr64 = MOV32ri64 1
+    $edi = COPY %3
+    $rsi = COPY %9
+    $rdx = COPY %10
+    CALL64pcrel32 target-flags(x86-plt) @write, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $rsi, implicit $rdx, implicit-def $rsp, implicit-def $ssp, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %11:gr64 = COPY $rax
+    $edi = COPY %3
+    TCRETURNdi64 target-flags(x86-plt) @close, 0, csr_64, implicit $rsp, implicit $ssp, implicit $edi
+
+...
+---
+name:            create_shm_fd
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   false
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: gr64, preferred-register: '' }
+  - { id: 1, class: gr64, preferred-register: '' }
+  - { id: 2, class: gr32, preferred-register: '' }
+  - { id: 3, class: gr64, preferred-register: '' }
+  - { id: 4, class: gr32, preferred-register: '' }
+  - { id: 5, class: gr32, preferred-register: '' }
+  - { id: 6, class: gr32, preferred-register: '' }
+  - { id: 7, class: gr32, preferred-register: '' }
+  - { id: 8, class: gr32, preferred-register: '' }
+liveins:
+  - { reg: '$rdi', virtual-reg: '%0' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        true
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0.BB_3:
+    liveins: $rdi
+  
+    %0:gr64 = COPY $rdi
+    %1:gr64 = COPY killed %0
+    INLINEASM &"# LLVM BB: BB_3", 1 /* sideeffect attdialect */
+    %6:gr32 = MOV32ri 66
+    %7:gr32 = MOV32ri 511
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %1
+    $esi = COPY %6
+    $edx = COPY %7
+    CALL64pcrel32 target-flags(x86-plt) @shm_open, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $esi, implicit $edx, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %8:gr32 = COPY $eax
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %1
+    CALL64pcrel32 target-flags(x86-plt) @shm_unlink, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %5:gr32 = COPY $eax
+    %3:gr64 = MOV32ri64 12288
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %8
+    $rsi = COPY %3
+    CALL64pcrel32 target-flags(x86-plt) @ftruncate, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $rsi, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %4:gr32 = COPY $eax
+    $eax = COPY %8
+    RET64 implicit $eax
+
+...
+---
+name:            perf_event_open
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   false
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: gr64, preferred-register: '' }
+  - { id: 1, class: gr64, preferred-register: '' }
+  - { id: 2, class: gr32, preferred-register: '' }
+  - { id: 3, class: gr32, preferred-register: '' }
+  - { id: 4, class: gr32, preferred-register: '' }
+  - { id: 5, class: gr32, preferred-register: '' }
+  - { id: 6, class: gr32, preferred-register: '' }
+  - { id: 7, class: gr32, preferred-register: '' }
+  - { id: 8, class: gr64, preferred-register: '' }
+  - { id: 9, class: gr64, preferred-register: '' }
+  - { id: 10, class: gr32, preferred-register: '' }
+  - { id: 11, class: gr64, preferred-register: '' }
+  - { id: 12, class: gr32, preferred-register: '' }
+  - { id: 13, class: gr32, preferred-register: '' }
+  - { id: 14, class: gr8, preferred-register: '' }
+  - { id: 15, class: gr64, preferred-register: '' }
+liveins:
+  - { reg: '$rdi', virtual-reg: '%0' }
+  - { reg: '$esi', virtual-reg: '%2' }
+  - { reg: '$edx', virtual-reg: '%4' }
+  - { reg: '$ecx', virtual-reg: '%6' }
+  - { reg: '$r8', virtual-reg: '%8' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     true
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0.BB_4:
+    liveins: $rdi, $esi, $edx, $ecx, $r8
+  
+    %8:gr64 = COPY $r8
+    %6:gr32 = COPY $ecx
+    %4:gr32 = COPY $edx
+    %2:gr32 = COPY $esi
+    %0:gr64 = COPY $rdi
+    %1:gr64 = COPY killed %0
+    %3:gr32 = COPY killed %2
+    %5:gr32 = COPY killed %4
+    %7:gr32 = COPY killed %6
+    %9:gr64 = COPY killed %8
+    INLINEASM &"# LLVM BB: BB_4", 1 /* sideeffect attdialect */
+    %13:gr32 = MOV32r0 implicit-def dead $eflags
+    %14:gr8 = COPY %13.sub_8bit
+    %15:gr64 = MOV32ri64 298
+    $rdi = COPY %15
+    $rsi = COPY %1
+    $edx = COPY %3
+    $ecx = COPY %5
+    $r8d = COPY %7
+    $r9 = COPY %9
+    $al = COPY %14
+    TCRETURNdi64 target-flags(x86-plt) @syscall, 0, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $edx, implicit $ecx, implicit $r8d, implicit $r9, implicit $al
+
+...
+---
+name:            restart_child
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   false
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: gr32, preferred-register: '' }
+  - { id: 1, class: gr32, preferred-register: '' }
+  - { id: 2, class: gr64, preferred-register: '' }
+  - { id: 3, class: gr64, preferred-register: '' }
+  - { id: 4, class: gr64, preferred-register: '' }
+  - { id: 5, class: gr64, preferred-register: '' }
+  - { id: 6, class: gr32, preferred-register: '' }
+  - { id: 7, class: gr32, preferred-register: '' }
+  - { id: 8, class: gr64, preferred-register: '' }
+  - { id: 9, class: gr32, preferred-register: '' }
+  - { id: 10, class: gr32, preferred-register: '' }
+  - { id: 11, class: gr64, preferred-register: '' }
+  - { id: 12, class: gr64, preferred-register: '' }
+  - { id: 13, class: gr64, preferred-register: '' }
+  - { id: 14, class: gr32, preferred-register: '' }
+  - { id: 15, class: gr32, preferred-register: '' }
+  - { id: 16, class: gr64, preferred-register: '' }
+  - { id: 17, class: gr64, preferred-register: '' }
+  - { id: 18, class: gr64, preferred-register: '' }
+  - { id: 19, class: gr64, preferred-register: '' }
+  - { id: 20, class: gr32, preferred-register: '' }
+  - { id: 21, class: gr8, preferred-register: '' }
+  - { id: 22, class: gr32, preferred-register: '' }
+  - { id: 23, class: gr64, preferred-register: '' }
+  - { id: 24, class: gr32, preferred-register: '' }
+  - { id: 25, class: gr64, preferred-register: '' }
+  - { id: 26, class: gr64, preferred-register: '' }
+  - { id: 27, class: gr64, preferred-register: '' }
+  - { id: 28, class: gr64, preferred-register: '' }
+  - { id: 29, class: vr128, preferred-register: '' }
+liveins:
+  - { reg: '$edi', virtual-reg: '%0' }
+  - { reg: '$rsi', virtual-reg: '%2' }
+  - { reg: '$rdx', virtual-reg: '%4' }
+  - { reg: '$ecx', virtual-reg: '%6' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    8
+  adjustsStack:    false
+  hasCalls:        true
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:
+  - { id: 0, name: '', type: default, offset: 0, size: 216, alignment: 8, 
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true, 
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:
+  - id:              0
+    value:           '<2 x i64> <i64 3, i64 1>'
+    alignment:       16
+    isTargetSpecific: false
+machineFunctionInfo: {}
+body:             |
+  bb.0.BB_5:
+    liveins: $edi, $rsi, $rdx, $ecx
+  
+    %6:gr32 = COPY $ecx
+    %4:gr64 = COPY $rdx
+    %2:gr64 = COPY $rsi
+    %0:gr32 = COPY $edi
+    %1:gr32 = COPY killed %0
+    %3:gr64 = COPY killed %2
+    %5:gr64 = COPY killed %4
+    %7:gr32 = COPY killed %6
+    INLINEASM &"# LLVM BB: BB_5", 1 /* sideeffect attdialect */
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %19:gr64 = MOV32ri64 @.str
+    %20:gr32 = MOV32r0 implicit-def dead $eflags
+    %21:gr8 = COPY %20.sub_8bit
+    $rdi = COPY %19
+    $rsi = COPY %3
+    $rdx = COPY %5
+    $al = COPY %21
+    CALL64pcrel32 target-flags(x86-plt) @printf, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx, implicit $al, implicit-def $rsp, implicit-def $ssp, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %22:gr32 = COPY $eax
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %23:gr64 = SUBREG_TO_REG 0, %20, %subreg.sub_32bit
+    %24:gr32 = MOV32ri 12
+    %25:gr64 = LEA64r %stack.0, 1, $noreg, 0, $noreg
+    $edi = COPY %24
+    $esi = COPY %1
+    $rdx = COPY %23
+    $rcx = COPY %25
+    $al = COPY %21
+    CALL64pcrel32 target-flags(x86-plt) @ptrace, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $esi, implicit $rdx, implicit $rcx, implicit $al, implicit-def $rsp, implicit-def $ssp, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %26:gr64 = COPY $rax
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %27:gr64 = MOV32ri64 @.str.1
+    $rdi = COPY %27
+    CALL64pcrel32 target-flags(x86-plt) @perror, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit-def $rsp, implicit-def $ssp
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    MOV64mr %stack.0, 1, $noreg, 128, $noreg, %3 :: (store (s64) into %ir.9, !tbaa !5)
+    MOV64mr %stack.0, 1, $noreg, 80, $noreg, %5 :: (store (s64) into %ir.11, !tbaa !10)
+    %28:gr64 = MOVSX64rr32 %7
+    MOV64mr %stack.0, 1, $noreg, 48, $noreg, killed %28 :: (store (s64) into %ir.13, !tbaa !11)
+    %29:vr128 = MOVAPSrm $rip, 1, $noreg, %const.0, $noreg :: (load (s128) from constant-pool)
+    MOVUPSmr %stack.0, 1, $noreg, 16, $noreg, killed %29 :: (store (s128) into %ir.15, align 8, !tbaa !12)
+    %14:gr32 = MOV32ri 13
+    %15:gr32 = MOV32r0 implicit-def $eflags
+    %16:gr64 = SUBREG_TO_REG 0, %15, %subreg.sub_32bit
+    %17:gr64 = LEA64r %stack.0, 1, $noreg, 0, $noreg
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %14
+    $esi = COPY %1
+    $rdx = COPY %16
+    $rcx = COPY %17
+    $al = MOV8ri 0
+    CALL64pcrel32 target-flags(x86-plt) @ptrace, csr_64, implicit $rsp, implicit $ssp, implicit $al, implicit $edi, implicit $esi, implicit $rdx, implicit $rcx, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %18:gr64 = COPY $rax
+    %13:gr64 = MOV64ri @.str.2
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %13
+    CALL64pcrel32 target-flags(x86-plt) @perror, csr_64, implicit $rsp, implicit $ssp, implicit $rdi
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %9:gr32 = MOV32ri 7
+    %10:gr32 = MOV32r0 implicit-def $eflags
+    %11:gr64 = SUBREG_TO_REG 0, %10, %subreg.sub_32bit
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %9
+    $esi = COPY %1
+    $rdx = COPY %11
+    $rcx = COPY %11
+    $al = MOV8ri 0
+    CALL64pcrel32 target-flags(x86-plt) @ptrace, csr_64, implicit $rsp, implicit $ssp, implicit $al, implicit $edi, implicit $esi, implicit $rdx, implicit $rcx, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %12:gr64 = COPY $rax
+    %8:gr64 = MOV64ri @.str.3
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %8
+    CALL64pcrel32 target-flags(x86-plt) @perror, csr_64, implicit $rsp, implicit $ssp, implicit $rdi
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    RET64
+
+...
+---
+name:            emit_mov_rcx
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   false
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: gr64, preferred-register: '' }
+  - { id: 1, class: gr64, preferred-register: '' }
+  - { id: 2, class: gr32, preferred-register: '' }
+  - { id: 3, class: gr32, preferred-register: '' }
+  - { id: 4, class: gr8, preferred-register: '' }
+  - { id: 5, class: gr8, preferred-register: '' }
+liveins:
+  - { reg: '$rdi', virtual-reg: '%0' }
+  - { reg: '$esi', virtual-reg: '%2' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    1
+  adjustsStack:    false
+  hasCalls:        false
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:           []
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0.BB_6:
+    successors: %bb.2(0x40000000), %bb.1(0x40000000)
+    liveins: $rdi, $esi
+  
+    %2:gr32 = COPY $esi
+    %0:gr64 = COPY $rdi
+    %1:gr64 = COPY killed %0
+    %3:gr32 = COPY killed %2
+    INLINEASM &"# LLVM BB: BB_6", 1 /* sideeffect attdialect */
+    CMP32ri %3, 0, implicit-def $eflags
+    JCC_1 %bb.2, 12, implicit $eflags
+  
+  bb.1.BB_7:
+    successors: %bb.2(0x80000000)
+  
+    INLINEASM &"# LLVM BB: BB_7", 1 /* sideeffect attdialect */
+    MOV8mi %1, 1, $noreg, 0, $noreg, -71 :: (store (s8) into %ir.0, !tbaa !13)
+    %5:gr8 = COPY %3.sub_8bit
+    MOV8mr %1, 1, $noreg, 1, $noreg, %5 :: (store (s8) into %ir.4, !tbaa !13)
+    MOV8mi %1, 1, $noreg, 2, $noreg, 0 :: (store (s8) into %ir.5, !tbaa !13)
+    MOV8mi %1, 1, $noreg, 3, $noreg, 0 :: (store (s8) into %ir.6, !tbaa !13)
+    MOV8mi %1, 1, $noreg, 4, $noreg, 0 :: (store (s8) into %ir.7, !tbaa !13)
+  
+  bb.2.BB_8:
+    INLINEASM &"# LLVM BB: BB_8", 1 /* sideeffect attdialect */
+    RET64
+
+...
+---
+name:            is_event_supported
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   false
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: gr64, preferred-register: '' }
+  - { id: 1, class: gr64, preferred-register: '' }
+  - { id: 2, class: gr32, preferred-register: '' }
+  - { id: 3, class: gr64, preferred-register: '' }
+  - { id: 4, class: gr8, preferred-register: '' }
+  - { id: 5, class: gr8, preferred-register: '' }
+  - { id: 6, class: gr32, preferred-register: '' }
+  - { id: 7, class: gr8, preferred-register: '' }
+  - { id: 8, class: gr32, preferred-register: '' }
+  - { id: 9, class: gr64, preferred-register: '' }
+  - { id: 10, class: gr32, preferred-register: '' }
+  - { id: 11, class: gr64, preferred-register: '' }
+  - { id: 12, class: gr32, preferred-register: '' }
+liveins:
+  - { reg: '$rdi', virtual-reg: '%0' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    8
+  adjustsStack:    false
+  hasCalls:        true
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:      []
+stack:
+  - { id: 0, name: '', type: default, offset: 0, size: 16, alignment: 8, 
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true, 
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:       []
+machineFunctionInfo: {}
+body:             |
+  bb.0.BB_9:
+    liveins: $rdi
+  
+    %0:gr64 = COPY $rdi
+    %1:gr64 = COPY killed %0
+    INLINEASM &"# LLVM BB: BB_9", 1 /* sideeffect attdialect */
+    %9:gr64 = LEA64r %stack.0, 1, $noreg, 0, $noreg
+    %10:gr32 = MOV32r0 implicit-def $eflags
+    %11:gr64 = SUBREG_TO_REG 0, %10, %subreg.sub_32bit
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %1
+    $rsi = COPY %9
+    $rdx = COPY %11
+    CALL64pcrel32 target-flags(x86-plt) @rdpmc_open_attr, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %12:gr32 = COPY $eax
+    CMP32ri %12, 0, implicit-def $eflags
+    %7:gr8 = SETCCr 4, implicit $eflags
+    %5:gr8 = AND8ri %7, 1, implicit-def $eflags
+    %6:gr32 = MOVZX32rr8 %5
+    %3:gr64 = LEA64r %stack.0, 1, $noreg, 0, $noreg
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %3
+    CALL64pcrel32 target-flags(x86-plt) @rdpmc_close, csr_64, implicit $rsp, implicit $ssp, implicit $rdi
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $eax = COPY %6
+    RET64 implicit $eax
+
+...
+---
+name:            measure
+alignment:       16
+exposesReturnsTwice: false
+legalized:       false
+regBankSelected: false
+selected:        false
+failedISel:      false
+tracksRegLiveness: true
+hasWinCFI:       false
+callsEHReturn:   false
+callsUnwindInit: false
+hasEHCatchret:   false
+hasEHScopes:     false
+hasEHFunclets:   false
+isOutlined:      false
+debugInstrRef:   false
+failsVerification: false
+tracksDebugUserValues: false
+registers:
+  - { id: 0, class: gr64, preferred-register: '' }
+  - { id: 1, class: gr64, preferred-register: '' }
+  - { id: 2, class: gr64, preferred-register: '' }
+  - { id: 3, class: gr32, preferred-register: '' }
+  - { id: 4, class: gr64, preferred-register: '' }
+  - { id: 5, class: gr64, preferred-register: '' }
+  - { id: 6, class: gr64, preferred-register: '' }
+  - { id: 7, class: gr64, preferred-register: '' }
+  - { id: 8, class: gr64, preferred-register: '' }
+  - { id: 9, class: gr64, preferred-register: '' }
+  - { id: 10, class: gr64, preferred-register: '' }
+  - { id: 11, class: gr64, preferred-register: '' }
+  - { id: 12, class: gr64, preferred-register: '' }
+  - { id: 13, class: gr64, preferred-register: '' }
+  - { id: 14, class: gr64, preferred-register: '' }
+  - { id: 15, class: gr64, preferred-register: '' }
+  - { id: 16, class: gr64, preferred-register: '' }
+  - { id: 17, class: gr64, preferred-register: '' }
+  - { id: 18, class: gr64, preferred-register: '' }
+  - { id: 19, class: gr64, preferred-register: '' }
+  - { id: 20, class: gr64, preferred-register: '' }
+  - { id: 21, class: gr64, preferred-register: '' }
+  - { id: 22, class: gr64, preferred-register: '' }
+  - { id: 23, class: gr64, preferred-register: '' }
+  - { id: 24, class: gr32, preferred-register: '' }
+  - { id: 25, class: gr32, preferred-register: '' }
+  - { id: 26, class: gr32, preferred-register: '' }
+  - { id: 27, class: gr32, preferred-register: '' }
+  - { id: 28, class: gr64, preferred-register: '' }
+  - { id: 29, class: gr32, preferred-register: '' }
+  - { id: 30, class: gr64, preferred-register: '' }
+  - { id: 31, class: gr64, preferred-register: '' }
+  - { id: 32, class: gr32, preferred-register: '' }
+  - { id: 33, class: gr32, preferred-register: '' }
+  - { id: 34, class: gr64, preferred-register: '' }
+  - { id: 35, class: gr32, preferred-register: '' }
+  - { id: 36, class: gr32, preferred-register: '' }
+  - { id: 37, class: gr32, preferred-register: '' }
+  - { id: 38, class: gr64, preferred-register: '' }
+  - { id: 39, class: gr64, preferred-register: '' }
+  - { id: 40, class: gr64, preferred-register: '' }
+  - { id: 41, class: gr64, preferred-register: '' }
+  - { id: 42, class: gr32, preferred-register: '' }
+  - { id: 43, class: gr32, preferred-register: '' }
+  - { id: 44, class: gr64, preferred-register: '' }
+  - { id: 45, class: gr32, preferred-register: '' }
+  - { id: 46, class: gr64, preferred-register: '' }
+  - { id: 47, class: gr32, preferred-register: '' }
+  - { id: 48, class: gr64, preferred-register: '' }
+  - { id: 49, class: gr64, preferred-register: '' }
+  - { id: 50, class: gr64, preferred-register: '' }
+  - { id: 51, class: gr32, preferred-register: '' }
+  - { id: 52, class: gr64, preferred-register: '' }
+  - { id: 53, class: gr32, preferred-register: '' }
+  - { id: 54, class: gr64, preferred-register: '' }
+  - { id: 55, class: gr64, preferred-register: '' }
+  - { id: 56, class: gr64, preferred-register: '' }
+  - { id: 57, class: gr64, preferred-register: '' }
+  - { id: 58, class: gr32, preferred-register: '' }
+  - { id: 59, class: gr64, preferred-register: '' }
+  - { id: 60, class: gr64, preferred-register: '' }
+  - { id: 61, class: gr64, preferred-register: '' }
+  - { id: 62, class: gr32, preferred-register: '' }
+  - { id: 63, class: gr32, preferred-register: '' }
+  - { id: 64, class: gr32, preferred-register: '' }
+  - { id: 65, class: gr64, preferred-register: '' }
+  - { id: 66, class: gr64, preferred-register: '' }
+  - { id: 67, class: gr32, preferred-register: '' }
+  - { id: 68, class: gr64, preferred-register: '' }
+  - { id: 69, class: gr64, preferred-register: '' }
+  - { id: 70, class: gr32, preferred-register: '' }
+  - { id: 71, class: gr32, preferred-register: '' }
+  - { id: 72, class: gr64, preferred-register: '' }
+  - { id: 73, class: gr64, preferred-register: '' }
+  - { id: 74, class: gr32, preferred-register: '' }
+  - { id: 75, class: gr64, preferred-register: '' }
+  - { id: 76, class: gr64, preferred-register: '' }
+  - { id: 77, class: gr32, preferred-register: '' }
+  - { id: 78, class: gr64, preferred-register: '' }
+  - { id: 79, class: gr32, preferred-register: '' }
+  - { id: 80, class: gr64, preferred-register: '' }
+  - { id: 81, class: gr64, preferred-register: '' }
+  - { id: 82, class: gr64, preferred-register: '' }
+  - { id: 83, class: gr64, preferred-register: '' }
+  - { id: 84, class: gr64, preferred-register: '' }
+  - { id: 85, class: gr64, preferred-register: '' }
+  - { id: 86, class: gr64, preferred-register: '' }
+  - { id: 87, class: gr64, preferred-register: '' }
+  - { id: 88, class: gr64, preferred-register: '' }
+  - { id: 89, class: gr64, preferred-register: '' }
+  - { id: 90, class: gr64, preferred-register: '' }
+  - { id: 91, class: gr64, preferred-register: '' }
+  - { id: 92, class: gr64, preferred-register: '' }
+  - { id: 93, class: gr64, preferred-register: '' }
+  - { id: 94, class: gr64, preferred-register: '' }
+  - { id: 95, class: gr64, preferred-register: '' }
+  - { id: 96, class: gr64, preferred-register: '' }
+  - { id: 97, class: gr64, preferred-register: '' }
+  - { id: 98, class: gr64, preferred-register: '' }
+  - { id: 99, class: gr64, preferred-register: '' }
+  - { id: 100, class: gr64, preferred-register: '' }
+  - { id: 101, class: gr64, preferred-register: '' }
+  - { id: 102, class: gr64, preferred-register: '' }
+  - { id: 103, class: gr64, preferred-register: '' }
+  - { id: 104, class: gr64, preferred-register: '' }
+  - { id: 105, class: gr64, preferred-register: '' }
+  - { id: 106, class: gr64, preferred-register: '' }
+  - { id: 107, class: gr64, preferred-register: '' }
+  - { id: 108, class: gr64, preferred-register: '' }
+  - { id: 109, class: gr64, preferred-register: '' }
+  - { id: 110, class: gr64, preferred-register: '' }
+  - { id: 111, class: gr64, preferred-register: '' }
+  - { id: 112, class: gr32, preferred-register: '' }
+  - { id: 113, class: gr64, preferred-register: '' }
+  - { id: 114, class: gr8, preferred-register: '' }
+  - { id: 115, class: gr8, preferred-register: '' }
+  - { id: 116, class: gr32, preferred-register: '' }
+  - { id: 117, class: gr8, preferred-register: '' }
+  - { id: 118, class: gr32, preferred-register: '' }
+  - { id: 119, class: gr64, preferred-register: '' }
+  - { id: 120, class: gr64, preferred-register: '' }
+  - { id: 121, class: gr32, preferred-register: '' }
+  - { id: 122, class: gr64, preferred-register: '' }
+  - { id: 123, class: gr32, preferred-register: '' }
+  - { id: 124, class: gr32, preferred-register: '' }
+  - { id: 125, class: gr64, preferred-register: '' }
+  - { id: 126, class: gr8, preferred-register: '' }
+  - { id: 127, class: gr8, preferred-register: '' }
+  - { id: 128, class: gr32, preferred-register: '' }
+  - { id: 129, class: gr8, preferred-register: '' }
+  - { id: 130, class: gr32, preferred-register: '' }
+  - { id: 131, class: gr64, preferred-register: '' }
+  - { id: 132, class: gr64, preferred-register: '' }
+  - { id: 133, class: gr32, preferred-register: '' }
+  - { id: 134, class: gr64, preferred-register: '' }
+  - { id: 135, class: gr32, preferred-register: '' }
+  - { id: 136, class: gr32, preferred-register: '' }
+  - { id: 137, class: gr64, preferred-register: '' }
+  - { id: 138, class: gr8, preferred-register: '' }
+  - { id: 139, class: gr8, preferred-register: '' }
+  - { id: 140, class: gr32, preferred-register: '' }
+  - { id: 141, class: gr8, preferred-register: '' }
+  - { id: 142, class: gr32, preferred-register: '' }
+  - { id: 143, class: gr64, preferred-register: '' }
+  - { id: 144, class: gr64, preferred-register: '' }
+  - { id: 145, class: gr32, preferred-register: '' }
+  - { id: 146, class: gr64, preferred-register: '' }
+  - { id: 147, class: gr32, preferred-register: '' }
+  - { id: 148, class: gr32, preferred-register: '' }
+  - { id: 149, class: gr32, preferred-register: '' }
+  - { id: 150, class: gr64, preferred-register: '' }
+  - { id: 151, class: gr64, preferred-register: '' }
+  - { id: 152, class: gr64, preferred-register: '' }
+  - { id: 153, class: gr32, preferred-register: '' }
+  - { id: 154, class: gr32, preferred-register: '' }
+  - { id: 155, class: gr64, preferred-register: '' }
+  - { id: 156, class: gr64, preferred-register: '' }
+  - { id: 157, class: gr32, preferred-register: '' }
+  - { id: 158, class: gr64, preferred-register: '' }
+  - { id: 159, class: gr64, preferred-register: '' }
+  - { id: 160, class: gr32, preferred-register: '' }
+  - { id: 161, class: gr64, preferred-register: '' }
+  - { id: 162, class: gr64, preferred-register: '' }
+  - { id: 163, class: gr32, preferred-register: '' }
+  - { id: 164, class: gr32, preferred-register: '' }
+  - { id: 165, class: gr64, preferred-register: '' }
+  - { id: 166, class: gr32, preferred-register: '' }
+  - { id: 167, class: gr32, preferred-register: '' }
+  - { id: 168, class: gr32, preferred-register: '' }
+  - { id: 169, class: gr8, preferred-register: '' }
+  - { id: 170, class: gr64, preferred-register: '' }
+  - { id: 171, class: gr32, preferred-register: '' }
+  - { id: 172, class: gr8, preferred-register: '' }
+  - { id: 173, class: gr8, preferred-register: '' }
+  - { id: 174, class: gr32, preferred-register: '' }
+  - { id: 175, class: gr8, preferred-register: '' }
+  - { id: 176, class: gr32, preferred-register: '' }
+  - { id: 177, class: gr64, preferred-register: '' }
+  - { id: 178, class: gr8, preferred-register: '' }
+  - { id: 179, class: gr32, preferred-register: '' }
+  - { id: 180, class: gr64, preferred-register: '' }
+  - { id: 181, class: gr64, preferred-register: '' }
+  - { id: 182, class: gr32, preferred-register: '' }
+  - { id: 183, class: gr64, preferred-register: '' }
+  - { id: 184, class: gr64, preferred-register: '' }
+  - { id: 185, class: gr64, preferred-register: '' }
+  - { id: 186, class: gr32, preferred-register: '' }
+  - { id: 187, class: gr64, preferred-register: '' }
+  - { id: 188, class: gr32, preferred-register: '' }
+  - { id: 189, class: gr64, preferred-register: '' }
+  - { id: 190, class: gr64, preferred-register: '' }
+  - { id: 191, class: gr32, preferred-register: '' }
+  - { id: 192, class: gr32, preferred-register: '' }
+  - { id: 193, class: gr32, preferred-register: '' }
+  - { id: 194, class: gr64, preferred-register: '' }
+  - { id: 195, class: gr64, preferred-register: '' }
+  - { id: 196, class: gr64, preferred-register: '' }
+  - { id: 197, class: gr64, preferred-register: '' }
+  - { id: 198, class: gr64, preferred-register: '' }
+  - { id: 199, class: gr64, preferred-register: '' }
+  - { id: 200, class: gr64, preferred-register: '' }
+  - { id: 201, class: gr32, preferred-register: '' }
+  - { id: 202, class: gr64, preferred-register: '' }
+  - { id: 203, class: gr32, preferred-register: '' }
+  - { id: 204, class: gr32, preferred-register: '' }
+  - { id: 205, class: gr64, preferred-register: '' }
+  - { id: 206, class: gr64, preferred-register: '' }
+  - { id: 207, class: gr64, preferred-register: '' }
+  - { id: 208, class: gr32, preferred-register: '' }
+  - { id: 209, class: gr32, preferred-register: '' }
+  - { id: 210, class: gr64, preferred-register: '' }
+  - { id: 211, class: gr64, preferred-register: '' }
+  - { id: 212, class: gr64, preferred-register: '' }
+  - { id: 213, class: gr64, preferred-register: '' }
+  - { id: 214, class: gr64, preferred-register: '' }
+  - { id: 215, class: gr32, preferred-register: '' }
+  - { id: 216, class: gr8, preferred-register: '' }
+  - { id: 217, class: gr32, preferred-register: '' }
+  - { id: 218, class: gr64, preferred-register: '' }
+  - { id: 219, class: gr32, preferred-register: '' }
+  - { id: 220, class: gr64, preferred-register: '' }
+  - { id: 221, class: gr64, preferred-register: '' }
+  - { id: 222, class: gr64, preferred-register: '' }
+  - { id: 223, class: vr128, preferred-register: '' }
+  - { id: 224, class: gr32, preferred-register: '' }
+  - { id: 225, class: gr64, preferred-register: '' }
+  - { id: 226, class: gr32, preferred-register: '' }
+  - { id: 227, class: gr32, preferred-register: '' }
+  - { id: 228, class: gr64, preferred-register: '' }
+  - { id: 229, class: gr64, preferred-register: '' }
+  - { id: 230, class: gr64, preferred-register: '' }
+  - { id: 231, class: gr32, preferred-register: '' }
+  - { id: 232, class: gr32, preferred-register: '' }
+  - { id: 233, class: gr64, preferred-register: '' }
+  - { id: 234, class: gr64, preferred-register: '' }
+  - { id: 235, class: gr64, preferred-register: '' }
+  - { id: 236, class: gr64, preferred-register: '' }
+  - { id: 237, class: gr64, preferred-register: '' }
+  - { id: 238, class: gr32, preferred-register: '' }
+  - { id: 239, class: gr8, preferred-register: '' }
+  - { id: 240, class: gr32, preferred-register: '' }
+  - { id: 241, class: gr64, preferred-register: '' }
+  - { id: 242, class: gr32, preferred-register: '' }
+  - { id: 243, class: gr64, preferred-register: '' }
+  - { id: 244, class: gr64, preferred-register: '' }
+  - { id: 245, class: gr64, preferred-register: '' }
+  - { id: 246, class: vr128, preferred-register: '' }
+  - { id: 247, class: gr32, preferred-register: '' }
+  - { id: 248, class: gr32, preferred-register: '' }
+  - { id: 249, class: gr64, preferred-register: '' }
+  - { id: 250, class: gr32, preferred-register: '' }
+  - { id: 251, class: gr32, preferred-register: '' }
+  - { id: 252, class: gr32, preferred-register: '' }
+  - { id: 253, class: gr32, preferred-register: '' }
+  - { id: 254, class: gr64, preferred-register: '' }
+  - { id: 255, class: gr64, preferred-register: '' }
+  - { id: 256, class: gr32, preferred-register: '' }
+  - { id: 257, class: gr32, preferred-register: '' }
+  - { id: 258, class: gr64, preferred-register: '' }
+  - { id: 259, class: gr64, preferred-register: '' }
+  - { id: 260, class: gr32, preferred-register: '' }
+  - { id: 261, class: gr64, preferred-register: '' }
+  - { id: 262, class: gr32, preferred-register: '' }
+  - { id: 263, class: gr64, preferred-register: '' }
+  - { id: 264, class: gr32, preferred-register: '' }
+  - { id: 265, class: gr32, preferred-register: '' }
+  - { id: 266, class: gr32, preferred-register: '' }
+  - { id: 267, class: gr64, preferred-register: '' }
+  - { id: 268, class: gr32, preferred-register: '' }
+  - { id: 269, class: gr64, preferred-register: '' }
+  - { id: 270, class: gr64, preferred-register: '' }
+  - { id: 271, class: gr64, preferred-register: '' }
+  - { id: 272, class: gr32, preferred-register: '' }
+  - { id: 273, class: gr64, preferred-register: '' }
+  - { id: 274, class: gr32, preferred-register: '' }
+  - { id: 275, class: gr64, preferred-register: '' }
+  - { id: 276, class: gr32, preferred-register: '' }
+  - { id: 277, class: gr32, preferred-register: '' }
+  - { id: 278, class: gr32, preferred-register: '' }
+  - { id: 279, class: gr64, preferred-register: '' }
+  - { id: 280, class: gr32, preferred-register: '' }
+  - { id: 281, class: gr64, preferred-register: '' }
+  - { id: 282, class: gr64, preferred-register: '' }
+  - { id: 283, class: gr64, preferred-register: '' }
+  - { id: 284, class: gr32, preferred-register: '' }
+  - { id: 285, class: gr64, preferred-register: '' }
+  - { id: 286, class: gr32, preferred-register: '' }
+  - { id: 287, class: gr64, preferred-register: '' }
+  - { id: 288, class: gr32, preferred-register: '' }
+  - { id: 289, class: gr32, preferred-register: '' }
+  - { id: 290, class: gr32, preferred-register: '' }
+  - { id: 291, class: gr64, preferred-register: '' }
+  - { id: 292, class: gr32, preferred-register: '' }
+  - { id: 293, class: gr64, preferred-register: '' }
+  - { id: 294, class: gr64, preferred-register: '' }
+  - { id: 295, class: gr64, preferred-register: '' }
+  - { id: 296, class: gr32, preferred-register: '' }
+  - { id: 297, class: gr64, preferred-register: '' }
+  - { id: 298, class: gr32, preferred-register: '' }
+  - { id: 299, class: gr64, preferred-register: '' }
+  - { id: 300, class: gr64, preferred-register: '' }
+  - { id: 301, class: gr32, preferred-register: '' }
+  - { id: 302, class: gr64, preferred-register: '' }
+  - { id: 303, class: gr64, preferred-register: '' }
+  - { id: 304, class: gr32, preferred-register: '' }
+  - { id: 305, class: gr32, preferred-register: '' }
+  - { id: 306, class: gr64, preferred-register: '' }
+  - { id: 307, class: gr64, preferred-register: '' }
+  - { id: 308, class: gr64, preferred-register: '' }
+  - { id: 309, class: gr64, preferred-register: '' }
+  - { id: 310, class: gr64, preferred-register: '' }
+  - { id: 311, class: gr64, preferred-register: '' }
+  - { id: 312, class: gr64, preferred-register: '' }
+  - { id: 313, class: gr64, preferred-register: '' }
+  - { id: 314, class: gr64, preferred-register: '' }
+  - { id: 315, class: gr64, preferred-register: '' }
+  - { id: 316, class: gr64, preferred-register: '' }
+  - { id: 317, class: gr64, preferred-register: '' }
+  - { id: 318, class: gr64, preferred-register: '' }
+  - { id: 319, class: gr64, preferred-register: '' }
+  - { id: 320, class: gr64, preferred-register: '' }
+  - { id: 321, class: gr64, preferred-register: '' }
+  - { id: 322, class: gr64, preferred-register: '' }
+  - { id: 323, class: gr64, preferred-register: '' }
+  - { id: 324, class: gr64, preferred-register: '' }
+  - { id: 325, class: gr64, preferred-register: '' }
+  - { id: 326, class: gr64, preferred-register: '' }
+  - { id: 327, class: gr64, preferred-register: '' }
+  - { id: 328, class: gr64, preferred-register: '' }
+  - { id: 329, class: gr32, preferred-register: '' }
+  - { id: 330, class: gr64, preferred-register: '' }
+  - { id: 331, class: gr32, preferred-register: '' }
+  - { id: 332, class: gr32, preferred-register: '' }
+  - { id: 333, class: gr32, preferred-register: '' }
+  - { id: 334, class: gr32, preferred-register: '' }
+  - { id: 335, class: gr64, preferred-register: '' }
+  - { id: 336, class: gr64, preferred-register: '' }
+  - { id: 337, class: gr64, preferred-register: '' }
+  - { id: 338, class: gr64, preferred-register: '' }
+  - { id: 339, class: gr8, preferred-register: '' }
+  - { id: 340, class: gr64, preferred-register: '' }
+  - { id: 341, class: gr64, preferred-register: '' }
+  - { id: 342, class: gr64, preferred-register: '' }
+  - { id: 343, class: gr64, preferred-register: '' }
+  - { id: 344, class: gr64, preferred-register: '' }
+  - { id: 345, class: gr8, preferred-register: '' }
+  - { id: 346, class: gr64, preferred-register: '' }
+  - { id: 347, class: gr64, preferred-register: '' }
+  - { id: 348, class: gr64, preferred-register: '' }
+  - { id: 349, class: gr64, preferred-register: '' }
+  - { id: 350, class: gr64, preferred-register: '' }
+  - { id: 351, class: gr8, preferred-register: '' }
+  - { id: 352, class: gr64, preferred-register: '' }
+  - { id: 353, class: gr64, preferred-register: '' }
+  - { id: 354, class: gr64, preferred-register: '' }
+  - { id: 355, class: gr64, preferred-register: '' }
+  - { id: 356, class: gr64, preferred-register: '' }
+  - { id: 357, class: gr8, preferred-register: '' }
+  - { id: 358, class: gr64, preferred-register: '' }
+  - { id: 359, class: gr64, preferred-register: '' }
+  - { id: 360, class: gr64, preferred-register: '' }
+  - { id: 361, class: gr64, preferred-register: '' }
+  - { id: 362, class: gr64, preferred-register: '' }
+  - { id: 363, class: gr8, preferred-register: '' }
+  - { id: 364, class: gr64, preferred-register: '' }
+  - { id: 365, class: gr64, preferred-register: '' }
+  - { id: 366, class: gr64, preferred-register: '' }
+  - { id: 367, class: gr64, preferred-register: '' }
+  - { id: 368, class: gr64, preferred-register: '' }
+  - { id: 369, class: gr8, preferred-register: '' }
+  - { id: 370, class: gr64, preferred-register: '' }
+  - { id: 371, class: gr64, preferred-register: '' }
+  - { id: 372, class: gr64, preferred-register: '' }
+  - { id: 373, class: gr64, preferred-register: '' }
+  - { id: 374, class: gr32, preferred-register: '' }
+  - { id: 375, class: gr32, preferred-register: '' }
+  - { id: 376, class: gr32, preferred-register: '' }
+  - { id: 377, class: gr64, preferred-register: '' }
+  - { id: 378, class: gr32, preferred-register: '' }
+  - { id: 379, class: gr32, preferred-register: '' }
+  - { id: 380, class: gr32, preferred-register: '' }
+  - { id: 381, class: gr64, preferred-register: '' }
+  - { id: 382, class: gr64, preferred-register: '' }
+  - { id: 383, class: gr64, preferred-register: '' }
+  - { id: 384, class: gr64, preferred-register: '' }
+  - { id: 385, class: gr64, preferred-register: '' }
+  - { id: 386, class: gr64, preferred-register: '' }
+  - { id: 387, class: gr64, preferred-register: '' }
+  - { id: 388, class: gr32, preferred-register: '' }
+  - { id: 389, class: gr32, preferred-register: '' }
+  - { id: 390, class: gr64, preferred-register: '' }
+  - { id: 391, class: gr32, preferred-register: '' }
+  - { id: 392, class: gr64, preferred-register: '' }
+  - { id: 393, class: gr32, preferred-register: '' }
+  - { id: 394, class: gr32, preferred-register: '' }
+  - { id: 395, class: gr32, preferred-register: '' }
+  - { id: 396, class: gr64, preferred-register: '' }
+  - { id: 397, class: gr64, preferred-register: '' }
+  - { id: 398, class: gr32, preferred-register: '' }
+  - { id: 399, class: gr64, preferred-register: '' }
+  - { id: 400, class: gr32, preferred-register: '' }
+  - { id: 401, class: gr64, preferred-register: '' }
+  - { id: 402, class: gr64, preferred-register: '' }
+  - { id: 403, class: gr64, preferred-register: '' }
+  - { id: 404, class: gr64, preferred-register: '' }
+  - { id: 405, class: gr32, preferred-register: '' }
+  - { id: 406, class: gr32, preferred-register: '' }
+  - { id: 407, class: gr32, preferred-register: '' }
+  - { id: 408, class: gr64, preferred-register: '' }
+  - { id: 409, class: gr64, preferred-register: '' }
+  - { id: 410, class: gr64, preferred-register: '' }
+  - { id: 411, class: gr32, preferred-register: '' }
+  - { id: 412, class: gr32, preferred-register: '' }
+  - { id: 413, class: gr32, preferred-register: '' }
+  - { id: 414, class: gr32, preferred-register: '' }
+  - { id: 415, class: gr64, preferred-register: '' }
+  - { id: 416, class: gr64, preferred-register: '' }
+  - { id: 417, class: gr32, preferred-register: '' }
+  - { id: 418, class: gr32, preferred-register: '' }
+  - { id: 419, class: gr64, preferred-register: '' }
+  - { id: 420, class: gr64, preferred-register: '' }
+  - { id: 421, class: gr64, preferred-register: '' }
+  - { id: 422, class: gr64, preferred-register: '' }
+  - { id: 423, class: gr64, preferred-register: '' }
+  - { id: 424, class: gr64_nosp, preferred-register: '' }
+  - { id: 425, class: gr32, preferred-register: '' }
+  - { id: 426, class: gr32, preferred-register: '' }
+  - { id: 427, class: gr32, preferred-register: '' }
+  - { id: 428, class: gr32, preferred-register: '' }
+  - { id: 429, class: gr32, preferred-register: '' }
+  - { id: 430, class: gr64, preferred-register: '' }
+  - { id: 431, class: gr64, preferred-register: '' }
+  - { id: 432, class: gr64, preferred-register: '' }
+  - { id: 433, class: gr64, preferred-register: '' }
+  - { id: 434, class: gr32, preferred-register: '' }
+  - { id: 435, class: gr32, preferred-register: '' }
+  - { id: 436, class: gr32, preferred-register: '' }
+  - { id: 437, class: gr64, preferred-register: '' }
+  - { id: 438, class: gr64, preferred-register: '' }
+  - { id: 439, class: gr64_nosp, preferred-register: '' }
+  - { id: 440, class: gr64, preferred-register: '' }
+  - { id: 441, class: gr64, preferred-register: '' }
+  - { id: 442, class: gr64, preferred-register: '' }
+  - { id: 443, class: gr64, preferred-register: '' }
+  - { id: 444, class: gr32, preferred-register: '' }
+  - { id: 445, class: gr32, preferred-register: '' }
+  - { id: 446, class: gr32, preferred-register: '' }
+  - { id: 447, class: gr64, preferred-register: '' }
+  - { id: 448, class: gr32, preferred-register: '' }
+  - { id: 449, class: gr64, preferred-register: '' }
+  - { id: 450, class: gr64, preferred-register: '' }
+  - { id: 451, class: gr64, preferred-register: '' }
+  - { id: 452, class: gr32, preferred-register: '' }
+  - { id: 453, class: gr64, preferred-register: '' }
+  - { id: 454, class: gr64, preferred-register: '' }
+liveins:
+  - { reg: '$rdi', virtual-reg: '%56' }
+  - { reg: '$rsi', virtual-reg: '%57' }
+  - { reg: '$edx', virtual-reg: '%58' }
+  - { reg: '$rcx', virtual-reg: '%59' }
+  - { reg: '$r8', virtual-reg: '%60' }
+  - { reg: '$r9', virtual-reg: '%61' }
+frameInfo:
+  isFrameAddressTaken: false
+  isReturnAddressTaken: false
+  hasStackMap:     false
+  hasPatchPoint:   false
+  stackSize:       0
+  offsetAdjustment: 0
+  maxAlignment:    8
+  adjustsStack:    false
+  hasCalls:        true
+  stackProtector:  ''
+  functionContext: ''
+  maxCallFrameSize: 4294967295
+  cvBytesOfCalleeSavedRegisters: 0
+  hasOpaqueSPAdjustment: false
+  hasVAStart:      false
+  hasMustTailInVarArgFunc: false
+  hasTailCall:     false
+  localFrameSize:  0
+  savePoint:       ''
+  restorePoint:    ''
+fixedStack:
+  - { id: 0, type: default, offset: 0, size: 4, alignment: 16, stack-id: default, 
+      isImmutable: true, isAliased: false, callee-saved-register: '', callee-saved-restored: true, 
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+stack:
+  - { id: 0, name: '', type: default, offset: 0, size: 216, alignment: 8, 
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true, 
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+  - { id: 1, name: '', type: default, offset: 0, size: 216, alignment: 8, 
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true, 
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+  - { id: 2, name: '', type: default, offset: 0, size: 16, alignment: 8, 
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true, 
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+  - { id: 3, name: '', type: default, offset: 0, size: 16, alignment: 8, 
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true, 
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+  - { id: 4, name: '', type: default, offset: 0, size: 16, alignment: 8, 
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true, 
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+  - { id: 5, name: '', type: default, offset: 0, size: 8, alignment: 4, 
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true, 
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+  - { id: 6, name: '', type: default, offset: 0, size: 4, alignment: 4, 
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true, 
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+  - { id: 7, name: '', type: default, offset: 0, size: 128, alignment: 8, 
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true, 
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+  - { id: 8, name: '', type: default, offset: 0, size: 216, alignment: 8, 
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true, 
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+  - { id: 9, name: '', type: default, offset: 0, size: 16, alignment: 8, 
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true, 
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+  - { id: 10, name: '', type: default, offset: 0, size: 128, alignment: 8, 
+      stack-id: default, callee-saved-register: '', callee-saved-restored: true, 
+      debug-info-variable: '', debug-info-expression: '', debug-info-location: '' }
+entry_values:    []
+callSites:       []
+debugValueSubstitutions: []
+constants:
+  - id:              0
+    value:           '<2 x i64> <i64 3, i64 1>'
+    alignment:       16
+    isTargetSpecific: false
+machineFunctionInfo: {}
+body:             |
+  bb.0.BB_10:
+    successors: %bb.15(0x40000000), %bb.1(0x40000000)
+    liveins: $rdi, $rsi, $edx, $rcx, $r8, $r9
+  
+    %61:gr64 = COPY $r9
+    %60:gr64 = COPY $r8
+    %59:gr64 = COPY $rcx
+    %58:gr32 = COPY $edx
+    %57:gr64 = COPY $rsi
+    %56:gr64 = COPY $rdi
+    %62:gr32 = MOV32rm %fixed-stack.0, 1, $noreg, 0, $noreg :: (load (s32) from %fixed-stack.0)
+    INLINEASM &"# LLVM BB: BB_10", 1 /* sideeffect attdialect */
+    %76:gr64 = LEA64r %stack.5, 1, $noreg, 0, $noreg
+    %75:gr64 = LEA64r %stack.5, 1, $noreg, 0, $noreg
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %75
+    CALL64pcrel32 target-flags(x86-plt) @pipe, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %74:gr32 = COPY $eax
+    %67:gr32 = MOV32r0 implicit-def $eflags
+    %68:gr64 = SUBREG_TO_REG 0, %67, %subreg.sub_32bit
+    %69:gr64 = MOV32ri64 8192
+    %70:gr32 = MOV32ri 3
+    %71:gr32 = MOV32ri 1
+    %72:gr64 = MOV32ri64 4096
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %68
+    $rsi = COPY %69
+    $edx = COPY %70
+    $ecx = COPY %71
+    $r8d = COPY %62
+    $r9 = COPY %72
+    CALL64pcrel32 target-flags(x86-plt) @mmap, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $edx, implicit $ecx, implicit $r8d, implicit $r9, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %73:gr64 = COPY $rax
+    %66:gr64 = MOV64ri @.str.4
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %66
+    CALL64pcrel32 target-flags(x86-plt) @perror, csr_64, implicit $rsp, implicit $ssp, implicit $rdi
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %64:gr32 = MOV32r0 implicit-def $eflags
+    %65:gr64 = MOV32ri64 8192
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %73
+    $esi = COPY %64
+    $rdx = COPY %65
+    CALL64pcrel32 target-flags(x86-plt) <mcsymbol memset>, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $esi, implicit $rdx
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    CALL64pcrel32 target-flags(x86-plt) @fork, csr_64, implicit $rsp, implicit $ssp, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %63:gr32 = COPY $eax
+    CMP32ri %63, 0, implicit-def $eflags
+    JCC_1 %bb.15, 4, implicit $eflags
+  
+  bb.1.BB_11:
+    successors: %bb.2(0x80000000)
+  
+    INLINEASM &"# LLVM BB: BB_11", 1 /* sideeffect attdialect */
+    %168:gr32 = MOV32rm %75, 1, $noreg, 0, $noreg :: (load (s32) from %ir.19, !tbaa !14)
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %168
+    CALL64pcrel32 target-flags(x86-plt) @close, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %167:gr32 = COPY $eax
+    %160:gr32 = MOV32r0 implicit-def $eflags
+    %161:gr64 = SUBREG_TO_REG 0, %160, %subreg.sub_32bit
+    %162:gr64 = MOV32ri64 4096
+    %163:gr32 = MOV32ri 3
+    %164:gr32 = MOV32ri 1
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %161
+    $rsi = COPY %162
+    $edx = COPY %163
+    $ecx = COPY %164
+    $r8d = COPY %62
+    $r9 = COPY %161
+    CALL64pcrel32 target-flags(x86-plt) @mmap, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $edx, implicit $ecx, implicit $r8d, implicit $r9, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %165:gr64 = COPY $rax
+    %159:gr64 = ADD64ri32 %73, 32, implicit-def $eflags
+    %157:gr32 = MOV32rm %stack.5, 1, $noreg, 4, $noreg :: (load (s32) from %ir.29, !tbaa !14)
+    %153:gr32 = MOV32ri 16902
+    %154:gr32 = MOV32r0 implicit-def $eflags
+    %155:gr64 = SUBREG_TO_REG 0, %154, %subreg.sub_32bit
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %153
+    $esi = COPY %63
+    $rdx = COPY %155
+    $rcx = COPY %155
+    $al = MOV8ri 0
+    CALL64pcrel32 target-flags(x86-plt) @ptrace, csr_64, implicit $rsp, implicit $ssp, implicit $al, implicit $edi, implicit $esi, implicit $rdx, implicit $rcx, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %156:gr64 = COPY $rax
+    %150:gr64 = MOV64ri @x
+    %151:gr64 = MOV32ri64 1
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %157
+    $rsi = COPY %150
+    $rdx = COPY %151
+    CALL64pcrel32 target-flags(x86-plt) @write, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $rsi, implicit $rdx, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %152:gr64 = COPY $rax
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %157
+    CALL64pcrel32 target-flags(x86-plt) @close, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %149:gr32 = COPY $eax
+    %143:gr64 = MOV64ri @l1_read_attr
+    %144:gr64 = LEA64r %stack.4, 1, $noreg, 0, $noreg
+    %145:gr32 = MOV32r0 implicit-def $eflags
+    %146:gr64 = SUBREG_TO_REG 0, %145, %subreg.sub_32bit
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %143
+    $rsi = COPY %144
+    $rdx = COPY %146
+    CALL64pcrel32 target-flags(x86-plt) @rdpmc_open_attr, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %147:gr32 = COPY $eax
+    CMP32ri %147, 0, implicit-def $eflags
+    %141:gr8 = SETCCr 4, implicit $eflags
+    %139:gr8 = AND8ri %141, 1, implicit-def $eflags
+    %140:gr32 = MOVZX32rr8 %139
+    %137:gr64 = LEA64r %stack.4, 1, $noreg, 0, $noreg
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %137
+    CALL64pcrel32 target-flags(x86-plt) @rdpmc_close, csr_64, implicit $rsp, implicit $ssp, implicit $rdi
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    MOV32mr %59, 1, $noreg, 0, $noreg, %140 :: (store (s32) into %ir.3, !tbaa !14)
+    %131:gr64 = MOV64ri @l1_write_attr
+    %132:gr64 = LEA64r %stack.3, 1, $noreg, 0, $noreg
+    %133:gr32 = MOV32r0 implicit-def $eflags
+    %134:gr64 = SUBREG_TO_REG 0, %133, %subreg.sub_32bit
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %131
+    $rsi = COPY %132
+    $rdx = COPY %134
+    CALL64pcrel32 target-flags(x86-plt) @rdpmc_open_attr, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %135:gr32 = COPY $eax
+    CMP32ri %135, 0, implicit-def $eflags
+    %129:gr8 = SETCCr 4, implicit $eflags
+    %127:gr8 = AND8ri %129, 1, implicit-def $eflags
+    %128:gr32 = MOVZX32rr8 %127
+    %125:gr64 = LEA64r %stack.3, 1, $noreg, 0, $noreg
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %125
+    CALL64pcrel32 target-flags(x86-plt) @rdpmc_close, csr_64, implicit $rsp, implicit $ssp, implicit $rdi
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    MOV32mr %60, 1, $noreg, 0, $noreg, %128 :: (store (s32) into %ir.4, !tbaa !14)
+    %119:gr64 = MOV64ri @icache_attr
+    %120:gr64 = LEA64r %stack.2, 1, $noreg, 0, $noreg
+    %121:gr32 = MOV32r0 implicit-def $eflags
+    %122:gr64 = SUBREG_TO_REG 0, %121, %subreg.sub_32bit
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %119
+    $rsi = COPY %120
+    $rdx = COPY %122
+    CALL64pcrel32 target-flags(x86-plt) @rdpmc_open_attr, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %123:gr32 = COPY $eax
+    CMP32ri %123, 0, implicit-def $eflags
+    %117:gr8 = SETCCr 4, implicit $eflags
+    %115:gr8 = AND8ri %117, 1, implicit-def $eflags
+    %116:gr32 = MOVZX32rr8 %115
+    %113:gr64 = LEA64r %stack.2, 1, $noreg, 0, $noreg
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %113
+    CALL64pcrel32 target-flags(x86-plt) @rdpmc_close, csr_64, implicit $rsp, implicit $ssp, implicit $rdi
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    MOV32mr %61, 1, $noreg, 0, $noreg, %116 :: (store (s32) into %ir.5, !tbaa !14)
+    %111:gr64 = LEA64r %stack.6, 1, $noreg, 0, $noreg
+    %110:gr64 = LEA64r %stack.7, 1, $noreg, 0, $noreg
+    %109:gr64 = LEA64r %stack.8, 1, $noreg, 0, $noreg
+    %107:gr64 = LEA64r %stack.8, 1, $noreg, 0, $noreg
+    %108:gr64 = ADD64ri32 %107, 128, implicit-def $eflags
+    %106:gr64 = LEA64r %stack.7, 1, $noreg, 0, $noreg
+    %104:gr64 = LEA64r %stack.8, 1, $noreg, 0, $noreg
+    %105:gr64 = ADD64ri32 %104, 152, implicit-def $eflags
+    %102:gr64 = LEA64r %stack.7, 1, $noreg, 0, $noreg
+    %103:gr64 = ADD64ri32 %102, 16, implicit-def $eflags
+    %100:gr64 = LEA64r %stack.0, 1, $noreg, 0, $noreg
+    %98:gr64 = LEA64r %stack.0, 1, $noreg, 0, $noreg
+    %99:gr64 = ADD64ri32 %98, 128, implicit-def $eflags
+    %96:gr64 = LEA64r %stack.0, 1, $noreg, 0, $noreg
+    %97:gr64 = ADD64ri32 %96, 80, implicit-def $eflags
+    %95:gr64 = MOVSX64rr32 %62
+    %93:gr64 = LEA64r %stack.0, 1, $noreg, 0, $noreg
+    %94:gr64 = ADD64ri32 %93, 48, implicit-def $eflags
+    %91:gr64 = LEA64r %stack.0, 1, $noreg, 0, $noreg
+    %92:gr64 = ADD64ri32 %91, 16, implicit-def $eflags
+    %90:gr64 = LEA64r %stack.1, 1, $noreg, 0, $noreg
+    %88:gr64 = LEA64r %stack.1, 1, $noreg, 0, $noreg
+    %89:gr64 = ADD64ri32 %88, 128, implicit-def $eflags
+    %86:gr64 = LEA64r %stack.1, 1, $noreg, 0, $noreg
+    %87:gr64 = ADD64ri32 %86, 80, implicit-def $eflags
+    %84:gr64 = LEA64r %stack.1, 1, $noreg, 0, $noreg
+    %85:gr64 = ADD64ri32 %84, 48, implicit-def $eflags
+    %82:gr64 = LEA64r %stack.1, 1, $noreg, 0, $noreg
+    %83:gr64 = ADD64ri32 %82, 16, implicit-def $eflags
+    %77:gr32 = MOV32r0 implicit-def $eflags
+    %78:gr64 = SUBREG_TO_REG 0, %77, %subreg.sub_32bit
+    %79:gr32 = MOV32r0 implicit-def $eflags
+    %443:gr64 = COPY %78
+    %444:gr32 = COPY %79
+    %445:gr32 = COPY %79
+  
+  bb.2.BB_12:
+    successors: %bb.3(0x40000000), %bb.4(0x40000000)
+  
+    %25:gr32 = COPY %445
+    %24:gr32 = COPY %444
+    %23:gr64 = COPY %443
+    INLINEASM &"# LLVM BB: BB_12", 1 /* sideeffect attdialect */
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %170:gr64 = LEA64r %stack.6, 1, $noreg, 0, $noreg
+    $rdi = COPY %170
+    CALL64pcrel32 target-flags(x86-plt) @wait, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit-def $rsp, implicit-def $ssp, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %171:gr32 = COPY $eax
+    %26:gr32 = COPY %171
+    %27:gr32 = MOV32rm %stack.6, 1, $noreg, 0, $noreg :: (dereferenceable load (s32) from %ir.13, !tbaa !14)
+    %172:gr8 = COPY %27.sub_8bit
+    TEST8ri killed %172, 127, implicit-def $eflags
+    %173:gr8 = SETCCr 4, implicit $eflags
+    %174:gr32 = SUB32ri %171, -1, implicit-def $eflags
+    %175:gr8 = SETCCr 4, implicit $eflags
+    %169:gr8 = OR8rr %173, killed %175, implicit-def dead $eflags
+    TEST8ri %169, 1, implicit-def $eflags
+    JCC_1 %bb.3, 5, implicit $eflags
+    JMP_1 %bb.4
+  
+  bb.3.BB_13:
+    successors: %bb.30(0x80000000)
+  
+    INLINEASM &"# LLVM BB: BB_13", 1 /* sideeffect attdialect */
+    %256:gr32 = AND32ri %27, 65280, implicit-def $eflags
+    %253:gr32 = MOV32r0 implicit-def $eflags
+    %254:gr64 = SUBREG_TO_REG 0, %253, %subreg.sub_32bit
+    CMP32ri %256, 0, implicit-def $eflags
+    %255:gr64 = CMOV64rr %254, %159, 4, implicit $eflags
+    %454:gr64 = COPY %255
+    JMP_1 %bb.30
+  
+  bb.4.BB_14:
+    successors: %bb.6(0x40000000), %bb.5(0x40000000)
+  
+    INLINEASM &"# LLVM BB: BB_14", 1 /* sideeffect attdialect */
+    CMP32ri %24, 0, implicit-def $eflags
+    JCC_1 %bb.6, 4, implicit $eflags
+  
+  bb.5.BB_15:
+    successors: %bb.14(0x80000000)
+  
+    INLINEASM &"# LLVM BB: BB_15", 1 /* sideeffect attdialect */
+    JMP_1 %bb.14
+  
+  bb.6.BB_16:
+    successors: %bb.7(0x40000000), %bb.31(0x40000000)
+  
+    INLINEASM &"# LLVM BB: BB_16", 1 /* sideeffect attdialect */
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %176:gr32 = MOV32r0 implicit-def dead $eflags
+    %177:gr64 = SUBREG_TO_REG 0, %176, %subreg.sub_32bit
+    %178:gr8 = COPY %176.sub_8bit
+    %179:gr32 = MOV32ri 16898
+    %180:gr64 = LEA64r %stack.7, 1, $noreg, 0, $noreg
+    $edi = COPY %179
+    $esi = COPY %26
+    $rdx = COPY %177
+    $rcx = COPY %180
+    $al = COPY %178
+    CALL64pcrel32 target-flags(x86-plt) @ptrace, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $esi, implicit $rdx, implicit $rcx, implicit $al, implicit-def $rsp, implicit-def $ssp, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %181:gr64 = COPY $rax
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %182:gr32 = MOV32ri 12
+    %183:gr64 = LEA64r %stack.8, 1, $noreg, 0, $noreg
+    $edi = COPY %182
+    $esi = COPY %26
+    $rdx = COPY %177
+    $rcx = COPY %183
+    $al = COPY %178
+    CALL64pcrel32 target-flags(x86-plt) @ptrace, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $esi, implicit $rdx, implicit $rcx, implicit $al, implicit-def $rsp, implicit-def $ssp, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %184:gr64 = COPY $rax
+    %185:gr64 = MOV64rm %108, 1, $noreg, 0, $noreg :: (dereferenceable load (s64) from %ir.49, !tbaa !5)
+    %186:gr32 = MOV32rm %106, 1, $noreg, 0, $noreg :: (dereferenceable load (s32) from %ir.50, align 8, !tbaa !16)
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %187:gr64 = MOV32ri64 @.str.5
+    $rdi = COPY %187
+    $rsi = COPY %185
+    $edx = COPY %186
+    $al = COPY %178
+    CALL64pcrel32 target-flags(x86-plt) @printf, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $edx, implicit $al, implicit-def $rsp, implicit-def $ssp, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %188:gr32 = COPY $eax
+    %189:gr64 = MOV64rm %105, 1, $noreg, 0, $noreg :: (dereferenceable load (s64) from %ir.51, !tbaa !18)
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %190:gr64 = MOV32ri64 @.str.6
+    $rdi = COPY %190
+    $rsi = COPY %189
+    $al = COPY %178
+    CALL64pcrel32 target-flags(x86-plt) @printf, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $al, implicit-def $rsp, implicit-def $ssp, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %191:gr32 = COPY $eax
+    %29:gr32 = MOV32rm %106, 1, $noreg, 0, $noreg :: (dereferenceable load (s32) from %ir.50, align 8, !tbaa !16)
+    %192:gr32 = SUB32ri %29, 5, implicit-def $eflags
+    JCC_1 %bb.7, 4, implicit $eflags
+    JMP_1 %bb.31
+  
+  bb.31.BB_16:
+    successors: %bb.7(0x40000000), %bb.12(0x40000000)
+  
+    %193:gr32 = SUB32ri %29, 11, implicit-def $eflags
+    JCC_1 %bb.12, 5, implicit $eflags
+    JMP_1 %bb.7
+  
+  bb.7.BB_17:
+    successors: %bb.12(0x40000000), %bb.8(0x40000000)
+  
+    INLINEASM &"# LLVM BB: BB_17", 1 /* sideeffect attdialect */
+    %197:gr64 = MOV32ri64 36847616
+    CMP32ri %29, 5, implicit-def $eflags
+    %198:gr64 = CMOV64rm %197, %103, 1, $noreg, 0, $noreg, 5, implicit $eflags :: (load (s64) from %ir.53, !tbaa !13)
+    %195:gr64 = MOV64rm %108, 1, $noreg, 0, $noreg :: (load (s64) from %ir.49, !tbaa !5)
+    CMP64rr %23, %195, implicit-def $eflags
+    JCC_1 %bb.12, 4, implicit $eflags
+  
+  bb.8.BB_18:
+    successors: %bb.10(0x40000000), %bb.9(0x40000000)
+  
+    INLINEASM &"# LLVM BB: BB_18", 1 /* sideeffect attdialect */
+    %199:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @first_legal_aux_mem_access, $noreg
+    CMP64rr %195, %199, implicit-def $eflags
+    JCC_1 %bb.10, 5, implicit $eflags
+  
+  bb.9.BB_19:
+    successors: %bb.13(0x80000000)
+  
+    INLINEASM &"# LLVM BB: BB_19", 1 /* sideeffect attdialect */
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %236:gr64 = MOV32ri64 @.str
+    %237:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @map_aux_and_restart, $noreg :: (load (s64) from got)
+    %238:gr32 = MOV32r0 implicit-def dead $eflags
+    %239:gr8 = COPY %238.sub_8bit
+    $rdi = COPY %236
+    $rsi = COPY %237
+    $rdx = COPY %198
+    $al = COPY %239
+    CALL64pcrel32 target-flags(x86-plt) @printf, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx, implicit $al, implicit-def $rsp, implicit-def $ssp, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %240:gr32 = COPY $eax
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %241:gr64 = SUBREG_TO_REG 0, %238, %subreg.sub_32bit
+    %242:gr32 = MOV32ri 12
+    %243:gr64 = LEA64r %stack.1, 1, $noreg, 0, $noreg
+    $edi = COPY %242
+    $esi = COPY %26
+    $rdx = COPY %241
+    $rcx = COPY %243
+    $al = COPY %239
+    CALL64pcrel32 target-flags(x86-plt) @ptrace, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $esi, implicit $rdx, implicit $rcx, implicit $al, implicit-def $rsp, implicit-def $ssp, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %244:gr64 = COPY $rax
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %245:gr64 = MOV32ri64 @.str.1
+    $rdi = COPY %245
+    CALL64pcrel32 target-flags(x86-plt) @perror, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit-def $rsp, implicit-def $ssp
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    MOV64mr %89, 1, $noreg, 0, $noreg, %237 :: (store (s64) into %ir.61, !tbaa !5)
+    MOV64mr %87, 1, $noreg, 0, $noreg, %198 :: (store (s64) into %ir.62, !tbaa !10)
+    MOV64mr %85, 1, $noreg, 0, $noreg, %95 :: (store (s64) into %ir.63, !tbaa !11)
+    %246:vr128 = MOVAPSrm $rip, 1, $noreg, %const.0, $noreg :: (load (s128) from constant-pool)
+    MOVUPSmr %83, 1, $noreg, 0, $noreg, killed %246 :: (store (s128) into %ir.66, align 8, !tbaa !12)
+    %231:gr32 = MOV32ri 13
+    %232:gr32 = MOV32r0 implicit-def $eflags
+    %233:gr64 = SUBREG_TO_REG 0, %232, %subreg.sub_32bit
+    %234:gr64 = LEA64r %stack.1, 1, $noreg, 0, $noreg
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %231
+    $esi = COPY %26
+    $rdx = COPY %233
+    $rcx = COPY %234
+    $al = MOV8ri 0
+    CALL64pcrel32 target-flags(x86-plt) @ptrace, csr_64, implicit $rsp, implicit $ssp, implicit $al, implicit $edi, implicit $esi, implicit $rdx, implicit $rcx, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %235:gr64 = COPY $rax
+    %230:gr64 = MOV64ri @.str.2
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %230
+    CALL64pcrel32 target-flags(x86-plt) @perror, csr_64, implicit $rsp, implicit $ssp, implicit $rdi
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %226:gr32 = MOV32ri 7
+    %227:gr32 = MOV32r0 implicit-def $eflags
+    %228:gr64 = SUBREG_TO_REG 0, %227, %subreg.sub_32bit
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %226
+    $esi = COPY %26
+    $rdx = COPY %228
+    $rcx = COPY %228
+    $al = MOV8ri 0
+    CALL64pcrel32 target-flags(x86-plt) @ptrace, csr_64, implicit $rsp, implicit $ssp, implicit $al, implicit $edi, implicit $esi, implicit $rdx, implicit $rcx, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %229:gr64 = COPY $rax
+    %225:gr64 = MOV64ri @.str.3
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %225
+    CALL64pcrel32 target-flags(x86-plt) @perror, csr_64, implicit $rsp, implicit $ssp, implicit $rdi
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %224:gr32 = MOV32ri 1
+    %446:gr32 = COPY %224
+    JMP_1 %bb.13
+  
+  bb.10.BB_20:
+    successors: %bb.12(0x40000000), %bb.11(0x40000000)
+  
+    INLINEASM &"# LLVM BB: BB_20", 1 /* sideeffect attdialect */
+    %200:gr64 = MOV64ri 123145302310912
+    CMP64rr %198, %200, implicit-def $eflags
+    JCC_1 %bb.12, 4, implicit $eflags
+  
+  bb.11.BB_21:
+    successors: %bb.13(0x80000000)
+  
+    INLINEASM &"# LLVM BB: BB_21", 1 /* sideeffect attdialect */
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %213:gr64 = MOV32ri64 @.str
+    %214:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @map_and_restart, $noreg :: (load (s64) from got)
+    %215:gr32 = MOV32r0 implicit-def dead $eflags
+    %216:gr8 = COPY %215.sub_8bit
+    $rdi = COPY %213
+    $rsi = COPY %214
+    $rdx = COPY %198
+    $al = COPY %216
+    CALL64pcrel32 target-flags(x86-plt) @printf, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx, implicit $al, implicit-def $rsp, implicit-def $ssp, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %217:gr32 = COPY $eax
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %218:gr64 = SUBREG_TO_REG 0, %215, %subreg.sub_32bit
+    %219:gr32 = MOV32ri 12
+    %220:gr64 = LEA64r %stack.0, 1, $noreg, 0, $noreg
+    $edi = COPY %219
+    $esi = COPY %26
+    $rdx = COPY %218
+    $rcx = COPY %220
+    $al = COPY %216
+    CALL64pcrel32 target-flags(x86-plt) @ptrace, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $esi, implicit $rdx, implicit $rcx, implicit $al, implicit-def $rsp, implicit-def $ssp, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %221:gr64 = COPY $rax
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    %222:gr64 = MOV32ri64 @.str.1
+    $rdi = COPY %222
+    CALL64pcrel32 target-flags(x86-plt) @perror, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit-def $rsp, implicit-def $ssp
+    ADJCALLSTACKUP64 0, 0, implicit-def dead $rsp, implicit-def dead $eflags, implicit-def dead $ssp, implicit $rsp, implicit $ssp
+    MOV64mr %99, 1, $noreg, 0, $noreg, %214 :: (store (s64) into %ir.55, !tbaa !5)
+    MOV64mr %97, 1, $noreg, 0, $noreg, %198 :: (store (s64) into %ir.56, !tbaa !10)
+    MOV64mr %94, 1, $noreg, 0, $noreg, %95 :: (store (s64) into %ir.58, !tbaa !11)
+    %223:vr128 = MOVAPSrm $rip, 1, $noreg, %const.0, $noreg :: (load (s128) from constant-pool)
+    MOVUPSmr %92, 1, $noreg, 0, $noreg, killed %223 :: (store (s128) into %ir.65, align 8, !tbaa !12)
+    %208:gr32 = MOV32ri 13
+    %209:gr32 = MOV32r0 implicit-def $eflags
+    %210:gr64 = SUBREG_TO_REG 0, %209, %subreg.sub_32bit
+    %211:gr64 = LEA64r %stack.0, 1, $noreg, 0, $noreg
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %208
+    $esi = COPY %26
+    $rdx = COPY %210
+    $rcx = COPY %211
+    $al = MOV8ri 0
+    CALL64pcrel32 target-flags(x86-plt) @ptrace, csr_64, implicit $rsp, implicit $ssp, implicit $al, implicit $edi, implicit $esi, implicit $rdx, implicit $rcx, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %212:gr64 = COPY $rax
+    %207:gr64 = MOV64ri @.str.2
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %207
+    CALL64pcrel32 target-flags(x86-plt) @perror, csr_64, implicit $rsp, implicit $ssp, implicit $rdi
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %203:gr32 = MOV32ri 7
+    %204:gr32 = MOV32r0 implicit-def $eflags
+    %205:gr64 = SUBREG_TO_REG 0, %204, %subreg.sub_32bit
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %203
+    $esi = COPY %26
+    $rdx = COPY %205
+    $rcx = COPY %205
+    $al = MOV8ri 0
+    CALL64pcrel32 target-flags(x86-plt) @ptrace, csr_64, implicit $rsp, implicit $ssp, implicit $al, implicit $edi, implicit $esi, implicit $rdx, implicit $rcx, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %206:gr64 = COPY $rax
+    %202:gr64 = MOV64ri @.str.3
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %202
+    CALL64pcrel32 target-flags(x86-plt) @perror, csr_64, implicit $rsp, implicit $ssp, implicit $rdi
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %201:gr32 = MOV32r0 implicit-def $eflags
+    %446:gr32 = COPY %201
+    JMP_1 %bb.13
+  
+  bb.12.BB_22:
+    successors: %bb.14(0x80000000)
+  
+    INLINEASM &"# LLVM BB: BB_22", 1 /* sideeffect attdialect */
+    JMP_1 %bb.14
+  
+  bb.13.BB_23:
+    successors: %bb.2(0x40000000), %bb.14(0x40000000)
+  
+    %32:gr32 = COPY %446
+    INLINEASM &"# LLVM BB: BB_23", 1 /* sideeffect attdialect */
+    %247:gr32 = ADD32ri %25, 1, implicit-def $eflags
+    CMP32ri %247, 1024, implicit-def $eflags
+    %443:gr64 = COPY %195
+    %444:gr32 = COPY %32
+    %445:gr32 = COPY %247
+    JCC_1 %bb.2, 5, implicit $eflags
+  
+  bb.14.BB_24:
+    successors: %bb.30(0x80000000)
+  
+    INLINEASM &"# LLVM BB: BB_24", 1 /* sideeffect attdialect */
+    %250:gr32 = MOV32ri 9
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %26
+    $esi = COPY %250
+    CALL64pcrel32 target-flags(x86-plt) @kill, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $esi, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %251:gr32 = COPY $eax
+    %248:gr32 = MOV32r0 implicit-def $eflags
+    %249:gr64 = SUBREG_TO_REG 0, %248, %subreg.sub_32bit
+    %454:gr64 = COPY %249
+    JMP_1 %bb.30
+  
+  bb.15.BB_25:
+    successors: %bb.17(0x40000000), %bb.16(0x40000000)
+  
+    INLINEASM &"# LLVM BB: BB_25", 1 /* sideeffect attdialect */
+    %299:gr64 = LEA64r %stack.9, 1, $noreg, 0, $noreg
+    %294:gr64 = MOV64ri @l1_read_attr
+    %295:gr64 = LEA64r %stack.9, 1, $noreg, 0, $noreg
+    %296:gr32 = MOV32r0 implicit-def $eflags
+    %297:gr64 = SUBREG_TO_REG 0, %296, %subreg.sub_32bit
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %294
+    $rsi = COPY %295
+    $rdx = COPY %297
+    CALL64pcrel32 target-flags(x86-plt) @rdpmc_open_attr, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %298:gr32 = COPY $eax
+    %293:gr64 = MOV64rm %stack.9, 1, $noreg, 8, $noreg :: (load (s64) from %ir.114, !tbaa !21)
+    %292:gr32 = MOV32rm %293, 1, $noreg, 12, $noreg :: (load (s32) from %ir.116, !tbaa !24)
+    %290:gr32 = ADD32ri %292, -1, implicit-def $eflags
+    %287:gr64 = MOV64ri @.str.7
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %287
+    $esi = COPY %292
+    $al = MOV8ri 0
+    CALL64pcrel32 target-flags(x86-plt) @printf, csr_64, implicit $rsp, implicit $ssp, implicit $al, implicit $rdi, implicit $esi, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %289:gr32 = COPY $eax
+    %282:gr64 = MOV64ri @l1_write_attr
+    %283:gr64 = LEA64r %stack.9, 1, $noreg, 0, $noreg
+    %284:gr32 = MOV32r0 implicit-def $eflags
+    %285:gr64 = SUBREG_TO_REG 0, %284, %subreg.sub_32bit
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %282
+    $rsi = COPY %283
+    $rdx = COPY %285
+    CALL64pcrel32 target-flags(x86-plt) @rdpmc_open_attr, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %286:gr32 = COPY $eax
+    %281:gr64 = MOV64rm %stack.9, 1, $noreg, 8, $noreg :: (load (s64) from %ir.114, !tbaa !21)
+    %280:gr32 = MOV32rm %281, 1, $noreg, 12, $noreg :: (load (s32) from %ir.122, !tbaa !24)
+    %278:gr32 = ADD32ri %280, -1, implicit-def $eflags
+    %275:gr64 = MOV64ri @.str.8
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %275
+    $esi = COPY %280
+    $al = MOV8ri 0
+    CALL64pcrel32 target-flags(x86-plt) @printf, csr_64, implicit $rsp, implicit $ssp, implicit $al, implicit $rdi, implicit $esi, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %277:gr32 = COPY $eax
+    %270:gr64 = MOV64ri @icache_attr
+    %271:gr64 = LEA64r %stack.9, 1, $noreg, 0, $noreg
+    %272:gr32 = MOV32r0 implicit-def $eflags
+    %273:gr64 = SUBREG_TO_REG 0, %272, %subreg.sub_32bit
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %270
+    $rsi = COPY %271
+    $rdx = COPY %273
+    CALL64pcrel32 target-flags(x86-plt) @rdpmc_open_attr, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %274:gr32 = COPY $eax
+    %269:gr64 = MOV64rm %stack.9, 1, $noreg, 8, $noreg :: (load (s64) from %ir.114, !tbaa !21)
+    %268:gr32 = MOV32rm %269, 1, $noreg, 12, $noreg :: (load (s32) from %ir.128, !tbaa !24)
+    %266:gr32 = ADD32ri %268, -1, implicit-def $eflags
+    %263:gr64 = MOV64ri @.str.9
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %263
+    $esi = COPY %268
+    $al = MOV8ri 0
+    CALL64pcrel32 target-flags(x86-plt) @printf, csr_64, implicit $rsp, implicit $ssp, implicit $al, implicit $rdi, implicit $esi, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %265:gr32 = COPY $eax
+    %258:gr64 = MOV64ri @ctx_swtch_attr
+    %259:gr64 = LEA64r %stack.9, 1, $noreg, 0, $noreg
+    %260:gr32 = MOV32r0 implicit-def $eflags
+    %261:gr64 = SUBREG_TO_REG 0, %260, %subreg.sub_32bit
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %258
+    $rsi = COPY %259
+    $rdx = COPY %261
+    CALL64pcrel32 target-flags(x86-plt) @rdpmc_open_attr, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %262:gr32 = COPY $eax
+    CMP32ri %262, 0, implicit-def $eflags
+    JCC_1 %bb.17, 4, implicit $eflags
+  
+  bb.16.BB_26:
+    successors: 
+  
+    INLINEASM &"# LLVM BB: BB_26", 1 /* sideeffect attdialect */
+    %300:gr64 = MOV64ri @str
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %300
+    CALL64pcrel32 target-flags(x86-plt) @puts, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %301:gr32 = COPY $eax
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    CALL64pcrel32 target-flags(x86-plt) @abort, csr_64, implicit $rsp, implicit $ssp
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+  
+  bb.17.BB_27:
+    successors: %bb.19(0x40000000), %bb.18(0x40000000)
+  
+    INLINEASM &"# LLVM BB: BB_27", 1 /* sideeffect attdialect */
+    %334:gr32 = MOV32rm %stack.9, 1, $noreg, 0, $noreg :: (load (s32) from %ir.135, align 8, !tbaa !27)
+    %332:gr32 = MOV32ri 100
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %334
+    $esi = COPY %332
+    CALL64pcrel32 target-flags(x86-plt) @dup2, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $esi, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %333:gr32 = COPY $eax
+    %329:gr32 = MOV32rr %58
+    %330:gr64 = SUBREG_TO_REG 0, %329, %subreg.sub_32bit
+    %328:gr64 = IMUL64rr %330, %57, implicit-def $eflags
+    %322:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @end_tmpl_end, $noreg
+    %323:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @end_tmpl_begin, $noreg
+    %324:gr64 = SUB64rr %322, %323, implicit-def $eflags
+    %325:gr64 = ADD64ri32 %324, 5, implicit-def $eflags
+    %326:gr64 = ADD64rr %328, %325, implicit-def $eflags
+    %320:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @code_end, $noreg
+    %321:gr64 = ADD64rr %320, %326, implicit-def $eflags
+    %318:gr64 = ADD64ri32 %321, 4096, implicit-def $eflags
+    %316:gr64 = AND64ri32 %318, -4096, implicit-def $eflags
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    CALL64pcrel32 target-flags(x86-plt) @__errno_location, csr_64, implicit $rsp, implicit $ssp, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %314:gr64 = COPY $rax
+    MOV32mi %314, 1, $noreg, 0, $noreg, 0 :: (store (s32) into %ir.145, !tbaa !14)
+    %312:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @code_begin, $noreg
+    %313:gr64 = AND64ri32 %312, -4096, implicit-def $eflags
+    %311:gr64 = SUB64rr %316, %313, implicit-def $eflags
+    %307:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @code_begin, $noreg
+    %308:gr64 = AND64ri32 %307, -4096, implicit-def $eflags
+    %304:gr32 = MOV32ri 3
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %308
+    $rsi = COPY %311
+    $edx = COPY %304
+    CALL64pcrel32 target-flags(x86-plt) @mprotect, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $edx, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %305:gr32 = COPY $eax
+    %302:gr64 = MOV64ri @.str.11
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %302
+    CALL64pcrel32 target-flags(x86-plt) @perror, csr_64, implicit $rsp, implicit $ssp, implicit $rdi
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    CMP32ri %290, 0, implicit-def $eflags
+    JCC_1 %bb.19, 12, implicit $eflags
+  
+  bb.18.BB_28:
+    successors: %bb.19(0x80000000)
+  
+    INLINEASM &"# LLVM BB: BB_28", 1 /* sideeffect attdialect */
+    %346:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_read_misses_a, $noreg
+    MOV8mi %346, 1, $noreg, 0, $noreg, -71 :: (store (s8) into @l1_read_misses_a, !tbaa !13)
+    %345:gr8 = COPY %290.sub_8bit
+    %344:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_read_misses_a, $noreg
+    MOV8mr %344, 1, $noreg, 1, $noreg, %345 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_a, i64 0, i64 1)`, !tbaa !13)
+    %343:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_read_misses_a, $noreg
+    MOV8mi %343, 1, $noreg, 2, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_a, i64 0, i64 2)`, !tbaa !13)
+    %342:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_read_misses_a, $noreg
+    MOV8mi %342, 1, $noreg, 3, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_a, i64 0, i64 3)`, !tbaa !13)
+    %341:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_read_misses_a, $noreg
+    MOV8mi %341, 1, $noreg, 4, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_a, i64 0, i64 4)`, !tbaa !13)
+    %340:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_read_misses_b, $noreg
+    MOV8mi %340, 1, $noreg, 0, $noreg, -71 :: (store (s8) into @l1_read_misses_b, !tbaa !13)
+    %338:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_read_misses_b, $noreg
+    MOV8mr %338, 1, $noreg, 1, $noreg, %345 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_b, i64 0, i64 1)`, !tbaa !13)
+    %337:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_read_misses_b, $noreg
+    MOV8mi %337, 1, $noreg, 2, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_b, i64 0, i64 2)`, !tbaa !13)
+    %336:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_read_misses_b, $noreg
+    MOV8mi %336, 1, $noreg, 3, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_b, i64 0, i64 3)`, !tbaa !13)
+    %335:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_read_misses_b, $noreg
+    MOV8mi %335, 1, $noreg, 4, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_read_misses_b, i64 0, i64 4)`, !tbaa !13)
+  
+  bb.19.BB_29:
+    successors: %bb.21(0x40000000), %bb.20(0x40000000)
+  
+    INLINEASM &"# LLVM BB: BB_29", 1 /* sideeffect attdialect */
+    CMP32ri %278, 0, implicit-def $eflags
+    JCC_1 %bb.21, 12, implicit $eflags
+  
+  bb.20.BB_30:
+    successors: %bb.21(0x80000000)
+  
+    INLINEASM &"# LLVM BB: BB_30", 1 /* sideeffect attdialect */
+    %358:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_write_misses_a, $noreg
+    MOV8mi %358, 1, $noreg, 0, $noreg, -71 :: (store (s8) into @l1_write_misses_a, !tbaa !13)
+    %357:gr8 = COPY %278.sub_8bit
+    %356:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_write_misses_a, $noreg
+    MOV8mr %356, 1, $noreg, 1, $noreg, %357 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_a, i64 0, i64 1)`, !tbaa !13)
+    %355:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_write_misses_a, $noreg
+    MOV8mi %355, 1, $noreg, 2, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_a, i64 0, i64 2)`, !tbaa !13)
+    %354:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_write_misses_a, $noreg
+    MOV8mi %354, 1, $noreg, 3, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_a, i64 0, i64 3)`, !tbaa !13)
+    %353:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_write_misses_a, $noreg
+    MOV8mi %353, 1, $noreg, 4, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_a, i64 0, i64 4)`, !tbaa !13)
+    %352:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_write_misses_b, $noreg
+    MOV8mi %352, 1, $noreg, 0, $noreg, -71 :: (store (s8) into @l1_write_misses_b, !tbaa !13)
+    %350:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_write_misses_b, $noreg
+    MOV8mr %350, 1, $noreg, 1, $noreg, %357 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_b, i64 0, i64 1)`, !tbaa !13)
+    %349:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_write_misses_b, $noreg
+    MOV8mi %349, 1, $noreg, 2, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_b, i64 0, i64 2)`, !tbaa !13)
+    %348:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_write_misses_b, $noreg
+    MOV8mi %348, 1, $noreg, 3, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_b, i64 0, i64 3)`, !tbaa !13)
+    %347:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @l1_write_misses_b, $noreg
+    MOV8mi %347, 1, $noreg, 4, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @l1_write_misses_b, i64 0, i64 4)`, !tbaa !13)
+  
+  bb.21.BB_31:
+    successors: %bb.23(0x40000000), %bb.22(0x40000000)
+  
+    INLINEASM &"# LLVM BB: BB_31", 1 /* sideeffect attdialect */
+    CMP32ri %266, 0, implicit-def $eflags
+    JCC_1 %bb.23, 12, implicit $eflags
+  
+  bb.22.BB_32:
+    successors: %bb.23(0x80000000)
+  
+    INLINEASM &"# LLVM BB: BB_32", 1 /* sideeffect attdialect */
+    %370:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @icache_misses_a, $noreg
+    MOV8mi %370, 1, $noreg, 0, $noreg, -71 :: (store (s8) into @icache_misses_a, !tbaa !13)
+    %369:gr8 = COPY %266.sub_8bit
+    %368:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @icache_misses_a, $noreg
+    MOV8mr %368, 1, $noreg, 1, $noreg, %369 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_a, i64 0, i64 1)`, !tbaa !13)
+    %367:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @icache_misses_a, $noreg
+    MOV8mi %367, 1, $noreg, 2, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_a, i64 0, i64 2)`, !tbaa !13)
+    %366:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @icache_misses_a, $noreg
+    MOV8mi %366, 1, $noreg, 3, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_a, i64 0, i64 3)`, !tbaa !13)
+    %365:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @icache_misses_a, $noreg
+    MOV8mi %365, 1, $noreg, 4, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_a, i64 0, i64 4)`, !tbaa !13)
+    %364:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @icache_misses_b, $noreg
+    MOV8mi %364, 1, $noreg, 0, $noreg, -71 :: (store (s8) into @icache_misses_b, !tbaa !13)
+    %362:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @icache_misses_b, $noreg
+    MOV8mr %362, 1, $noreg, 1, $noreg, %369 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_b, i64 0, i64 1)`, !tbaa !13)
+    %361:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @icache_misses_b, $noreg
+    MOV8mi %361, 1, $noreg, 2, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_b, i64 0, i64 2)`, !tbaa !13)
+    %360:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @icache_misses_b, $noreg
+    MOV8mi %360, 1, $noreg, 3, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_b, i64 0, i64 3)`, !tbaa !13)
+    %359:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @icache_misses_b, $noreg
+    MOV8mi %359, 1, $noreg, 4, $noreg, 0 :: (store (s8) into `ptr getelementptr inbounds ([0 x i8], ptr @icache_misses_b, i64 0, i64 4)`, !tbaa !13)
+  
+  bb.23.BB_33:
+    successors: %bb.29(0x40000000), %bb.24(0x40000000)
+  
+    INLINEASM &"# LLVM BB: BB_33", 1 /* sideeffect attdialect */
+    %371:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @code_end, $noreg
+    CMP32ri %58, 0, implicit-def $eflags
+    %453:gr64 = COPY %371
+    JCC_1 %bb.29, 4, implicit $eflags
+  
+  bb.24.BB_34:
+    successors: %bb.27(0x40000000), %bb.25(0x40000000)
+  
+    INLINEASM &"# LLVM BB: BB_34", 1 /* sideeffect attdialect */
+    %376:gr32 = ADD32ri %58, -1, implicit-def $eflags
+    %375:gr32 = AND32ri %58, 3, implicit-def $eflags
+    %373:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @code_end, $noreg
+    CMP32ri %376, 3, implicit-def $eflags
+    %449:gr64 = IMPLICIT_DEF
+    %450:gr64 = COPY %373
+    JCC_1 %bb.27, 2, implicit $eflags
+  
+  bb.25.BB_35:
+    successors: %bb.26(0x80000000)
+  
+    INLINEASM &"# LLVM BB: BB_35", 1 /* sideeffect attdialect */
+    %379:gr32 = AND32ri %58, -4, implicit-def $eflags
+    %377:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @code_end, $noreg
+    %378:gr32 = MOV32r0 implicit-def $eflags
+    %447:gr64 = COPY %377
+    %448:gr32 = COPY %378
+  
+  bb.26.BB_36:
+    successors: %bb.26(0x40000000), %bb.27(0x40000000)
+  
+    %45:gr32 = COPY %448
+    %44:gr64 = COPY %447
+    INLINEASM &"# LLVM BB: BB_36", 1 /* sideeffect attdialect */
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %44
+    $rsi = COPY %56
+    $rdx = COPY %57
+    CALL64pcrel32 target-flags(x86-plt) <mcsymbol memcpy>, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %387:gr64 = ADD64rr %44, %57, implicit-def $eflags
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %387
+    $rsi = COPY %56
+    $rdx = COPY %57
+    CALL64pcrel32 target-flags(x86-plt) <mcsymbol memcpy>, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %386:gr64 = ADD64rr %387, %57, implicit-def $eflags
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %386
+    $rsi = COPY %56
+    $rdx = COPY %57
+    CALL64pcrel32 target-flags(x86-plt) <mcsymbol memcpy>, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %384:gr64 = ADD64rr %386, %57, implicit-def $eflags
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %384
+    $rsi = COPY %56
+    $rdx = COPY %57
+    CALL64pcrel32 target-flags(x86-plt) <mcsymbol memcpy>, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %382:gr64 = ADD64rr %384, %57, implicit-def $eflags
+    %380:gr32 = ADD32ri %45, 4, implicit-def $eflags
+    CMP32rr %380, %379, implicit-def $eflags
+    %447:gr64 = COPY %382
+    %448:gr32 = COPY %380
+    %449:gr64 = COPY %382
+    %450:gr64 = COPY %382
+    JCC_1 %bb.26, 5, implicit $eflags
+  
+  bb.27.BB_37:
+    successors: %bb.29(0x40000000), %bb.28(0x40000000)
+  
+    %49:gr64 = COPY %450
+    %48:gr64 = COPY %449
+    INLINEASM &"# LLVM BB: BB_37", 1 /* sideeffect attdialect */
+    %388:gr32 = MOV32r0 implicit-def $eflags
+    CMP32ri %375, 0, implicit-def $eflags
+    %451:gr64 = COPY %49
+    %452:gr32 = COPY %388
+    %453:gr64 = COPY %48
+    JCC_1 %bb.29, 4, implicit $eflags
+  
+  bb.28.BB_38:
+    successors: %bb.28(0x40000000), %bb.29(0x40000000)
+  
+    %51:gr32 = COPY %452
+    %50:gr64 = COPY %451
+    INLINEASM &"# LLVM BB: BB_38", 1 /* sideeffect attdialect */
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %50
+    $rsi = COPY %56
+    $rdx = COPY %57
+    CALL64pcrel32 target-flags(x86-plt) <mcsymbol memcpy>, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %390:gr64 = ADD64rr %50, %57, implicit-def $eflags
+    %389:gr32 = ADD32ri %51, 1, implicit-def $eflags
+    CMP32rr %389, %375, implicit-def $eflags
+    %451:gr64 = COPY %390
+    %452:gr32 = COPY %389
+    %453:gr64 = COPY %390
+    JCC_1 %bb.28, 5, implicit $eflags
+  
+  bb.29.BB_39:
+    successors: %bb.30(0x80000000)
+  
+    %54:gr64 = COPY %453
+    INLINEASM &"# LLVM BB: BB_39", 1 /* sideeffect attdialect */
+    %440:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @end_tmpl_begin, $noreg
+    %441:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @end_tmpl_end, $noreg
+    %442:gr64 = SUB64rr %441, %440, implicit-def $eflags
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %54
+    $rsi = COPY %440
+    $rdx = COPY %442
+    CALL64pcrel32 target-flags(x86-plt) <mcsymbol memcpy>, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $rdx
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %437:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @end_tmpl_end, $noreg
+    %438:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @end_tmpl_begin, $noreg
+    %439:gr64_nosp = SUB64rr %437, %438, implicit-def $eflags
+    MOV8mi %54, 1, %439, 0, $noreg, -23 :: (store (s8) into %ir.176, !tbaa !13)
+    %436:gr32 = COPY %328.sub_32bit
+    %430:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @end_tmpl_end, $noreg
+    %431:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @end_tmpl_begin, $noreg
+    %432:gr64 = SUB64rr %430, %431, implicit-def $eflags
+    %433:gr64 = ADD64ri32 %432, 10, implicit-def $eflags
+    %434:gr32 = COPY %433.sub_32bit
+    %435:gr32 = ADD32rr %436, %434, implicit-def $eflags
+    %426:gr32 = MOV32r0 implicit-def $eflags
+    %428:gr32 = SUB32rr %426, %435, implicit-def $eflags
+    %422:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @end_tmpl_end, $noreg
+    %423:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @end_tmpl_begin, $noreg
+    %424:gr64_nosp = SUB64rr %422, %423, implicit-def $eflags
+    MOV32mr %54, 1, %424, 1, $noreg, %428 :: (store (s32) into %ir.181, !tbaa !14)
+    MOV32mi %314, 1, $noreg, 0, $noreg, 0 :: (store (s32) into %ir.145, !tbaa !14)
+    %420:gr64 = MOV64rm $rip, 1, $noreg, target-flags(x86-gotpcrel) @code_begin, $noreg
+    %421:gr64 = AND64ri32 %420, -4096, implicit-def $eflags
+    %417:gr32 = MOV32ri 4
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %421
+    $rsi = COPY %311
+    $edx = COPY %417
+    CALL64pcrel32 target-flags(x86-plt) @mprotect, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $rsi, implicit $edx, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %418:gr32 = COPY $eax
+    %415:gr64 = MOV64ri @.str.11
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %415
+    CALL64pcrel32 target-flags(x86-plt) @perror, csr_64, implicit $rsp, implicit $ssp, implicit $rdi
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %414:gr32 = MOV32rm %stack.5, 1, $noreg, 4, $noreg :: (load (s32) from %ir.183, !tbaa !14)
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %414
+    CALL64pcrel32 target-flags(x86-plt) @close, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %413:gr32 = COPY $eax
+    %411:gr32 = MOV32rm %75, 1, $noreg, 0, $noreg :: (load (s32) from %ir.19, !tbaa !14)
+    %408:gr64 = MOV64ri @x
+    %409:gr64 = MOV32ri64 1
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %411
+    $rsi = COPY %408
+    $rdx = COPY %409
+    CALL64pcrel32 target-flags(x86-plt) @read, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $rsi, implicit $rdx, implicit-def $rax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %410:gr64 = COPY $rax
+    %405:gr32 = MOV32ri 42
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %62
+    $esi = COPY %405
+    CALL64pcrel32 target-flags(x86-plt) @dup2, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $esi, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %406:gr32 = COPY $eax
+    %403:gr64 = LEA64r %stack.10, 1, $noreg, 0, $noreg
+    %404:gr64 = ADD64ri32 %403, 8, implicit-def $eflags
+    %400:gr32 = MOV32r0 implicit-def $eflags
+    %401:gr64 = MOV32ri64 120
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %404
+    $esi = COPY %400
+    $rdx = COPY %401
+    CALL64pcrel32 target-flags(x86-plt) <mcsymbol memset>, csr_64, implicit $rsp, implicit $ssp, implicit $rdi, implicit $esi, implicit $rdx
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    MOV64mi32 %stack.10, 1, $noreg, 0, $noreg, 2 :: (store (s64) into %ir.192, !tbaa !31)
+    %395:gr32 = MOV32r0 implicit-def $eflags
+    %396:gr64 = MOV32ri64 128
+    %397:gr64 = LEA64r %stack.10, 1, $noreg, 0, $noreg
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %395
+    $rsi = COPY %396
+    $rdx = COPY %397
+    CALL64pcrel32 target-flags(x86-plt) @sched_setaffinity, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $rsi, implicit $rdx, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %398:gr32 = COPY $eax
+    %393:gr32 = MOV32r0 implicit-def $eflags
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $edi = COPY %393
+    $esi = COPY %393
+    $edx = COPY %393
+    CALL64pcrel32 target-flags(x86-plt) @setpriority, csr_64, implicit $rsp, implicit $ssp, implicit $edi, implicit $esi, implicit $edx, implicit-def $eax
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %394:gr32 = COPY $eax
+    ADJCALLSTACKDOWN64 0, 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    $rdi = COPY %326
+    $al = MOV8ri 0
+    CALL64pcrel32 target-flags(x86-plt) @run_test, csr_64, implicit $rsp, implicit $ssp, implicit $al, implicit $rdi
+    ADJCALLSTACKUP64 0, 0, implicit-def $rsp, implicit-def $eflags, implicit-def $ssp, implicit $rsp, implicit $ssp
+    %391:gr32 = MOV32r0 implicit-def $eflags
+    %392:gr64 = SUBREG_TO_REG 0, %391, %subreg.sub_32bit
+    %454:gr64 = COPY %392
+  
+  bb.30.BB_40:
+    %55:gr64 = COPY %454
+    INLINEASM &"# LLVM BB: BB_40", 1 /* sideeffect attdialect */
+    $rax = COPY %55
+    RET64 implicit $rax
+
+...

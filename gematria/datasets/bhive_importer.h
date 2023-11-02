@@ -31,6 +31,9 @@
 #include "llvm/MC/MCDisassembler/MCDisassembler.h"
 #include "llvm/MC/MCInstPrinter.h"
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/CodeGen/MIRParser/MIRParser.h"
+#include "llvm/CodeGen/MachineBasicBlock.h"
+#include "llvm/ADT/DenseMap.h"
 
 namespace gematria {
 
@@ -73,12 +76,17 @@ class BHiveImporter {
       size_t machine_code_hex_column_index, size_t throughput_column_index,
       double throughput_scaling = 1.0, uint64_t base_address = 0);
 
+  // Parse a file containing machine basic blocks, each has a unique name
+  absl::StatusOr<bool> LoadMIRModule(
+    std::string_view file_name
+  );
  private:
   const Canonicalizer& canonicalizer_;
   const llvm::TargetMachine& target_machine_;
   std::unique_ptr<llvm::MCContext> context_;
   std::unique_ptr<llvm::MCDisassembler> disassembler_;
   std::unique_ptr<llvm::MCInstPrinter> mc_inst_printer_;
+  llvm::DenseMap<llvm::StringRef, llvm::MachineBasicBlock*> name_to_mbb_;
 };
 
 }  // namespace gematria

@@ -24,6 +24,8 @@ cc_library(
         "@llvm-project//llvm:MCDisassembler",
         "@llvm-project//llvm:Support",
         "@llvm-project//llvm:Target",
+        "@llvm-project//llvm:CodeGen",
+        
     ],
 )
 
