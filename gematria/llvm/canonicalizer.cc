@@ -30,6 +30,17 @@
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/CodeGen/MachineInstr.h"
+#include "llvm/Support/raw_ostream.h"
+#include <sstream>
+
+#define DEBUG
+
+#ifdef DEBUG
+#define LOG(X) \
+  llvm::errs() << X << "\n"
+#else
+#define LOG(X)
+#endif
 
 namespace gematria {
 namespace {
@@ -69,6 +80,10 @@ Canonicalizer::~Canonicalizer() = default;
 Instruction Canonicalizer::InstructionFromMCInst(llvm::MCInst mcinst) const {
   ReplaceExprOperands(mcinst);
   return PlatformSpecificInstructionFromMCInst(mcinst);
+}
+
+Instruction Canonicalizer::InstructionFromMachineInstr(const llvm::MachineInstr& MI) const {
+  return PlatformSpecificInstructionFromMachineInstr(MI);
 }
 
 BasicBlock Canonicalizer::BasicBlockFromMCInst(
@@ -140,6 +155,80 @@ void AddX86VendorMnemonicAndPrefixes(
   assert(!instruction.mnemonic.empty());
 }
 
+void AddMIRVendorMnemonicAndPrefixes(
+    const llvm::MCSubtargetInfo& subtarget_info,
+    const llvm::MachineInstr& MI, Instruction& instruction) {
+  constexpr const char* kKnownPrefixes[] = {"REP", "LOCK", "REPNE", "REPE"};
+
+  std::string assembly_code;
+  llvm::raw_string_ostream stream(assembly_code);
+  MI.print(stream);
+  stream.flush();
+  LOG("DEBUG: AddMIRVendorMnemonicAndPrefixes on " << MI << assembly_code << "\n");
+
+  // TODO: now used a dummy way to seperate tokens... don't know why SplitByAny does 
+  // not work for MIR stream
+  llvm::SmallVector<std::string, 2> tokens;
+  tokens.push_back("");
+  for (char c : assembly_code){
+    if (c == ' ' || c == '\t' || c == '\n' || c == '\r'){
+      tokens.push_back("");
+    } else {
+      tokens.back().push_back(c);
+    }
+  }
+  assert(!tokens.empty());
+
+  //print out tokens
+  for (auto token : tokens){
+    LOG("DEBUG: token: " << token);
+  }
+
+  // If there is only one token, we treat it as the mnemonic no matter what.
+  if (tokens.size() == 1) {
+    instruction.mnemonic = tokens[0];
+    return;
+  }
+
+  // Otherwise, we strip known prefixes and treat the first token that is not a
+  // prefix as the mnemonic.
+  // If MI has result register, then the first token prefix/mnemonic is the last result register index + 2
+  size_t result_reg_index = 0;
+  bool is_first_time = true;
+  for (uint i = 0; i < MI.getNumOperands(); i++){
+    auto& MOP = MI.getOperand(i);
+    if (MOP.isReg() && !MOP.isImplicit() && MOP.isDef()){
+      if (is_first_time){
+        is_first_time = false;
+        result_reg_index = result_reg_index + 2;
+      } else {
+        result_reg_index = result_reg_index + 1;
+      }
+    }
+  }
+
+  for (const llvm::StringRef token : tokens) {
+    if (result_reg_index > 0){
+      result_reg_index = result_reg_index - 1;
+      continue;
+    }
+
+    // process prefix and mnemonic tokens
+    std::string uppercased_token = token.trim().upper();
+    LOG("DEBUG: uppercased_token: " << uppercased_token);
+    const bool is_known_prefix =
+        std::find(std::begin(kKnownPrefixes), std::end(kKnownPrefixes),
+                  uppercased_token) != std::end(kKnownPrefixes);
+    if (is_known_prefix) {
+      instruction.prefixes.push_back(std::move(uppercased_token));
+    } else {
+      instruction.mnemonic = std::move(uppercased_token);
+      break;
+    }
+  }
+  assert(!instruction.mnemonic.empty());
+}
+
 int GetX86MemoryOperandPosition(const llvm::MCInstrDesc& descriptor) {
   const int memory_operand_no =
       llvm::X86II::getMemoryOperandNo(descriptor.TSFlags);
@@ -180,47 +269,47 @@ Instruction X86Canonicalizer::PlatformSpecificInstructionFromMachineInstr(const 
   instruction.llvm_mnemonic =
       target_machine_.getMCInstrInfo()->getName(MI.getOpcode());
   // TODO: Write AddX86VendorMnemonicAndPrefixes method for MI
-  AddX86VendorMnemonicAndPrefixes(*mcinst_printer_,
-                                  *target_machine_.getMCSubtargetInfo(), MI,
+  AddMIRVendorMnemonicAndPrefixes(*target_machine_.getMCSubtargetInfo(), MI,
                                   instruction);
 
-  const llvm::MCInstrDesc& descriptor = instr_info.get(MI.getOpcode());
-  if (descriptor.mayLoad()) {
-    instruction.input_operands.push_back(
-        InstructionOperand::MemoryLocation(kWholeMemoryAliasGroup));
-  }
-  if (descriptor.mayStore()) {
-    instruction.output_operands.push_back(
-        InstructionOperand::MemoryLocation(kWholeMemoryAliasGroup));
-  }
+  // const llvm::MCInstrDesc& descriptor = instr_info.get(MI.getOpcode());
+  // if (descriptor.mayLoad()) {
+  //   instruction.input_operands.push_back(
+  //       InstructionOperand::MemoryLocation(kWholeMemoryAliasGroup));
+  // }
+  // if (descriptor.mayStore()) {
+  //   instruction.output_operands.push_back(
+  //       InstructionOperand::MemoryLocation(kWholeMemoryAliasGroup));
+  // }
 
-  const int memory_operand_index = GetX86MemoryOperandPosition(descriptor);
-  for (int operand_index = 0; operand_index < descriptor.getNumOperands();
-       ++operand_index) {
-    const bool is_output_operand = operand_index < descriptor.getNumDefs();
-    const bool is_address_computation_tuple =
-        operand_index == memory_operand_index;
-    // TODO: Write AddOperand method for MI
-    AddOperand(MI, /*operand_index=*/operand_index,
-               /*is_output_operand=*/is_output_operand,
-               /*is_address_computation_tuple=*/is_address_computation_tuple,
-               instruction);
-    if (is_address_computation_tuple) {
-      // A memory reference is represented as a 5-tuple. The whole 5-tuple is
-      // processed in one CanonicalizeOperand() call and we need to skip the
-      // remaining 4 elements here.
-      operand_index += 4;
-    }
-  }
+  // const int memory_operand_index = GetX86MemoryOperandPosition(descriptor);
+  // for (int operand_index = 0; operand_index < descriptor.getNumOperands();
+  //      ++operand_index) {
+  //   const bool is_output_operand = operand_index < descriptor.getNumDefs();
+  //   const bool is_address_computation_tuple =
+  //       operand_index == memory_operand_index;
+  //   // TODO: Write AddOperand method for MI
+  //   AddOperand(MI, /*operand_index=*/operand_index,
+  //              /*is_output_operand=*/is_output_operand,
+  //              /*is_address_computation_tuple=*/is_address_computation_tuple,
+  //              instruction);
+  //   if (is_address_computation_tuple) {
+  //     // A memory reference is represented as a 5-tuple. The whole 5-tuple is
+  //     // processed in one CanonicalizeOperand() call and we need to skip the
+  //     // remaining 4 elements here.
+  //     operand_index += 4;
+  //   }
+  // }
   
-  for (llvm::MCPhysReg implicit_output_register : descriptor.implicit_defs()) {
-    instruction.implicit_output_operands.push_back(InstructionOperand::Register(
-        register_info.getName(implicit_output_register)));
-  }
-  for (llvm::MCPhysReg implicit_input_register : descriptor.implicit_uses()) {
-    instruction.implicit_input_operands.push_back(InstructionOperand::Register(
-        register_info.getName(implicit_input_register)));
-  }
+  // for (llvm::MCPhysReg implicit_output_register : descriptor.implicit_defs()) {
+  //   instruction.implicit_output_operands.push_back(InstructionOperand::Register(
+  //       register_info.getName(implicit_output_register)));
+  // }
+  // for (llvm::MCPhysReg implicit_input_register : descriptor.implicit_uses()) {
+  //   instruction.implicit_input_operands.push_back(InstructionOperand::Register(
+  //       register_info.getName(implicit_input_register)));
+  // }
+  return instruction;
 }
 
 
