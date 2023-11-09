@@ -163,6 +163,13 @@ absl::Status ParentProcessInner(int child_pid, AccessedAddrs& accessed_addrs) {
     return absl::OkStatus();
   }
 
+  if (signal == SIGBUS) {
+    siginfo_t siginfo;
+    ptrace(PTRACE_GETSIGINFO, child_pid, 0, &siginfo);
+    return absl::InternalError(
+        absl::StrFormat("Child stopped with unexpected signal: %s, address %ul",
+                        strsignal(signal), (uint64_t)siginfo.si_addr));
+  }
   return absl::InternalError(absl::StrFormat(
       "Child stopped with unexpected signal: %s", strsignal(signal)));
 }
