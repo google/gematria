@@ -45,6 +45,7 @@ cc_test(
     deps = [
         ":linked_list",
         "@com_github_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
     ],
 )
 
