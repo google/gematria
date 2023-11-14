@@ -33,7 +33,6 @@
 #define LLVM_EXEGESIS_MEM_MAP_PREFIX "# LLVM-EXEGESIS-MEM-MAP "
 #define LLVM_EXEGESIS_MEM_NAME_PREFIX "MEM"
 
-static unsigned int mem_counter = 0;
 static unsigned int file_counter = 0;
 
 ABSL_FLAG(std::string, bhive_csv, "",
@@ -94,11 +93,12 @@ int main(int argc, char* argv[]) {
 
     // for each line, find the accessed addresses & disassemble instructions
     const auto& bytes = bytes_or.value();
+
+    // this will only get the first segfault address
     auto addrs_or = gematria::FindAccessedAddrs(bytes);
     auto proto = bhive_importer.BasicBlockProtoFromMachineCode(bytes);
     if (addrs_or.ok() && proto.ok()) {
-      // TODO: attach those addresses to input that can be executed by
-      // llvm-exegesis Create output file path
+      // Create output file path
       std::string output_file_path =
           output_dir + "/" + std::to_string(file_counter) + ".test";
 
@@ -114,13 +114,17 @@ int main(int argc, char* argv[]) {
 
       // Append memory annotations
       auto addrs = addrs_or.value();
+
+      // Multiple mappings can point to the same definition
+      if (addrs.accessed_blocks.size() > 0) {
+        output_file << LLVM_EXEGESIS_MEM_DEF_PREFIX
+                    << LLVM_EXEGESIS_MEM_NAME_PREFIX << " " << addrs.block_size
+                    << " " << INITIAL_MEM_VALUE << "\n";
+      }
       for (const auto& addr : addrs.accessed_blocks) {
-        std::string mem_name =
-            LLVM_EXEGESIS_MEM_NAME_PREFIX + std::to_string(mem_counter++);
-        output_file << LLVM_EXEGESIS_MEM_DEF_PREFIX << mem_name << " "
-                    << addrs.block_size << " " << INITIAL_MEM_VALUE << "\n";
-        output_file << LLVM_EXEGESIS_MEM_MAP_PREFIX << mem_name << " "
-                    << std::dec << addr << "\n";
+        output_file << LLVM_EXEGESIS_MEM_MAP_PREFIX
+                    << LLVM_EXEGESIS_MEM_NAME_PREFIX << " " << std::dec << addr
+                    << "\n";
       }
 
       // Append disassembled instructions
