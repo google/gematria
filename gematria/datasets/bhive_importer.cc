@@ -51,6 +51,21 @@
 #define LOG(X)
 #endif
 
+#define DEBUG
+
+#ifdef DEBUG
+#define LOG(X) \
+  llvm::errs() << X << "\n"
+#else
+#define LOG(X)
+#endif
+
+//Author: Zhan Shi
+#include "llvm/Pass.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/PassManager.h"
+#include "llvm/CodeGen/LiveInterval.h"
+
 namespace gematria {
 namespace {
 

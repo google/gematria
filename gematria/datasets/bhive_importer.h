@@ -97,6 +97,15 @@ class BHiveImporter {
       std::string_view source_name, std::string_view line,
       size_t BB_name_index, size_t throughput_column_index,
       double throughput_scaling = 1.0, uint64_t base_address = 0);
+  // Author: Zhan Shi
+  // Build the interference graph for each basic block in name_to_mbb_
+  // store into name_to_graph_
+  void Block_to_Interference(); 
+  
+  // Author: Zhan Shi
+  // Build the interference graph for each basic block in name_to_mbb_
+  // store into name_to_graph_
+  void Block_to_Interference(); 
 
  private:
   const Canonicalizer& canonicalizer_;
@@ -105,6 +114,14 @@ class BHiveImporter {
   std::unique_ptr<llvm::MCDisassembler> disassembler_;
   std::unique_ptr<llvm::MCInstPrinter> mc_inst_printer_;
   llvm::DenseMap<llvm::StringRef, llvm::MachineBasicBlock*> name_to_mbb_;
+  llvm::LLVMContext llvm_context_;
+  std::unique_ptr<llvm::Module> mir_module_;
+  llvm::MachineModuleInfo MMI_;
+  std::unique_ptr<llvm::MIRParser> mir_parser_;
+
+  // Author: Zhan Shi
+  // Add one data strcture to the bhiveimporter storing interference graph
+  llvm::DenseMap<llvm::StringRef, llvm::MachineBasicBlock*> name_to_graph_;
   llvm::LLVMContext llvm_context_;
   std::unique_ptr<llvm::Module> mir_module_;
   llvm::MachineModuleInfo MMI_;
