@@ -53,3 +53,14 @@ gematria_py_binary(
         "//gematria/utils/python:pybind11_abseil_status",
     ],
 )
+
+gematria_py_binary(
+    name = "import_from_mir",
+    srcs = ["import_from_mir.py"],
+    deps = [
+        ":bhive_importer",
+        "//gematria/llvm/python:canonicalizer",
+        "//gematria/llvm/python:llvm_architecture_support",
+        "//gematria/utils/python:pybind11_abseil_status",
+    ],
+)

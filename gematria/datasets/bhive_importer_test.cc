@@ -234,5 +234,10 @@ TEST_F(BHiveImporterTest, MIRDatasetBasicTest) {
               IsOk());
 }
 
+TEST_F(BHiveImporterTest, MIRDatasetTest2) {
+  EXPECT_THAT(x86_bhive_importer_->LoadMIRModule("/u9/z277zhu/research/gematria/mir_input/output/native_test.mir"),
+              IsOk());
+}
+
 }  // namespace
 }  // namespace gematria

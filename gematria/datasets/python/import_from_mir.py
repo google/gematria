@@ -126,9 +126,11 @@ def main(argv: Sequence[str]) -> None:
     for filename in os.listdir(_INPUT_DIR.value):
         if filename.endswith(".mir"):
             mir_file = os.path.join(_INPUT_DIR.value, filename)
-            perf_file = os.path.join(_INPUT_DIR.value, filename.replace(".mir", ".perf"))
+            print("mir file is " + mir_file)
+            perf_file = os.path.join(_INPUT_DIR.value, filename.replace(".mir", ".ll.perf"))
             # load the MIR file
-            module = importer.loadMIRModule(mir_file)
+            module = importer.LoadMIRModule(mir_file)
+            logging.info('Procssing %s file', mir_file)
             # iterate over each line in the corresponding .perf file
             with tf.io.gfile.GFile(perf_file, 'r') as bhive_csv_file:
                 for line in bhive_csv_file:

@@ -1,0 +1,22 @@
+diff --git a/llvm/lib/MC/MCContext.cpp b/llvm/lib/MC/MCContext.cpp
+index a1dde3e1fecb..88d8b11180e1 100644
+--- a/llvm/lib/MC/MCContext.cpp
++++ b/llvm/lib/MC/MCContext.cpp
+@@ -201,8 +201,15 @@ MCInst *MCContext::createMCInst() {
+ MCSymbol *MCContext::getOrCreateSymbol(const Twine &Name) {
+   SmallString<128> NameSV;
+   StringRef NameRef = Name.toStringRef(NameSV);
+-
+-  assert(!NameRef.empty() && "Normal symbols cannot be unnamed!");
++  static int cnt = 0;
++  if (NameRef.empty()){
++    // Append cnt to the end of NameRef
++    std::string ModifiedName = ("INVALID" + std::to_string(cnt));
++    cnt++; // Increment cnt
++
++    // Convert ModifiedName back to StringRef
++    NameRef = StringRef(ModifiedName);
++  }
+ 
+   MCSymbol *&Sym = Symbols[NameRef];
+   if (!Sym)
