@@ -235,6 +235,11 @@ class BasicBlockGraphBuilder {
   // Feature value of the nodes in the batch (i.e. the indices of the tokens
   // corresponding to the nodes). Corresponds to `GraphsTuple.nodes`.
   const std::vector<int>& node_features() const { return node_features_; }
+  // Values of instruction level runtime annotations in the same order as
+  // the instructions in the block.
+  const std::vector<std::vector<double>>& instruction_annotations() const {
+    return instruction_annotations_;
+  }
 
   // The sender (start) nodes of the edges in the graphs. `edge_senders()[i]` is
   // the index of the start node of the i-th edge in the graph. Corresponds to
@@ -382,6 +387,7 @@ class BasicBlockGraphBuilder {
 
   std::vector<NodeType> node_types_;
   std::vector<TokenIndex> node_features_;
+  std::vector<std::vector<double>> instruction_annotations_;
 
   std::vector<NodeIndex> edge_senders_;
   std::vector<NodeIndex> edge_receivers_;

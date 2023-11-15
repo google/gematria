@@ -191,6 +191,13 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
       return false;
     }
 
+    // Store the annotation within the instruction annotations vector for later
+    // use (inclusion in embeddings).
+    // TODO(virajbshah): Annotations are better stored on `Instruction`s as
+    // lists. Update this appropriately once that change is made.
+    instruction_annotations_.push_back(
+      std::vector<double>{instruction.cache_miss_frequency.value});
+
     // Add nodes for prefixes of the instruction.
     for (const std::string& prefix : instruction.prefixes) {
       const NodeIndex prefix_node = AddNode(NodeType::kPrefix, prefix);

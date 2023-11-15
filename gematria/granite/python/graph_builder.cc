@@ -94,6 +94,8 @@ PYBIND11_MODULE(graph_builder, m) {
                              &BasicBlockGraphBuilder::node_features)
       .def_property_readonly("instruction_node_mask",
                              &BasicBlockGraphBuilder::InstructionNodeMask)
+      .def_property_readonly("instruction_annotations",
+                             &BasicBlockGraphBuilder::instruction_annotations)
       .def_property_readonly("edge_senders",
                              &BasicBlockGraphBuilder::edge_senders)
       .def_property_readonly("edge_receivers",
