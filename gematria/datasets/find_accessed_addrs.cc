@@ -253,6 +253,16 @@ absl::Status ParentProcess(int child_pid, int pipe_read_fd,
               "tried to map previously discovered address %p, but mmap "
               "couldn't map this address\n",
               (void*)location_ptr);
+      continue;
+    }
+
+    // Initialise every fourth byte to 8, leaving the rest as zeroes. This
+    // ensures that every aligned 8-byte chunk will contain 0x800000008, which
+    // is a mappable address, and every 4-byte chunk will contain 0x8, which is
+    // a non-zero value which won't give SIGFPE if used with div.
+    uint8_t* block = reinterpret_cast<uint8_t*>(mapped_address);
+    for (int i = 0; i < accessed_addrs.block_size; i += 4) {
+      block[i] = 8;
     }
   }
 

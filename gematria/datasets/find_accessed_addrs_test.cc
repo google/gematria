@@ -161,5 +161,27 @@ TEST_F(FindAccessedAddrsTest, AccessFromRegister) {
                                  ElementsAre(0x10000, 0x20000))));
 }
 
+TEST_F(FindAccessedAddrsTest, DoubleIndirection) {
+  EXPECT_THAT(FindAccessedAddrsAsm(R"asm(
+    mov rax, [0x10000]
+    mov rbx, [rax]
+  )asm"),
+              IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
+                                 ElementsAre(0x10000, 0x0000000800000000))));
+}
+
+TEST_F(FindAccessedAddrsTest, DivideByPointee) {
+  EXPECT_THAT(FindAccessedAddrsAsm(R"asm(
+    mov rbx, [rax]
+    mov rdx, 0
+    idiv rbx
+    mov edx, 0
+    mov ebx, [rcx]
+    idiv ebx
+  )asm"),
+              IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
+                                 ElementsAre(0x10000))));
+}
+
 }  // namespace
 }  // namespace gematria
