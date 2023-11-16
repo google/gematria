@@ -228,10 +228,10 @@ absl::Status ParentProcess(int child_pid, int pipe_read_fd,
       abort();
     }
     if (mapped_address != location_ptr) {
-      fputs(
-          "tried to map previously discovered address, but mmap couldn't map "
-          "this address\n",
-          stderr);
+      fprintf(stderr,
+              "tried to map previously discovered address %p, but mmap "
+              "couldn't map this address\n",
+              (void*)location_ptr);
     }
   }
 
