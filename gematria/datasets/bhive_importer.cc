@@ -42,7 +42,6 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/WithColor.h"
 #include "llvm/Support/raw_ostream.h"
-
 #define DEBUG
 
 #ifdef DEBUG
@@ -220,16 +219,16 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseMIRCsvLine(
         "different, but were both %d: %s",
         BB_name_index, line));
   }
-  const std::string_view BB_unique_name =
-      columns[BB_name_index];
+  // const std::string_view BB_unique_name =
+  //     columns[BB_name_index];
   const std::string_view throughput_str = columns[throughput_column_index];
 
   BasicBlockWithThroughputProto proto;
 
-  absl::StatusOr<BasicBlockProto> block_proto_or_status =
-      BasicBlockProtoFromMBBName(BB_unique_name, base_address);
-  if (!block_proto_or_status.ok()) return block_proto_or_status.status();
-  *proto.mutable_basic_block() = std::move(block_proto_or_status).value();
+  // absl::StatusOr<BasicBlockProto> block_proto_or_status =
+  //     BasicBlockProtoFromMBBName(BB_unique_name, base_address);
+  // if (!block_proto_or_status.ok()) return block_proto_or_status.status();
+  // *proto.mutable_basic_block() = std::move(block_proto_or_status).value();
 
   double throughput_cycles = 0.0;
   if (!absl::SimpleAtod(throughput_str, &throughput_cycles)) {
@@ -248,6 +247,11 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseMIRCsvLine(
 absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name){
   // clear previous loaded module
   name_to_mbb_.clear();
+  if (mir_module_){
+    for (llvm::Function &F : mir_module_->functions()) {
+        MMI_.deleteMachineFunctionFor(F);
+    }
+  }
 
   // create MIR Parser and read all MBB to the map based on their unique name
   llvm::SMDiagnostic diag;

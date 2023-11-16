@@ -235,7 +235,7 @@ TEST_F(BHiveImporterTest, MIRDatasetBasicTest) {
 }
 
 TEST_F(BHiveImporterTest, MIRDatasetTest2) {
-  EXPECT_THAT(x86_bhive_importer_->LoadMIRModule("/u9/z277zhu/research/gematria/mir_input/output/native_test.mir"),
+  EXPECT_THAT(x86_bhive_importer_->LoadMIRModule("mir_input/output/BatchRulesReduceOps.mir"),
               IsOk());
 }
 
