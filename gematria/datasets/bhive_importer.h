@@ -36,7 +36,19 @@
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
 
+
+// aUTHOR: Zhan Shi
+#include "llvm/Pass.h"
+#include "llvm/CodeGen/LiveIntervalAnalysis.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/PassManager.h"
+#include "llvm/Analysis/LiveVariables.h"
+
 namespace gematria {
+
+//Author Zhan Shi
+class InterferencePass : public FunctionPass
+
 
 // Parser for BHive CSV files.
 class BHiveImporter {
@@ -105,7 +117,59 @@ class BHiveImporter {
   // Author: Zhan Shi
   // Build the interference graph for each basic block in name_to_mbb_
   // store into name_to_graph_
-  void Block_to_Interference(); 
+  void Block_to_Interference() {
+
+    // Use a dense map to store name to the name to graph
+    llvm::DenseMap<llvm::StringRef, llvm::MachineBasicBlock*> name_to_graph_;
+
+    // For each function, we want to do live range analysis of this function
+    for (llvm::Function &F : mir_module_) {
+      // Use a dense map to store live raneges of each register
+      llvm::DenseMap<unsigned, LiveInteval> reg_to_range;
+
+      // create a live inteval analyzer
+      llvm::LiveIntervals LIA();
+      
+      // Find all virtual register used in the function
+      for (unsigned reg : F.all_register) {
+
+        // Find live ranges
+        LiveInteval li = LIA(reg);
+
+        // Add it to the 
+        reg_to_range.insert(std::pair(reg, li));
+      }
+      
+    // Now we generate the adjacency list for this function
+    // and then preallocate the space for these inner vectors
+    llvm::Densemap<unsigned, llvm::SmallVector<unsigned>> adjacency_list;
+    for (unsigned reg : F.all_register) adjacency_list.insert(std::pair(reg, llvm::SmallVector()));
+
+    // Then we generate all $n choose 2$ case by doing as follows
+    for (pair_reg_1 : reg_to_range) {
+      for (pair_reg_2 : reg_to_range) {
+
+        // If we found the register to be the same we do nothing
+        // Otherwise we do the following
+        if (pair_res_1.first != pair_reg_2.first) {
+          // Find two live ranges
+          LiveInteval range_1 = pair_reg_1.second;
+          LiveInteval range_2 = pair_reg_2.second;
+
+          if (range_1 "intersect" range_2) {
+            // Retrive the smallvector in the dictionary
+            llvm::SmallVector<unsigned> &adjaceny_1 = adjacency_list.find(pair_reg_1.first).second;
+            llvm::SmallVector<unsigned> &adjaceny_2 = adjacency_list.find(pair_reg_2.first).second;
+
+            // add the other register to the adjacency list of the current node. 
+            adjacecy_1.push_back(pair_reg_2.first); adjacecy_2.push_back(pair_reg_1.first); 
+          }
+
+        }
+      }
+    }
+  }
+  
 
  private:
   const Canonicalizer& canonicalizer_;
@@ -127,6 +191,7 @@ class BHiveImporter {
   llvm::MachineModuleInfo MMI_;
   std::unique_ptr<llvm::MIRParser> mir_parser_;
 };
+
 
 }  // namespace gematria
 
