@@ -18,6 +18,7 @@
 #include <signal.h>
 #include <sys/mman.h>
 #include <sys/ptrace.h>
+#include <sys/user.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -28,6 +29,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <string>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -120,6 +122,19 @@ absl::StatusOr<PipedData> ReadAll(int fd) {
 
 uintptr_t AlignDown(uintptr_t x, size_t align) { return x - (x % align); }
 
+std::string DumpRegs(const struct user_regs_struct& regs) {
+  return absl::StrFormat(
+      "\trsp=%016x rbp=%016x, rip=%016x\n"
+      "\trax=%016x rbx=%016x, rcx=%016x\n"
+      "\trdx=%016x rsi=%016x, rdi=%016x\n"
+      "\t r8=%016x  r9=%016x, r10=%016x\n"
+      "\tr11=%016x r12=%016x, r13=%016x\n"
+      "\tr14=%016x r15=%016x",
+      regs.rsp, regs.rbp, regs.rip, regs.rax, regs.rbx, regs.rcx, regs.rdx,
+      regs.rsi, regs.rdi, regs.r8, regs.r9, regs.r10, regs.r11, regs.r12,
+      regs.r13, regs.r14, regs.r15);
+}
+
 absl::Status ParentProcessInner(int child_pid, AccessedAddrs& accessed_addrs) {
   int status;
   waitpid(child_pid, &status, 0);
@@ -163,15 +178,21 @@ absl::Status ParentProcessInner(int child_pid, AccessedAddrs& accessed_addrs) {
     return absl::OkStatus();
   }
 
+  // Any other case is an unexpected signal, so let's capture the registers for
+  // ease of debugging.
+  struct user_regs_struct registers;
+  ptrace(PTRACE_GETREGS, child_pid, 0, &registers);
+
   if (signal == SIGBUS) {
     siginfo_t siginfo;
     ptrace(PTRACE_GETSIGINFO, child_pid, 0, &siginfo);
-    return absl::InternalError(
-        absl::StrFormat("Child stopped with unexpected signal: %s, address %ul",
-                        strsignal(signal), (uint64_t)siginfo.si_addr));
+    return absl::InternalError(absl::StrFormat(
+        "Child stopped with unexpected signal: %s, address %ul\n%s",
+        strsignal(signal), (uint64_t)siginfo.si_addr, DumpRegs(registers)));
   }
-  return absl::InternalError(absl::StrFormat(
-      "Child stopped with unexpected signal: %s", strsignal(signal)));
+  return absl::InternalError(
+      absl::StrFormat("Child stopped with unexpected signal: %s\n%s",
+                      strsignal(signal), DumpRegs(registers)));
 }
 
 absl::Status ParentProcess(int child_pid, int pipe_read_fd,
