@@ -130,9 +130,11 @@ class BHiveImporter {
       // create a live inteval analyzer
       llvm::LiveIntervals LIA();
       
+      // Run analyzer on function
+      LIA.runOnMachineFunction(F); 
+
       // Find all virtual register used in the function
       for (unsigned reg : F.all_register) {
-
         // Find live ranges
         LiveInteval li = LIA(reg);
 
