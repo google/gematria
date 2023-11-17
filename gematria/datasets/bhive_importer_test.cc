@@ -227,7 +227,7 @@ TEST_F(BHiveImporterTest, NonStandardColumns) {
 }
 
 TEST_F(BHiveImporterTest, MIRDatasetBasicTest) {
-  EXPECT_THAT(x86_bhive_importer_->LoadMIRModule("/u9/z277zhu/research/gematria/sample_dataset/data.mir"),
+  EXPECT_THAT(x86_bhive_importer_->LoadMIRModule("/granlte/sample_dataset/data.mir"),
               IsOk());
   EXPECT_THAT(x86_bhive_importer_->ParseMIRCsvLine(kSourceName, "a,b,BB_13,2.37", 2,
                                                      3, kScaling),
