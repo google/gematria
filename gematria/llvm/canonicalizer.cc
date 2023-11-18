@@ -32,6 +32,8 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/CodeGen/MachineFunction.h"
+#include "llvm/CodeGen/MachineRegisterInfo.h"
 #include <sstream>
 
 #define DEBUG
@@ -106,7 +108,17 @@ std::string Canonicalizer::GetRegisterNameOrEmpty(
 std::string Canonicalizer::GetRegisterNameOrEmpty(
     const llvm::MachineOperand& operand) const {
   assert(operand.isReg());
-  return "register"; // TODO: should we call all virtual registers just register?
+  // cast operand to llvm::Register
+  const llvm::Register& reg = operand.getReg();
+  if (reg.isVirtual()){
+    const llvm::MachineFunction *MF = operand.getParent()->getParent()->getParent();
+    const llvm::TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
+    const llvm::MachineRegisterInfo &MRI = MF->getRegInfo();
+    unsigned Size = TRI->getRegSizeInBits(reg, MRI);
+    return "VREG" + std::to_string(Size);
+  } else {
+    return target_machine_.getMCRegisterInfo()->getName(reg);
+  }
 }
 
 namespace {
