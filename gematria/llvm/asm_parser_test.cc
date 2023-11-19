@@ -25,10 +25,10 @@
 #include "gematria/testing/matchers.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "llvm/IR/InlineAsm.h"
-#include "llvm/MC/MCInst.h"
 #include "lib/Target/X86/MCTargetDesc/X86BaseInfo.h"  //// IWYU pragma: keep (for opcodes).
 #include "lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
+#include "llvm/IR/InlineAsm.h"
+#include "llvm/MC/MCInst.h"
 
 namespace gematria {
 namespace {
