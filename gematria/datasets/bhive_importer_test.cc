@@ -235,7 +235,10 @@ TEST_F(BHiveImporterTest, MIRDatasetBasicTest) {
 }
 
 TEST_F(BHiveImporterTest, MIRDatasetTest2) {
-  EXPECT_THAT(x86_bhive_importer_->LoadMIRModule("mir_input/output/BatchRulesReduceOps.mir"),
+  EXPECT_THAT(x86_bhive_importer_->LoadMIRModule("sample_dataset/native_test.mir"),
+              IsOk());
+  EXPECT_THAT(x86_bhive_importer_->ParseMIRCsvLine(kSourceName, "a,b,BB_13,2.37", 2,
+                                                     3, kScaling),
               IsOk());
 }
 

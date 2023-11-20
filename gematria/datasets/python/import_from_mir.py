@@ -160,7 +160,7 @@ def main(argv: Sequence[str]) -> None:
                                 throughput_scaling=_THROUGHPUT_SCALING.value,
                             )
                             writer.write(block_proto.SerializeToString())
-                        except bhive_importer.BasicBlockNotFoundError:
+                        except:
                             num_skipped_blocks += 1
             except:
                 logging.exception('Could not load file "%s"', mir_file)

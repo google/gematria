@@ -174,29 +174,21 @@ absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMBBName(
   LOG("MBB is " << *MBB);
   for (llvm::MachineInstr& MI : *MBB){
     // if MI is a control instruction(ret,branch,jmp), skip it
-    if (MI.isInlineAsm() || MI.isTerminator()) {
+    if (MI.isInlineAsm() || MI.isTerminator() || MI.isEHLabel()) {
       LOG("MI is a control instruction, skipping it " << MI);
       continue;
     }
 
     // Assert MI cannot be a CALL instruction
     assert(!MI.isCall() && "MI is a CALL instruction, bad dataset");
-    *basic_block_proto.add_canonicalized_instructions() = ProtoFromInstruction(
-         canonicalizer_.InstructionFromMachineInstr(MI));
+    auto I = canonicalizer_.InstructionFromMachineInstr(MI);
+    if (!I.is_valid) {
+      LOG("MI is not valid, skipping it " << MI);
+      return absl::InvalidArgumentError(
+        absl::StrCat("Could not parse MachineInstr "));
+    }
+    *basic_block_proto.add_canonicalized_instructions() = ProtoFromInstruction(I);
   }
-
-  // for (DisassembledInstruction& instruction : *instructions) {
-  // NOT VERY IMPORTANT THESE 3 LINES
-  //   MachineInstructionProto& machine_instruction =
-  //       *basic_block_proto.add_machine_instructions();
-  //   machine_instruction.set_address(instruction.address);
-  //   machine_instruction.set_assembly(instruction.assembly);
-  //   machine_instruction.set_machine_code(instruction.machine_code);
-  // VERY IMPORTANT!!! Do this first TODO: change this to use the unique name to get the MBB
-  //   *basic_block_proto.add_canonicalized_instructions() = ProtoFromInstruction(
-  //       canonicalizer_.InstructionFromMCInst(instruction.mc_inst));
-  // }
-
   return basic_block_proto;
 }
 
@@ -219,16 +211,16 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseMIRCsvLine(
         "different, but were both %d: %s",
         BB_name_index, line));
   }
-  // const std::string_view BB_unique_name =
-  //     columns[BB_name_index];
+  const std::string_view BB_unique_name =
+      columns[BB_name_index];
   const std::string_view throughput_str = columns[throughput_column_index];
 
   BasicBlockWithThroughputProto proto;
 
-  // absl::StatusOr<BasicBlockProto> block_proto_or_status =
-  //     BasicBlockProtoFromMBBName(BB_unique_name, base_address);
-  // if (!block_proto_or_status.ok()) return block_proto_or_status.status();
-  // *proto.mutable_basic_block() = std::move(block_proto_or_status).value();
+  absl::StatusOr<BasicBlockProto> block_proto_or_status =
+      BasicBlockProtoFromMBBName(BB_unique_name, base_address);
+  if (!block_proto_or_status.ok()) return block_proto_or_status.status();
+  *proto.mutable_basic_block() = std::move(block_proto_or_status).value();
 
   double throughput_cycles = 0.0;
   if (!absl::SimpleAtod(throughput_str, &throughput_cycles)) {

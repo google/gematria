@@ -495,7 +495,7 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
     llvm::errs() << "Unsupported operand type: ";
     operand.print(llvm::errs());
     llvm::errs() << "\n";
-    assert(false);
+    instruction.is_valid = false;
   }
 }
 

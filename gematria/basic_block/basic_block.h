@@ -284,6 +284,9 @@ struct Instruction {
   uint64_t address = 0;
   // The size of the instruction.
   size_t size = 0;
+
+  // The instruction is valid or not
+  bool is_valid = true;
 };
 
 std::ostream& operator<<(std::ostream& os, const Instruction& instruction);
