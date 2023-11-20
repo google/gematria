@@ -181,8 +181,8 @@ absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMBBName(
 
     // Assert MI cannot be a CALL instruction
     assert(!MI.isCall() && "MI is a CALL instruction, bad dataset");
-    canonicalizer_.InstructionFromMachineInstr(MI);
-    // TODO: Add this to the basic block proto
+    *basic_block_proto.add_canonicalized_instructions() = ProtoFromInstruction(
+         canonicalizer_.InstructionFromMachineInstr(MI));
   }
 
   // for (DisassembledInstruction& instruction : *instructions) {
@@ -240,6 +240,7 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseMIRCsvLine(
   throughput.set_source(source_name);
   throughput.add_inverse_throughput_cycles(throughput_cycles *
                                            throughput_scaling);
+  LOG(proto.DebugString());
 
   return proto;
 }

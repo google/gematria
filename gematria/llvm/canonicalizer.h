@@ -68,6 +68,7 @@ class Canonicalizer {
   // the operand is an "undefined" operand.
   // This method must not be called when `operand.isReg()` is false.
   std::string GetRegisterNameOrEmpty(const llvm::MCOperand& operand) const;
+  std::string GetRegisterNameOrEmpty(const llvm::MachineOperand& operand) const;
 
   const llvm::TargetMachine& target_machine_;
 };
@@ -85,6 +86,9 @@ class X86Canonicalizer final : public Canonicalizer {
       const llvm::MachineInstr& MI) const override;
 
   void AddOperand(const llvm::MCInst& mcinst, int operand_index,
+                  bool is_output_operand, bool is_address_computation_tuple,
+                  Instruction& instruction) const;
+  void AddOperand(const llvm::MachineInstr& mi, int operand_index,
                   bool is_output_operand, bool is_address_computation_tuple,
                   Instruction& instruction) const;
 
