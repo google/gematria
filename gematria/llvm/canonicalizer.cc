@@ -69,8 +69,18 @@ void ReplaceExprOperands(llvm::MCInst& instruction) {
   }
 }
 
-// TODO: Write ReplaceExprOperands for MI (replace unsupported operand)
-// Maybe not necessary
+void ReplaceExprOperands(llvm::MachineInstr& instruction) {
+  for (int i = 0; i < instruction.getNumOperands(); ++i) {
+    llvm::MachineOperand& operand = instruction.getOperand(i);
+    if (operand.isSymbol()) {
+      // TODO(ondrasej): In some cases the value may change the binary encoding
+      // of the instruction, e.g. switch between an 8-bit or a 32-bit encoding
+      // of the displacement and 0 might have a special meaning (e.g. do not use
+      // displacement at all).
+      operand = llvm::MachineOperand::CreateImm(1);
+    }
+  }
+}
 
 }  // namespace
 
@@ -86,7 +96,8 @@ Instruction Canonicalizer::InstructionFromMCInst(llvm::MCInst mcinst) const {
   return PlatformSpecificInstructionFromMCInst(mcinst);
 }
 
-Instruction Canonicalizer::InstructionFromMachineInstr(const llvm::MachineInstr& MI) const {
+Instruction Canonicalizer::InstructionFromMachineInstr(llvm::MachineInstr& MI) const {
+  ReplaceExprOperands(MI);
   return PlatformSpecificInstructionFromMachineInstr(MI);
 }
 
@@ -300,12 +311,10 @@ Instruction X86Canonicalizer::PlatformSpecificInstructionFromMachineInstr(const 
         InstructionOperand::MemoryLocation(kWholeMemoryAliasGroup));
   }
 
-  const int memory_operand_index = GetX86MemoryOperandPosition(descriptor);
   for (int operand_index = 0; operand_index < descriptor.getNumOperands();
        ++operand_index) {
     const bool is_output_operand = operand_index < descriptor.getNumDefs();
-    const bool is_address_computation_tuple =
-        operand_index == memory_operand_index;
+    const bool is_address_computation_tuple = false;
     AddOperand(MI, /*operand_index=*/operand_index,
                /*is_output_operand=*/is_output_operand,
                /*is_address_computation_tuple=*/is_address_computation_tuple,
@@ -458,28 +467,11 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
   // only a subset of components.
   if (!is_address_computation_tuple && operand.isReg() && operand.getReg() == 0)
     return;
-
+  
   std::vector<InstructionOperand>& operand_list =
       is_output_operand ? instruction.output_operands
                         : instruction.input_operands;
-  if (is_address_computation_tuple) { // TODO: Check if MIR has address computation tuple
-    std::string base_register = GetRegisterNameOrEmpty(
-        mi.getOperand(operand_index + llvm::X86::AddrBaseReg));
-    const int64_t displacement =
-        mi.getOperand(operand_index + llvm::X86::AddrDisp).getImm();
-    std::string index_register = GetRegisterNameOrEmpty(
-        mi.getOperand(operand_index + llvm::X86::AddrIndexReg));
-    const int64_t scaling =
-        mi.getOperand(operand_index + llvm::X86::AddrScaleAmt).getImm();
-    std::string segment_register = GetRegisterNameOrEmpty(
-        mi.getOperand(operand_index + llvm::X86::AddrSegmentReg));
-    operand_list.push_back(InstructionOperand::Address(
-        /* base_register= */ std::move(base_register),
-        /* displacement= */ displacement,
-        /* index_register= */ std::move(index_register),
-        /* scaling= */ static_cast<int>(scaling),
-        /* segment_register= */ std::move(segment_register)));
-  } else if (operand.isReg()) {
+  if (operand.isReg()) {
     operand_list.push_back(
         InstructionOperand::Register(GetRegisterNameOrEmpty(operand)));
   } else if (operand.isImm()) {
@@ -488,9 +480,11 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
   } else if (operand.isCImm()) {
     operand_list.push_back(
         InstructionOperand::ImmediateValue(operand.getCImm()->getZExtValue()));
-   }else if (operand.isFPImm()) {
+  } else if (operand.isFPImm()) {
     operand_list.push_back(InstructionOperand::FpImmediateValue(
         llvm::bit_cast<double>(operand.getFPImm())));
+  } else if (operand.isFI() || operand.isTargetIndex() || operand.isGlobal()) {
+    operand_list.push_back(InstructionOperand::MemoryLocation(operand.getIndex()));
   } else {
     llvm::errs() << "Unsupported operand type: ";
     operand.print(llvm::errs());

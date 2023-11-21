@@ -44,7 +44,7 @@ class Canonicalizer {
 
   // Extract data from a single MachineInstr (MIR)
   virtual Instruction InstructionFromMachineInstr(
-        const llvm::MachineInstr& machine_instr) const;
+        llvm::MachineInstr& machine_instr) const;
 
   // Extracts data from a sequence of instructions.
   virtual BasicBlock BasicBlockFromMCInst(
