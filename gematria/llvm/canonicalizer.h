@@ -90,7 +90,7 @@ class X86Canonicalizer final : public Canonicalizer {
                   Instruction& instruction) const;
   void AddOperand(const llvm::MachineInstr& mi, int operand_index,
                   bool is_output_operand, bool is_address_computation_tuple,
-                  Instruction& instruction) const;
+                  Instruction& instruction, const llvm::MCInstrDesc& descriptor) const;
 
   std::unique_ptr<llvm::MCInstPrinter> mcinst_printer_;
 };
