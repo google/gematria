@@ -57,6 +57,17 @@ struct PipedData {
   uintptr_t code_address;
 };
 
+PipedData MakePipedData() {
+  PipedData piped_data;
+
+  // Zero out the entire object, not just each field individually -- we'll be
+  // writing the entire thing out to the pipe as a byte array, and if we just
+  // initialize all the fields we'll leave any padding uninitialized, which will
+  // make msan unhappy when we write it to the pipe.
+  memset(&piped_data, 0, sizeof(piped_data));
+  return piped_data;
+}
+
 bool IsRetryable(int err) {
   return err == EINTR || err == EAGAIN || err == EWOULDBLOCK;
 }
@@ -288,8 +299,8 @@ absl::Status ParentProcess(int child_pid, int pipe_read_fd,
     abort();
   }
 
-  PipedData piped_data = {.code_address =
-                              reinterpret_cast<uintptr_t>(mapped_address)};
+  auto piped_data = MakePipedData();
+  piped_data.code_address = reinterpret_cast<uintptr_t>(mapped_address);
   auto status = WriteAll(pipe_write_fd, piped_data);
   if (!status.ok()) {
     abort();
