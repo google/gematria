@@ -289,7 +289,7 @@ Instruction X86Canonicalizer::PlatformSpecificInstructionFromMachineInstr(const 
   // if it's a FrameIndex, then different frameindex should not be aliased to each other
   
   // use -1 denote global/other memory alias; use other to denote stack memory alias
-  constexpr int kWholeMemoryAliasGroup = -1;
+  constexpr int kWholeMemoryAliasGroup = 1;
 
   const llvm::MCRegisterInfo& register_info =
       *target_machine_.getMCRegisterInfo();
@@ -302,6 +302,14 @@ Instruction X86Canonicalizer::PlatformSpecificInstructionFromMachineInstr(const 
                                   instruction);
 
   const llvm::MCInstrDesc& descriptor = instr_info.get(MI.getOpcode());
+  if (descriptor.mayLoad()) {
+    instruction.input_operands.push_back(
+        InstructionOperand::MemoryLocation(kWholeMemoryAliasGroup));
+  }
+  if (descriptor.mayStore()) {
+    instruction.output_operands.push_back(
+        InstructionOperand::MemoryLocation(kWholeMemoryAliasGroup));
+  }
   const int memory_operand_index = GetX86MemoryOperandPosition(descriptor);
   for (int operand_index = 0; operand_index < descriptor.getNumOperands();
        ++operand_index) {
@@ -467,9 +475,16 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
       is_output_operand ? instruction.output_operands
                         : instruction.input_operands;
   if (is_address_computation_tuple) { // TODO: Check if MIR has address computation tuple
+    std::string base_register;
     if (mi.getOperand(operand_index + llvm::X86::AddrBaseReg).isReg()){
-      std::string base_register = GetRegisterNameOrEmpty(
+      base_register = GetRegisterNameOrEmpty(
         mi.getOperand(operand_index + llvm::X86::AddrBaseReg));
+    } else if (mi.getOperand(operand_index + llvm::X86::AddrBaseReg).isFI()){
+      base_register = "rbp";
+    } else {
+      assert(false && "unsupported base register type");
+      LOG(mi);
+    }
       const int64_t displacement =
           mi.getOperand(operand_index + llvm::X86::AddrDisp).getImm();
       std::string index_register = GetRegisterNameOrEmpty(
@@ -485,18 +500,6 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
           /* scaling= */ static_cast<int>(scaling),
           /* segment_register= */ std::move(segment_register)));
         LOG("Hit here address_computation_tuple reg " << mi << "\n");
-    } else if (mi.getOperand(operand_index + llvm::X86::AddrBaseReg).isFI()){
-      if (descriptor.mayLoad()){
-        instruction.input_operands.push_back(InstructionOperand::MemoryLocation(operand.getIndex()));
-      } else if (descriptor.mayStore()){
-        instruction.output_operands.push_back(InstructionOperand::MemoryLocation(operand.getIndex()));
-      } else {
-        assert(false && "FrameIndex should only be used in memory operand");
-      }
-    } else {
-      LOG("Unsupport address_computation_tuple " << mi << "\n");
-      assert(false);
-    }
   } else if (operand.isReg()) {
     operand_list.push_back(
         InstructionOperand::Register(GetRegisterNameOrEmpty(operand)));
@@ -509,13 +512,6 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
   } else if (operand.isFPImm()) {
     operand_list.push_back(InstructionOperand::FpImmediateValue(
         llvm::bit_cast<double>(operand.getFPImm())));
-  } else if (operand.isGlobal()){
-    if (descriptor.mayLoad()){
-        instruction.input_operands.push_back(InstructionOperand::MemoryLocation(-1));
-      } 
-    if (descriptor.mayStore()){
-        instruction.output_operands.push_back(InstructionOperand::MemoryLocation(-1));
-      } 
   } else {
     llvm::errs() << "Unsupported operand type: ";
     operand.print(llvm::errs());
