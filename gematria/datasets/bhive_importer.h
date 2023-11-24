@@ -39,16 +39,24 @@
 
 // aUTHOR: Zhan Shi
 #include "llvm/Pass.h"
-#include "llvm/CodeGen/LiveIntervalAnalysis.h"
+#include "llvm/CodeGen/LiveIntervals.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/PassManager.h"
-#include "llvm/Analysis/LiveVariables.h"
+#include "llvm/IR/LegacyPassManager.h"
+
+#include "llvm/CodeGen/MachineModuleInfo.h"
+#include "llvm/CodeGen/MachineFunction.h"
+#include "llvm/Support/SourceMgr.h"
+#include "llvm/Support/WithColor.h"
+#include "llvm/Support/raw_ostream.h"
+
+
+#include "llvm/CodeGen/MIRParser/MIRParser.h"
+#include "llvm/CodeGen/MachineBasicBlock.h"
+#include "llvm/ADT/DenseMap.h"
+
 
 namespace gematria {
-
-//Author Zhan Shi
-class InterferencePass : public FunctionPass
-
 
 // Parser for BHive CSV files.
 class BHiveImporter {
@@ -121,52 +129,59 @@ class BHiveImporter {
 
     // Use a dense map to store name to the name to graph
     llvm::DenseMap<llvm::StringRef, llvm::MachineBasicBlock*> name_to_graph_;
+    
+    // Use a pass manager to run the liveness analysis
+    // run pass on whole module
+    llvm::PassManager passManager;
+    passManager.add(new llvm::LiveIntervals());
+    passManager.run(*mir_module_);
 
     // For each function, we want to do live range analysis of this function
-    for (llvm::Function &F : mir_module_) {
+    for (llvm::Function &F : *mir_module_) {
       // Use a dense map to store live raneges of each register
-      llvm::DenseMap<unsigned, LiveInteval> reg_to_range;
+      llvm::DenseMap<unsigned, llvm::LiveInterval> reg_to_range;
 
-      // create a live inteval analyzer
-      llvm::LiveIntervals LIA();
-      
-      // Run analyzer on function
-      LIA.runOnMachineFunction(F); 
+      // retrive result from pass manager
+      llvm::LiveIntervals LIA = passManager.getResult<llvm::LiveIntervals>(F);
 
       // Find all virtual register used in the function
       for (unsigned reg : F.all_register) {
         // Find live ranges
-        LiveInteval li = LIA(reg);
+        llvm::LiveInterval &li = LIA.getInterval(reg);
 
-        // Add it to the 
-        reg_to_range.insert(std::pair(reg, li));
+        // Add it to the reg_to_range
+        reg_to_range.insert(std::pair<unsigned, &llvm::LiveInterval>(reg, li));
       }
       
-    // Now we generate the adjacency list for this function
-    // and then preallocate the space for these inner vectors
-    llvm::Densemap<unsigned, llvm::SmallVector<unsigned>> adjacency_list;
-    for (unsigned reg : F.all_register) adjacency_list.insert(std::pair(reg, llvm::SmallVector()));
+      // Now we generate the adjacency list for this function
+      // and then preallocate the space for these inner vectors
+      llvm::DenseMap<unsigned, llvm::SmallVector<unsigned, 4>> adjacency_list;
+      for (unsigned reg : F.all_register) {
+        llvm::SmallVector<unsigned, 4> temp_small_vec;
+        adjacency_list.insert(std::pair<unsigned, llvm::SmallVector<unsigned, 4>>(reg, temp_small_vec));
+      }
+        
 
-    // Then we generate all $n choose 2$ case by doing as follows
-    for (pair_reg_1 : reg_to_range) {
-      for (pair_reg_2 : reg_to_range) {
+      // Then we generate all $n choose 2$ case by doing as follows
+      for (std::pair<unsigned, &llvm::LiveInterval> pair_reg_1 : reg_to_range) {
+        for (std::pair<unsigned, &llvm::LiveInterval> pair_reg_2 : reg_to_range) {
 
-        // If we found the register to be the same we do nothing
-        // Otherwise we do the following
-        if (pair_res_1.first != pair_reg_2.first) {
-          // Find two live ranges
-          LiveInteval range_1 = pair_reg_1.second;
-          LiveInteval range_2 = pair_reg_2.second;
+          // If we found the register to be the same we do nothing
+          // Otherwise we do the following
+          if (pair_reg_1.first != pair_reg_2.first) {
+            // Find two live ranges
+            llvm::LiveInterval range_1 = pair_reg_1.second;
+            llvm::LiveInterval range_2 = pair_reg_2.second;
 
-          if (range_1 "intersect" range_2) {
-            // Retrive the smallvector in the dictionary
-            llvm::SmallVector<unsigned> &adjaceny_1 = adjacency_list.find(pair_reg_1.first).second;
-            llvm::SmallVector<unsigned> &adjaceny_2 = adjacency_list.find(pair_reg_2.first).second;
+            if (range_1 "intersect" range_2) {
+              // Retrive the smallvector in the dictionary
+              llvm::SmallVector<unsigned, 4> &adjacency_1 = adjacency_list.find(pair_reg_1.first) -> second;
+              llvm::SmallVector<unsigned, 4> &adjacency_2 = adjacency_list.find(pair_reg_2.first) -> second;
 
-            // add the other register to the adjacency list of the current node. 
-            adjacecy_1.push_back(pair_reg_2.first); adjacecy_2.push_back(pair_reg_1.first); 
+              // add the other register to the adjacency list of the current node. 
+              adjacency_1.push_back(pair_reg_2.first); adjacency_2.push_back(pair_reg_1.first); 
+            }
           }
-
         }
       }
     }
