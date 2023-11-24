@@ -180,7 +180,11 @@ absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMBBName(
     }
 
     // Assert MI cannot be a CALL instruction
-    assert(!MI.isCall() && "MI is a CALL instruction, bad dataset");
+    if(MI.isCall()){
+      LOG("MI is a CALL instruction, abort this BB " << MI);
+      return absl::InvalidArgumentError(
+        absl::StrCat("Cannot handle CALL instruction "));
+    } 
     auto I = canonicalizer_.InstructionFromMachineInstr(MI);
     if (!I.is_valid) {
       LOG("MI is not valid, skipping it " << MI);

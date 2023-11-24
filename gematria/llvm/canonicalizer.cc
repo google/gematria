@@ -72,12 +72,14 @@ void ReplaceExprOperands(llvm::MCInst& instruction) {
 void ReplaceExprOperands(llvm::MachineInstr& instruction) {
   for (int i = 0; i < instruction.getNumOperands(); ++i) {
     llvm::MachineOperand& operand = instruction.getOperand(i);
-    if (operand.isSymbol()) {
+    if (operand.isSymbol() || operand.isGlobal() || operand.isCPI()) {
       // TODO(ondrasej): In some cases the value may change the binary encoding
       // of the instruction, e.g. switch between an 8-bit or a 32-bit encoding
       // of the displacement and 0 might have a special meaning (e.g. do not use
       // displacement at all).
       operand = llvm::MachineOperand::CreateImm(1);
+    } else {
+      LOG("DEBUG: ReplaceExprOperands: operand" << operand << "Has type " << operand.getType() << "\n");
     }
   }
 }

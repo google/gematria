@@ -139,7 +139,7 @@ def main(argv: Sequence[str]) -> None:
             try:
                 # load the MIR file
                 module = importer.LoadMIRModule(mir_file)
-                num_skipped_files += 1
+                num_input_files += 1
                 logging.info('Procssing %s file', mir_file)
                 # iterate over each line in the corresponding .perf file
                 with tf.io.gfile.GFile(perf_file, 'r') as bhive_csv_file:
