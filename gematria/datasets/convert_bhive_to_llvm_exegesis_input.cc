@@ -46,13 +46,13 @@ ABSL_FLAG(
 int main(int argc, char* argv[]) {
   absl::ParseCommandLine(argc, argv);
 
-  std::string bhive_filename = absl::GetFlag(FLAGS_bhive_csv);
+  const std::string bhive_filename = absl::GetFlag(FLAGS_bhive_csv);
   if (bhive_filename.empty()) {
     std::cerr << "Error: --bhive_csv is required\n";
     return 1;
   }
 
-  std::string output_dir = absl::GetFlag(FLAGS_output_dir);
+  const std::string output_dir = absl::GetFlag(FLAGS_output_dir);
   if (output_dir.empty()) {
     std::cerr << "Error: --output_dir is required\n";
     return 1;
