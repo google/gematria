@@ -229,6 +229,7 @@ TEST_F(BHiveImporterTest, NonStandardColumns) {
 TEST_F(BHiveImporterTest, MIRDatasetBasicTest) {
   EXPECT_THAT(x86_bhive_importer_->LoadMIRModule("sample_dataset/data.mir"),
               IsOk());
+  x86_bhive_importer_->Block_to_Interference();            
   EXPECT_THAT(x86_bhive_importer_->ParseMIRCsvLine(kSourceName, "a,b,BB_13,2.37", 2,
                                                      3, kScaling),
               IsOk());

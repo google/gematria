@@ -43,6 +43,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/IR/LegacyPassManager.h"
+#include "llvm/CodeGen/MachineDominators.h"
 
 #include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
@@ -55,6 +56,14 @@
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/ADT/DenseMap.h"
 
+#define DEBUG
+
+#ifdef DEBUG
+#define LOG(X) \
+  llvm::errs() << X << "\n"
+#else
+#define LOG(X)
+#endif
 
 namespace gematria {
 
@@ -117,10 +126,6 @@ class BHiveImporter {
       std::string_view source_name, std::string_view line,
       size_t BB_name_index, size_t throughput_column_index,
       double throughput_scaling = 1.0, uint64_t base_address = 0);
-  // Author: Zhan Shi
-  // Build the interference graph for each basic block in name_to_mbb_
-  // store into name_to_graph_
-  void Block_to_Interference(); 
   
   // Author: Zhan Shi
   // Build the interference graph for each basic block in name_to_mbb_
@@ -132,58 +137,72 @@ class BHiveImporter {
     
     // Use a pass manager to run the liveness analysis
     // run pass on whole module
-    llvm::PassManager passManager;
-    passManager.add(new llvm::LiveIntervals());
+    llvm::legacy::PassManager passManager;
+    auto lifeIntervalPass = new llvm::LiveIntervals();
+    passManager.add(new llvm::MachineDominatorTree());
+    passManager.add(lifeIntervalPass);
     passManager.run(*mir_module_);
 
     // For each function, we want to do live range analysis of this function
-    for (llvm::Function &F : *mir_module_) {
+    for (auto &F : *mir_module_) {
       // Use a dense map to store live raneges of each register
       llvm::DenseMap<unsigned, llvm::LiveInterval> reg_to_range;
 
-      // retrive result from pass manager
-      llvm::LiveIntervals LIA = passManager.getResult<llvm::LiveIntervals>(F);
-
-      // Find all virtual register used in the function
-      for (unsigned reg : F.all_register) {
-        // Find live ranges
-        llvm::LiveInterval &li = LIA.getInterval(reg);
-
-        // Add it to the reg_to_range
-        reg_to_range.insert(std::pair<unsigned, &llvm::LiveInterval>(reg, li));
-      }
-      
-      // Now we generate the adjacency list for this function
-      // and then preallocate the space for these inner vectors
-      llvm::DenseMap<unsigned, llvm::SmallVector<unsigned, 4>> adjacency_list;
-      for (unsigned reg : F.all_register) {
-        llvm::SmallVector<unsigned, 4> temp_small_vec;
-        adjacency_list.insert(std::pair<unsigned, llvm::SmallVector<unsigned, 4>>(reg, temp_small_vec));
-      }
-        
-
-      // Then we generate all $n choose 2$ case by doing as follows
-      for (std::pair<unsigned, &llvm::LiveInterval> pair_reg_1 : reg_to_range) {
-        for (std::pair<unsigned, &llvm::LiveInterval> pair_reg_2 : reg_to_range) {
-
-          // If we found the register to be the same we do nothing
-          // Otherwise we do the following
-          if (pair_reg_1.first != pair_reg_2.first) {
-            // Find two live ranges
-            llvm::LiveInterval range_1 = pair_reg_1.second;
-            llvm::LiveInterval range_2 = pair_reg_2.second;
-
-            if (range_1 "intersect" range_2) {
-              // Retrive the smallvector in the dictionary
-              llvm::SmallVector<unsigned, 4> &adjacency_1 = adjacency_list.find(pair_reg_1.first) -> second;
-              llvm::SmallVector<unsigned, 4> &adjacency_2 = adjacency_list.find(pair_reg_2.first) -> second;
-
-              // add the other register to the adjacency list of the current node. 
-              adjacency_1.push_back(pair_reg_2.first); adjacency_2.push_back(pair_reg_1.first); 
+      // We need to get the list of all registers in this function
+      llvm::SmallVector<unsigned, 4> reg_list; 
+      llvm::MachineFunction &MF = MMI_.getOrCreateMachineFunction(F);
+        for (auto &MBB : MF) {
+          for (auto& MI : MBB){
+            for (unsigned int i = 0; i < MI.getNumOperands(); i++){
+              const llvm::MachineOperand& operand = MI.getOperand(i);
+              if (operand.isReg()){
+                LOG(lifeIntervalPass->getInterval(operand.getReg()));
+              }
             }
           }
         }
-      }
+
+
+      // // Find all virtual register used in the function
+      // for (unsigned reg : F.all_register) {
+      //   // Find live ranges
+      //   llvm::LiveInterval &li = LIA.getInterval(reg);
+
+      //   // Add it to the reg_to_range
+      //   reg_to_range.insert(std::pair<unsigned, &llvm::LiveInterval>(reg, li));
+      // }
+      
+      // // Now we generate the adjacency list for this function
+      // // and then preallocate the space for these inner vectors
+      // llvm::DenseMap<unsigned, llvm::SmallVector<unsigned, 4>> adjacency_list;
+      // for (unsigned reg : F.all_register) {
+      //   llvm::SmallVector<unsigned, 4> temp_small_vec;
+      //   adjacency_list.insert(std::pair<unsigned, llvm::SmallVector<unsigned, 4>>(reg, temp_small_vec));
+      // }
+        
+
+      // // Then we generate all $n choose 2$ case by doing as follows
+      // for (std::pair<unsigned, &llvm::LiveInterval> pair_reg_1 : reg_to_range) {
+      //   for (std::pair<unsigned, &llvm::LiveInterval> pair_reg_2 : reg_to_range) {
+
+      //     // If we found the register to be the same we do nothing
+      //     // Otherwise we do the following
+      //     if (pair_reg_1.first != pair_reg_2.first) {
+      //       // Find two live ranges
+      //       llvm::LiveInterval range_1 = pair_reg_1.second;
+      //       llvm::LiveInterval range_2 = pair_reg_2.second;
+
+      //       if (range_1 "intersect" range_2) {
+      //         // Retrive the smallvector in the dictionary
+      //         llvm::SmallVector<unsigned, 4> &adjacency_1 = adjacency_list.find(pair_reg_1.first) -> second;
+      //         llvm::SmallVector<unsigned, 4> &adjacency_2 = adjacency_list.find(pair_reg_2.first) -> second;
+
+      //         // add the other register to the adjacency list of the current node. 
+      //         adjacency_1.push_back(pair_reg_2.first); adjacency_2.push_back(pair_reg_1.first); 
+      //       }
+      //     }
+      //   }
+      // }
     }
   }
   
@@ -203,10 +222,6 @@ class BHiveImporter {
   // Author: Zhan Shi
   // Add one data strcture to the bhiveimporter storing interference graph
   llvm::DenseMap<llvm::StringRef, llvm::MachineBasicBlock*> name_to_graph_;
-  llvm::LLVMContext llvm_context_;
-  std::unique_ptr<llvm::Module> mir_module_;
-  llvm::MachineModuleInfo MMI_;
-  std::unique_ptr<llvm::MIRParser> mir_parser_;
 };
 
 

@@ -44,13 +44,6 @@
 #include "llvm/Support/raw_ostream.h"
 
 
-#ifdef DEBUG
-#define LOG(X) \
-  llvm::errs() << X << "\n"
-#else
-#define LOG(X)
-#endif
-
 #define DEBUG
 
 #ifdef DEBUG
