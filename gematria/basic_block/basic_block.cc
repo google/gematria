@@ -329,7 +329,16 @@ std::string Instruction::ToString() const {
   add_operand_list("output_operands", output_operands);
   add_operand_list("implicit_output_operands", implicit_output_operands);
 
-  // TODO(virajbshah): Include instruction annotations at the end of the string.
+  if (!instruction_annotations.empty()) {
+    buffer << "instruction_annotations=(";
+    for (const Annotation& annotation : instruction_annotations) {
+      buffer << annotation.ToString() << ", ";
+    }
+    // Pop only the trailing space. For simplicity, we leave the trailing comma
+    // which is required in case there is only one element.
+    buffer.seekp(-1, std::ios_base::end);
+    buffer << "), ";
+  }
 
   auto msg = buffer.str();
   assert(msg.size() >= 2);

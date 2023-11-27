@@ -406,7 +406,8 @@ TEST(InstructionTest, ToString) {
       "InstructionOperand.from_register('RBX'),), "
       "implicit_input_operands=(InstructionOperand.from_register('EFLAGS'),), "
       "output_operands=(InstructionOperand.from_register('RAX'),), "
-      "implicit_output_operands=(InstructionOperand.from_register('EFLAGS'),))";
+      "implicit_output_operands=(InstructionOperand.from_register('EFLAGS'),), "
+      "instruction_annotations=(Annotation(name='MEM_LOAD_RETIRED:L3_MISS', value=0.875),))";
   EXPECT_EQ(instruction.ToString(), kExpectedString);
 }
 
@@ -583,7 +584,8 @@ TEST(BasicBlockTest, ToString) {
       "InstructionOperand.from_register('RBX'),), "
       "implicit_input_operands=(InstructionOperand.from_register('EFLAGS'),), "
       "output_operands=(InstructionOperand.from_register('RAX'),), "
-      "implicit_output_operands=(InstructionOperand.from_register('EFLAGS'),)),"
+      "implicit_output_operands=(InstructionOperand.from_register('EFLAGS'),), "
+      "instruction_annotations=(Annotation(name='MEM_LOAD_RETIRED:L3_MISS', value=0.875),)),"
       ")))";
   EXPECT_EQ(block.ToString(), kExpectedString);
 }
