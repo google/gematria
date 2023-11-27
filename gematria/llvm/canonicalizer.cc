@@ -78,8 +78,6 @@ void ReplaceExprOperands(llvm::MachineInstr& instruction) {
       // of the displacement and 0 might have a special meaning (e.g. do not use
       // displacement at all).
       operand = llvm::MachineOperand::CreateImm(1);
-    } else {
-      LOG("DEBUG: ReplaceExprOperands: operand" << operand << "Has type " << operand.getType() << "\n");
     }
   }
 }
@@ -197,7 +195,6 @@ void AddMIRVendorMnemonicAndPrefixes(
   llvm::raw_string_ostream stream(assembly_code);
   MI.print(stream);
   stream.flush();
-  LOG("DEBUG: AddMIRVendorMnemonicAndPrefixes on " << MI << assembly_code << "\n");
 
   // TODO: now used a dummy way to seperate tokens... don't know why SplitByAny does 
   // not work for MIR stream
@@ -211,11 +208,6 @@ void AddMIRVendorMnemonicAndPrefixes(
     }
   }
   assert(!tokens.empty());
-
-  //print out tokens
-  for (auto token : tokens){
-    LOG("DEBUG: token: " << token);
-  }
 
   // If there is only one token, we treat it as the mnemonic no matter what.
   if (tokens.size() == 1) {
@@ -248,7 +240,6 @@ void AddMIRVendorMnemonicAndPrefixes(
 
     // process prefix and mnemonic tokens
     std::string uppercased_token = token.trim().upper();
-    LOG("DEBUG: uppercased_token: " << uppercased_token);
     const bool is_known_prefix =
         std::find(std::begin(kKnownPrefixes), std::end(kKnownPrefixes),
                   uppercased_token) != std::end(kKnownPrefixes);

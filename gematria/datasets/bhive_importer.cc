@@ -165,7 +165,6 @@ absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMBBName(
 
   // lookup the MBB in the map, if not, return error
   if (name_to_mbb_.find(MBB_name_ref) == name_to_mbb_.end()) {
-    LOG("Cannot find MBB, using key " << MBB_name);
     return absl::InvalidArgumentError(
         absl::StrCat("Could not find MBB with name ", MBB_name));
   }
@@ -175,7 +174,6 @@ absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMBBName(
   for (llvm::MachineInstr& MI : *MBB){
     // if MI is a control instruction(ret,branch,jmp), skip it
     if (MI.isInlineAsm() || MI.isTerminator() || MI.isEHLabel()) {
-      LOG("MI is a control instruction, skipping it " << MI);
       continue;
     }
 
