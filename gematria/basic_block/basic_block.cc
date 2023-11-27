@@ -229,21 +229,21 @@ std::ostream& operator<<(std::ostream& os, const InstructionOperand& operand) {
   return os;
 }
 
-RuntimeAnnotation::RuntimeAnnotation(std::string pmu_event, double value)
-    : pmu_event(std::move(pmu_event)), value(value) {}
+Annotation::Annotation(const std::string &name, double value)
+    : name(std::move(name)), value(value) {}
 
-bool RuntimeAnnotation::operator==(const RuntimeAnnotation& other) const {
-  const auto as_tuple = [](const RuntimeAnnotation& annotation) {
-    return std::tie(annotation.pmu_event, annotation.value);
+bool Annotation::operator==(const Annotation& other) const {
+  const auto as_tuple = [](const Annotation& annotation) {
+    return std::tie(annotation.name, annotation.value);
   };
   return as_tuple(*this) == as_tuple(other);
 }
 
-std::string RuntimeAnnotation::ToString() const {
+std::string Annotation::ToString() const {
   std::stringstream buffer;
-  buffer << "RuntimeAnnotation(";
-  if (!pmu_event.empty()) {
-    buffer << "pmu_event='" << pmu_event << "', ";
+  buffer << "Annotation(";
+  if (!name.empty()) {
+    buffer << "name='" << name << "', ";
   }
   if (value != -1) {
     buffer << "value=" << value << ", ";
@@ -258,7 +258,7 @@ std::string RuntimeAnnotation::ToString() const {
 }
 
 std::ostream& operator<<(std::ostream& os,
-                         const RuntimeAnnotation& annotation) {
+                         const Annotation& annotation) {
   os << annotation.ToString();
   return os;
 }
@@ -270,7 +270,7 @@ Instruction::Instruction(
     std::vector<InstructionOperand> implicit_input_operands,
     std::vector<InstructionOperand> output_operands,
     std::vector<InstructionOperand> implicit_output_operands,
-    RuntimeAnnotation cache_miss_frequency)
+    std::vector<Annotation> instruction_annotations)
     : mnemonic(std::move(mnemonic)),
       llvm_mnemonic(std::move(llvm_mnemonic)),
       prefixes(std::move(prefixes)),
@@ -278,7 +278,7 @@ Instruction::Instruction(
       implicit_input_operands(std::move(implicit_input_operands)),
       output_operands(std::move(output_operands)),
       implicit_output_operands(std::move(implicit_output_operands)),
-      cache_miss_frequency(std::move(cache_miss_frequency)) {}
+      instruction_annotations(std::move(instruction_annotations)) {}
 
 bool Instruction::operator==(const Instruction& other) const {
   const auto as_tuple = [](const Instruction& instruction) {
@@ -286,7 +286,7 @@ bool Instruction::operator==(const Instruction& other) const {
         instruction.mnemonic, instruction.llvm_mnemonic, instruction.prefixes,
         instruction.input_operands, instruction.implicit_input_operands,
         instruction.output_operands, instruction.implicit_output_operands,
-        instruction.cache_miss_frequency);
+        instruction.instruction_annotations);
   };
   return as_tuple(*this) == as_tuple(other);
 }
@@ -329,7 +329,7 @@ std::string Instruction::ToString() const {
   add_operand_list("output_operands", output_operands);
   add_operand_list("implicit_output_operands", implicit_output_operands);
 
-  // TODO(virajbshah): Include cache_miss_frequency at the end of the string.
+  // TODO(virajbshah): Include instruction annotations at the end of the string.
 
   auto msg = buffer.str();
   assert(msg.size() >= 2);

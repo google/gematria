@@ -18,6 +18,8 @@ syntax = "proto3";
 
 package gematria;
 
+import "gematria/proto/annotation.proto";
+
 // Contains information about an instruction and all its inputs and outputs.
 // This proto can be used to create the embedding of the instruction as
 // described in the Ithemal [1] and Granite [2] papers.
@@ -52,18 +54,8 @@ message CanonicalizedInstructionProto {
   // The list of implicit input operands of the instruction.
   repeated CanonicalizedOperandProto implicit_input_operands = 7;
 
-  // Contains annotations to supply instruction level runtime-related
-  // information, such as cache-miss frequencies, or branching related
-  // statistics.
-  message RuntimeAnnotation {
-    // The name of the event whose measure is being annotated.
-    string pmu_event = 1;
-    // The measurement or statistic, such as event frequency or rate.
-    double value = 2;
-  }
-
-  // Optional. The cache miss frequency of the instruction.
-  optional RuntimeAnnotation cache_miss_frequency = 8;
+  // Runtime related instruction level annotations.
+  repeated AnnotationProto instruction_annotations = 8;
 }
 
 // Contains information about a single operand in the canonicalized instruction.

@@ -17,6 +17,7 @@
 from absl.testing import absltest
 from gematria.basic_block.python import basic_block
 from gematria.basic_block.python import basic_block_protos
+from gematria.proto import annotation_pb2
 from gematria.proto import basic_block_pb2
 from gematria.proto import canonicalized_instruction_pb2
 
@@ -26,7 +27,9 @@ _CanonicalizedOperandProto = (
 _CanonicalizedInstructionProto = (
     canonicalized_instruction_pb2.CanonicalizedInstructionProto
 )
-
+_Annotation = (
+    annotation_pb2.Annotation
+)
 
 class AddressTupleTest(absltest.TestCase):
 
@@ -174,11 +177,11 @@ class BasicBlockFromProtoTest(absltest.TestCase):
                 output_operands=(
                     _CanonicalizedOperandProto(register_name='RCX'),
                 ),
-                cache_miss_frequency=(
-                    _CanonicalizedInstructionProto.RuntimeAnnotation(
-                        pmu_event='r20d1',
+                instruction_annotations=(
+                    _Annotation(
+                        name='MEM_LOAD_RETIRED:L3_MISS',
                         value=0.875,
-                    )
+                    ),
                 ),
             ),
             _CanonicalizedInstructionProto(
@@ -203,11 +206,11 @@ class BasicBlockFromProtoTest(absltest.TestCase):
                         )
                     ),
                 ),
-                cache_miss_frequency=(
-                    _CanonicalizedInstructionProto.RuntimeAnnotation(
-                        pmu_event='r20d1',
-                        value=0.5,
-                    )
+                instruction_annotations=(
+                    _Annotation(
+                        name='MEM_LOAD_RETIRED:L3_MISS',
+                        value=0.95,
+                    ),
                 ),
             ),
         )
@@ -224,10 +227,12 @@ class BasicBlockFromProtoTest(absltest.TestCase):
             output_operands=basic_block.InstructionOperandList((
                 basic_block.InstructionOperand.from_register('RCX'),
             )),
-            cache_miss_frequency=basic_block.RuntimeAnnotation(
-                pmu_event='r20d1',
-                value=0.875,
-            ),
+            instruction_annotations=basic_block.AnnotationList((
+                basic_block.Annotation(
+                    name='MEM_LOAD_RETIRED:L3_MISS',
+                    value=0.875,
+                ),
+            )),
         ),
         basic_block.Instruction(
             mnemonic='MOVSB',
@@ -243,10 +248,12 @@ class BasicBlockFromProtoTest(absltest.TestCase):
                 basic_block.InstructionOperand.from_register('RDI'),
                 basic_block.InstructionOperand.from_memory(2),
             )),
-            cache_miss_frequency=basic_block.RuntimeAnnotation(
-                pmu_event='r20d1',
-                value=0.5,
-            ),
+            instruction_annotations=basic_block.AnnotationList((
+                basic_block.Annotation(
+                    name='MEM_LOAD_RETIRED:L3_MISS',
+                    value=0.95,
+                ),
+            )),
         ),
     )
     self.assertSequenceEqual(block.instructions, expected)

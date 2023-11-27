@@ -34,7 +34,7 @@ PYBIND11_MODULE(basic_block_protos, m) {
   m.def("instruction_operand_from_proto", InstructionOperandFromProto,
         py::arg("proto"));
   m.def("address_tuple_from_proto", AddressTupleFromProto, py::arg("proto"));
-  m.def("runtime_annotation_from_proto", RuntimeAnnotationFromProto,
+  m.def("annotation_from_proto", AnnotationFromProto,
         py::arg("proto"));
 }
 

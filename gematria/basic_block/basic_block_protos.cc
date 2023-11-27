@@ -21,6 +21,7 @@
 
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/proto/canonicalized_instruction.pb.h"
+#include "gematria/proto/annotation.pb.h"
 #include "google/protobuf/repeated_ptr_field.h"
 
 namespace gematria {
@@ -112,20 +113,35 @@ void ToRepeatedPtrField(
                  ProtoFromInstructionOperand);
 }
 
+std::vector<Annotation> ToVector(
+    const google::protobuf::RepeatedPtrField<AnnotationProto>& protos) {
+  std::vector<Annotation> result(protos.size());
+  std::transform(protos.begin(), protos.end(), result.begin(),
+                 AnnotationFromProto);
+  return result;
+}
+
+void ToRepeatedPtrField(
+    const std::vector<Annotation>& annotations,
+    google::protobuf::RepeatedPtrField<AnnotationProto>* repeated_field) {
+  repeated_field->Reserve(annotations.size());
+  std::transform(annotations.begin(), annotations.end(),
+                 google::protobuf::RepeatedFieldBackInserter(repeated_field),
+                 ProtoFromAnnotation);
+}
+
 }  // namespace
 
-RuntimeAnnotation RuntimeAnnotationFromProto(
-    const CanonicalizedInstructionProto::RuntimeAnnotation& proto) {
-  return RuntimeAnnotation(
-      /* pmu_event = */ proto.pmu_event(),
+Annotation AnnotationFromProto(const AnnotationProto& proto) {
+  return Annotation(
+      /* name = */ proto.name(),
       /* value = */ proto.value());
 }
 
-CanonicalizedInstructionProto::RuntimeAnnotation ProtoFromRuntimeAnnotation(
-    const RuntimeAnnotation& runtime_annotation) {
-  CanonicalizedInstructionProto::RuntimeAnnotation proto;
-  proto.set_pmu_event(runtime_annotation.pmu_event);
-  proto.set_value(runtime_annotation.value);
+AnnotationProto ProtoFromAnnotation(const Annotation& annotation) {
+  AnnotationProto proto;
+  proto.set_name(annotation.name);
+  proto.set_value(annotation.value);
   return proto;
 }
 
@@ -141,8 +157,8 @@ Instruction InstructionFromProto(const CanonicalizedInstructionProto& proto) {
       /* output_operands = */ ToVector(proto.output_operands()),
       /* implicit_output_operands = */
       ToVector(proto.implicit_output_operands()),
-      /* cache_miss_frequency = */
-      RuntimeAnnotationFromProto(proto.cache_miss_frequency()));
+      /* instruction_annotations = */
+      ToVector(proto.instruction_annotations()));
 }
 
 CanonicalizedInstructionProto ProtoFromInstruction(
@@ -160,6 +176,8 @@ CanonicalizedInstructionProto ProtoFromInstruction(
                      proto.mutable_output_operands());
   ToRepeatedPtrField(instruction.implicit_output_operands,
                      proto.mutable_implicit_output_operands());
+  ToRepeatedPtrField(instruction.instruction_annotations,
+                     proto.mutable_instruction_annotations());
   return proto;
 }
 
