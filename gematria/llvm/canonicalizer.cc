@@ -22,6 +22,7 @@
 #include "lib/Target/X86/MCTargetDesc/X86BaseInfo.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/IR/Constants.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/MCInstrInfo.h"
@@ -29,6 +30,20 @@
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/CodeGen/MachineInstr.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/CodeGen/MachineFunction.h"
+#include "llvm/CodeGen/MachineRegisterInfo.h"
+#include <sstream>
+
+#define DEBUG
+
+#ifdef DEBUG
+#define LOG(X) \
+  llvm::errs() << X << "\n"
+#else
+#define LOG(X)
+#endif
 
 namespace gematria {
 namespace {
@@ -54,6 +69,19 @@ void ReplaceExprOperands(llvm::MCInst& instruction) {
   }
 }
 
+void ReplaceExprOperands(llvm::MachineInstr& instruction) {
+  for (int i = 0; i < instruction.getNumOperands(); ++i) {
+    llvm::MachineOperand& operand = instruction.getOperand(i);
+    if (operand.isSymbol() || operand.isGlobal() || operand.isCPI()) {
+      // TODO(ondrasej): In some cases the value may change the binary encoding
+      // of the instruction, e.g. switch between an 8-bit or a 32-bit encoding
+      // of the displacement and 0 might have a special meaning (e.g. do not use
+      // displacement at all).
+      operand = llvm::MachineOperand::CreateImm(1);
+    }
+  }
+}
+
 }  // namespace
 
 Canonicalizer::Canonicalizer(const llvm::TargetMachine* target_machine)
@@ -66,6 +94,11 @@ Canonicalizer::~Canonicalizer() = default;
 Instruction Canonicalizer::InstructionFromMCInst(llvm::MCInst mcinst) const {
   ReplaceExprOperands(mcinst);
   return PlatformSpecificInstructionFromMCInst(mcinst);
+}
+
+Instruction Canonicalizer::InstructionFromMachineInstr(llvm::MachineInstr& MI) const {
+  ReplaceExprOperands(MI);
+  return PlatformSpecificInstructionFromMachineInstr(MI);
 }
 
 BasicBlock Canonicalizer::BasicBlockFromMCInst(
@@ -81,6 +114,22 @@ std::string Canonicalizer::GetRegisterNameOrEmpty(
     const llvm::MCOperand& operand) const {
   assert(operand.isReg());
   return target_machine_.getMCRegisterInfo()->getName(operand.getReg());
+}
+
+std::string Canonicalizer::GetRegisterNameOrEmpty(
+    const llvm::MachineOperand& operand) const {
+  assert(operand.isReg());
+  // cast operand to llvm::Register
+  const llvm::Register& reg = operand.getReg();
+  if (reg.isVirtual()){
+    const llvm::MachineFunction *MF = operand.getParent()->getParent()->getParent();
+    const llvm::TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
+    const llvm::MachineRegisterInfo &MRI = MF->getRegInfo();
+    unsigned Size = TRI->getRegSizeInBits(reg, MRI);
+    return "VREG" + std::to_string(Size);
+  } else {
+    return target_machine_.getMCRegisterInfo()->getName(reg);
+  }
 }
 
 namespace {
@@ -137,6 +186,73 @@ void AddX86VendorMnemonicAndPrefixes(
   assert(!instruction.mnemonic.empty());
 }
 
+void AddMIRVendorMnemonicAndPrefixes(
+    const llvm::MCSubtargetInfo& subtarget_info,
+    const llvm::MachineInstr& MI, Instruction& instruction) {
+  constexpr const char* kKnownPrefixes[] = {"REP", "LOCK", "REPNE", "REPE"};
+
+  std::string assembly_code;
+  llvm::raw_string_ostream stream(assembly_code);
+  MI.print(stream);
+  stream.flush();
+
+  // TODO: now used a dummy way to seperate tokens... don't know why SplitByAny does 
+  // not work for MIR stream
+  llvm::SmallVector<std::string, 2> tokens;
+  tokens.push_back("");
+  for (char c : assembly_code){
+    if (c == ' ' || c == '\t' || c == '\n' || c == '\r'){
+      tokens.push_back("");
+    } else {
+      tokens.back().push_back(c);
+    }
+  }
+  assert(!tokens.empty());
+
+  // If there is only one token, we treat it as the mnemonic no matter what.
+  if (tokens.size() == 1) {
+    instruction.mnemonic = tokens[0];
+    return;
+  }
+
+  // Otherwise, we strip known prefixes and treat the first token that is not a
+  // prefix as the mnemonic.
+  // If MI has result register, then the first token prefix/mnemonic is the last result register index + 2
+  size_t result_reg_index = 0;
+  bool is_first_time = true;
+  for (uint i = 0; i < MI.getNumOperands(); i++){
+    auto& MOP = MI.getOperand(i);
+    if (MOP.isReg() && !MOP.isImplicit() && MOP.isDef()){
+      if (is_first_time){
+        is_first_time = false;
+        result_reg_index = result_reg_index + 2;
+      } else {
+        result_reg_index = result_reg_index + 1;
+      }
+    }
+  }
+
+  for (const llvm::StringRef token : tokens) {
+    if (result_reg_index > 0){
+      result_reg_index = result_reg_index - 1;
+      continue;
+    }
+
+    // process prefix and mnemonic tokens
+    std::string uppercased_token = token.trim().upper();
+    const bool is_known_prefix =
+        std::find(std::begin(kKnownPrefixes), std::end(kKnownPrefixes),
+                  uppercased_token) != std::end(kKnownPrefixes);
+    if (is_known_prefix) {
+      instruction.prefixes.push_back(std::move(uppercased_token));
+    } else {
+      instruction.mnemonic = std::move(uppercased_token);
+      break;
+    }
+  }
+  assert(!instruction.mnemonic.empty());
+}
+
 int GetX86MemoryOperandPosition(const llvm::MCInstrDesc& descriptor) {
   const int memory_operand_no =
       llvm::X86II::getMemoryOperandNo(descriptor.TSFlags);
@@ -159,6 +275,64 @@ X86Canonicalizer::X86Canonicalizer(const llvm::TargetMachine* target_machine)
 }
 
 X86Canonicalizer::~X86Canonicalizer() = default;
+
+
+Instruction X86Canonicalizer::PlatformSpecificInstructionFromMachineInstr(const llvm::MachineInstr & MI) const {
+  // NOTE (lukezhuz): Memory alias are determined by the type of memory operand
+  // if it's a FrameIndex, then different frameindex should not be aliased to each other
+  
+  // use -1 denote global/other memory alias; use other to denote stack memory alias
+  constexpr int kWholeMemoryAliasGroup = 1;
+
+  const llvm::MCRegisterInfo& register_info =
+      *target_machine_.getMCRegisterInfo();
+  const llvm::MCInstrInfo& instr_info = *target_machine_.getMCInstrInfo();
+
+  Instruction instruction;
+  instruction.llvm_mnemonic =
+      target_machine_.getMCInstrInfo()->getName(MI.getOpcode());
+  AddMIRVendorMnemonicAndPrefixes(*target_machine_.getMCSubtargetInfo(), MI,
+                                  instruction);
+
+  const llvm::MCInstrDesc& descriptor = instr_info.get(MI.getOpcode());
+  if (descriptor.mayLoad()) {
+    instruction.input_operands.push_back(
+        InstructionOperand::MemoryLocation(kWholeMemoryAliasGroup));
+  }
+  if (descriptor.mayStore()) {
+    instruction.output_operands.push_back(
+        InstructionOperand::MemoryLocation(kWholeMemoryAliasGroup));
+  }
+  const int memory_operand_index = GetX86MemoryOperandPosition(descriptor);
+  for (int operand_index = 0; operand_index < descriptor.getNumOperands();
+       ++operand_index) {
+    const bool is_output_operand = operand_index < descriptor.getNumDefs();
+    const bool is_address_computation_tuple =
+        operand_index == memory_operand_index;
+    AddOperand(MI, /*operand_index=*/operand_index,
+               /*is_output_operand=*/is_output_operand,
+               /*is_address_computation_tuple=*/is_address_computation_tuple,
+               instruction,
+               descriptor);
+    if (is_address_computation_tuple) {
+      // A memory reference is represented as a 5-tuple. The whole 5-tuple is
+      // processed in one CanonicalizeOperand() call and we need to skip the
+      // remaining 4 elements here.
+      operand_index += 4;
+    }
+  }
+  
+  for (llvm::MCPhysReg implicit_output_register : descriptor.implicit_defs()) {
+    instruction.implicit_output_operands.push_back(InstructionOperand::Register(
+        register_info.getName(implicit_output_register)));
+  }
+  for (llvm::MCPhysReg implicit_input_register : descriptor.implicit_uses()) {
+    instruction.implicit_input_operands.push_back(InstructionOperand::Register(
+        register_info.getName(implicit_input_register)));
+  }
+  return instruction;
+}
+
 
 Instruction X86Canonicalizer::PlatformSpecificInstructionFromMCInst(
     const llvm::MCInst& mcinst) const {
@@ -271,6 +445,71 @@ void X86Canonicalizer::AddOperand(const llvm::MCInst& mcinst, int operand_index,
     operand.print(llvm::errs());
     llvm::errs() << "\n";
     assert(false);
+  }
+}
+
+void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_index,
+                                  bool is_output_operand,
+                                  bool is_address_computation_tuple,
+                                  Instruction& instruction,
+                                  const llvm::MCInstrDesc& descriptor) const {
+  assert(operand_index < mi.getNumOperands());
+  assert(!is_address_computation_tuple ||
+         (operand_index + 5 <= mi.getNumOperands()));
+
+  const llvm::MachineOperand& operand = mi.getOperand(operand_index);
+  // Skip empty register operand, but not if they are part of a memory 5-tuple.
+  // Empty register in a memory 5-tuple is for when the address computation uses
+  // only a subset of components.
+  if (!is_address_computation_tuple && operand.isReg() && operand.getReg() == 0)
+    return;
+  
+  std::vector<InstructionOperand>& operand_list =
+      is_output_operand ? instruction.output_operands
+                        : instruction.input_operands;
+  if (is_address_computation_tuple) { // TODO: Check if MIR has address computation tuple
+    std::string base_register;
+    if (mi.getOperand(operand_index + llvm::X86::AddrBaseReg).isReg()){
+      base_register = GetRegisterNameOrEmpty(
+        mi.getOperand(operand_index + llvm::X86::AddrBaseReg));
+    } else if (mi.getOperand(operand_index + llvm::X86::AddrBaseReg).isFI()){
+      base_register = "rbp";
+    } else {
+      assert(false && "unsupported base register type");
+      LOG(mi);
+    }
+      const int64_t displacement =
+          mi.getOperand(operand_index + llvm::X86::AddrDisp).getImm();
+      std::string index_register = GetRegisterNameOrEmpty(
+          mi.getOperand(operand_index + llvm::X86::AddrIndexReg));
+      const int64_t scaling =
+          mi.getOperand(operand_index + llvm::X86::AddrScaleAmt).getImm();
+      std::string segment_register = GetRegisterNameOrEmpty(
+          mi.getOperand(operand_index + llvm::X86::AddrSegmentReg));
+      operand_list.push_back(InstructionOperand::Address(
+          /* base_register= */ std::move(base_register),
+          /* displacement= */ displacement,
+          /* index_register= */ std::move(index_register),
+          /* scaling= */ static_cast<int>(scaling),
+          /* segment_register= */ std::move(segment_register)));
+        LOG("Hit here address_computation_tuple reg " << mi << "\n");
+  } else if (operand.isReg()) {
+    operand_list.push_back(
+        InstructionOperand::Register(GetRegisterNameOrEmpty(operand)));
+  } else if (operand.isImm()) {
+    operand_list.push_back(
+        InstructionOperand::ImmediateValue(operand.getImm()));
+  } else if (operand.isCImm()) {
+    operand_list.push_back(
+        InstructionOperand::ImmediateValue(operand.getCImm()->getZExtValue()));
+  } else if (operand.isFPImm()) {
+    operand_list.push_back(InstructionOperand::FpImmediateValue(
+        llvm::bit_cast<double>(operand.getFPImm())));
+  } else {
+    llvm::errs() << "Unsupported operand type: ";
+    operand.print(llvm::errs());
+    llvm::errs() << "\n";
+    instruction.is_valid = false;
   }
 }
 

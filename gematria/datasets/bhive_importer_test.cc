@@ -226,8 +226,19 @@ TEST_F(BHiveImporterTest, NonStandardColumns) {
                                             })pb")));
 }
 
-TEST_F(BHiveImporterTest, LoadMIRModule) {
-  EXPECT_THAT(x86_bhive_importer_->LoadMIRModule("/u9/z277zhu/research/gematria/sample_dataset/data.mir"),
+TEST_F(BHiveImporterTest, MIRDatasetBasicTest) {
+  EXPECT_THAT(x86_bhive_importer_->LoadMIRModule("sample_dataset/data.mir"),
+              IsOk());
+  EXPECT_THAT(x86_bhive_importer_->ParseMIRCsvLine(kSourceName, "a,b,BB_13,2.37", 2,
+                                                     3, kScaling),
+              IsOk());
+}
+
+TEST_F(BHiveImporterTest, MIRDatasetTest2) {
+  EXPECT_THAT(x86_bhive_importer_->LoadMIRModule("sample_dataset/native_test.mir"),
+              IsOk());
+  EXPECT_THAT(x86_bhive_importer_->ParseMIRCsvLine(kSourceName, "a,b,BB_299,2.37", 2,
+                                                     3, kScaling),
               IsOk());
 }
 

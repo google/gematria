@@ -38,11 +38,18 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Error.h"
-#include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/WithColor.h"
 #include "llvm/Support/raw_ostream.h"
+#define DEBUG
+
+#ifdef DEBUG
+#define LOG(X) \
+  llvm::errs() << X << "\n"
+#else
+#define LOG(X)
+#endif
 
 namespace gematria {
 namespace {
@@ -66,7 +73,8 @@ BHiveImporter::BHiveImporter(const Canonicalizer* canonicalizer)
       mc_inst_printer_(target_machine_.getTarget().createMCInstPrinter(
           target_machine_.getTargetTriple(), kDefaultSyntax,
           *target_machine_.getMCAsmInfo(), *target_machine_.getMCInstrInfo(),
-          *target_machine_.getMCRegisterInfo())) {}
+          *target_machine_.getMCRegisterInfo())), 
+      MMI_(dynamic_cast<const llvm::LLVMTargetMachine*>(&target_machine_)) {}
 
 absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMachineCode(
     llvm::ArrayRef<uint8_t> machine_code, uint64_t base_address /*= 0*/) {
@@ -149,50 +157,127 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseBHiveCsvLine(
   return proto;
 }
 
+absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMBBName(
+    std::string_view MBB_name, uint64_t base_address /*= 0*/) {
+  BasicBlockProto basic_block_proto;
+  // convert MBB_name to llvm::StringRef
+  llvm::StringRef MBB_name_ref(MBB_name.data(), MBB_name.size());
+
+  // lookup the MBB in the map, if not, return error
+  if (name_to_mbb_.find(MBB_name_ref) == name_to_mbb_.end()) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("Could not find MBB with name ", MBB_name));
+  }
+
+  llvm::MachineBasicBlock* MBB = name_to_mbb_[MBB_name_ref];
+  LOG("MBB is " << *MBB);
+  for (llvm::MachineInstr& MI : *MBB){
+    // if MI is a control instruction(ret,branch,jmp), skip it
+    if (MI.isInlineAsm() || MI.isTerminator() || MI.isEHLabel()) {
+      continue;
+    }
+
+    // Assert MI cannot be a CALL instruction
+    if(MI.isCall()){
+      LOG("MI is a CALL instruction, abort this BB " << MI);
+      return absl::InvalidArgumentError(
+        absl::StrCat("Cannot handle CALL instruction "));
+    } 
+    auto I = canonicalizer_.InstructionFromMachineInstr(MI);
+    if (!I.is_valid) {
+      LOG("MI is not valid, skipping it " << MI);
+      return absl::InvalidArgumentError(
+        absl::StrCat("Could not parse MachineInstr "));
+    }
+    *basic_block_proto.add_canonicalized_instructions() = ProtoFromInstruction(I);
+  }
+  return basic_block_proto;
+}
+
+absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseMIRCsvLine(
+    std::string_view source_name, std::string_view line,
+    size_t BB_name_index, size_t throughput_column_index,
+    double throughput_scaling /*= 1.0*/, uint64_t base_address /*= 0*/) {
+  const absl::InlinedVector<std::string_view, 2> columns =
+      absl::StrSplit(line, ',');
+  const int min_required_num_columns =
+      std::max(BB_name_index, throughput_column_index) + 1;
+  if (columns.size() < min_required_num_columns) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "Expected `line` to have at least %d columns, found %d: %s",
+        min_required_num_columns, columns.size(), line));
+  }
+  if (BB_name_index == throughput_column_index) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "Expected BB name column and throughput column indices to be "
+        "different, but were both %d: %s",
+        BB_name_index, line));
+  }
+  const std::string_view BB_unique_name =
+      columns[BB_name_index];
+  const std::string_view throughput_str = columns[throughput_column_index];
+
+  BasicBlockWithThroughputProto proto;
+
+  absl::StatusOr<BasicBlockProto> block_proto_or_status =
+      BasicBlockProtoFromMBBName(BB_unique_name, base_address);
+  if (!block_proto_or_status.ok()) return block_proto_or_status.status();
+  *proto.mutable_basic_block() = std::move(block_proto_or_status).value();
+
+  double throughput_cycles = 0.0;
+  if (!absl::SimpleAtod(throughput_str, &throughput_cycles)) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("Could not parse throughput value ", throughput_str));
+  }
+
+  ThroughputWithSourceProto& throughput = *proto.add_inverse_throughputs();
+  throughput.set_source(source_name);
+  throughput.add_inverse_throughput_cycles(throughput_cycles *
+                                           throughput_scaling);
+  LOG(proto.DebugString());
+
+  return proto;
+}
+
 absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name){
+  // clear previous loaded module
+  name_to_mbb_.clear();
+  if (mir_module_){
+    for (llvm::Function &F : mir_module_->functions()) {
+        MMI_.deleteMachineFunctionFor(F);
+    }
+  }
+
   // create MIR Parser and read all MBB to the map based on their unique name
-  llvm::LLVMContext context;
   llvm::SMDiagnostic diag;
 
-  // Set attributes on functions as loaded from MIR from command line arguments.
-  // auto setMIRFunctionAttributes = [&CPUStr, &FeaturesStr](Function &F) {
-  //   llvm::codegen::setFunctionAttributes(CPUStr, FeaturesStr, F);
-  // };
-
-  std::unique_ptr<llvm::MIRParser> mir_parser = llvm::createMIRParserFromFile(file_name, diag, context);
-  if (!mir_parser) {
-    diag.print("test ", llvm::WithColor::error(llvm::errs(), "test"));
+  mir_parser_ = llvm::createMIRParserFromFile(file_name, diag, llvm_context_);
+  if (!mir_parser_) {
     return absl::InvalidArgumentError(
         absl::StrCat("Could not create MIR parser for file ", file_name));
   }
 
   // Parse the LLVM IR module (if any)
-  std::unique_ptr<llvm::Module> mir_module = mir_parser->parseIRModule();
-  if (!mir_module) {
+  mir_module_ = mir_parser_->parseIRModule();
+  if (!mir_module_) {
       // Handle error
       return absl::InvalidArgumentError(
         absl::StrCat("Could not parse MIR module for file ", file_name));
   }
 
-  // Prepare MachineModuleInfo
-  auto *llvmTargetMachine = dynamic_cast<const llvm::LLVMTargetMachine*>(&target_machine_);
-  if (llvmTargetMachine == nullptr) {
-    return absl::InvalidArgumentError(
-        absl::StrCat("Could not cast target machine for file ", file_name));
-  } 
-  llvm::MachineModuleInfo MMI(llvmTargetMachine);
+  MMI_.initialize();
 
   // Parse the MachineFunctions and add them to MMI
-  if (mir_parser->parseMachineFunctions(*mir_module, MMI)) {
+  if (mir_parser_->parseMachineFunctions(*mir_module_, MMI_)) {
       // Handle error
       return absl::InvalidArgumentError(
         absl::StrCat("Could not parse MachineFunctions for file ", file_name));
   }
 
   // Now iterate over the MachineFunctions and their MachineBasicBlocks
-    for (auto &F : *mir_module) {
+    for (auto &F : *mir_module_) {
         if (F.isDeclaration()) continue;
-        llvm::MachineFunction &MF = MMI.getOrCreateMachineFunction(F);
+        llvm::MachineFunction &MF = MMI_.getOrCreateMachineFunction(F);
         for (auto &MBB : MF) {
             // assert name is unique
             if (name_to_mbb_.find(MBB.getName()) != name_to_mbb_.end()) {
@@ -201,10 +286,6 @@ absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name){
             } else {
               name_to_mbb_[MBB.getName()] = &MBB;
             }
-            // // Pretty print the machine block with its name
-            // llvm::outs() << "MachineBasicBlock: " << MBB.getName() << "\n";
-            // MBB.print(llvm::outs());
-            // llvm::outs() << "\n";
         }
     }
 

@@ -27,6 +27,7 @@
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstPrinter.h"
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/CodeGen/MachineBasicBlock.h"
 
 namespace gematria {
 
@@ -40,6 +41,11 @@ class Canonicalizer {
 
   // Extracts data from a single machine instruction.
   virtual Instruction InstructionFromMCInst(llvm::MCInst mcinst) const;
+
+  // Extract data from a single MachineInstr (MIR)
+  virtual Instruction InstructionFromMachineInstr(
+        llvm::MachineInstr& machine_instr) const;
+
   // Extracts data from a sequence of instructions.
   virtual BasicBlock BasicBlockFromMCInst(
       llvm::ArrayRef<llvm::MCInst> mcinsts) const;
@@ -53,10 +59,16 @@ class Canonicalizer {
   virtual Instruction PlatformSpecificInstructionFromMCInst(
       const llvm::MCInst& instruction) const = 0;
 
+  // The platform-specific code for instruction extraction at MIR level. When called, this
+  // method can assume that `instruction` does not have any expression operands.
+  virtual Instruction PlatformSpecificInstructionFromMachineInstr(
+      const llvm::MachineInstr& instruction) const = 0;
+
   // Returns the name of a register in an operand. Returns an empty string when
   // the operand is an "undefined" operand.
   // This method must not be called when `operand.isReg()` is false.
   std::string GetRegisterNameOrEmpty(const llvm::MCOperand& operand) const;
+  std::string GetRegisterNameOrEmpty(const llvm::MachineOperand& operand) const;
 
   const llvm::TargetMachine& target_machine_;
 };
@@ -70,10 +82,15 @@ class X86Canonicalizer final : public Canonicalizer {
  private:
   Instruction PlatformSpecificInstructionFromMCInst(
       const llvm::MCInst& mcinst) const override;
+  Instruction PlatformSpecificInstructionFromMachineInstr(
+      const llvm::MachineInstr& MI) const override;
 
   void AddOperand(const llvm::MCInst& mcinst, int operand_index,
                   bool is_output_operand, bool is_address_computation_tuple,
                   Instruction& instruction) const;
+  void AddOperand(const llvm::MachineInstr& mi, int operand_index,
+                  bool is_output_operand, bool is_address_computation_tuple,
+                  Instruction& instruction, const llvm::MCInstrDesc& descriptor) const;
 
   std::unique_ptr<llvm::MCInstPrinter> mcinst_printer_;
 };

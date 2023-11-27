@@ -175,6 +175,8 @@ http_archive(
     sha256 = LLVM_SHA256,
     strip_prefix = "llvm-project-" + LLVM_COMMIT,
     urls = ["https://github.com/llvm/llvm-project/archive/{commit}.zip".format(commit = LLVM_COMMIT)],
+    patches = ["//:mir_parser.patch"],  # Hack to make the MIR parser work
+    patch_args = ["-p1"],
 )
 
 load(

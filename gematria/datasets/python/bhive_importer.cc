@@ -133,7 +133,25 @@ PYBIND11_MODULE(bhive_importer, m) {
 
           Raises:
             StatusNotOk: When parsing the CSV line or extracting data from the
-              machine code fails.)");
+              machine code fails.)")
+      .def(  //
+        "LoadMIRModule",
+        &BHiveImporter::LoadMIRModule, py::arg("file_name"),
+        R"(Load a mir module given a mir file
+        )")
+      .def(
+        "ParseMIRCsvLine",
+        &BHiveImporter::ParseMIRCsvLine,
+        py::arg("source_name"), py::arg("line"),py::arg("BB_name_index"), py::arg("throughput_column_index"),
+        py::arg("throughput_scaling") = 1.0, py::arg("base_address") = uint64_t{0},
+        R"(Creates a BasicBlockWithThroughputProto from a MIR CSV line.)"
+      )
+      .def(
+        "BasicBlockProtoFromMBBName",
+        &BHiveImporter::BasicBlockProtoFromMBBName,
+        py::arg("MBB_name"), py::arg("base_address") = uint64_t{0},
+        R"(Creates a BasicBlockProto from a MIR CSV line.)"
+      );
 }
 
 }  // namespace gematria
