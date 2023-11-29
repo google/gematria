@@ -39,6 +39,7 @@ std::ostream& operator<<(std::ostream& os, OperandType operand_type) {
     GEMATRIA_PRINT_ENUM_VALUE_TO_OS(os, OperandType::kFpImmediateValue);
     GEMATRIA_PRINT_ENUM_VALUE_TO_OS(os, OperandType::kAddress);
     GEMATRIA_PRINT_ENUM_VALUE_TO_OS(os, OperandType::kMemory);
+    GEMATRIA_PRINT_ENUM_VALUE_TO_OS(os, OperandType::KVirtualRegister);
   }
   return os;
 }
@@ -101,7 +102,18 @@ bool InstructionOperand::operator==(const InstructionOperand& other) const {
       return address() == other.address();
     case OperandType::kMemory:
       return alias_group_id() == other.alias_group_id();
+    case OperandType::KVirtualRegister:
+      return register_name() == other.register_name() && size() == other.size();
   }
+}
+
+InstructionOperand InstructionOperand::VirtualRegister(
+    const std::string register_name, size_t size) {
+  InstructionOperand result;
+  result.type_ = OperandType::KVirtualRegister;
+  result.register_name_ = std::move(register_name);
+  result.size_ = size;
+  return result;
 }
 
 InstructionOperand InstructionOperand::Register(
@@ -188,6 +200,8 @@ void InstructionOperand::AddTokensToList(
       break;
     case OperandType::kMemory:
       tokens.emplace_back(kMemoryToken);
+      break;
+    default:
       break;
   }
 }

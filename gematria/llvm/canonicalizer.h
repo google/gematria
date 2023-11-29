@@ -68,7 +68,7 @@ class Canonicalizer {
   // the operand is an "undefined" operand.
   // This method must not be called when `operand.isReg()` is false.
   std::string GetRegisterNameOrEmpty(const llvm::MCOperand& operand) const;
-  std::string GetRegisterNameOrEmpty(const llvm::MachineOperand& operand) const;
+  bool GetRegisterNameOrEmpty(const llvm::MachineOperand& operand, std::string& name, size_t& size) const;
 
   const llvm::TargetMachine& target_machine_;
 };

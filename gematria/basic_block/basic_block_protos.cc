@@ -85,6 +85,14 @@ CanonicalizedOperandProto ProtoFromInstructionOperand(
     case OperandType::kMemory:
       proto.mutable_memory()->set_alias_group_id(operand.alias_group_id());
       break;
+    case OperandType::KVirtualRegister:
+      {
+        CanonicalizedOperandProto::VirtualRegister* virtual_register =
+            proto.mutable_virtual_register();
+        virtual_register->set_name(operand.register_name());
+        virtual_register->set_size(operand.size());
+        break;
+      }
     case OperandType::kUnknown:
       break;
   }

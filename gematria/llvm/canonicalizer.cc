@@ -116,8 +116,9 @@ std::string Canonicalizer::GetRegisterNameOrEmpty(
   return target_machine_.getMCRegisterInfo()->getName(operand.getReg());
 }
 
-std::string Canonicalizer::GetRegisterNameOrEmpty(
-    const llvm::MachineOperand& operand) const {
+// return true if it's pyhsical register
+bool Canonicalizer::GetRegisterNameOrEmpty(
+    const llvm::MachineOperand& operand, std::string& name, size_t& size) const {
   assert(operand.isReg());
   // cast operand to llvm::Register
   const llvm::Register& reg = operand.getReg();
@@ -126,9 +127,12 @@ std::string Canonicalizer::GetRegisterNameOrEmpty(
     const llvm::TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
     const llvm::MachineRegisterInfo &MRI = MF->getRegInfo();
     unsigned Size = TRI->getRegSizeInBits(reg, MRI);
-    return "VREG" + std::to_string(Size);
+    name = "%" + std::to_string(llvm::Register::virtReg2Index(reg));
+    size = Size;
+    return false;
   } else {
-    return target_machine_.getMCRegisterInfo()->getName(reg);
+    name = target_machine_.getMCRegisterInfo()->getName(reg);
+    return true;
   }
 }
 
@@ -469,9 +473,10 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
                         : instruction.input_operands;
   if (is_address_computation_tuple) { // TODO: Check if MIR has address computation tuple
     std::string base_register;
+    size_t tmp_size;
     if (mi.getOperand(operand_index + llvm::X86::AddrBaseReg).isReg()){
-      base_register = GetRegisterNameOrEmpty(
-        mi.getOperand(operand_index + llvm::X86::AddrBaseReg));
+      GetRegisterNameOrEmpty(
+        mi.getOperand(operand_index + llvm::X86::AddrBaseReg), base_register, tmp_size);
     } else if (mi.getOperand(operand_index + llvm::X86::AddrBaseReg).isFI()){
       base_register = "rbp";
     } else {
@@ -480,12 +485,14 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
     }
       const int64_t displacement =
           mi.getOperand(operand_index + llvm::X86::AddrDisp).getImm();
-      std::string index_register = GetRegisterNameOrEmpty(
-          mi.getOperand(operand_index + llvm::X86::AddrIndexReg));
+      std::string index_register;
+      GetRegisterNameOrEmpty(
+        mi.getOperand(operand_index + llvm::X86::AddrIndexReg), index_register, tmp_size);
       const int64_t scaling =
           mi.getOperand(operand_index + llvm::X86::AddrScaleAmt).getImm();
-      std::string segment_register = GetRegisterNameOrEmpty(
-          mi.getOperand(operand_index + llvm::X86::AddrSegmentReg));
+      std::string segment_register; 
+      GetRegisterNameOrEmpty(
+          mi.getOperand(operand_index + llvm::X86::AddrSegmentReg), segment_register, tmp_size);
       operand_list.push_back(InstructionOperand::Address(
           /* base_register= */ std::move(base_register),
           /* displacement= */ displacement,
@@ -494,8 +501,16 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
           /* segment_register= */ std::move(segment_register)));
         LOG("Hit here address_computation_tuple reg " << mi << "\n");
   } else if (operand.isReg()) {
-    operand_list.push_back(
-        InstructionOperand::Register(GetRegisterNameOrEmpty(operand)));
+    std::string name;
+    size_t size;
+    bool is_physical_reg = GetRegisterNameOrEmpty(operand, name, size);
+    if (is_physical_reg){
+      operand_list.push_back(
+          InstructionOperand::Register(name));
+    } else {
+      operand_list.push_back(
+          InstructionOperand::VirtualRegister(name, size));
+    }
   } else if (operand.isImm()) {
     operand_list.push_back(
         InstructionOperand::ImmediateValue(operand.getImm()));

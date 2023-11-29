@@ -68,6 +68,8 @@ enum class OperandType {
   // The operand is a memory access. Instructions with this operand often have
   // also an operand of type kAddress.
   kMemory,
+
+  KVirtualRegister,
 };
 
 std::ostream& operator<<(std::ostream& os, OperandType operand_type);
@@ -140,6 +142,7 @@ class InstructionOperand {
   InstructionOperand& operator=(InstructionOperand&&) = default;
 
   // The operands must be created through one of the factory functions.
+  static InstructionOperand VirtualRegister(std::string register_name, size_t size);
   static InstructionOperand Register(std::string register_name);
   static InstructionOperand ImmediateValue(uint64_t immediate_value);
   static InstructionOperand FpImmediateValue(double fp_immediate_value);
@@ -172,9 +175,10 @@ class InstructionOperand {
   // kUnknown.
   OperandType type() const { return type_; }
 
+  const size_t size() const { return size_; }
   // Returns the name of the register. Valid only when type() is kRegister.
   const std::string& register_name() const {
-    assert(type_ == OperandType::kRegister);
+    assert(type_ == OperandType::kRegister || type_ == OperandType::KVirtualRegister);
     return register_name_;
   }
 
@@ -208,7 +212,8 @@ class InstructionOperand {
 
  private:
   OperandType type_ = OperandType::kUnknown;
-
+  
+  size_t size_ ;
   std::string register_name_;
   uint64_t immediate_value_ = 0;
   double fp_immediate_value_ = 0.0;
