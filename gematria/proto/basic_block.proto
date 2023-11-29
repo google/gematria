@@ -32,6 +32,9 @@ message BasicBlockProto {
 
   // The fingerprint-id of this basic block. Might be empty.
   string fingerprint = 3;
+
+  // Optional. Interval of this basic block
+  LiveIntervalProto interval = 4;
 }
 
 // Represents a raw instruction extracted from binary code.

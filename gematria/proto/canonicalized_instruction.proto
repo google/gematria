@@ -114,4 +114,13 @@ message CanonicalizedOperandProto {
     // The information about the memory location accessed by the instruction.
     MemoryLocation memory = 5;
   }
+
+  // Optional. The liverange of a register
+  repeated LiveIntervalProto live_ranges = 6;
+}
+
+// Represents a live range of either a register or a basic block
+message LiveIntervalProto {
+  uint64 start = 1;
+  uint64 end = 2;
 }
