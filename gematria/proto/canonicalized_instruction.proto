@@ -115,12 +115,6 @@ message CanonicalizedOperandProto {
     MemoryLocation memory = 5;
   }
 
-  // Optional. The liverange of a register
-  repeated LiveIntervalProto live_ranges = 6;
-}
-
-// Represents a live range of either a register or a basic block
-message LiveIntervalProto {
-  uint64 start = 1;
-  uint64 end = 2;
+  // Optional. The name of the registers where the current register interfered with
+  repeated string intefered_registers = 6;
 }
