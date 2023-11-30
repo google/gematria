@@ -96,9 +96,9 @@ class FindAccessedAddrsTest : public testing::Test {
 };
 
 TEST_F(FindAccessedAddrsTest, BasicMov) {
-  EXPECT_THAT(
-      FindAccessedAddrsAsm("mov [0], eax"),
-      IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks, ElementsAre(0))));
+  EXPECT_THAT(FindAccessedAddrsAsm("mov [0x10000], eax"),
+              IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
+                                 ElementsAre(0x10000))));
 }
 
 TEST_F(FindAccessedAddrsTest, DISABLED_SingleAddressRandomTests) {
