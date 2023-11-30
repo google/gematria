@@ -263,7 +263,14 @@ bool BasicBlockGraphBuilder::AddInputOperand(
   switch (operand.type()) {
     case OperandType::kRegister: {
       if (!AddDependencyOnRegister(instruction_node, operand.register_name(),
-                                   EdgeType::kInputOperands)) {
+                                   operand.register_name(), EdgeType::kInputOperands)) {
+        return false;
+      }
+    } break;
+    case OperandType::kVirtualRegister: {
+      std::string vreg_name = "VREG" + std::to_string(operand.size());
+      if (!AddDependencyOnRegister(instruction_node, operand.register_name(),
+                                   vreg_name, EdgeType::kInputOperands)) {
         return false;
       }
     } break;
@@ -283,18 +290,21 @@ bool BasicBlockGraphBuilder::AddInputOperand(
       const AddressTuple& address_tuple = operand.address();
       if (!address_tuple.base_register.empty()) {
         if (!AddDependencyOnRegister(address_node, address_tuple.base_register,
+                                     address_tuple.base_register,
                                      EdgeType::kAddressBaseRegister)) {
           return false;
         }
       }
       if (!address_tuple.index_register.empty()) {
         if (!AddDependencyOnRegister(address_node, address_tuple.index_register,
+                                     address_tuple.index_register,
                                      EdgeType::kAddressIndexRegister)) {
           return false;
         }
       }
       if (!address_tuple.segment_register.empty()) {
         if (!AddDependencyOnRegister(address_node,
+                                     address_tuple.segment_register,
                                      address_tuple.segment_register,
                                      EdgeType::kAddressSegmentRegister)) {
           return false;
@@ -336,6 +346,14 @@ bool BasicBlockGraphBuilder::AddOutputOperand(
       AddEdge(EdgeType::kOutputOperands, instruction_node, register_node);
       register_nodes_[operand.register_name()] = register_node;
     } break;
+    case OperandType::kVirtualRegister: {
+      std::string vreg_name = "VREG" + std::to_string(operand.size());
+      const NodeIndex register_node =
+          AddNode(NodeType::kRegister, vreg_name);
+      if (register_node == kInvalidNode) return false;
+      AddEdge(EdgeType::kOutputOperands, instruction_node, register_node);
+      register_nodes_[operand.register_name()] = register_node;
+    } break;
     case OperandType::kImmediateValue:
     case OperandType::kFpImmediateValue:
     case OperandType::kAddress:
@@ -359,13 +377,13 @@ bool BasicBlockGraphBuilder::AddOutputOperand(
 
 bool BasicBlockGraphBuilder::AddDependencyOnRegister(
     NodeIndex dependent_node, const std::string& register_name,
-    EdgeType edge_type) {
+    const std::string& register_token, EdgeType edge_type) {
   NodeIndex& operand_node =
       LookupOrInsert(register_nodes_, register_name, kInvalidNode);
   if (operand_node == kInvalidNode) {
     // Add a node for the register if it doesn't exist. This also updates the
     // node index in `node_by_register`.
-    operand_node = AddNode(NodeType::kRegister, register_name);
+    operand_node = AddNode(NodeType::kRegister, register_token);
   }
   if (operand_node == kInvalidNode) return false;
   AddEdge(edge_type, operand_node, dependent_node);
