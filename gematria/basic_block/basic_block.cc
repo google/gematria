@@ -201,7 +201,8 @@ void InstructionOperand::AddTokensToList(
     case OperandType::kMemory:
       tokens.emplace_back(kMemoryToken);
       break;
-    default:
+    case OperandType::kVirtualRegister:
+      tokens.emplace_back(std::string{kVirtualRegisterToken} + std::to_string(size()) + "_");
       break;
   }
 }

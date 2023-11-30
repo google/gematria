@@ -42,6 +42,7 @@ inline constexpr std::string_view kAddressToken = "_ADDRESS_";
 inline constexpr std::string_view kMemoryToken = "_MEMORY_";
 inline constexpr std::string_view kNoRegisterToken = "_NO_REGISTER_";
 inline constexpr std::string_view kDisplacementToken = "_DISPLACEMENT_";
+inline constexpr std::string_view kVirtualRegisterToken = "_VREG";
 
 // The type of an operand of an instruction.
 enum class OperandType {

@@ -64,3 +64,16 @@ gematria_py_binary(
         "//gematria/utils/python:pybind11_abseil_status",
     ],
 )
+
+gematria_py_binary(
+    name = "gen_tokens",
+    srcs = ["gen_tokens.py"],
+    deps = [
+        "//gematria/basic_block/python:basic_block_protos",
+        "//gematria/basic_block/python:basic_block",
+        "//gematria/io/python:tfrecord",
+        "//gematria/proto:basic_block_py_pb2",
+        "//gematria/proto:canonicalized_instruction_py_pb2",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+)
