@@ -234,5 +234,29 @@ TEST(BasicBlockFromProtoTest, SomeInstructions) {
                /* implicit_output_operands = */ {})}));
 }
 
+TEST(BasicBlockFromProtoTest, VRegInstructions) {
+  const BasicBlockProto proto = ParseTextProto(R"pb(
+    canonicalized_instructions {
+      mnemonic: "CMP64RI32"
+      llvm_mnemonic: "CMP64ri32"
+      input_operands { virtual_register { name: "%60" size: 64 } }
+      input_operands { immediate_value: 0 }
+      implicit_output_operands { register_name: "EFLAGS" }
+    }
+  )pb");
+  const BasicBlock block = BasicBlockFromProto(proto);
+  EXPECT_EQ(block,
+            BasicBlock({Instruction(
+                /* mnemonic = */ "CMP64RI32", /* llvm_mnemonic = */ "CMP64ri32",
+                /* prefixes = */ {},
+                /* input_operands = */
+                {InstructionOperand::VirtualRegister("%60", 64),
+                 InstructionOperand::ImmediateValue(0)},
+                /* implicit_input_operands = */ {},
+                /* output_operands = */ {},
+                /* implicit_output_operands = */
+                {InstructionOperand::Register("EFLAGS")})}));
+}
+
 }  // namespace
 }  // namespace gematria

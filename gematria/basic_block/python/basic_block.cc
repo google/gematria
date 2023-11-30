@@ -74,6 +74,26 @@ InstructionOperandPropertyOrNone(const InstructionOperand& operand) {
   return &(operand.*getter_member_ptr)();
 }
 
+// Safe version of reading a field of InstructionOperand for cases when the
+// getter returns a reference. Preserves const-ness of the returned value.
+// - when operand.type() == expected_type1 or operand.type() == expected_type2, returns a pointer to the returned
+//   object.
+// - otherwise, returns nullptr; this is converted by pybind11 to None.
+// This wrapper can be used together with
+// py::return_value_policy::reference_internal to avoid unnecessary copying of
+// the address tuple.
+template <OperandType expected_type1, OperandType expected_type2, auto getter_member_ptr,
+          typename ResultType = decltype((
+              InstructionOperand::ImmediateValue(0).*getter_member_ptr)())>
+std::enable_if_t<std::is_lvalue_reference_v<ResultType>,
+                 std::add_pointer_t<ResultType>>
+InstructionOperandVregPropertyOrNone(const InstructionOperand& operand) {
+  if (operand.type() != expected_type1 || operand.type() != expected_type2 ) {
+    return nullptr;
+  }
+  return &(operand.*getter_member_ptr)();
+}
+
 PYBIND11_MODULE(basic_block, m) {
   m.doc() = "Data structures representing instructions and basic blocks.";
 
@@ -96,7 +116,8 @@ PYBIND11_MODULE(basic_block, m) {
       .value("IMMEDIATE_VALUE", OperandType::kImmediateValue)
       .value("FP_IMMEDIATE_VALUE", OperandType::kFpImmediateValue)
       .value("ADDRESS", OperandType::kAddress)
-      .value("MEMORY", OperandType::kMemory);
+      .value("MEMORY", OperandType::kMemory)
+      .value("VIRTUAL_REGISTER", OperandType::kVirtualRegister);
 
   py::class_<AddressTuple> address_tuple(m, "AddressTuple");
   address_tuple
@@ -133,6 +154,9 @@ PYBIND11_MODULE(basic_block, m) {
       .def_static("from_fp_immediate_value",
                   &InstructionOperand::FpImmediateValue,
                   py::arg("fp_immediate_value"))
+      .def_static("from_virtual_register",
+                  &InstructionOperand::VirtualRegister,
+                  py::arg("register_name"), py::arg("size") = 0)
       .def_static<InstructionOperand (*)(
           std::string /* base_register */, int64_t /* displacement */,
           std::string /* index_register */, int /* scaling */,
@@ -162,9 +186,9 @@ PYBIND11_MODULE(basic_block, m) {
       .def("as_token_list", &InstructionOperand::AsTokenList)
       .def_property_readonly("type", &InstructionOperand::type)
       .def_property_readonly(
-          "register_name",
-          InstructionOperandPropertyOrNone<OperandType::kRegister,
-                                           &InstructionOperand::register_name>)
+          "register_name",InstructionOperandVregPropertyOrNone<OperandType::kRegister, OperandType::kVirtualRegister, &InstructionOperand::register_name>)
+      .def_property_readonly(
+          "size", &InstructionOperand::size)
       .def_property_readonly("immediate_value",
                              InstructionOperandPropertyOrNone<
                                  OperandType::kImmediateValue,
