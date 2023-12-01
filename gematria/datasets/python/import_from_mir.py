@@ -57,7 +57,7 @@ _SOURCE_NAME = flags.DEFINE_string(
 )
 _THROUGHPUT_SCALING = flags.DEFINE_float(
     'gematria_throughput_scaling',
-    1.0,
+    100.0,
     'The scaling coefficient applied to the throughput values from the CSV'
     ' file.',
 )
@@ -69,6 +69,11 @@ _LLVM_TRIPLE = flags.DEFINE_string(
 _MACHINE_BASIC_BLOCK_NAME_COLUMN_INDEX = flags.DEFINE_integer(
     'machine_basic_block_name_column_index',
     '0',
+    'The index of the the machine code hex column in the input CSV file.',
+)
+_MACHINE_HEX_COLUMN_INDEX = flags.DEFINE_integer(
+    'machine_hex_column_index',
+    '1',
     'The index of the the machine code hex column in the input CSV file.',
 )
 _THROUGHPUT_COLUMN_INDEX = flags.DEFINE_integer(
@@ -98,6 +103,8 @@ from gematria.llvm.python import canonicalizer
 from gematria.llvm.python import llvm_architecture_support
 from pybind11_abseil import status
 import tensorflow as tf
+
+machine_hex_set = set()
 
 def main(argv: Sequence[str]) -> None:
   if len(argv) > 1:
@@ -135,7 +142,7 @@ def main(argv: Sequence[str]) -> None:
                 )
             mir_file = os.path.join(_INPUT_DIR.value, filename)
             print("mir file is " + mir_file)
-            perf_file = os.path.join(_INPUT_DIR.value, filename.replace(".mir", ".ll.perf"))
+            perf_file = os.path.join(_INPUT_DIR.value, filename.replace(".mir", ".perf"))
             try:
                 # load the MIR file
                 module = importer.LoadMIRModule(mir_file)
@@ -152,6 +159,18 @@ def main(argv: Sequence[str]) -> None:
                             )
                         num_input_blocks += 1
                         try:
+                            hex = line.split(",")[_MACHINE_HEX_COLUMN_INDEX.value]
+                            BB_name = line.split(",")[_MACHINE_BASIC_BLOCK_NAME_COLUMN_INDEX.value]
+                            through_put = line.split(",")[_THROUGHPUT_COLUMN_INDEX.value]
+                            # skip blocks with throughput -1
+                            if float(through_put) == -1:
+                                num_skipped_blocks += 1
+                                continue
+                            # skip blocks with duplicate machine code
+                            if hex in machine_hex_set:
+                                num_skipped_blocks += 1
+                                continue
+                            machine_hex_set.add(hex)
                             block_proto = importer.ParseMIRCsvLine(
                                 source_name=_SOURCE_NAME.value,
                                 line=line.strip(),
@@ -165,6 +184,16 @@ def main(argv: Sequence[str]) -> None:
             except:
                 logging.exception('Could not load file "%s"', mir_file)
                 num_skipped_files += 1
+    logging.info(
+        'Processed %d files, skipped %d.',
+        num_input_files,
+        num_skipped_files,
+    )
+    logging.info(
+        'Processed %d blocks, skipped %d.',
+        num_input_blocks,
+        num_skipped_blocks,
+    )
 
 
 if __name__ == '__main__':
