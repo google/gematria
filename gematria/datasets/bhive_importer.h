@@ -56,6 +56,10 @@
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/ADT/DenseMap.h"
 
+#include <sstream>
+#include <string>
+#include <fstream>      // std::ifstream
+
 #define DEBUG
 
 #ifdef DEBUG
@@ -130,6 +134,191 @@ class BHiveImporter {
   // Author: Zhan Shi
   // Build the interference graph for each basic block in name_to_mbb_
   // store into name_to_graph_
+  // A temporary struct for storing information of live range of a register
+    struct RegLiveInterval {
+      std::string name; //name of the register
+      std::vector< std::pair< std::string, std::string > > rangeList;
+      std::string anchor;
+      std::string weight;
+    };
+
+    // A struct that store all intervals in a function as well as ranges of BB
+    struct FunctionInfo {
+      std::vector<RegLiveInterval> register_live_range_func;
+      std::vector< 
+          std::pair< std::string, std::string > > BBRangeList; 
+    };
+
+    // Utility for deciding whether two ranges intersect
+    bool intersect(RegLiveInterval Reg1, RegLiveInterval Reg2, 
+        std::pair<std::string, std::string> BBInformation) {
+      
+      // First we need to decide the intersection of them
+      // WLOG Reg1 starts at an earlier index than Reg2, or otherwise we just swap them
+      if (Reg1.rangeList[0].first > Reg2.rangeList[0].first) {
+        std::swap(Reg1, Reg2);
+      }
+
+      std::pair<std::string, std::string> intersection;
+      // Now we need to make sure whether Reg1's end value is later than Reg2
+      if (Reg1.rangeList[0].second >= Reg2.rangeList[0].first) {
+        // If yes, then they must intersect where intersection begins at Reg2.rangeList.first
+        intersection.first = Reg2.rangeList[0].first;
+
+        // We decide the endpoint of the part of intersection
+        if (Reg1.rangeList[0].second > Reg2.rangeList[0].second) intersection.second = Reg2.rangeList[0].second; 
+        else intersection.second = Reg1.rangeList[0].second;
+      }
+      // Otherwise they just do not intersect
+      else return false;
+
+
+      // Now given a intersection, we still need to make sure whether the range intersects with the current BB
+      bool lowerInBB = (intersection.first <= BBInformation.second) || (intersection.first >= BBInformation.first);
+      bool upperInBB = (intersection.second <= BBInformation.second) || (intersection.second >= BBInformation.first);
+      return lowerInBB || upperInBB;
+    }
+
+  // Now we are able to obtain the live range for each register
+  // We want to for each pair of regsiter, find out if their live range overlap
+  // Edge case 1: one live range may have multiple live ranges,
+  // Non inteference only happens when two register do not overlap on every live range we find
+  // Edge case 2: One live register may use part of the bit and the other one use another part
+  // Also in constructing the live range we need to take in machine instruction/ fucntion
+  void InteferenceGraphParser() {
+
+    //We first reads in to the file
+    std::ifstream input_file;
+    input_file.open("gematria/datasets/liveintervals_example.text");
+
+    if (!input_file.is_open())
+    {
+        //fopen returns 0, the NULL pointer, on failure
+        perror("Canot open input file\n");
+        exit(-1);
+    }
+
+    // This stores the information of the whole function
+    std::vector<FunctionInfo> FunctionInfoList; 
+
+    // Pass the file stream as a input string stream, simplies the data structure
+    // std::istringstream iss(input_file);
+    std::string line;
+
+    // This is a temporary FunctionInfo object that captures the information 
+    // When we parse a file, we dump every info in a function to this temp
+    // If we reach a "**********" then we convey the temporary file to the 
+    FunctionInfo temp; 
+    bool FirstTime = false; 
+
+    // Now we parse the line
+    while (std::getline(input_file, line)) {
+      // Create a string stream so that we could process each item in the line
+      std::istringstream tempInteval(line);
+      // Used as a garbage for something we do not need
+      std::string trash;
+
+      // If we reach the line segment, and we it is not the first time 
+      if (line.find("**********") != std::string::npos) {
+        if (!FirstTime) {
+          // Push the temporary variable into the push back
+          FunctionInfoList.push_back(temp); 
+
+          // Then we clear up all information in the temp variable for recording 
+          // Information of a new function
+          FunctionInfo empty; 
+          temp = empty;       
+        }
+          continue;  // Skip the lines and section dividers
+        }
+      
+      // Now if we encounter percent symbol at the beginning, we construct the RegLiveInterval
+      // object 
+      else if (line[0] == '%') {
+        // This means we have an input data that corresponds to a input range
+
+        // We might need register number at the beginning
+        // But we throw it away currently
+        tempInteval >> trash;
+
+        // Now we put the starting and ending information into the temp
+        std::string startInteval; tempInteval >> startInteval; 
+        std::string endIntevral;  tempInteval >> endIntevral; 
+
+        std::string anchorIntevral; tempInteval >> anchorIntevral; 
+        std::string weight; tempInteval >> weight;
+
+        std::pair<std::string, std::string> oneInterval(startInteval, endIntevral);
+        std::vector<std::pair<std::string, std::string>> IntevalListOneReg; 
+        IntevalListOneReg.push_back(oneInterval); 
+
+        RegLiveInterval singleInteval = {"name", IntevalListOneReg, anchorIntevral, weight};
+        temp.register_live_range_func.push_back(singleInteval);
+      }
+
+      else if (line[0] == 'B')
+        // In this situation, we encountered information of a basic block
+        // Record this information
+
+        // We might need basic block number at the beginning
+        // But we throw it away currently
+        tempInteval >> trash; 
+
+        // Now we put the starting and ending information into the temp
+        std::string startInteval; 
+        tempInteval >> startInteval; 
+        
+        std::string endIntevral; 
+        tempInteval >> endIntevral; 
+
+        temp.BBRangeList.push_back(std::pair<std::string, std::string>(startInteval, endIntevral));
+    }
+
+    //At the final information to the list
+    FunctionInfoList.push_back(temp);
+
+    // At this time, we already processed all information in the file
+    // Now we want to construct the interference graph
+    // We first create an object that represents inference graph in a basic block
+    struct InferenceBB {
+      std::map<std::string, std::vector<std::string>> adjacencyList;
+    };
+
+    // This is a vector that stores information of a BB in each function of the function list
+    std::vector<std::vector<InferenceBB>> AllFunction; 
+
+    // We still need to find what is the name of each basic block
+    for (FunctionInfo functionInfo : FunctionInfoList) {
+      
+      std::vector<InferenceBB> functionAllBB;
+
+      // Consider a basic block at a time
+      for (std::pair<std::string, std::string> BBInformation : functionInfo.BBRangeList ) {
+        // We create an object that stores adjacency list of a the inference graph of a single BB
+        InferenceBB adjacencySingleBB;
+
+        // Now for each pair of register 
+        // First decide whether they are in this basic block or not
+        // and then decide whether they intersect ()
+        for (RegLiveInterval Reg1 : functionInfo.register_live_range_func) {
+          for (RegLiveInterval Reg2 : functionInfo.register_live_range_func) {
+            if (intersect(Reg1, Reg2, BBInformation)) {
+              adjacencySingleBB.adjacencyList[Reg1.name].push_back(Reg2.name); 
+              adjacencySingleBB.adjacencyList[Reg2.name].push_back(Reg1.name); 
+            }
+          }
+        }
+
+        // Now we add the adjacency of a single BB into the functionAllBB
+        functionAllBB.push_back(adjacencySingleBB);
+      }
+
+
+      // Add the inference graph of all BB in a function to the whole list
+      AllFunction.push_back(functionAllBB);
+    }
+  }
+
   void Block_to_Interference() {
 
     // Use a dense map to store name to the name to graph
@@ -147,6 +336,16 @@ class BHiveImporter {
     for (auto &F : *mir_module_) {
       // Use a dense map to store live raneges of each register
       llvm::DenseMap<unsigned, llvm::LiveInterval> reg_to_range;
+
+
+      // Now we are able to obtain the live range for each register
+      // We want to for each pair of regsiter, find out if their live range overlap
+      // Edge case 1: one live range may have multiple live ranges,
+      // Non inteference only happens when two register do not overlap on every live range we find
+      // Edge case 2: One live register may use part of the bit and the other one use another part
+      // Also in constructing the live range we need to take in machine instruction/ fucntion
+
+
 
       // We need to get the list of all registers in this function
       llvm::SmallVector<unsigned, 4> reg_list; 
