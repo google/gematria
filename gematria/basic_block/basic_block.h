@@ -30,7 +30,7 @@
 #include <string_view>
 #include <utility>
 #include <vector>
-
+#define VREG_TOKEN(SIZE) "_VREG" #SIZE "_"
 namespace gematria {
 
 // Tokens used for instruction canonicalization in Gematria. The values used

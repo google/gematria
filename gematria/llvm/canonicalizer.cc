@@ -36,7 +36,6 @@
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include <sstream>
 
-#define DEBUG
 
 #ifdef DEBUG
 #define LOG(X) \

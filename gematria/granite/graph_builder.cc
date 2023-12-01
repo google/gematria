@@ -29,6 +29,15 @@
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/model/oov_token_behavior.h"
 
+#define DEBUG
+
+#ifdef DEBUG
+#define LOG(X) \
+  std::cerr << X << "\n"
+#else
+#define LOG(X)
+#endif
+
 namespace gematria {
 namespace {
 
@@ -268,7 +277,7 @@ bool BasicBlockGraphBuilder::AddInputOperand(
       }
     } break;
     case OperandType::kVirtualRegister: {
-      std::string vreg_name = "VREG" + std::to_string(operand.size());
+      std::string vreg_name = VREG_TOKEN(operand.size());
       if (!AddDependencyOnRegister(instruction_node, operand.register_name(),
                                    vreg_name, EdgeType::kInputOperands)) {
         return false;
@@ -289,23 +298,32 @@ bool BasicBlockGraphBuilder::AddInputOperand(
           AddNode(NodeType::kAddressOperand, address_token_);
       const AddressTuple& address_tuple = operand.address();
       if (!address_tuple.base_register.empty()) {
+        bool is_virtual_reg = address_tuple.base_register[0] == '%';
+        LOG("base register: " << address_tuple.base_register << " is virtual: " << is_virtual_reg);
+        std::string vreg_token = VREG_TOKEN(64);
         if (!AddDependencyOnRegister(address_node, address_tuple.base_register,
-                                     address_tuple.base_register,
+                                     vreg_token,
                                      EdgeType::kAddressBaseRegister)) {
           return false;
         }
       }
       if (!address_tuple.index_register.empty()) {
+        bool is_virtual_reg = address_tuple.base_register[0] == '%';
+        LOG("index register: " << address_tuple.base_register << " is virtual: " << is_virtual_reg);
+        std::string vreg_token = VREG_TOKEN(64);
         if (!AddDependencyOnRegister(address_node, address_tuple.index_register,
-                                     address_tuple.index_register,
+                                     vreg_token,
                                      EdgeType::kAddressIndexRegister)) {
           return false;
         }
       }
       if (!address_tuple.segment_register.empty()) {
+        bool is_virtual_reg = address_tuple.base_register[0] == '%';
+        LOG("index register: " << address_tuple.base_register << " is virtual: " << is_virtual_reg);
+        std::string vreg_token = VREG_TOKEN(64);
         if (!AddDependencyOnRegister(address_node,
                                      address_tuple.segment_register,
-                                     address_tuple.segment_register,
+                                     vreg_token,
                                      EdgeType::kAddressSegmentRegister)) {
           return false;
         }
@@ -347,7 +365,7 @@ bool BasicBlockGraphBuilder::AddOutputOperand(
       register_nodes_[operand.register_name()] = register_node;
     } break;
     case OperandType::kVirtualRegister: {
-      std::string vreg_name = "VREG" + std::to_string(operand.size());
+      std::string vreg_name = VREG_TOKEN(operand.size());
       const NodeIndex register_node =
           AddNode(NodeType::kRegister, vreg_name);
       if (register_node == kInvalidNode) return false;

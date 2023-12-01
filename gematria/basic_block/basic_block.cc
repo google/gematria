@@ -202,7 +202,7 @@ void InstructionOperand::AddTokensToList(
       tokens.emplace_back(kMemoryToken);
       break;
     case OperandType::kVirtualRegister:
-      tokens.emplace_back(std::string{kVirtualRegisterToken} + std::to_string(size()) + "_");
+      tokens.emplace_back(VREG_TOKEN(size()));
       break;
   }
 }
