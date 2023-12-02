@@ -6,3 +6,6 @@
 /requirements.txt
 
 /compile_commands.json
+
+# Editor temporary files
+*.swp
