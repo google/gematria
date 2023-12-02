@@ -72,6 +72,19 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "find_accessed_addrs_exegesis",
+    srcs = ["find_accessed_addrs_exegesis.cc"],
+    hdrs = ["find_accessed_addrs_exegesis.h"],
+    deps = [
+        "@llvm-project//llvm:Exegesis",
+        "@llvm-project//llvm:Support",
+        ":find_accessed_addrs",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/llvm:disassembler",
+    ],
+)
+
 cc_test(
     name = "find_accessed_addrs_test",
     srcs = ["find_accessed_addrs_test.cc"],
@@ -85,6 +98,7 @@ cc_test(
     ],
     deps = [
         ":find_accessed_addrs",
+        ":find_accessed_addrs_exegesis",
         "//gematria/llvm:asm_parser",
         "//gematria/llvm:llvm_architecture_support",
         "//gematria/testing:matchers",
