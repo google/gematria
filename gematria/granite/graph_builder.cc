@@ -29,8 +29,6 @@
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/model/oov_token_behavior.h"
 
-#define DEBUG
-
 #ifdef DEBUG
 #define LOG(X) \
   std::cerr << X << "\n"
@@ -299,32 +297,33 @@ bool BasicBlockGraphBuilder::AddInputOperand(
       const AddressTuple& address_tuple = operand.address();
       if (!address_tuple.base_register.empty()) {
         bool is_virtual_reg = address_tuple.base_register[0] == '%';
-        LOG("base register: " << address_tuple.base_register << " is virtual: " << is_virtual_reg);
         std::string vreg_token = getVREG_TOKEN(64);
-        if (!AddDependencyOnRegister(address_node, address_tuple.base_register,
-                                     vreg_token,
-                                     EdgeType::kAddressBaseRegister)) {
+        bool result = AddDependencyOnRegister(address_node, address_tuple.base_register,
+                                     is_virtual_reg ? vreg_token : address_tuple.base_register,
+                                     EdgeType::kAddressBaseRegister);
+        if (result == false) {
           return false;
         }
       }
       if (!address_tuple.index_register.empty()) {
         bool is_virtual_reg = address_tuple.base_register[0] == '%';
-        LOG("index register: " << address_tuple.base_register << " is virtual: " << is_virtual_reg);
         std::string vreg_token = getVREG_TOKEN(64);
-        if (!AddDependencyOnRegister(address_node, address_tuple.index_register,
-                                     vreg_token,
-                                     EdgeType::kAddressIndexRegister)) {
+        bool result = AddDependencyOnRegister(address_node,
+                                     address_tuple.index_register,
+                                     is_virtual_reg ? vreg_token : address_tuple.index_register,
+                                     EdgeType::kAddressIndexRegister);
+        if (result == false) {
           return false;
         }
       }
       if (!address_tuple.segment_register.empty()) {
         bool is_virtual_reg = address_tuple.base_register[0] == '%';
-        LOG("index register: " << address_tuple.base_register << " is virtual: " << is_virtual_reg);
         std::string vreg_token = getVREG_TOKEN(64);
-        if (!AddDependencyOnRegister(address_node,
+        bool result = AddDependencyOnRegister(address_node,
                                      address_tuple.segment_register,
-                                     vreg_token,
-                                     EdgeType::kAddressSegmentRegister)) {
+                                     is_virtual_reg ? vreg_token : address_tuple.segment_register,
+                                     EdgeType::kAddressSegmentRegister);
+        if (result == false) {
           return false;
         }
       }

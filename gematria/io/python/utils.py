@@ -162,6 +162,22 @@ def _scale_values(
   for i in range(len(values)):
     values[i] *= scaling_factor
 
+def drop_blocks_with_empty_instructions(
+    block: throughput_pb2.BasicBlockWithThroughputProto
+) -> Optional[throughput_pb2.BasicBlockWithThroughputProto]:
+  """Removes basic blocks that do not have any instructions.
+
+  Returns `block` unchanged if it has at least one instruction.
+
+  Args:
+    block: The basic block proto to inspect.
+
+  Returns:
+    None when `block` has no instructions; otherwise, returns `block`.
+  """
+  if block.basic_block.canonicalized_instructions:
+    return block
+  return None
 
 def drop_blocks_with_no_throughputs(
     use_prefixes: bool, block: throughput_pb2.BasicBlockWithThroughputProto

@@ -42,6 +42,13 @@ _INPUT_DIR = flags.DEFINE_string(
     'The name of directory containing all raw MIR files with performance throughput',
     required=True,
 )
+
+_INPUT_DIR2 = flags.DEFINE_string(
+    'gematria_input_dir2',
+    None,
+    'The name of directory containing all raw MIR files with performance throughput',
+)
+
 _OUTPUT_TFRECORD_FILE = flags.DEFINE_string(
     'gematria_output_tfrecord',
     None,
@@ -132,58 +139,62 @@ def main(argv: Sequence[str]) -> None:
     num_input_files = 0
     num_skipped_blocks = 0
     num_skipped_files = 0
-    for filename in os.listdir(_INPUT_DIR.value):
-        if filename.endswith(".mir"):
-            if num_input_files % 1000 == 0:
-                logging.info(
-                    'Processed %d files, skipped %d.',
-                    num_input_files,
-                    num_skipped_files,
-                )
-            mir_file = os.path.join(_INPUT_DIR.value, filename)
-            print("mir file is " + mir_file)
-            perf_file = os.path.join(_INPUT_DIR.value, filename.replace(".mir", ".perf"))
-            try:
-                # load the MIR file
-                module = importer.LoadMIRModule(mir_file)
-                num_input_files += 1
-                logging.info('Procssing %s file', mir_file)
-                # iterate over each line in the corresponding .perf file
-                with tf.io.gfile.GFile(perf_file, 'r') as bhive_csv_file:
-                    for line in bhive_csv_file:
-                        if num_input_blocks % 1000 == 0:
-                            logging.info(
-                                'Processed %d blocks, skipped %d.',
-                                num_input_blocks,
-                                num_skipped_blocks,
-                            )
-                        num_input_blocks += 1
-                        try:
-                            hex = line.split(",")[_MACHINE_HEX_COLUMN_INDEX.value]
-                            BB_name = line.split(",")[_MACHINE_BASIC_BLOCK_NAME_COLUMN_INDEX.value]
-                            through_put = line.split(",")[_THROUGHPUT_COLUMN_INDEX.value]
-                            # skip blocks with throughput -1
-                            if float(through_put) == -1:
+    input_dirs = [_INPUT_DIR.value]
+    if _INPUT_DIR2.value:
+        input_dirs.append(_INPUT_DIR2.value)
+    for input_dir in input_dirs:
+        for filename in os.listdir(input_dir):
+            if filename.endswith(".mir"):
+                if num_input_files % 1000 == 0:
+                    logging.info(
+                        'Processed %d files, skipped %d.',
+                        num_input_files,
+                        num_skipped_files,
+                    )
+                mir_file = os.path.join(_INPUT_DIR.value, filename)
+                print("mir file is " + mir_file)
+                perf_file = os.path.join(_INPUT_DIR.value, filename.replace(".mir", ".perf"))
+                try:
+                    # load the MIR file
+                    module = importer.LoadMIRModule(mir_file)
+                    num_input_files += 1
+                    logging.info('Procssing %s file', mir_file)
+                    # iterate over each line in the corresponding .perf file
+                    with tf.io.gfile.GFile(perf_file, 'r') as bhive_csv_file:
+                        for line in bhive_csv_file:
+                            if num_input_blocks % 1000 == 0:
+                                logging.info(
+                                    'Processed %d blocks, skipped %d.',
+                                    num_input_blocks,
+                                    num_skipped_blocks,
+                                )
+                            num_input_blocks += 1
+                            try:
+                                hex = line.split(",")[_MACHINE_HEX_COLUMN_INDEX.value]
+                                BB_name = line.split(",")[_MACHINE_BASIC_BLOCK_NAME_COLUMN_INDEX.value]
+                                through_put = line.split(",")[_THROUGHPUT_COLUMN_INDEX.value]
+                                # skip blocks with throughput -1
+                                if float(through_put) == -1:
+                                    num_skipped_blocks += 1
+                                    continue
+                                # skip blocks with duplicate machine code
+                                if hex in machine_hex_set:
+                                    num_skipped_blocks += 1
+                                    continue
+                                machine_hex_set.add(hex)
+                                block_proto = importer.ParseMIRCsvLine(
+                                    source_name=_SOURCE_NAME.value,
+                                    line=line.strip(),
+                                    BB_name_index = _MACHINE_BASIC_BLOCK_NAME_COLUMN_INDEX.value,
+                                    throughput_column_index = _THROUGHPUT_COLUMN_INDEX.value,
+                                    throughput_scaling=_THROUGHPUT_SCALING.value,
+                                )
+                                writer.write(block_proto.SerializeToString())
+                            except:
                                 num_skipped_blocks += 1
-                                continue
-                            # skip blocks with duplicate machine code
-                            if hex in machine_hex_set:
-                                num_skipped_blocks += 1
-                                continue
-                            machine_hex_set.add(hex)
-                            block_proto = importer.ParseMIRCsvLine(
-                                source_name=_SOURCE_NAME.value,
-                                line=line.strip(),
-                                BB_name_index = _MACHINE_BASIC_BLOCK_NAME_COLUMN_INDEX.value,
-                                throughput_column_index = _THROUGHPUT_COLUMN_INDEX.value,
-                                throughput_scaling=_THROUGHPUT_SCALING.value,
-                            )
-                            writer.write(block_proto.SerializeToString())
-                        except:
-                            num_skipped_blocks += 1
-            except:
-                logging.exception('Could not load file "%s"', mir_file)
-                num_skipped_files += 1
+                except:
+                    logging.exception('Could not load file "%s"', mir_file)
+                    num_skipped_files += 1
     logging.info(
         'Processed %d files, skipped %d.',
         num_input_files,

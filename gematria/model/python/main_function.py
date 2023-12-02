@@ -715,6 +715,11 @@ def _make_basic_block_reader_from_command_line_flags(
     proto_filters.append(
         functools.partial(utils.aggregate_throughputs, throughput_selection)
     )
+    proto_filters.append(
+        functools.partial(
+            utils.drop_blocks_with_empty_instructions,
+        )
+    )
     if _INPUT_FILE_SCALING.value != 1.0:
       proto_filters.append(
           functools.partial(utils.scale_throughputs, _INPUT_FILE_SCALING.value)
