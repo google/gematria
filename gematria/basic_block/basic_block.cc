@@ -202,7 +202,7 @@ void InstructionOperand::AddTokensToList(
       tokens.emplace_back(kMemoryToken);
       break;
     case OperandType::kVirtualRegister:
-      tokens.emplace_back(VREG_TOKEN(size()));
+      tokens.emplace_back(getVREG_TOKEN(size()));
       break;
   }
 }

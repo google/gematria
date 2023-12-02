@@ -30,7 +30,6 @@
 #include <string_view>
 #include <utility>
 #include <vector>
-#define VREG_TOKEN(SIZE) "_VREG" #SIZE "_"
 namespace gematria {
 
 // Tokens used for instruction canonicalization in Gematria. The values used
@@ -43,6 +42,9 @@ inline constexpr std::string_view kMemoryToken = "_MEMORY_";
 inline constexpr std::string_view kNoRegisterToken = "_NO_REGISTER_";
 inline constexpr std::string_view kDisplacementToken = "_DISPLACEMENT_";
 inline constexpr std::string_view kVirtualRegisterToken = "_VREG";
+inline std::string getVREG_TOKEN(size_t size) {
+  return std::string(kVirtualRegisterToken) + std::to_string(size) + "_";
+} 
 
 // The type of an operand of an instruction.
 enum class OperandType {
