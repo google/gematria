@@ -111,7 +111,6 @@ from gematria.llvm.python import llvm_architecture_support
 from pybind11_abseil import status
 import tensorflow as tf
 
-machine_hex_set = set()
 
 def main(argv: Sequence[str]) -> None:
   if len(argv) > 1:
@@ -177,11 +176,6 @@ def main(argv: Sequence[str]) -> None:
                                 if float(through_put) == -1:
                                     num_skipped_blocks += 1
                                     continue
-                                # skip blocks with duplicate machine code
-                                if hex in machine_hex_set:
-                                    num_skipped_blocks += 1
-                                    continue
-                                machine_hex_set.add(hex)
                                 block_proto = importer.ParseMIRCsvLine(
                                     source_name=_SOURCE_NAME.value,
                                     line=line.strip(),
