@@ -286,6 +286,8 @@ absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name){
     for (auto &F : *mir_module_) {
         if (F.isDeclaration()) continue;
         llvm::MachineFunction &MF = MMI_.getOrCreateMachineFunction(F);
+        assert(func_to_live_intervals_.find(MF.getName()) == func_to_live_intervals_.end() && "Cannot have duplicated function name");
+        func_to_live_intervals_[MF.getName()] = FunctionLiveIntervalInfo();
         for (auto &MBB : MF) {
             // assert name is unique
             if (name_to_mbb_.find(MBB.getName()) != name_to_mbb_.end()) {
@@ -299,5 +301,136 @@ absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name){
 
     return true;
 }
+
+absl::StatusOr<bool> BHiveImporter::InteferenceGraphParser(std::string_view file_name) {
+
+    std::ifstream input_file{std::string(file_name)};
+
+    if (!input_file.is_open())
+    {
+        return absl::InvalidArgumentError(
+        absl::StrCat("Could not open file ", file_name));
+    }
+
+    // // This stores the information of the whole function
+    // std::vector<FunctionInfo> FunctionInfoList; 
+
+    // // Pass the file stream as a input string stream, simplies the data structure
+    // // std::istringstream iss(input_file);
+    // std::string line;
+
+    // // This is a temporary FunctionInfo object that captures the information 
+    // // When we parse a file, we dump every info in a function to this temp
+    // // If we reach a "**********" then we convey the temporary file to the 
+    // FunctionInfo temp; 
+    // bool FirstTime = false; 
+
+    // // Now we parse the line
+    // while (std::getline(input_file, line)) {
+    //   // Create a string stream so that we could process each item in the line
+    //   std::istringstream tempInteval(line);
+    //   // Used as a garbage for something we do not need
+    //   std::string trash;
+
+    //   // If we reach the line segment, and we it is not the first time 
+    //   if (line.find("**********") != std::string::npos) {
+    //     if (!FirstTime) {
+    //       // Push the temporary variable into the push back
+    //       FunctionInfoList.push_back(temp); 
+
+    //       // Then we clear up all information in the temp variable for recording 
+    //       // Information of a new function
+    //       FunctionInfo empty; 
+    //       temp = empty;       
+    //     }
+    //       continue;  // Skip the lines and section dividers
+    //     }
+      
+    //   // Now if we encounter percent symbol at the beginning, we construct the RegLiveInterval
+    //   // object 
+    //   else if (line[0] == '%') {
+    //     // This means we have an input data that corresponds to a input range
+
+    //     // We might need register number at the beginning
+    //     // But we throw it away currently
+    //     tempInteval >> trash;
+
+    //     // Now we put the starting and ending information into the temp
+    //     std::string startInteval; tempInteval >> startInteval; 
+    //     std::string endIntevral;  tempInteval >> endIntevral; 
+
+    //     std::string anchorIntevral; tempInteval >> anchorIntevral; 
+    //     std::string weight; tempInteval >> weight;
+
+    //     std::pair<std::string, std::string> oneInterval(startInteval, endIntevral);
+    //     std::vector<std::pair<std::string, std::string>> IntevalListOneReg; 
+    //     IntevalListOneReg.push_back(oneInterval); 
+
+    //     RegLiveInterval singleInteval = {"name", IntevalListOneReg, anchorIntevral, weight};
+    //     temp.register_live_range_func.push_back(singleInteval);
+    //   }
+
+    //   else if (line[0] == 'B')
+    //     // In this situation, we encountered information of a basic block
+    //     // Record this information
+
+    //     // We might need basic block number at the beginning
+    //     // But we throw it away currently
+    //     tempInteval >> trash; 
+
+    //     // Now we put the starting and ending information into the temp
+    //     std::string startInteval; 
+    //     tempInteval >> startInteval; 
+        
+    //     std::string endIntevral; 
+    //     tempInteval >> endIntevral; 
+
+    //     temp.BBRangeList.push_back(std::pair<std::string, std::string>(startInteval, endIntevral));
+    // }
+
+    // //At the final information to the list
+    // FunctionInfoList.push_back(temp);
+
+    // // At this time, we already processed all information in the file
+    // // Now we want to construct the interference graph
+    // // We first create an object that represents inference graph in a basic block
+    // struct InferenceBB {
+    //   std::map<std::string, std::vector<std::string>> adjacencyList;
+    // };
+
+    // // This is a vector that stores information of a BB in each function of the function list
+    // std::vector<std::vector<InferenceBB>> AllFunction; 
+
+    // // We still need to find what is the name of each basic block
+    // for (FunctionInfo functionInfo : FunctionInfoList) {
+      
+    //   std::vector<InferenceBB> functionAllBB;
+
+    //   // Consider a basic block at a time
+    //   for (std::pair<std::string, std::string> BBInformation : functionInfo.BBRangeList ) {
+    //     // We create an object that stores adjacency list of a the inference graph of a single BB
+    //     InferenceBB adjacencySingleBB;
+
+    //     // Now for each pair of register 
+    //     // First decide whether they are in this basic block or not
+    //     // and then decide whether they intersect ()
+    //     for (RegLiveInterval Reg1 : functionInfo.register_live_range_func) {
+    //       for (RegLiveInterval Reg2 : functionInfo.register_live_range_func) {
+    //         if (intersect(Reg1, Reg2, BBInformation)) {
+    //           adjacencySingleBB.adjacencyList[Reg1.name].push_back(Reg2.name); 
+    //           adjacencySingleBB.adjacencyList[Reg2.name].push_back(Reg1.name); 
+    //         }
+    //       }
+    //     }
+
+    //     // Now we add the adjacency of a single BB into the functionAllBB
+    //     functionAllBB.push_back(adjacencySingleBB);
+    //   }
+
+
+    //   // Add the inference graph of all BB in a function to the whole list
+    //   AllFunction.push_back(functionAllBB);
+    return true;
+  }
 
 }  // namespace gematria

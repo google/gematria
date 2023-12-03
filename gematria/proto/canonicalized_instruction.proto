@@ -125,5 +125,5 @@ message CanonicalizedOperandProto {
   }
 
   // Optional. The name of the registers where the current register interfered with
-  repeated string intefered_registers = 6;
+  repeated string intefered_registers = 7;
 }
