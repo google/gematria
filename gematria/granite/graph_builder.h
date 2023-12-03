@@ -352,6 +352,7 @@ class BasicBlockGraphBuilder {
   // a register. Adds the register node if it doesn't exist in the graph.
   bool AddDependencyOnRegister(NodeIndex dependent_node,
                                const std::string& register_name,
+                               const std::string& register_token, 
                                EdgeType edge_type);
 
   // Adds a new node to the batch; the feature of the node is given directly by

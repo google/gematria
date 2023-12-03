@@ -42,7 +42,7 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/WithColor.h"
 #include "llvm/Support/raw_ostream.h"
-#define DEBUG
+
 
 #ifdef DEBUG
 #define LOG(X) \

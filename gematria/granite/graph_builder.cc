@@ -29,6 +29,13 @@
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/model/oov_token_behavior.h"
 
+#ifdef DEBUG
+#define LOG(X) \
+  std::cerr << X << "\n"
+#else
+#define LOG(X)
+#endif
+
 namespace gematria {
 namespace {
 
@@ -263,7 +270,14 @@ bool BasicBlockGraphBuilder::AddInputOperand(
   switch (operand.type()) {
     case OperandType::kRegister: {
       if (!AddDependencyOnRegister(instruction_node, operand.register_name(),
-                                   EdgeType::kInputOperands)) {
+                                   operand.register_name(), EdgeType::kInputOperands)) {
+        return false;
+      }
+    } break;
+    case OperandType::kVirtualRegister: {
+      std::string vreg_name = getVREG_TOKEN(operand.size());
+      if (!AddDependencyOnRegister(instruction_node, operand.register_name(),
+                                   vreg_name, EdgeType::kInputOperands)) {
         return false;
       }
     } break;
@@ -282,21 +296,34 @@ bool BasicBlockGraphBuilder::AddInputOperand(
           AddNode(NodeType::kAddressOperand, address_token_);
       const AddressTuple& address_tuple = operand.address();
       if (!address_tuple.base_register.empty()) {
-        if (!AddDependencyOnRegister(address_node, address_tuple.base_register,
-                                     EdgeType::kAddressBaseRegister)) {
+        bool is_virtual_reg = address_tuple.base_register[0] == '%';
+        std::string vreg_token = getVREG_TOKEN(64);
+        bool result = AddDependencyOnRegister(address_node, address_tuple.base_register,
+                                     is_virtual_reg ? vreg_token : address_tuple.base_register,
+                                     EdgeType::kAddressBaseRegister);
+        if (result == false) {
           return false;
         }
       }
       if (!address_tuple.index_register.empty()) {
-        if (!AddDependencyOnRegister(address_node, address_tuple.index_register,
-                                     EdgeType::kAddressIndexRegister)) {
+        bool is_virtual_reg = address_tuple.base_register[0] == '%';
+        std::string vreg_token = getVREG_TOKEN(64);
+        bool result = AddDependencyOnRegister(address_node,
+                                     address_tuple.index_register,
+                                     is_virtual_reg ? vreg_token : address_tuple.index_register,
+                                     EdgeType::kAddressIndexRegister);
+        if (result == false) {
           return false;
         }
       }
       if (!address_tuple.segment_register.empty()) {
-        if (!AddDependencyOnRegister(address_node,
+        bool is_virtual_reg = address_tuple.base_register[0] == '%';
+        std::string vreg_token = getVREG_TOKEN(64);
+        bool result = AddDependencyOnRegister(address_node,
                                      address_tuple.segment_register,
-                                     EdgeType::kAddressSegmentRegister)) {
+                                     is_virtual_reg ? vreg_token : address_tuple.segment_register,
+                                     EdgeType::kAddressSegmentRegister);
+        if (result == false) {
           return false;
         }
       }
@@ -336,6 +363,14 @@ bool BasicBlockGraphBuilder::AddOutputOperand(
       AddEdge(EdgeType::kOutputOperands, instruction_node, register_node);
       register_nodes_[operand.register_name()] = register_node;
     } break;
+    case OperandType::kVirtualRegister: {
+      std::string vreg_name = getVREG_TOKEN(operand.size());
+      const NodeIndex register_node =
+          AddNode(NodeType::kRegister, vreg_name);
+      if (register_node == kInvalidNode) return false;
+      AddEdge(EdgeType::kOutputOperands, instruction_node, register_node);
+      register_nodes_[operand.register_name()] = register_node;
+    } break;
     case OperandType::kImmediateValue:
     case OperandType::kFpImmediateValue:
     case OperandType::kAddress:
@@ -359,13 +394,13 @@ bool BasicBlockGraphBuilder::AddOutputOperand(
 
 bool BasicBlockGraphBuilder::AddDependencyOnRegister(
     NodeIndex dependent_node, const std::string& register_name,
-    EdgeType edge_type) {
+    const std::string& register_token, EdgeType edge_type) {
   NodeIndex& operand_node =
       LookupOrInsert(register_nodes_, register_name, kInvalidNode);
   if (operand_node == kInvalidNode) {
     // Add a node for the register if it doesn't exist. This also updates the
     // node index in `node_by_register`.
-    operand_node = AddNode(NodeType::kRegister, register_name);
+    operand_node = AddNode(NodeType::kRegister, register_token);
   }
   if (operand_node == kInvalidNode) return false;
   AddEdge(edge_type, operand_node, dependent_node);

@@ -30,7 +30,6 @@
 #include <string_view>
 #include <utility>
 #include <vector>
-
 namespace gematria {
 
 // Tokens used for instruction canonicalization in Gematria. The values used
@@ -42,6 +41,10 @@ inline constexpr std::string_view kAddressToken = "_ADDRESS_";
 inline constexpr std::string_view kMemoryToken = "_MEMORY_";
 inline constexpr std::string_view kNoRegisterToken = "_NO_REGISTER_";
 inline constexpr std::string_view kDisplacementToken = "_DISPLACEMENT_";
+inline constexpr std::string_view kVirtualRegisterToken = "_VREG";
+inline std::string getVREG_TOKEN(size_t size) {
+  return std::string(kVirtualRegisterToken) + std::to_string(size) + "_";
+} 
 
 // The type of an operand of an instruction.
 enum class OperandType {
@@ -68,6 +71,9 @@ enum class OperandType {
   // The operand is a memory access. Instructions with this operand often have
   // also an operand of type kAddress.
   kMemory,
+
+  // The operand is a virtual register.
+  kVirtualRegister,
 };
 
 std::ostream& operator<<(std::ostream& os, OperandType operand_type);
@@ -140,6 +146,8 @@ class InstructionOperand {
   InstructionOperand& operator=(InstructionOperand&&) = default;
 
   // The operands must be created through one of the factory functions.
+  static InstructionOperand VirtualRegister(std::string register_name,
+                                            size_t size);
   static InstructionOperand Register(std::string register_name);
   static InstructionOperand ImmediateValue(uint64_t immediate_value);
   static InstructionOperand FpImmediateValue(double fp_immediate_value);
@@ -172,9 +180,11 @@ class InstructionOperand {
   // kUnknown.
   OperandType type() const { return type_; }
 
+  const size_t size() const { return size_; }
   // Returns the name of the register. Valid only when type() is kRegister.
   const std::string& register_name() const {
-    assert(type_ == OperandType::kRegister);
+    assert(type_ == OperandType::kRegister ||
+           type_ == OperandType::kVirtualRegister);
     return register_name_;
   }
 
@@ -209,6 +219,7 @@ class InstructionOperand {
  private:
   OperandType type_ = OperandType::kUnknown;
 
+  size_t size_;
   std::string register_name_;
   uint64_t immediate_value_ = 0;
   double fp_immediate_value_ = 0.0;

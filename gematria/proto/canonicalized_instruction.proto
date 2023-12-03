@@ -87,6 +87,13 @@ message CanonicalizedOperandProto {
     int32 alias_group_id = 1;
   }
 
+  message VirtualRegister {
+    // The name of the virtual register.
+    string name = 1;
+    // The size of the virtual register in bits.
+    int32 size = 2;
+  }
+
   // The operand must be exactly one of the following:
   //   - a register,
   //   - an integer immediate value,
@@ -113,5 +120,7 @@ message CanonicalizedOperandProto {
     AddressTuple address = 4;
     // The information about the memory location accessed by the instruction.
     MemoryLocation memory = 5;
+    // The information about the virtual register.
+    VirtualRegister virtual_register = 6;
   }
 }
