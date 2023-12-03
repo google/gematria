@@ -77,11 +77,11 @@ cc_library(
     srcs = ["find_accessed_addrs_exegesis.cc"],
     hdrs = ["find_accessed_addrs_exegesis.h"],
     deps = [
+        ":find_accessed_addrs",
+        "//gematria/llvm:disassembler",
+        "//gematria/llvm:llvm_architecture_support",
         "@llvm-project//llvm:Exegesis",
         "@llvm-project//llvm:Support",
-        ":find_accessed_addrs",
-        "//gematria/llvm:llvm_architecture_support",
-        "//gematria/llvm:disassembler",
     ],
 )
 
