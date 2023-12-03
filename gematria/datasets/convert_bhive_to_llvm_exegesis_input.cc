@@ -26,6 +26,8 @@
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
+#include "X86RegisterInfo.h"
+#include "X86Subtarget.h"
 
 constexpr uint64_t kInitialRegVal = 10000;
 constexpr uint64_t kInitialMemVal = 2147483647;
@@ -62,20 +64,20 @@ int main(int argc, char* argv[]) {
   const std::unique_ptr<gematria::LlvmArchitectureSupport> llvm_support =
       gematria::LlvmArchitectureSupport::X86_64();
   const llvm::MCRegisterInfo& MRI = llvm_support->mc_register_info();
-  for (llvm::MCPhysReg I = 1, E = MRI.getNumRegs(); I != E; ++I) {
-    // Filter out subregisters. Only include the super register.
-    bool is_sub_reg = false;
-    for (auto SuperReg : MRI.superregs(I)) {
-      if (MRI.isSubRegister(SuperReg, I)) {
-        is_sub_reg = true;
-        break;
-      }
-    }
-    if (is_sub_reg) {
-      continue;
-    }
-    // Append register definition line.
-    llvm::StringRef reg_name = MRI.getName(I);
+
+  // Iterate through all general purpose registers and vector registers
+  // and add them to the register definitions.
+  for (unsigned i = 0;
+       i < MRI.getRegClass(llvm::X86::GR64_NOREXRegClassID).getNumRegs(); ++i) {
+    llvm::StringRef reg_name =
+        MRI.getName(MRI.getRegClass(llvm::X86::GR64_NOREXRegClassID).getRegister(i));
+    register_defs_lines += std::string(kRegDefPrefix) + std::string(reg_name) +
+                           " " + std::to_string(kInitialRegVal) + "\n";
+  }
+  for (unsigned i = 0; i < MRI.getRegClass(llvm::X86::VR128RegClassID).getNumRegs();
+       ++i) {
+    llvm::StringRef reg_name =
+        MRI.getName(MRI.getRegClass(llvm::X86::VR128RegClassID).getRegister(i));
     register_defs_lines += std::string(kRegDefPrefix) + std::string(reg_name) +
                            " " + std::to_string(kInitialRegVal) + "\n";
   }
