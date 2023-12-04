@@ -237,6 +237,8 @@ TEST_F(BHiveImporterTest, MIRDatasetBasicTest) {
 TEST_F(BHiveImporterTest, MIRDatasetTest2) {
   EXPECT_THAT(x86_bhive_importer_->LoadMIRModule("sample_dataset/native_test.mir"),
               IsOk());
+  EXPECT_THAT(x86_bhive_importer_->InteferenceGraphParser("sample_dataset/singleliveinfo"),
+              IsOk());
   EXPECT_THAT(x86_bhive_importer_->InteferenceGraphParser("sample_dataset/liveinfo"),
               IsOk());
 }

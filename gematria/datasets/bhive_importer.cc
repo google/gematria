@@ -302,135 +302,237 @@ absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name){
     return true;
 }
 
+// Debug Utilities that prints information of a single RegLiveIntervals
+absl::Status printRegLiveIntervals(BHiveImporter::RegLiveIntervals LI) {
+
+  std::cerr << "Information of Single RegLiveIntervals named: " << LI.name << "\n";
+
+  for (BHiveImporter::BhiveLiveRange range: LI.rangeList) {
+    std::cerr << "  Live range: " << range.first << ", " << range.second << "\n";
+  }
+
+  std::cerr << "  Anchor: " << LI.anchor << "\n";
+  std::cerr << "  Weight: " << LI.weight << "\n"; 
+  std::cerr << "\n"; 
+
+  // No meaningful value to return.
+  return absl::OkStatus();
+}
+
+// Debug Utilities for BB
+absl::Status printBBRangeList(llvm::StringRef name, llvm::SmallVector<BHiveImporter::BhiveLiveRange> rangeList) {
+  std::cerr << "Information of Single RegLiveIntervals named: " << name.str() << "\n";
+
+  for (BHiveImporter::BhiveLiveRange range: rangeList) {
+    std::cerr << "  Live range: " << range.first << ", " << range.second << "\n";
+  }
+  
+  // No meaningful value to return.
+  return absl::OkStatus();
+}
+
+// Debug Utilities for FunctionLiveIntervalInfoMap, which includes
+// Name of a function as well as FunctionLiveIntervalInfo
+absl::Status printMap(
+  llvm::DenseMap<llvm::StringRef, BHiveImporter::FunctionLiveIntervalInfo> FunctionLiveIntervalInfoMap) {
+  
+  // Indicate there is a test
+  std::cerr << "*********Start of my test************" << "\n";
+  
+
+  for (auto &functionInfoPair : FunctionLiveIntervalInfoMap) {
+    std::cerr << "Function Name: " << functionInfoPair.first.str() << "\n";
+
+    // Print live range of register
+    for (auto &pairInfo : functionInfoPair.second.register_live_range_func) 
+      printRegLiveIntervals(pairInfo.second);
+
+    // And also we test the BBrange as well
+    for (auto &pairInfo : functionInfoPair.second.BBRangeList) 
+      printBBRangeList(pairInfo.first, pairInfo.second);
+
+    std::cerr << "-------End of a Function-------" << "\n";
+  }
+  
+  absl::OkStatus();
+}
+
 absl::StatusOr<bool> BHiveImporter::InteferenceGraphParser(std::string_view file_name) {
+  // Boilerplate for reading input
+  std::ifstream input_file{std::string(file_name)};
+  
+  if (!input_file.is_open())
+  {
+      return absl::InvalidArgumentError(
+      absl::StrCat("Could not open file ", file_name));
+  }
+  // FunctionLiveIntervalInfo Denotes all live ranges and bb ranges for a single function
+  // FunctionLiveIntervalInfoList is a llvm smal vector that stores FunctionLiveIntervalInfo
+  // We read one line at a time
+  llvm::DenseMap<llvm::StringRef, FunctionLiveIntervalInfo> FunctionLiveIntervalInfoMap; 
+  std::string line;
 
-    std::ifstream input_file{std::string(file_name)};
+  // For each function, we need to first store an empty info into the hashmap
+  // and then modify its contents while it is in hasmap
+  // To do this, we need to have an allias called "ref" that refers to info
+  // That is already stored in the hashmap
+  FunctionLiveIntervalInfo info;
+  std::string curFuncName = "dummy";
 
-    if (!input_file.is_open())
-    {
-        return absl::InvalidArgumentError(
-        absl::StrCat("Could not open file ", file_name));
+  // Read each line
+  while (std::getline(input_file, line)) {
+    std::istringstream lineStream(line);
+
+    // if we encounter a '%' symbol at the beginning, then we encountered a live interval register
+    if (line[0] == '%') {
+      std::string currentRegister;
+      unsigned int start, end;
+      char dummy; std::string junk;
+
+      // Get the register name first
+      lineStream >> currentRegister;
+
+      // Understand how many life ranges are there in this line
+      uint32_t numberLiveRanges = std::count(line.begin(), line.end(), '[');
+
+      // Now we need to read the starting and ending indices of a live range
+      for (uint32_t count = 0; count < numberLiveRanges; count++) {
+        lineStream >> dummy >> start >> dummy >> dummy >> end >> junk;
+
+        // Print out information for debug
+        std::cerr << "Register: " << currentRegister << ", " << start << ", " << end << "\n"; 
+
+        // Since LLVM do not support [] operator we need to find it first
+        auto resultRegLiveIntervals = info.register_live_range_func.find(currentRegister);
+
+        // If you find the current register in the register_live_range_func, 
+        // you insert a BhiveLiveRange with {start, end} in the range list of the find return
+        // If not, then you insert a new pair: {currentRegister, RegLiveIntervals}
+        if (resultRegLiveIntervals != info.register_live_range_func.end()) 
+          (*resultRegLiveIntervals).second.rangeList.push_back(BhiveLiveRange {start, end});
+        else {
+          info.register_live_range_func.insert(
+            std::pair<llvm::StringRef, RegLiveIntervals> 
+              {currentRegister, 
+                {currentRegister, 
+                llvm::SmallVector<BhiveLiveRange> {{start, end}}, 
+                "", 
+                "", 
+                }
+              }
+          );
+        }
+      }
+    }
+    
+    // If we encounter a "BB_" symbol, then we encounter a BB entry
+    else if (line.substr(0, 3) == "BB_") {
+      std::string currentBB;
+      unsigned int start, end;
+      char dummy; std::string junk;
+
+      // Read name of BB and delete the trailing ':'
+      lineStream >> currentBB;
+      if (currentBB[currentBB.size() - 1] == ':') currentBB.erase(currentBB.size() - 1);
+
+      // read range
+      lineStream >> start >> dummy >> end;
+
+      // Then insert the value
+      // Notice we need to make a copy of BB to insert otherwise we overwrite other values
+      // Fix: The current BB name is not correct, got overwritten in each iteration
+      std::string stripped(currentBB); 
+      info.BBRangeList.insert( 
+        std::pair<llvm::StringRef, llvm::SmallVector<BhiveLiveRange>>{
+          llvm::StringRef(stripped.c_str(), stripped.length()), 
+          llvm::SmallVector<BhiveLiveRange>{{start, end}}
+        }
+      );
     }
 
-    // // This stores the information of the whole function
-    // std::vector<FunctionInfo> FunctionInfoList; 
+    // In this case, we arrived at the definition of a new function
+    // In this case we need to 
+    else if (line[0] == '_') {
+      // We reached the end of a function, add info to the Map
+      // If this is the beginning of a new function, just add
+      // a dummy value and delete it at the end
 
-    // // Pass the file stream as a input string stream, simplies the data structure
-    // // std::istringstream iss(input_file);
-    // std::string line;
-
-    // // This is a temporary FunctionInfo object that captures the information 
-    // // When we parse a file, we dump every info in a function to this temp
-    // // If we reach a "**********" then we convey the temporary file to the 
-    // FunctionInfo temp; 
-    // bool FirstTime = false; 
-
-    // // Now we parse the line
-    // while (std::getline(input_file, line)) {
-    //   // Create a string stream so that we could process each item in the line
-    //   std::istringstream tempInteval(line);
-    //   // Used as a garbage for something we do not need
-    //   std::string trash;
-
-    //   // If we reach the line segment, and we it is not the first time 
-    //   if (line.find("**********") != std::string::npos) {
-    //     if (!FirstTime) {
-    //       // Push the temporary variable into the push back
-    //       FunctionInfoList.push_back(temp); 
-
-    //       // Then we clear up all information in the temp variable for recording 
-    //       // Information of a new function
-    //       FunctionInfo empty; 
-    //       temp = empty;       
-    //     }
-    //       continue;  // Skip the lines and section dividers
-    //     }
+      std::string copyName(curFuncName);
+      FunctionLiveIntervalInfoMap.insert(
+        std::pair<llvm::StringRef, FunctionLiveIntervalInfo>{
+          llvm::StringRef(copyName.c_str(), copyName.length()), 
+          info
+        }
+      );
       
-    //   // Now if we encounter percent symbol at the beginning, we construct the RegLiveInterval
-    //   // object 
-    //   else if (line[0] == '%') {
-    //     // This means we have an input data that corresponds to a input range
+      // Store new function name and information
+      lineStream >> curFuncName;
 
-    //     // We might need register number at the beginning
-    //     // But we throw it away currently
-    //     tempInteval >> trash;
-
-    //     // Now we put the starting and ending information into the temp
-    //     std::string startInteval; tempInteval >> startInteval; 
-    //     std::string endIntevral;  tempInteval >> endIntevral; 
-
-    //     std::string anchorIntevral; tempInteval >> anchorIntevral; 
-    //     std::string weight; tempInteval >> weight;
-
-    //     std::pair<std::string, std::string> oneInterval(startInteval, endIntevral);
-    //     std::vector<std::pair<std::string, std::string>> IntevalListOneReg; 
-    //     IntevalListOneReg.push_back(oneInterval); 
-
-    //     RegLiveInterval singleInteval = {"name", IntevalListOneReg, anchorIntevral, weight};
-    //     temp.register_live_range_func.push_back(singleInteval);
-    //   }
-
-    //   else if (line[0] == 'B')
-    //     // In this situation, we encountered information of a basic block
-    //     // Record this information
-
-    //     // We might need basic block number at the beginning
-    //     // But we throw it away currently
-    //     tempInteval >> trash; 
-
-    //     // Now we put the starting and ending information into the temp
-    //     std::string startInteval; 
-    //     tempInteval >> startInteval; 
-        
-    //     std::string endIntevral; 
-    //     tempInteval >> endIntevral; 
-
-    //     temp.BBRangeList.push_back(std::pair<std::string, std::string>(startInteval, endIntevral));
-    // }
-
-    // //At the final information to the list
-    // FunctionInfoList.push_back(temp);
-
-    // // At this time, we already processed all information in the file
-    // // Now we want to construct the interference graph
-    // // We first create an object that represents inference graph in a basic block
-    // struct InferenceBB {
-    //   std::map<std::string, std::vector<std::string>> adjacencyList;
-    // };
-
-    // // This is a vector that stores information of a BB in each function of the function list
-    // std::vector<std::vector<InferenceBB>> AllFunction; 
-
-    // // We still need to find what is the name of each basic block
-    // for (FunctionInfo functionInfo : FunctionInfoList) {
-      
-    //   std::vector<InferenceBB> functionAllBB;
-
-    //   // Consider a basic block at a time
-    //   for (std::pair<std::string, std::string> BBInformation : functionInfo.BBRangeList ) {
-    //     // We create an object that stores adjacency list of a the inference graph of a single BB
-    //     InferenceBB adjacencySingleBB;
-
-    //     // Now for each pair of register 
-    //     // First decide whether they are in this basic block or not
-    //     // and then decide whether they intersect ()
-    //     for (RegLiveInterval Reg1 : functionInfo.register_live_range_func) {
-    //       for (RegLiveInterval Reg2 : functionInfo.register_live_range_func) {
-    //         if (intersect(Reg1, Reg2, BBInformation)) {
-    //           adjacencySingleBB.adjacencyList[Reg1.name].push_back(Reg2.name); 
-    //           adjacencySingleBB.adjacencyList[Reg2.name].push_back(Reg1.name); 
-    //         }
-    //       }
-    //     }
-
-    //     // Now we add the adjacency of a single BB into the functionAllBB
-    //     functionAllBB.push_back(adjacencySingleBB);
-    //   }
-
-
-    //   // Add the inference graph of all BB in a function to the whole list
-    //   AllFunction.push_back(functionAllBB);
-    return true;
+      // If we saw a new function afterwards, we delete the data entry relating to current 
+      // function name
+      if (FunctionLiveIntervalInfoMap.find(curFuncName) != FunctionLiveIntervalInfoMap.end()) 
+        FunctionLiveIntervalInfoMap.erase(curFuncName);
+      info = FunctionLiveIntervalInfo();
+    }
   }
+
+  // Finally add the final data entry
+  FunctionLiveIntervalInfoMap.insert(
+    std::pair<llvm::StringRef, FunctionLiveIntervalInfo>{
+      llvm::StringRef(curFuncName.c_str(), curFuncName.length()), 
+      info
+    }
+  );
+
+  // Delete dummy node
+  FunctionLiveIntervalInfoMap.erase("dummy");
+
+  // Now we want to debug and print things inside the FunctionLiveIntervalMap
+  printMap(FunctionLiveIntervalInfoMap);
+
+  // // This stores the information of the whole function
+  // std::vector<FunctionInfo> FunctionInfoList; 
+
+  // // At this time, we already processed all information in the file
+  // // Now we want to construct the interference graph
+  // // We first create an object that represents inference graph in a basic block
+  // struct InferenceBB {
+  //   std::map<std::string, std::vector<std::string>> adjacencyList;
+  // };
+
+  // // This is a vector that stores information of a BB in each function of the function list
+  // std::vector<std::vector<InferenceBB>> AllFunction; 
+
+  // // We still need to find what is the name of each basic block
+  // for (FunctionInfo functionInfo : FunctionInfoList) {
+    
+  //   std::vector<InferenceBB> functionAllBB;
+
+  //   // Consider a basic block at a time
+  //   for (std::pair<std::string, std::string> BBInformation : functionInfo.BBRangeList ) {
+  //     // We create an object that stores adjacency list of a the inference graph of a single BB
+  //     InferenceBB adjacencySingleBB;
+
+  //     // Now for each pair of register 
+  //     // First decide whether they are in this basic block or not
+  //     // and then decide whether they intersect ()
+  //     for (RegLiveInterval Reg1 : functionInfo.register_live_range_func) {
+  //       for (RegLiveInterval Reg2 : functionInfo.register_live_range_func) {
+  //         if (intersect(Reg1, Reg2, BBInformation)) {
+  //           adjacencySingleBB.adjacencyList[Reg1.name].push_back(Reg2.name); 
+  //           adjacencySingleBB.adjacencyList[Reg2.name].push_back(Reg1.name); 
+  //         }
+  //       }
+  //     }
+
+  //     // Now we add the adjacency of a single BB into the functionAllBB
+  //     functionAllBB.push_back(adjacencySingleBB);
+  //   }
+
+
+  //   // Add the inference graph of all BB in a function to the whole list
+  //   AllFunction.push_back(functionAllBB);
+  return true;
+}
 
 }  // namespace gematria

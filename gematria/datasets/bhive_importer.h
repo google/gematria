@@ -131,25 +131,25 @@ class BHiveImporter {
       std::string_view source_name, std::string_view line,
       size_t BB_name_index, size_t throughput_column_index,
       double throughput_scaling = 1.0, uint64_t base_address = 0);
-  
+       
   typedef std::pair<unsigned int, unsigned int> BhiveLiveRange;
   // Author: Zhan Shi
   // Build the interference graph for each basic block in name_to_mbb_
   // store into name_to_graph_
   // A temporary struct for storing information of live range of a register
-    struct RegLiveIntervals {
-      std::string name; //name of the register
-      llvm::SmallVector<BhiveLiveRange> rangeList;
-      std::string anchor;
-      std::string weight;
-    };
+  struct RegLiveIntervals {
+    std::string name; //name of the register
+    llvm::SmallVector<BhiveLiveRange> rangeList;
+    std::string anchor;
+    std::string weight;
+  };
 
-    // A struct that store all intervals in a function as well as ranges of BB
-    struct FunctionLiveIntervalInfo {
-      llvm::DenseMap<llvm::StringRef, llvm::SmallVector<std::pair<llvm::MachineOperand*, llvm::MachineOperand*>>> register_name_to_operands;
-      llvm::DenseMap<llvm::StringRef, RegLiveIntervals> register_live_range_func;
-      llvm::DenseMap<llvm::StringRef, llvm::SmallVector<BhiveLiveRange>> BBRangeList;
-    };
+  // A struct that store all intervals in a function as well as ranges of BB
+  struct FunctionLiveIntervalInfo {
+    llvm::DenseMap<llvm::StringRef, llvm::SmallVector<std::pair<llvm::MachineOperand*, llvm::MachineOperand*>>> register_name_to_operands;
+    llvm::DenseMap<llvm::StringRef, RegLiveIntervals> register_live_range_func;
+    llvm::DenseMap<llvm::StringRef, llvm::SmallVector<BhiveLiveRange>> BBRangeList;
+  };
 
   // Now we are able to obtain the live range for each register
   // We want to for each pair of regsiter, find out if their live range overlap
