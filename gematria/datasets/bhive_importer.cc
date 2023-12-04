@@ -247,6 +247,21 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseMIRCsvLine(
   return proto;
 }
 
+static void prettyPrintFunctionLiveIntervalInfo(const BHiveImporter::FunctionLiveIntervalInfo& info){
+  for (auto& [name, rangeList] : info.register_name_to_operands){
+    LOG("Register name: " << name);
+    for (auto& [start, end] : rangeList){
+      LOG("Start: " << *start << " End: " << *end);
+    }
+  }
+}
+static void prettyPrintFuncToLiveOntervals(const llvm::DenseMap<llvm::StringRef, BHiveImporter::FunctionLiveIntervalInfo>& func_to_live_intervals_){
+  for (auto& [name, info] : func_to_live_intervals_){
+    LOG("Function name: " << name);
+    prettyPrintFunctionLiveIntervalInfo(info);
+  }
+}
+
 absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name){
   // clear previous loaded module
   name_to_mbb_.clear();
@@ -299,6 +314,7 @@ absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name){
         }
     }
 
+    prettyPrintFuncToLiveOntervals(func_to_live_intervals_);
     return true;
 }
 
