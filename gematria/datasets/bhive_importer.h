@@ -27,45 +27,40 @@
 #include "gematria/proto/basic_block.pb.h"
 #include "gematria/proto/throughput.pb.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/CodeGen/MIRParser/MIRParser.h"
+#include "llvm/CodeGen/MachineBasicBlock.h"
+#include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCDisassembler/MCDisassembler.h"
 #include "llvm/MC/MCInstPrinter.h"
 #include "llvm/Target/TargetMachine.h"
-#include "llvm/CodeGen/MIRParser/MIRParser.h"
-#include "llvm/CodeGen/MachineBasicBlock.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/CodeGen/MachineModuleInfo.h"
-
 
 // aUTHOR: Zhan Shi
-#include "llvm/Pass.h"
-#include "llvm/CodeGen/LiveIntervals.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/PassManager.h"
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/CodeGen/MachineDominators.h"
+#include <fstream>  // std::ifstream
+#include <sstream>
+#include <string>
 
-#include "llvm/CodeGen/MachineModuleInfo.h"
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/CodeGen/LiveIntervals.h"
+#include "llvm/CodeGen/MIRParser/MIRParser.h"
+#include "llvm/CodeGen/MachineBasicBlock.h"
+#include "llvm/CodeGen/MachineDominators.h"
 #include "llvm/CodeGen/MachineFunction.h"
+#include "llvm/CodeGen/MachineModuleInfo.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/PassManager.h"
+#include "llvm/Pass.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/WithColor.h"
 #include "llvm/Support/raw_ostream.h"
 
-
-#include "llvm/CodeGen/MIRParser/MIRParser.h"
-#include "llvm/CodeGen/MachineBasicBlock.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
-
-#include <sstream>
-#include <string>
-#include <fstream>      // std::ifstream
-
 #define DEBUG
 
 #ifdef DEBUG
-#define LOG(X) \
-  llvm::errs() << X << "\n"
+#define LOG(X) llvm::errs() << X << "\n"
 #else
 #define LOG(X)
 #endif
@@ -98,7 +93,7 @@ class BHiveImporter {
   // corresponds to a three-byte sequence {0xAA, 0xBB, 0x11}.
   absl::StatusOr<BasicBlockProto> BasicBlockProtoFromMachineCodeHex(
       std::string_view machine_code_hex, uint64_t base_address = 0);
-  
+
   absl::StatusOr<BasicBlockProto> BasicBlockProtoFromMBBName(
       std::string_view MBB_name, uint64_t base_address = 0);
 
@@ -115,30 +110,28 @@ class BHiveImporter {
       double throughput_scaling = 1.0, uint64_t base_address = 0);
 
   // Parse a file containing machine basic blocks, each has a unique name
-  absl::StatusOr<bool> LoadMIRModule(
-    std::string_view file_name
-  );
+  absl::StatusOr<bool> LoadMIRModule(std::string_view file_name);
 
-  // Parses a MIR basic block with throughput from one BHive CSV line. Expects that
-  // the line has the format "{BB_name},{throughput}" where {machine_code}
+  // Parses a MIR basic block with throughput from one BHive CSV line. Expects
+  // that the line has the format "{BB_name},{throughput}" where {machine_code}
   // is the machine code of the basic block in the hex format accepted by
   // ParseBasicBlockFromMachineCodeHex(), and {throughput} is the inverse
   // throughput of the basic block in text format.
   // Optionally applies `throughput_scaling` to the throughput value, and uses
-  // `base_address` as the address of the first instruction in the basic block. 
+  // `base_address` as the address of the first instruction in the basic block.
   // NOTE: YOU MUST RUN LoadMIRModule before calling this function
   absl::StatusOr<BasicBlockWithThroughputProto> ParseMIRCsvLine(
-      std::string_view source_name, std::string_view line,
-      size_t BB_name_index, size_t throughput_column_index,
-      double throughput_scaling = 1.0, uint64_t base_address = 0);
-       
+      std::string_view source_name, std::string_view line, size_t BB_name_index,
+      size_t throughput_column_index, double throughput_scaling = 1.0,
+      uint64_t base_address = 0);
+
   typedef std::pair<unsigned int, unsigned int> BhiveLiveRange;
   // Author: Zhan Shi
   // Build the interference graph for each basic block in name_to_mbb_
   // store into name_to_graph_
   // A temporary struct for storing information of live range of a register
   struct RegLiveIntervals {
-    std::string name; //name of the register
+    std::string name;  // name of the register
     llvm::SmallVector<BhiveLiveRange> rangeList;
     std::string anchor;
     std::string weight;
@@ -146,17 +139,17 @@ class BHiveImporter {
 
   // A struct that store all intervals in a function as well as ranges of BB
   struct FunctionLiveIntervalInfo {
-    llvm::DenseMap<llvm::StringRef, llvm::SmallVector<std::pair<llvm::MachineOperand*, llvm::MachineOperand*>>> register_name_to_operands;
-    llvm::DenseMap<llvm::StringRef, RegLiveIntervals> register_live_range_func;
-    llvm::DenseMap<llvm::StringRef, llvm::SmallVector<BhiveLiveRange>> BBRangeList;
+    std::unordered_map<std::string, RegLiveIntervals> register_live_range_func;
+    std::unordered_map<std::string, BhiveLiveRange> BBRangeList;
   };
 
   // Now we are able to obtain the live range for each register
   // We want to for each pair of regsiter, find out if their live range overlap
   // Edge case 1: one live range may have multiple live ranges,
-  // Non inteference only happens when two register do not overlap on every live range we find
-  // Edge case 2: One live register may use part of the bit and the other one use another part
-  // Also in constructing the live range we need to take in machine instruction/ fucntion
+  // Non inteference only happens when two register do not overlap on every live
+  // range we find Edge case 2: One live register may use part of the bit and
+  // the other one use another part Also in constructing the live range we need
+  // to take in machine instruction/ fucntion
   absl::StatusOr<bool> InteferenceGraphParser(std::string_view file_name);
 
  private:
@@ -166,7 +159,8 @@ class BHiveImporter {
   std::unique_ptr<llvm::MCDisassembler> disassembler_;
   std::unique_ptr<llvm::MCInstPrinter> mc_inst_printer_;
   llvm::DenseMap<llvm::StringRef, llvm::MachineBasicBlock*> name_to_mbb_;
-  llvm::DenseMap<llvm::StringRef, FunctionLiveIntervalInfo> func_to_live_intervals_;
+  std::unordered_map<std::string, FunctionLiveIntervalInfo>
+      func_to_live_intervals_;
   llvm::LLVMContext llvm_context_;
   std::unique_ptr<llvm::Module> mir_module_;
   llvm::MachineModuleInfo MMI_;
@@ -176,7 +170,6 @@ class BHiveImporter {
   // Add one data strcture to the bhiveimporter storing interference graph
   llvm::DenseMap<llvm::StringRef, llvm::MachineBasicBlock*> name_to_graph_;
 };
-
 
 }  // namespace gematria
 

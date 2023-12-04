@@ -36,28 +36,26 @@
 #include "gematria/proto/throughput.pb.h"
 #include "gematria/utils/string.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Error.h"
-#include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/WithColor.h"
 #include "llvm/Support/raw_ostream.h"
 
-
 #define DEBUG
 
 #ifdef DEBUG
-#define LOG(X) \
-  llvm::errs() << X << "\n"
+#define LOG(X) llvm::errs() << X << "\n"
 #else
 #define LOG(X)
 #endif
 
-//Author: Zhan Shi
-#include "llvm/Pass.h"
+// Author: Zhan Shi
+#include "llvm/CodeGen/LiveInterval.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/PassManager.h"
-#include "llvm/CodeGen/LiveInterval.h"
+#include "llvm/Pass.h"
 
 namespace gematria {
 namespace {
@@ -81,7 +79,7 @@ BHiveImporter::BHiveImporter(const Canonicalizer* canonicalizer)
       mc_inst_printer_(target_machine_.getTarget().createMCInstPrinter(
           target_machine_.getTargetTriple(), kDefaultSyntax,
           *target_machine_.getMCAsmInfo(), *target_machine_.getMCInstrInfo(),
-          *target_machine_.getMCRegisterInfo())), 
+          *target_machine_.getMCRegisterInfo())),
       MMI_(dynamic_cast<const llvm::LLVMTargetMachine*>(&target_machine_)) {}
 
 absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMachineCode(
@@ -179,33 +177,34 @@ absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMBBName(
 
   llvm::MachineBasicBlock* MBB = name_to_mbb_[MBB_name_ref];
   LOG("MBB is " << *MBB);
-  for (llvm::MachineInstr& MI : *MBB){
+  for (llvm::MachineInstr& MI : *MBB) {
     // if MI is a control instruction(ret,branch,jmp), skip it
     if (MI.isInlineAsm() || MI.isTerminator() || MI.isEHLabel()) {
       continue;
     }
 
     // Assert MI cannot be a CALL instruction
-    if(MI.isCall()){
+    if (MI.isCall()) {
       LOG("MI is a CALL instruction, abort this BB " << MI);
       return absl::InvalidArgumentError(
-        absl::StrCat("Cannot handle CALL instruction "));
-    } 
+          absl::StrCat("Cannot handle CALL instruction "));
+    }
     auto I = canonicalizer_.InstructionFromMachineInstr(MI);
     if (!I.is_valid) {
       LOG("MI is not valid, skipping it " << MI);
       return absl::InvalidArgumentError(
-        absl::StrCat("Could not parse MachineInstr "));
+          absl::StrCat("Could not parse MachineInstr "));
     }
-    *basic_block_proto.add_canonicalized_instructions() = ProtoFromInstruction(I);
+    *basic_block_proto.add_canonicalized_instructions() =
+        ProtoFromInstruction(I);
   }
   return basic_block_proto;
 }
 
 absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseMIRCsvLine(
-    std::string_view source_name, std::string_view line,
-    size_t BB_name_index, size_t throughput_column_index,
-    double throughput_scaling /*= 1.0*/, uint64_t base_address /*= 0*/) {
+    std::string_view source_name, std::string_view line, size_t BB_name_index,
+    size_t throughput_column_index, double throughput_scaling /*= 1.0*/,
+    uint64_t base_address /*= 0*/) {
   const absl::InlinedVector<std::string_view, 2> columns =
       absl::StrSplit(line, ',');
   const int min_required_num_columns =
@@ -221,8 +220,7 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseMIRCsvLine(
         "different, but were both %d: %s",
         BB_name_index, line));
   }
-  const std::string_view BB_unique_name =
-      columns[BB_name_index];
+  const std::string_view BB_unique_name = columns[BB_name_index];
   const std::string_view throughput_str = columns[throughput_column_index];
 
   BasicBlockWithThroughputProto proto;
@@ -247,27 +245,12 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseMIRCsvLine(
   return proto;
 }
 
-static void prettyPrintFunctionLiveIntervalInfo(const BHiveImporter::FunctionLiveIntervalInfo& info){
-  for (auto& [name, rangeList] : info.register_name_to_operands){
-    LOG("Register name: " << name);
-    for (auto& [start, end] : rangeList){
-      LOG("Start: " << *start << " End: " << *end);
-    }
-  }
-}
-static void prettyPrintFuncToLiveOntervals(const llvm::DenseMap<llvm::StringRef, BHiveImporter::FunctionLiveIntervalInfo>& func_to_live_intervals_){
-  for (auto& [name, info] : func_to_live_intervals_){
-    LOG("Function name: " << name);
-    prettyPrintFunctionLiveIntervalInfo(info);
-  }
-}
-
-absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name){
+absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name) {
   // clear previous loaded module
   name_to_mbb_.clear();
-  if (mir_module_){
-    for (llvm::Function &F : mir_module_->functions()) {
-        MMI_.deleteMachineFunctionFor(F);
+  if (mir_module_) {
+    for (llvm::Function& F : mir_module_->functions()) {
+      MMI_.deleteMachineFunctionFor(F);
     }
   }
 
@@ -283,8 +266,8 @@ absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name){
   // Parse the LLVM IR module (if any)
   mir_module_ = mir_parser_->parseIRModule();
   if (!mir_module_) {
-      // Handle error
-      return absl::InvalidArgumentError(
+    // Handle error
+    return absl::InvalidArgumentError(
         absl::StrCat("Could not parse MIR module for file ", file_name));
   }
 
@@ -292,118 +275,106 @@ absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name){
 
   // Parse the MachineFunctions and add them to MMI
   if (mir_parser_->parseMachineFunctions(*mir_module_, MMI_)) {
-      // Handle error
-      return absl::InvalidArgumentError(
+    // Handle error
+    return absl::InvalidArgumentError(
         absl::StrCat("Could not parse MachineFunctions for file ", file_name));
   }
 
   // Now iterate over the MachineFunctions and their MachineBasicBlocks
-    for (auto &F : *mir_module_) {
-        if (F.isDeclaration()) continue;
-        llvm::MachineFunction &MF = MMI_.getOrCreateMachineFunction(F);
-        assert(func_to_live_intervals_.find(MF.getName()) == func_to_live_intervals_.end() && "Cannot have duplicated function name");
-        func_to_live_intervals_[MF.getName()] = FunctionLiveIntervalInfo();
-        for (auto &MBB : MF) {
-            // assert name is unique
-            if (name_to_mbb_.find(MBB.getName()) != name_to_mbb_.end()) {
-              // clear this key-value pair
-              name_to_mbb_.erase(MBB.getName());
-            } else {
-              name_to_mbb_[MBB.getName()] = &MBB;
-            }
-        }
+  for (auto& F : *mir_module_) {
+    if (F.isDeclaration()) continue;
+    llvm::MachineFunction& MF = MMI_.getOrCreateMachineFunction(F);
+    for (auto& MBB : MF) {
+      // assert name is unique
+      if (name_to_mbb_.find(MBB.getName()) != name_to_mbb_.end()) {
+        // clear this key-value pair
+        name_to_mbb_.erase(MBB.getName());
+      } else {
+        name_to_mbb_[MBB.getName()] = &MBB;
+      }
     }
-
-    prettyPrintFuncToLiveOntervals(func_to_live_intervals_);
-    return true;
+  }
+  return true;
 }
 
 // Debug Utilities that prints information of a single RegLiveIntervals
-absl::Status printRegLiveIntervals(BHiveImporter::RegLiveIntervals LI) {
+void printRegLiveIntervals(BHiveImporter::RegLiveIntervals LI) {
+  LOG("Information of Single RegLiveIntervals named: " << LI.name);
 
-  std::cerr << "Information of Single RegLiveIntervals named: " << LI.name << "\n";
-
-  for (BHiveImporter::BhiveLiveRange range: LI.rangeList) {
-    std::cerr << "  Live range: " << range.first << ", " << range.second << "\n";
+  for (BHiveImporter::BhiveLiveRange range : LI.rangeList) {
+    LOG("  Live range: " << range.first << ", " << range.second);
   }
 
-  std::cerr << "  Anchor: " << LI.anchor << "\n";
-  std::cerr << "  Weight: " << LI.weight << "\n"; 
-  std::cerr << "\n"; 
-
-  // No meaningful value to return.
-  return absl::OkStatus();
-}
-
-// Debug Utilities for BB
-absl::Status printBBRangeList(llvm::StringRef name, llvm::SmallVector<BHiveImporter::BhiveLiveRange> rangeList) {
-  std::cerr << "Information of Single RegLiveIntervals named: " << name.str() << "\n";
-
-  for (BHiveImporter::BhiveLiveRange range: rangeList) {
-    std::cerr << "  Live range: " << range.first << ", " << range.second << "\n";
-  }
-  
-  // No meaningful value to return.
-  return absl::OkStatus();
+  LOG("  Anchor: " << LI.anchor);
+  LOG("  Weight: " << LI.weight);
 }
 
 // Debug Utilities for FunctionLiveIntervalInfoMap, which includes
 // Name of a function as well as FunctionLiveIntervalInfo
-absl::Status printMap(
-  llvm::DenseMap<llvm::StringRef, BHiveImporter::FunctionLiveIntervalInfo> FunctionLiveIntervalInfoMap) {
-  
+void printMap(
+    std::unordered_map<std::string, BHiveImporter::FunctionLiveIntervalInfo>&
+        FunctionLiveIntervalInfoMap) {
   // Indicate there is a test
-  std::cerr << "*********Start of my test************" << "\n";
-  
+  std::cerr << "*********Start of my test************"
+            << "\n";
 
-  for (auto &functionInfoPair : FunctionLiveIntervalInfoMap) {
-    std::cerr << "Function Name: " << functionInfoPair.first.str() << "\n";
+  for (auto& functionInfoPair : FunctionLiveIntervalInfoMap) {
+    std::cerr << "Function Name: " << functionInfoPair.first << "\n";
 
     // Print live range of register
-    for (auto &pairInfo : functionInfoPair.second.register_live_range_func) 
+    for (auto& pairInfo : functionInfoPair.second.register_live_range_func) {
+      LOG("Register Name: " << pairInfo.first);
       printRegLiveIntervals(pairInfo.second);
+    }
 
     // And also we test the BBrange as well
-    for (auto &pairInfo : functionInfoPair.second.BBRangeList) 
-      printBBRangeList(pairInfo.first, pairInfo.second);
+    for (auto& pairInfo : functionInfoPair.second.BBRangeList) {
+      LOG("BB Name: " << pairInfo.first);
+      LOG("  Live range: " << pairInfo.second.first << ", "
+                           << pairInfo.second.second);
+    }
 
-    std::cerr << "-------End of a Function-------" << "\n";
+    LOG("-------End of a Function-------");
   }
-  
-  absl::OkStatus();
 }
 
-absl::StatusOr<bool> BHiveImporter::InteferenceGraphParser(std::string_view file_name) {
+absl::StatusOr<bool> BHiveImporter::InteferenceGraphParser(
+    std::string_view file_name) {
   // Boilerplate for reading input
   std::ifstream input_file{std::string(file_name)};
-  
-  if (!input_file.is_open())
-  {
-      return absl::InvalidArgumentError(
-      absl::StrCat("Could not open file ", file_name));
+
+  if (!input_file.is_open()) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("Could not open file ", file_name));
   }
-  // FunctionLiveIntervalInfo Denotes all live ranges and bb ranges for a single function
-  // FunctionLiveIntervalInfoList is a llvm smal vector that stores FunctionLiveIntervalInfo
-  // We read one line at a time
-  llvm::DenseMap<llvm::StringRef, FunctionLiveIntervalInfo> FunctionLiveIntervalInfoMap; 
+  // FunctionLiveIntervalInfo Denotes all live ranges and bb ranges for a single
+  // function FunctionLiveIntervalInfoList is a llvm smal vector that stores
+  // FunctionLiveIntervalInfo We read one line at a time
   std::string line;
 
   // For each function, we need to first store an empty info into the hashmap
   // and then modify its contents while it is in hasmap
   // To do this, we need to have an allias called "ref" that refers to info
   // That is already stored in the hashmap
-  FunctionLiveIntervalInfo info;
+  FunctionLiveIntervalInfo* info = nullptr;
   std::string curFuncName = "dummy";
+  bool isParsingRegister = false;
 
   // Read each line
   while (std::getline(input_file, line)) {
     std::istringstream lineStream(line);
 
-    // if we encounter a '%' symbol at the beginning, then we encountered a live interval register
-    if (line[0] == '%') {
+    // if we encounter a '%' symbol at the beginning, then we encountered a live
+    // interval register
+    if (isParsingRegister) {
+      if (line.substr(0, 8) == "RegMasks") {
+        isParsingRegister = false;
+        LOG("End of parsing register");
+        continue;
+      }
       std::string currentRegister;
-      unsigned int start, end;
-      char dummy; std::string junk;
+      unsigned int start, end, discard;
+      char dummy;
 
       // Get the register name first
       lineStream >> currentRegister;
@@ -413,130 +384,105 @@ absl::StatusOr<bool> BHiveImporter::InteferenceGraphParser(std::string_view file
 
       // Now we need to read the starting and ending indices of a live range
       for (uint32_t count = 0; count < numberLiveRanges; count++) {
-        lineStream >> dummy >> start >> dummy >> dummy >> end >> junk;
+        lineStream >> dummy >> start >> dummy >> dummy >> end >> dummy >>
+            dummy >> discard >> dummy;
 
         // Print out information for debug
-        std::cerr << "Register: " << currentRegister << ", " << start << ", " << end << "\n"; 
+        std::cerr << "Register: " << currentRegister << ", " << start << ", "
+                  << end << "\n";
 
         // Since LLVM do not support [] operator we need to find it first
-        auto resultRegLiveIntervals = info.register_live_range_func.find(currentRegister);
+        auto resultRegLiveIntervals =
+            info->register_live_range_func.find(currentRegister);
 
-        // If you find the current register in the register_live_range_func, 
-        // you insert a BhiveLiveRange with {start, end} in the range list of the find return
-        // If not, then you insert a new pair: {currentRegister, RegLiveIntervals}
-        if (resultRegLiveIntervals != info.register_live_range_func.end()) 
-          (*resultRegLiveIntervals).second.rangeList.push_back(BhiveLiveRange {start, end});
+        // If you find the current register in the register_live_range_func,
+        // you insert a BhiveLiveRange with {start, end} in the range list of
+        // the find return If not, then you insert a new pair: {currentRegister,
+        // RegLiveIntervals}
+        if (resultRegLiveIntervals != info->register_live_range_func.end())
+          (*resultRegLiveIntervals)
+              .second.rangeList.push_back(BhiveLiveRange{start, end});
         else {
-          info.register_live_range_func.insert(
-            std::pair<llvm::StringRef, RegLiveIntervals> 
-              {currentRegister, 
-                {currentRegister, 
-                llvm::SmallVector<BhiveLiveRange> {{start, end}}, 
-                "", 
-                "", 
-                }
-              }
-          );
+          info->register_live_range_func[currentRegister] = {
+              currentRegister,
+              llvm::SmallVector<BhiveLiveRange>{{start, end}},
+              "",
+              "",
+          };
         }
       }
     }
-    
+
     // If we encounter a "BB_" symbol, then we encounter a BB entry
     else if (line.substr(0, 3) == "BB_") {
       std::string currentBB;
       unsigned int start, end;
-      char dummy; std::string junk;
+      char dummy;
+      std::string junk;
 
       // Read name of BB and delete the trailing ':'
       lineStream >> currentBB;
-      if (currentBB[currentBB.size() - 1] == ':') currentBB.erase(currentBB.size() - 1);
+      if (currentBB[currentBB.size() - 1] == ':')
+        currentBB.erase(currentBB.size() - 1);
 
       // read range
       lineStream >> start >> dummy >> end;
 
-      // Then insert the value
-      // Notice we need to make a copy of BB to insert otherwise we overwrite other values
-      // Fix: The current BB name is not correct, got overwritten in each iteration
-      std::string stripped(currentBB); 
-      info.BBRangeList.insert( 
-        std::pair<llvm::StringRef, llvm::SmallVector<BhiveLiveRange>>{
-          llvm::StringRef(stripped.c_str(), stripped.length()), 
-          llvm::SmallVector<BhiveLiveRange>{{start, end}}
-        }
-      );
+      info->BBRangeList[currentBB] = {start, end};
     }
 
     // In this case, we arrived at the definition of a new function
-    // In this case we need to 
+    // In this case we need to
     else if (line[0] == '_') {
       // We reached the end of a function, add info to the Map
       // If this is the beginning of a new function, just add
       // a dummy value and delete it at the end
 
-      std::string copyName(curFuncName);
-      FunctionLiveIntervalInfoMap.insert(
-        std::pair<llvm::StringRef, FunctionLiveIntervalInfo>{
-          llvm::StringRef(copyName.c_str(), copyName.length()), 
-          info
-        }
-      );
-      
+      std::string copyName(line);
       // Store new function name and information
       lineStream >> curFuncName;
-
-      // If we saw a new function afterwards, we delete the data entry relating to current 
-      // function name
-      if (FunctionLiveIntervalInfoMap.find(curFuncName) != FunctionLiveIntervalInfoMap.end()) 
-        FunctionLiveIntervalInfoMap.erase(curFuncName);
-      info = FunctionLiveIntervalInfo();
+      LOG("curr Function name is : " << curFuncName);
+      func_to_live_intervals_[curFuncName] = FunctionLiveIntervalInfo();
+      info = &func_to_live_intervals_[curFuncName];
+      isParsingRegister = true;
     }
   }
 
-  // Finally add the final data entry
-  FunctionLiveIntervalInfoMap.insert(
-    std::pair<llvm::StringRef, FunctionLiveIntervalInfo>{
-      llvm::StringRef(curFuncName.c_str(), curFuncName.length()), 
-      info
-    }
-  );
-
-  // Delete dummy node
-  FunctionLiveIntervalInfoMap.erase("dummy");
-
   // Now we want to debug and print things inside the FunctionLiveIntervalMap
-  printMap(FunctionLiveIntervalInfoMap);
+  printMap(func_to_live_intervals_);
 
   // // This stores the information of the whole function
-  // std::vector<FunctionInfo> FunctionInfoList; 
+  // std::vector<FunctionInfo> FunctionInfoList;
 
   // // At this time, we already processed all information in the file
   // // Now we want to construct the interference graph
-  // // We first create an object that represents inference graph in a basic block
-  // struct InferenceBB {
+  // // We first create an object that represents inference graph in a basic
+  // block struct InferenceBB {
   //   std::map<std::string, std::vector<std::string>> adjacencyList;
   // };
 
-  // // This is a vector that stores information of a BB in each function of the function list
-  // std::vector<std::vector<InferenceBB>> AllFunction; 
+  // // This is a vector that stores information of a BB in each function of the
+  // function list std::vector<std::vector<InferenceBB>> AllFunction;
 
   // // We still need to find what is the name of each basic block
   // for (FunctionInfo functionInfo : FunctionInfoList) {
-    
+
   //   std::vector<InferenceBB> functionAllBB;
 
   //   // Consider a basic block at a time
-  //   for (std::pair<std::string, std::string> BBInformation : functionInfo.BBRangeList ) {
-  //     // We create an object that stores adjacency list of a the inference graph of a single BB
-  //     InferenceBB adjacencySingleBB;
+  //   for (std::pair<std::string, std::string> BBInformation :
+  //   functionInfo.BBRangeList ) {
+  //     // We create an object that stores adjacency list of a the inference
+  //     graph of a single BB InferenceBB adjacencySingleBB;
 
-  //     // Now for each pair of register 
+  //     // Now for each pair of register
   //     // First decide whether they are in this basic block or not
   //     // and then decide whether they intersect ()
   //     for (RegLiveInterval Reg1 : functionInfo.register_live_range_func) {
   //       for (RegLiveInterval Reg2 : functionInfo.register_live_range_func) {
   //         if (intersect(Reg1, Reg2, BBInformation)) {
-  //           adjacencySingleBB.adjacencyList[Reg1.name].push_back(Reg2.name); 
-  //           adjacencySingleBB.adjacencyList[Reg2.name].push_back(Reg1.name); 
+  //           adjacencySingleBB.adjacencyList[Reg1.name].push_back(Reg2.name);
+  //           adjacencySingleBB.adjacencyList[Reg2.name].push_back(Reg1.name);
   //         }
   //       }
   //     }
@@ -544,7 +490,6 @@ absl::StatusOr<bool> BHiveImporter::InteferenceGraphParser(std::string_view file
   //     // Now we add the adjacency of a single BB into the functionAllBB
   //     functionAllBB.push_back(adjacencySingleBB);
   //   }
-
 
   //   // Add the inference graph of all BB in a function to the whole list
   //   AllFunction.push_back(functionAllBB);
