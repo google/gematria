@@ -80,7 +80,15 @@ BHiveImporter::BHiveImporter(const Canonicalizer* canonicalizer)
           target_machine_.getTargetTriple(), kDefaultSyntax,
           *target_machine_.getMCAsmInfo(), *target_machine_.getMCInstrInfo(),
           *target_machine_.getMCRegisterInfo())),
-      MMI_(dynamic_cast<const llvm::LLVMTargetMachine*>(&target_machine_)) {}
+      MMI_(dynamic_cast<const llvm::LLVMTargetMachine*>(&target_machine_)) {
+      const llvm::MCRegisterInfo& MRI = *target_machine_.getMCRegisterInfo();
+      for (llvm::MCPhysReg I = 1, E = MRI.getNumRegs(); I != E; ++I) {
+        // Append register definition line.
+        llvm::StringRef reg_name = MRI.getName(I);
+        name_to_reg_[reg_name.str()] = I;
+      }
+      prettyPrintName2Reg();
+  }
 
 absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMachineCode(
     llvm::ArrayRef<uint8_t> machine_code, uint64_t base_address /*= 0*/) {
@@ -322,8 +330,13 @@ void printMap(
     std::cerr << "Function Name: " << functionInfoPair.first << "\n";
 
     // Print live range of register
-    for (auto& pairInfo : functionInfoPair.second.register_live_range_func) {
-      LOG("Register Name: " << pairInfo.first);
+    for (auto& pairInfo : functionInfoPair.second.virtual_register_live_range_func) {
+      LOG("Virtual Register Name: " << pairInfo.first);
+      printRegLiveIntervals(pairInfo.second);
+    }
+
+    for (auto& pairInfo : functionInfoPair.second.physical_register_live_range_func) {
+      LOG("Physical Register Name: " << pairInfo.first);
       printRegLiveIntervals(pairInfo.second);
     }
 
@@ -376,6 +389,8 @@ absl::StatusOr<bool> BHiveImporter::InteferenceGraphParser(
       unsigned int start, end, discard;
       char dummy;
 
+      bool is_virtual = line[0] == '%';
+
       // Get the register name first
       lineStream >> currentRegister;
 
@@ -393,22 +408,39 @@ absl::StatusOr<bool> BHiveImporter::InteferenceGraphParser(
 
         // Since LLVM do not support [] operator we need to find it first
         auto resultRegLiveIntervals =
-            info->register_live_range_func.find(currentRegister);
+            (is_virtual) ? info->virtual_register_live_range_func.find(currentRegister)
+                         :info->physical_register_live_range_func.find(currentRegister);
 
         // If you find the current register in the register_live_range_func,
         // you insert a BhiveLiveRange with {start, end} in the range list of
         // the find return If not, then you insert a new pair: {currentRegister,
         // RegLiveIntervals}
-        if (resultRegLiveIntervals != info->register_live_range_func.end())
-          (*resultRegLiveIntervals)
-              .second.rangeList.push_back(BhiveLiveRange{start, end});
-        else {
-          info->register_live_range_func[currentRegister] = {
-              currentRegister,
-              llvm::SmallVector<BhiveLiveRange>{{start, end}},
-              "",
-              "",
-          };
+        if (is_virtual){
+          if (resultRegLiveIntervals != info->virtual_register_live_range_func.end()) {
+            // If you find the register, then you insert a new range
+            resultRegLiveIntervals->second.rangeList.push_back({start, end});
+          } else {
+            // If you do not find the register, then you insert a new pair
+            // {currentRegister, RegLiveIntervals}
+            RegLiveIntervals newRegLiveIntervals;
+            newRegLiveIntervals.name = currentRegister;
+            newRegLiveIntervals.rangeList.push_back({start, end});
+            info->virtual_register_live_range_func.insert(
+                {currentRegister, newRegLiveIntervals});
+          }
+        } else {
+          if (resultRegLiveIntervals != info->physical_register_live_range_func.end()) {
+            // If you find the register, then you insert a new range
+            resultRegLiveIntervals->second.rangeList.push_back({start, end});
+          } else {
+            // If you do not find the register, then you insert a new pair
+            // {currentRegister, RegLiveIntervals}
+            RegLiveIntervals newRegLiveIntervals;
+            newRegLiveIntervals.name = currentRegister;
+            newRegLiveIntervals.rangeList.push_back({start, end});
+            info->physical_register_live_range_func.insert(
+                {currentRegister, newRegLiveIntervals});
+          }
         }
       }
     }

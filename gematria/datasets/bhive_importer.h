@@ -139,9 +139,16 @@ class BHiveImporter {
 
   // A struct that store all intervals in a function as well as ranges of BB
   struct FunctionLiveIntervalInfo {
-    std::unordered_map<std::string, RegLiveIntervals> register_live_range_func;
+    std::unordered_map<std::string, RegLiveIntervals> virtual_register_live_range_func;
+    std::unordered_map<std::string, RegLiveIntervals> physical_register_live_range_func;
     std::unordered_map<std::string, BhiveLiveRange> BBRangeList;
   };
+
+  void prettyPrintName2Reg() {
+    for (auto& [name, reg] : name_to_reg_) {
+      LOG(name << " " << reg);
+    }
+  }
 
   // Now we are able to obtain the live range for each register
   // We want to for each pair of regsiter, find out if their live range overlap
@@ -161,6 +168,7 @@ class BHiveImporter {
   llvm::DenseMap<llvm::StringRef, llvm::MachineBasicBlock*> name_to_mbb_;
   std::unordered_map<std::string, FunctionLiveIntervalInfo>
       func_to_live_intervals_;
+  std::unordered_map<std::string, llvm::MCPhysReg> name_to_reg_;
   llvm::LLVMContext llvm_context_;
   std::unique_ptr<llvm::Module> mir_module_;
   llvm::MachineModuleInfo MMI_;
