@@ -234,8 +234,8 @@ TEST_F(BHiveImporterTest, MIRDatasetTest2) {
       x86_bhive_importer_->InteferenceGraphParser("sample_dataset/liveinfo"),
       IsOk());
   EXPECT_THAT(x86_bhive_importer_->ParseMIRCsvLine(
-                kSourceName, "a,b,BB_21,2.37", 2, 3, kScaling),
-            IsOk());
+                  kSourceName, "a,b,BB_21,2.37", 2, 3, kScaling),
+              IsOk());
 }
 
 }  // namespace

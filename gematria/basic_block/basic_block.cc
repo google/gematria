@@ -108,11 +108,12 @@ bool InstructionOperand::operator==(const InstructionOperand& other) const {
 }
 
 InstructionOperand InstructionOperand::VirtualRegister(
-    const std::string register_name, size_t size) {
+    const std::string register_name, size_t size, const std::vector<std::string>& interfered_registers) {
   InstructionOperand result;
   result.type_ = OperandType::kVirtualRegister;
   result.register_name_ = std::move(register_name);
   result.size_ = size;
+  result.interfered_registers_ = std::move(interfered_registers);
   return result;
 }
 

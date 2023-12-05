@@ -25,6 +25,13 @@
 
 namespace gematria {
 
+namespace {
+  std::vector<std::string> ToVector(
+    const google::protobuf::RepeatedPtrField<std::string>& protos) {
+  return std::vector<std::string>(protos.begin(), protos.end());
+  }
+}
+
 AddressTuple AddressTupleFromProto(
     const CanonicalizedOperandProto::AddressTuple& proto) {
   return AddressTuple(
@@ -64,8 +71,12 @@ InstructionOperand InstructionOperandFromProto(
       return InstructionOperand::MemoryLocation(
           proto.memory().alias_group_id());
     case CanonicalizedOperandProto::kVirtualRegister:
-      return InstructionOperand::VirtualRegister(
-          proto.virtual_register().name(), proto.virtual_register().size());
+      {
+        std::vector<std::string> interfered_registers = ToVector(proto.intefered_register());
+        return InstructionOperand::VirtualRegister(
+          proto.virtual_register().name(), proto.virtual_register().size(), interfered_registers);
+      }
+      
   }
 }
 
@@ -102,7 +113,6 @@ CanonicalizedOperandProto ProtoFromInstructionOperand(
 }
 
 namespace {
-
 std::vector<InstructionOperand> ToVector(
     const google::protobuf::RepeatedPtrField<CanonicalizedOperandProto>&
         protos) {

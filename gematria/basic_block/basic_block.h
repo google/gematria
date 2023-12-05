@@ -147,7 +147,7 @@ class InstructionOperand {
 
   // The operands must be created through one of the factory functions.
   static InstructionOperand VirtualRegister(std::string register_name,
-                                            size_t size);
+                                            size_t size, const std::vector<std::string>& interfered_registers);
   static InstructionOperand Register(std::string register_name);
   static InstructionOperand ImmediateValue(uint64_t immediate_value);
   static InstructionOperand FpImmediateValue(double fp_immediate_value);
@@ -168,6 +168,11 @@ class InstructionOperand {
 
   // Returns the list of tokens representing this instruction.
   std::vector<std::string> AsTokenList() const;
+
+  std::vector<std::string> getInterferedRegisters() const {
+    assert(type_ == OperandType::kVirtualRegister);
+    return interfered_registers_;
+  }
 
   // Returns a human-readable representation of the operand.
   //
@@ -225,6 +230,7 @@ class InstructionOperand {
   double fp_immediate_value_ = 0.0;
   AddressTuple address_;
   int alias_group_id_ = 0;
+  std::vector<std::string> interfered_registers_;
 };
 
 std::ostream& operator<<(std::ostream& os, const InstructionOperand& operand);

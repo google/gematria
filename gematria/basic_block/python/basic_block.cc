@@ -156,7 +156,7 @@ PYBIND11_MODULE(basic_block, m) {
                   py::arg("fp_immediate_value"))
       .def_static("from_virtual_register",
                   &InstructionOperand::VirtualRegister,
-                  py::arg("register_name"), py::arg("size") = 0)
+                  py::arg("register_name"), py::arg("size"), py::arg("interfered_registers"))
       .def_static<InstructionOperand (*)(
           std::string /* base_register */, int64_t /* displacement */,
           std::string /* index_register */, int /* scaling */,
