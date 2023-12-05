@@ -477,7 +477,7 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
       GetRegisterNameOrEmpty(
         mi.getOperand(operand_index + llvm::X86::AddrBaseReg), base_register, tmp_size);
     } else if (mi.getOperand(operand_index + llvm::X86::AddrBaseReg).isFI()){
-      base_register = "rbp";
+      base_register = "RBP";
     } else {
       assert(false && "unsupported base register type");
       LOG(mi);

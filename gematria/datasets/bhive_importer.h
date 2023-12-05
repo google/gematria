@@ -139,14 +139,27 @@ class BHiveImporter {
 
   // A struct that store all intervals in a function as well as ranges of BB
   struct FunctionLiveIntervalInfo {
-    std::unordered_map<std::string, RegLiveIntervals> virtual_register_live_range_func;
-    std::unordered_map<std::string, RegLiveIntervals> physical_register_live_range_func;
+    std::unordered_map<std::string, RegLiveIntervals>
+        virtual_register_live_range_func;
+    std::unordered_map<std::string, RegLiveIntervals>
+        physical_register_live_range_func;
     std::unordered_map<std::string, BhiveLiveRange> BBRangeList;
   };
 
   void prettyPrintName2Reg() {
     for (auto& [name, reg] : name_to_reg_) {
       LOG(name << " " << reg);
+    }
+  }
+
+  // pretty print superreg2subreg_
+  void prettyPrintSuperReg2SubReg() {
+    LOG("SuperReg2SubReg: ");
+    for (auto& [superreg, subreg] : superreg2subreg_) {
+      LOG(superreg << ": ");
+      for (auto& sub : subreg) {
+        LOG("\t" << sub);
+      }
     }
   }
 
@@ -159,7 +172,9 @@ class BHiveImporter {
   // to take in machine instruction/ fucntion
   absl::StatusOr<bool> InteferenceGraphParser(std::string_view file_name);
 
-  void addInterferenceGraph(BasicBlockProto& bb_proto, FunctionLiveIntervalInfo& func_live_infos, BhiveLiveRange& bb_range);
+  void addInterferenceGraph(BasicBlockProto& bb_proto,
+                            FunctionLiveIntervalInfo& func_live_infos,
+                            BhiveLiveRange& bb_range);
 
  private:
   const Canonicalizer& canonicalizer_;
@@ -171,6 +186,7 @@ class BHiveImporter {
   std::unordered_map<std::string, FunctionLiveIntervalInfo>
       func_to_live_intervals_;
   std::unordered_map<std::string, llvm::MCPhysReg> name_to_reg_;
+  std::unordered_map<std::string, std::vector<std::string>> superreg2subreg_;
   llvm::LLVMContext llvm_context_;
   std::unique_ptr<llvm::Module> mir_module_;
   llvm::MachineModuleInfo MMI_;
