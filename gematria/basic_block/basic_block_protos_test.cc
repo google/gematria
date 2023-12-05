@@ -239,7 +239,11 @@ TEST(BasicBlockFromProtoTest, VRegInstructions) {
     canonicalized_instructions {
       mnemonic: "CMP64RI32"
       llvm_mnemonic: "CMP64ri32"
-      input_operands { virtual_register { name: "%60" size: 64 } }
+      input_operands { 
+        virtual_register { name: "%60" size: 64 } 
+        intefered_register: "%61"
+        intefered_register: "%62"
+      }
       input_operands { immediate_value: 0 }
       implicit_output_operands { register_name: "EFLAGS" }
     }
@@ -250,7 +254,7 @@ TEST(BasicBlockFromProtoTest, VRegInstructions) {
                 /* mnemonic = */ "CMP64RI32", /* llvm_mnemonic = */ "CMP64ri32",
                 /* prefixes = */ {},
                 /* input_operands = */
-                {InstructionOperand::VirtualRegister("%60", 64),
+                {InstructionOperand::VirtualRegister("%60", 64, {"%61, %62"}),
                  InstructionOperand::ImmediateValue(0)},
                 /* implicit_input_operands = */ {},
                 /* output_operands = */ {},

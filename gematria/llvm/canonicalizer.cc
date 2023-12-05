@@ -72,10 +72,6 @@ void ReplaceExprOperands(llvm::MachineInstr& instruction) {
   for (int i = 0; i < instruction.getNumOperands(); ++i) {
     llvm::MachineOperand& operand = instruction.getOperand(i);
     if (operand.isSymbol() || operand.isGlobal() || operand.isCPI()) {
-      // TODO(ondrasej): In some cases the value may change the binary encoding
-      // of the instruction, e.g. switch between an 8-bit or a 32-bit encoding
-      // of the displacement and 0 might have a special meaning (e.g. do not use
-      // displacement at all).
       operand = llvm::MachineOperand::CreateImm(1);
     }
   }
@@ -508,7 +504,7 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
           InstructionOperand::Register(name));
     } else {
       operand_list.push_back(
-          InstructionOperand::VirtualRegister(name, size));
+          InstructionOperand::VirtualRegister(name, size, {}));
     }
   } else if (operand.isImm()) {
     operand_list.push_back(
