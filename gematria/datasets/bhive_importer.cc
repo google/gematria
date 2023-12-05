@@ -87,7 +87,7 @@ BHiveImporter::BHiveImporter(const Canonicalizer* canonicalizer)
     llvm::StringRef reg_name = MRI.getName(I);
     name_to_reg_[reg_name.str()] = I;
   }
-  prettyPrintName2Reg();
+  // prettyPrintName2Reg();
 }
 
 absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMachineCode(
@@ -409,7 +409,7 @@ absl::StatusOr<bool> BHiveImporter::InteferenceGraphParser(
     if (isParsingRegister) {
       if (line.substr(0, 8) == "RegMasks") {
         isParsingRegister = false;
-        LOG("End of parsing register");
+        // LOG("End of parsing register");
         continue;
       }
       std::string currentRegister;
@@ -430,8 +430,8 @@ absl::StatusOr<bool> BHiveImporter::InteferenceGraphParser(
             dummy >> discard >> dummy;
 
         // Print out information for debug
-        std::cerr << "Register: " << currentRegister << ", " << start << ", "
-                  << end << "\n";
+        // std::cerr << "Register: " << currentRegister << ", " << start << ", "
+        //           << end << "\n";
 
         // Since LLVM do not support [] operator we need to find it first
         auto resultRegLiveIntervals =
@@ -503,7 +503,7 @@ absl::StatusOr<bool> BHiveImporter::InteferenceGraphParser(
       std::string copyName(line);
       // Store new function name and information
       lineStream >> curFuncName;
-      LOG("curr Function name is : " << curFuncName);
+      // LOG("curr Function name is : " << curFuncName);
       func_to_live_intervals_[curFuncName] = FunctionLiveIntervalInfo();
       info = &func_to_live_intervals_[curFuncName];
       isParsingRegister = true;
@@ -511,7 +511,7 @@ absl::StatusOr<bool> BHiveImporter::InteferenceGraphParser(
   }
 
   // Now we want to debug and print things inside the FunctionLiveIntervalMap
-  printMap(func_to_live_intervals_);
+  // printMap(func_to_live_intervals_);
   return true;
 }
 
@@ -571,7 +571,7 @@ void BHiveImporter::addInterferenceGraph(
   
   // Iterate over all operands in bb_proto, add interference registers to each operand
   for (auto& instruction : *bb_proto.mutable_canonicalized_instructions()) {
-    LOG("before: " << instruction.DebugString());
+    // LOG("before: " << instruction.DebugString());
     for (auto& operand : *instruction.mutable_input_operands()) {
       if (operand.operand_case() ==
           CanonicalizedOperandProto::kVirtualRegister) {
@@ -612,7 +612,7 @@ void BHiveImporter::addInterferenceGraph(
         }
       }
     }
-    LOG("after: " << instruction.DebugString());
+    // LOG("after: " << instruction.DebugString());
   }
 }
 
