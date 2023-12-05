@@ -515,10 +515,42 @@ absl::StatusOr<bool> BHiveImporter::InteferenceGraphParser(
   return true;
 }
 
-absl::StatusOr<bool> BHiveImporter::addInterferenceGraph(
-    BasicBlockProto& bb_proto,
-    const BHiveImporter::FunctionLiveIntervalInfo& func_live_infos,
+static bool checkRegIntersectionsWithBBRange(
+    const BHiveImporter::RegLiveIntervals& reg_live_interval1,
+    const BHiveImporter::RegLiveIntervals& reg_live_interval2,
     const BHiveImporter::BhiveLiveRange& bb_range) {
+      const BHiveImporter::BhiveLiveRange* range1HitsBB = nullptr;
+    for (auto& interval : reg_live_interval1.rangeList) {
+      if (areIntersected(interval, bb_range)) {
+        range1HitsBB = &interval;
+      }
+    }
+    if (!range1HitsBB) {
+      return false;
+    }
+    for (auto& interval : reg_live_interval2.rangeList) {
+      if (areIntersected(interval, bb_range)) {
+        if (areIntersected(*range1HitsBB, interval)) {
+          return true;
+        }
+      }
+    }
+  return false;
+}
+
+// void ToRepeatedPtrField(
+//     const std::vector<InstructionOperand>& operands,
+//     google::protobuf::RepeatedPtrField<CanonicalizedOperandProto>*
+//         repeated_field) {
+//   repeated_field->Reserve(operands.size());
+//   std::transform(operands.begin(), operands.end(),
+//                  google::protobuf::RepeatedFieldBackInserter(repeated_field));
+// }
+
+void BHiveImporter::addInterferenceGraph(
+    BasicBlockProto& bb_proto,
+    BHiveImporter::FunctionLiveIntervalInfo& func_live_infos,
+    BHiveImporter::BhiveLiveRange& bb_range) {
   std::set<std::string> live_virtual_registers;
   // iterate over all operands in bb_proto, add virtual registers to
   // live_virtual_registers
@@ -536,7 +568,52 @@ absl::StatusOr<bool> BHiveImporter::addInterferenceGraph(
       }
     }
   }
-  return true;
+  
+  // Iterate over all operands in bb_proto, add interference registers to each operand
+  for (auto& instruction : *bb_proto.mutable_canonicalized_instructions()) {
+    LOG("before: " << instruction.DebugString());
+    for (auto& operand : *instruction.mutable_input_operands()) {
+      if (operand.operand_case() ==
+          CanonicalizedOperandProto::kVirtualRegister) {
+        for (auto vRegs : live_virtual_registers){
+          if (vRegs == operand.virtual_register().name()) continue;
+          assert(func_live_infos.virtual_register_live_range_func.find(vRegs) !=
+                 func_live_infos.virtual_register_live_range_func.end() &&
+                 "Virtual register not found in map");
+          // If the live range of the two registers intersect, then add
+          // interference to proto
+          if (checkRegIntersectionsWithBBRange(
+                  func_live_infos.virtual_register_live_range_func[
+                      operand.virtual_register().name()],
+                  func_live_infos.virtual_register_live_range_func[vRegs],
+                  bb_range)) {
+                      operand.mutable_intefered_register()->Add(std::move(vRegs));
+                  }
+        }
+      }
+    }
+    for (auto& operand : *instruction.mutable_output_operands()) {
+      if (operand.operand_case() ==
+          CanonicalizedOperandProto::kVirtualRegister) {
+        for (auto vRegs : live_virtual_registers){
+          if (vRegs == operand.virtual_register().name()) continue;
+          assert(func_live_infos.virtual_register_live_range_func.find(vRegs) !=
+                 func_live_infos.virtual_register_live_range_func.end() &&
+                 "Virtual register not found in map");
+          // If the live range of the two registers intersect, then add
+          // interference to proto
+          if (checkRegIntersectionsWithBBRange(
+                  func_live_infos.virtual_register_live_range_func[
+                      operand.virtual_register().name()],
+                  func_live_infos.virtual_register_live_range_func[vRegs],
+                  bb_range)) {
+                      operand.mutable_intefered_register()->Add(std::move(vRegs));
+                  }
+        }
+      }
+    }
+    LOG("after: " << instruction.DebugString());
+  }
 }
 
 }  // namespace gematria
