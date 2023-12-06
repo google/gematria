@@ -85,7 +85,7 @@ Expected<AccessedAddrs> ExegesisAnnotator::FindAccessedAddrs(
   BenchCode.Key.Instructions = Instructions;
 
   MemoryValue MemVal;
-  MemVal.Value = APInt(4096, 0x0000000012345600);
+  MemVal.Value = APInt(64, 0x12345600);
   MemVal.Index = 0;
   MemVal.SizeBytes = 4096;
 
