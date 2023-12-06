@@ -50,39 +50,49 @@ TEST(AddressTupleTest, ToString) {
   const struct {
     AddressTuple address;
     const char* expected_string;
-  } kTestCases[] = {
-      {AddressTuple(/* base_register = */ "RAX",
-                    /* displacement = */ 0,
-                    /* index_register = */ "",
-                    /* scaling = */ 0,
-                    /* segment_register = */ ""),
-       "AddressTuple(base_register='RAX')"},
-      {AddressTuple(/* base_register = */ "RAX",
-                    /* displacement = */ 16,
-                    /* index_register = */ "",
-                    /* scaling = */ 0,
-                    /* segment_register = */ ""),
-       "AddressTuple(base_register='RAX', displacement=16)"},
-      {AddressTuple(/* base_register = */ "RAX",
-                    /* displacement = */ 0,
-                    /* index_register = */ "RSI",
-                    /* scaling = */ 0,
-                    /* segment_register = */ ""),
-       "AddressTuple(base_register='RAX', index_Register='RSI', scaling=0)"},
-      {AddressTuple(/* base_register = */ "RAX",
-                    /* displacement = */ -8,
-                    /* index_register = */ "RSI",
-                    /* scaling = */ 1,
-                    /* segment_register = */ ""),
-       "AddressTuple(base_register='RAX', displacement=-8, "
-       "index_Register='RSI', scaling=1)"},
-      {AddressTuple(/* base_register = */ "RAX",
-                    /* displacement = */ -123,
-                    /* index_register = */ "RSI",
-                    /* scaling = */ 1,
-                    /* segment_register = */ "ES"),
-       "AddressTuple(base_register='RAX', displacement=-123, "
-       "index_Register='RSI', scaling=1, segment_register='ES')"}};
+  } kTestCases[] = {{AddressTuple(/* base_register = */ "RAX",
+                                  /* displacement = */ 0,
+                                  /* index_register = */ "",
+                                  /* scaling = */ 0,
+                                  /* segment_register = */ ""),
+                     "AddressTuple(base_register='RAX', base_register_size=64, "
+                     "base_register_intefered_register={})"},
+                    {AddressTuple(/* base_register = */ "RAX",
+                                  /* displacement = */ 16,
+                                  /* index_register = */ "",
+                                  /* scaling = */ 0,
+                                  /* segment_register = */ ""),
+                     "AddressTuple(base_register='RAX', base_register_size=64, "
+                     "base_register_intefered_register={}, displacement=16)"},
+                    {AddressTuple(/* base_register = */ "RAX",
+                                  /* displacement = */ 0,
+                                  /* index_register = */ "RSI",
+                                  /* scaling = */ 0,
+                                  /* segment_register = */ ""),
+                     "AddressTuple(base_register='RAX', base_register_size=64, "
+                     "base_register_intefered_register={}, "
+                     "index_Register='RSI', index_register_size=64, "
+                     "index_register_intefered_register={}, scaling=0)"},
+                    {AddressTuple(/* base_register = */ "RAX",
+                                  /* displacement = */ -8,
+                                  /* index_register = */ "RSI",
+                                  /* scaling = */ 1,
+                                  /* segment_register = */ ""),
+                     "AddressTuple(base_register='RAX', base_register_size=64, "
+                     "base_register_intefered_register={}, displacement=-8, "
+                     "index_Register='RSI', index_register_size=64, "
+                     "index_register_intefered_register={}, scaling=1)"},
+                    {AddressTuple(/* base_register = */ "RAX",
+                                  /* displacement = */ -123,
+                                  /* index_register = */ "RSI",
+                                  /* scaling = */ 1,
+                                  /* segment_register = */ "ES"),
+                     "AddressTuple(base_register='RAX', base_register_size=64, "
+                     "base_register_intefered_register={}, displacement=-123, "
+                     "index_Register='RSI', index_register_size=64, "
+                     "index_register_intefered_register={}, scaling=1, "
+                     "segment_register='ES', segment_register_size=64, "
+                     "segment_register_intefered_register={})"}};
 
   for (const auto& test_case : kTestCases) {
     SCOPED_TRACE(test_case.expected_string);
@@ -287,7 +297,8 @@ TEST(InstructionOperandTest, ToString) {
       {InstructionOperand::FpImmediateValue(3.14),
        "InstructionOperand.from_fp_immediate_value(3.14)"},
       {InstructionOperand::Address("RAX", 0, "", 0, ""),
-       "InstructionOperand.from_address(AddressTuple(base_register='RAX'))"},
+       "InstructionOperand.from_address(AddressTuple(base_register='RAX', "
+       "base_register_size=3, base_register_intefered_register={}))"},
       {InstructionOperand::MemoryLocation(32),
        "InstructionOperand.from_memory(32)"}};
 

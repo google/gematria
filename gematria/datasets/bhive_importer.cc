@@ -96,7 +96,7 @@ BHiveImporter::BHiveImporter(const Canonicalizer* canonicalizer)
     }
   }
   // prettyPrintName2Reg();
-  prettyPrintSuperReg2SubReg();
+  // prettyPrintSuperReg2SubReg();
 }
 
 absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMachineCode(

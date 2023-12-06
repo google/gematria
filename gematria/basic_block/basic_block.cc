@@ -60,18 +60,36 @@ std::string AddressTuple::ToString() const {
   buffer << "AddressTuple(";
   if (!base_register.empty()) {
     buffer << "base_register='" << base_register << "', ";
+    buffer << "base_register_size=" << base_register_size << ", ";
+    buffer << "base_register_intefered_register={";
+    for (const std::string& interfered_register : base_register_intefered_register) {
+      buffer << "'" << interfered_register << "', ";
+    }
+    buffer << "}, ";
   }
   if (displacement != 0) {
     buffer << "displacement=" << displacement << ", ";
   }
   if (!index_register.empty()) {
     buffer << "index_Register='" << index_register << "', ";
+    buffer << "index_register_size=" << index_register_size << ", ";
+    buffer << "index_register_intefered_register={";
+    for (const std::string& interfered_register : index_register_intefered_register) {
+      buffer << "'" << interfered_register << "', ";
+    }
+    buffer << "}, ";
   }
   if (!index_register.empty() || scaling != 0) {
     buffer << "scaling=" << scaling << ", ";
   }
   if (!segment_register.empty()) {
     buffer << "segment_register='" << segment_register << "', ";
+    buffer << "segment_register_size=" << segment_register_size << ", ";
+    buffer << "segment_register_intefered_register={";
+    for (const std::string& interfered_register : segment_register_intefered_register) {
+      buffer << "'" << interfered_register << "', ";
+    }
+    buffer << "}, ";
   }
   // If we added any keyword args to the buffer, drop the last two characters
   // (a comma and a space). This is not strictly necessary, but it looks better.

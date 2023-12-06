@@ -60,15 +60,28 @@ message CanonicalizedOperandProto {
   message AddressTuple {
     // The name of the base register; empty when a base register is not used.
     string base_register = 1;
+    // The size of the base register in bytes; zero when a base register is not used
+    int32 base_register_size = 2;
+    // Optional. The name of the registers where the current register interfered with
+    repeated string base_register_intefered_register = 3;
     // The name of the index register; empty when an index register is not used.
-    string index_register = 2;
+    string index_register = 4;
+    // The size of the index register in bytes; zero when an index register is not used
+    int32 index_register_size = 5;
+    // Optional. The name of the registers where the current register interfered with
+    repeated string index_register_intefered_register = 6;
     // The value of the displacement; zero if displacement is not used.
-    int64 displacement = 3;
+    int64 displacement = 7;
     // The value of the scaling factor; one if scaling is not used.
-    int32 scaling = 4;
+    int32 scaling = 8;
     // The name of the segment register; empty when an explicit segment register
     // is not given.
-    string segment = 5;
+    string segment = 9;
+    // The size of the segment register in bytes; zero when an explicit segment
+    // register is not given.
+    int32 segment_size = 10;
+    // Optional. The name of the registers where the current register interfered with
+    repeated string segment_intefered_register = 11;
   }
 
   // Contains information about a memory operand of an instruction. We allow

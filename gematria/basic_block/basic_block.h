@@ -85,12 +85,23 @@ struct AddressTuple {
   AddressTuple(AddressTuple&&) = default;
   AddressTuple(std::string base_register, int64_t displacement,
                std::string index_register, int scaling,
-               std::string segment_register)
+               std::string segment_register, int base_register_size = 64, 
+               int index_register_size = 64, int segment_register_size = 64, 
+               const std::vector<std::string> base_register_intefered_register = {}, 
+               const std::vector<std::string> index_register_intefered_register = {},
+               const std::vector<std::string> segment_register_intefered_register = {})
       : base_register(std::move(base_register)),
         displacement(displacement),
         index_register(std::move(index_register)),
         scaling(scaling),
-        segment_register(std::move(segment_register)) {}
+        segment_register(std::move(segment_register)),
+        base_register_size(std::move(base_register_size)),
+        index_register_size(std::move(index_register_size)),
+        segment_register_size(std::move(segment_register_size)),
+        base_register_intefered_register(std::move(base_register_intefered_register)),
+        index_register_intefered_register(std::move(index_register_intefered_register)),
+        segment_register_intefered_register(std::move(segment_register_intefered_register))
+        {}
 
   AddressTuple& operator=(const AddressTuple&) = default;
   AddressTuple& operator=(AddressTuple&&) = default;
@@ -126,6 +137,19 @@ struct AddressTuple {
   // The name of the segment register. When empty, the default segment register
   // for the instruction is used.
   std::string segment_register;
+  // The size of the base register. Used only when base_register is non-empty.
+  int base_register_size;
+  // The size of the index register. Used only when index_register is non-empty.
+  int index_register_size;
+  // The size of the segment register. Used only when segment_register is
+  int segment_register_size;
+
+  // The name of the index register of the address. When empty, index register
+  std::vector<std::string> base_register_intefered_register;
+  // The name of the index register of the address. When empty, index register
+  std::vector<std::string> index_register_intefered_register;
+  // The name of the index register of the address. When empty, index register
+  std::vector<std::string> segment_register_intefered_register;
 };
 
 std::ostream& operator<<(std::ostream& os, const AddressTuple& address_tuple);
