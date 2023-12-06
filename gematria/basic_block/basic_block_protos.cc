@@ -34,12 +34,25 @@ namespace {
 
 AddressTuple AddressTupleFromProto(
     const CanonicalizedOperandProto::AddressTuple& proto) {
-  return AddressTuple(
+  auto result = AddressTuple(
       /* base_register = */ proto.base_register(),
       /* displacement = */ proto.displacement(),
       /* index_register = */ proto.index_register(),
       /* scaling = */ proto.scaling(),
       /* segment_register = */ proto.segment());
+  if (proto.base_register()[0] == '%'){
+    result.base_register_size = proto.base_register_size();
+    result.base_register_intefered_register = ToVector(proto.base_register_intefered_register());
+  }
+  if (proto.index_register()[0] == '%'){
+    result.index_register_size = proto.index_register_size();
+    result.index_register_intefered_register = ToVector(proto.index_register_intefered_register());
+  }
+  if (proto.segment()[0] == '%'){
+    result.segment_register_size = proto.segment_size();
+    result.segment_register_intefered_register = ToVector(proto.segment_intefered_register());
+  }
+  return result;
 }
 
 CanonicalizedOperandProto::AddressTuple ProtoFromAddressTuple(
@@ -50,6 +63,24 @@ CanonicalizedOperandProto::AddressTuple ProtoFromAddressTuple(
   proto.set_index_register(address_tuple.index_register);
   proto.set_scaling(address_tuple.scaling);
   proto.set_segment(address_tuple.segment_register);
+  if (!address_tuple.base_register.empty() && address_tuple.base_register[0] == '%') {
+    proto.set_base_register_size(address_tuple.base_register_size);
+    for (auto interfered_register : address_tuple.base_register_intefered_register){
+      proto.add_base_register_intefered_register(std::move(interfered_register));
+    }
+  }
+  if (!address_tuple.index_register.empty() && address_tuple.index_register[0] == '%') {
+    proto.set_index_register_size(address_tuple.index_register_size);
+    for (auto interfered_register : address_tuple.index_register_intefered_register){
+      proto.add_index_register_intefered_register(std::move(interfered_register));
+    }
+  }
+  if (!address_tuple.segment_register.empty() && address_tuple.segment_register[0] == '%') {
+    proto.set_segment_size(address_tuple.segment_register_size);
+    for (auto interfered_register : address_tuple.segment_register_intefered_register){
+      proto.add_segment_intefered_register(std::move(interfered_register));
+    }
+  }
   return proto;
 }
 

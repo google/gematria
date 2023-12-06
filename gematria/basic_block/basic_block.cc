@@ -178,6 +178,12 @@ InstructionOperand InstructionOperand::Address(std::string base_register,
   result.address_.displacement = displacement;
   result.address_.scaling = scaling;
   result.address_.segment_register = segment_register;
+  result.address_.base_register_size = 64;
+  result.address_.index_register_size = 64;
+  result.address_.segment_register_size = 64;
+  result.address_.base_register_intefered_register = {};
+  result.address_.index_register_intefered_register = {};
+  result.address_.segment_register_intefered_register = {};
   return result;
 }
 
