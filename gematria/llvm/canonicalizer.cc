@@ -36,6 +36,7 @@
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include <sstream>
 
+#define DEBUG
 
 #ifdef DEBUG
 #define LOG(X) \
@@ -121,7 +122,7 @@ bool Canonicalizer::GetRegisterNameOrEmpty(
     const llvm::MachineFunction *MF = operand.getParent()->getParent()->getParent();
     const llvm::TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
     const llvm::MachineRegisterInfo &MRI = MF->getRegInfo();
-    unsigned Size = TRI->getRegSizeInBits(reg, MRI);
+    size_t Size = TRI->getRegSizeInBits(reg, MRI);
     name = "%" + std::to_string(llvm::Register::virtReg2Index(reg));
     size = Size;
     return false;
@@ -468,10 +469,12 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
                         : instruction.input_operands;
   if (is_address_computation_tuple) { // TODO: Check if MIR has address computation tuple
     std::string base_register;
-    size_t tmp_size;
+    size_t base_register_size = 64;
+    size_t index_register_size = 64;
+    size_t segment_register_size = 64;
     if (mi.getOperand(operand_index + llvm::X86::AddrBaseReg).isReg()){
       GetRegisterNameOrEmpty(
-        mi.getOperand(operand_index + llvm::X86::AddrBaseReg), base_register, tmp_size);
+        mi.getOperand(operand_index + llvm::X86::AddrBaseReg), base_register, base_register_size);
     } else if (mi.getOperand(operand_index + llvm::X86::AddrBaseReg).isFI()){
       base_register = "RBP";
     } else {
@@ -482,18 +485,21 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
           mi.getOperand(operand_index + llvm::X86::AddrDisp).getImm();
       std::string index_register;
       GetRegisterNameOrEmpty(
-        mi.getOperand(operand_index + llvm::X86::AddrIndexReg), index_register, tmp_size);
+        mi.getOperand(operand_index + llvm::X86::AddrIndexReg), index_register, index_register_size);
       const int64_t scaling =
           mi.getOperand(operand_index + llvm::X86::AddrScaleAmt).getImm();
       std::string segment_register; 
       GetRegisterNameOrEmpty(
-          mi.getOperand(operand_index + llvm::X86::AddrSegmentReg), segment_register, tmp_size);
+          mi.getOperand(operand_index + llvm::X86::AddrSegmentReg), segment_register, segment_register_size);
       operand_list.push_back(InstructionOperand::Address(
           /* base_register= */ std::move(base_register),
           /* displacement= */ displacement,
           /* index_register= */ std::move(index_register),
           /* scaling= */ static_cast<int>(scaling),
-          /* segment_register= */ std::move(segment_register)));
+          /* segment_register= */ std::move(segment_register),
+          /* base_register_size= */ base_register_size,
+          /* index_register_size= */ index_register_size,
+          /* segment_register_size= */ segment_register_size));
         LOG("Hit here address_computation_tuple reg " << mi << "\n");
   } else if (operand.isReg()) {
     std::string name;

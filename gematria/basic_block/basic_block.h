@@ -138,11 +138,11 @@ struct AddressTuple {
   // for the instruction is used.
   std::string segment_register;
   // The size of the base register. Used only when base_register is non-empty.
-  int base_register_size;
+  size_t base_register_size;
   // The size of the index register. Used only when index_register is non-empty.
-  int index_register_size;
+  size_t index_register_size;
   // The size of the segment register. Used only when segment_register is
-  int segment_register_size;
+  size_t segment_register_size;
 
   // The name of the index register of the address. When empty, index register
   std::vector<std::string> base_register_intefered_register;
@@ -179,7 +179,10 @@ class InstructionOperand {
   static InstructionOperand Address(std::string base_register,
                                     int64_t displacement,
                                     std::string index_register, int scaling,
-                                    std::string segment_register);
+                                    std::string segment_register, 
+                                    int base_register_size = 64,
+                                    int index_register_size = 64,
+                                    int segment_register_size = 64);
   static InstructionOperand MemoryLocation(int alias_group_id);
 
   bool operator==(const InstructionOperand&) const;

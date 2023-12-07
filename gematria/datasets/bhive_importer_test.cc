@@ -238,5 +238,17 @@ TEST_F(BHiveImporterTest, MIRDatasetTest2) {
               IsOk());
 }
 
+TEST_F(BHiveImporterTest, MIRAddressTupleTest) {
+  EXPECT_THAT(
+      x86_bhive_importer_->LoadMIRModule("mir_input/test_mir_input/AdaptiveMaxPooling2d.mir"),
+      IsOk());
+  EXPECT_THAT(
+      x86_bhive_importer_->InteferenceGraphParser("mir_input/test_mir_input/AdaptiveMaxPooling2d.liveinfo"),
+      IsOk());
+  EXPECT_THAT(x86_bhive_importer_->ParseMIRCsvLine(
+                  kSourceName, "a,b,BB_27,2.37", 2, 3, kScaling),
+              IsOk());
+}
+
 }  // namespace
 }  // namespace gematria

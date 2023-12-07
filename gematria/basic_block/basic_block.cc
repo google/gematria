@@ -170,7 +170,10 @@ InstructionOperand InstructionOperand::Address(std::string base_register,
                                                int64_t displacement,
                                                std::string index_register,
                                                int scaling,
-                                               std::string segment_register) {
+                                               std::string segment_register,
+                                               int base_register_size,
+                                               int index_register_size,
+                                               int segment_register_size) {
   InstructionOperand result;
   result.type_ = OperandType::kAddress;
   result.address_.base_register = std::move(base_register);
@@ -178,9 +181,9 @@ InstructionOperand InstructionOperand::Address(std::string base_register,
   result.address_.displacement = displacement;
   result.address_.scaling = scaling;
   result.address_.segment_register = segment_register;
-  result.address_.base_register_size = 64;
-  result.address_.index_register_size = 64;
-  result.address_.segment_register_size = 64;
+  result.address_.base_register_size = base_register_size;
+  result.address_.index_register_size = index_register_size;
+  result.address_.segment_register_size = segment_register_size;
   result.address_.base_register_intefered_register = {};
   result.address_.index_register_intefered_register = {};
   result.address_.segment_register_intefered_register = {};

@@ -281,6 +281,7 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseMIRCsvLine(
 
 absl::StatusOr<bool> BHiveImporter::LoadMIRModule(std::string_view file_name) {
   // clear previous loaded module
+  func_to_live_intervals_.clear();
   name_to_mbb_.clear();
   if (mir_module_) {
     for (llvm::Function& F : mir_module_->functions()) {
@@ -563,52 +564,101 @@ void BHiveImporter::addInterferenceGraph(
     } else if (operand.operand_case() ==
                CanonicalizedOperandProto::kRegisterName) {
       live_physical_registers.insert(operand.register_name());
+    } else if (operand.operand_case() == CanonicalizedOperandProto::kAddress) {
+      if (!operand.address().base_register().empty()) {
+        if (operand.address().base_register()[0] == '%') {
+          live_virtual_registers.insert(operand.address().base_register());
+        } else {
+          live_physical_registers.insert(operand.address().base_register());
+        }
+      }
+      if (!operand.address().index_register().empty()) {
+        if (operand.address().index_register()[0] == '%') {
+          live_virtual_registers.insert(operand.address().index_register());
+        } else {
+          live_physical_registers.insert(operand.address().index_register());
+        }
+      }
+      if (!operand.address().segment().empty()) {
+        if (operand.address().segment()[0] == '%') {
+          live_virtual_registers.insert(operand.address().segment());
+        } else {
+          live_physical_registers.insert(operand.address().segment());
+        }
+      }
     }
   };
 
+  auto add_interference_on_name =
+      [&](const std::string& name,
+          google::protobuf::RepeatedPtrField<std::string>*
+              mutable_intefered_register) {
+        for (auto vReg : live_virtual_registers) {
+          if (vReg == name) continue;
+          assert(func_live_infos.virtual_register_live_range_func.find(vReg) !=
+                     func_live_infos.virtual_register_live_range_func.end() &&
+                 "Virtual register not found in map");
+          // If the live range of the two registers intersect, then add
+          // interference to proto
+          if (checkRegIntersectionsWithBBRange(
+                  func_live_infos.virtual_register_live_range_func[name],
+                  func_live_infos.virtual_register_live_range_func[vReg],
+                  bb_range)) {
+            mutable_intefered_register->Add(std::move(vReg));
+          }
+        }
+        // add interference from physical registers to current operand
+        for (auto pReg : live_physical_registers) {
+          auto subRegs = superreg2subreg_[pReg];
+          // if there's one subReg of Preg that has interference with current
+          // operand then add interference to proto
+          for (auto subReg : subRegs) {
+            if (func_live_infos.physical_register_live_range_func.find(
+                    subReg) ==
+                func_live_infos.physical_register_live_range_func.end())
+              continue;
+            // pretty print live range of subRegs
+            LOG("Live range of subReg: " << subReg);
+            for (auto& range :
+                 func_live_infos.physical_register_live_range_func[subReg]
+                     .rangeList) {
+              LOG("  " << range.first << ", " << range.second);
+            }
+            if (checkRegIntersectionsWithBBRange(
+                    func_live_infos.virtual_register_live_range_func[name],
+                    func_live_infos.physical_register_live_range_func[subReg],
+                    bb_range)) {
+              mutable_intefered_register->Add(std::move(pReg));
+              break;
+            }
+          }
+        }
+      };
+
   auto add_interference = [&](CanonicalizedOperandProto& operand) {
     if (operand.operand_case() == CanonicalizedOperandProto::kVirtualRegister) {
-      // add interference from other virtual registers to current operand
-      for (auto vReg : live_virtual_registers) {
-        if (vReg == operand.virtual_register().name()) continue;
-        assert(func_live_infos.virtual_register_live_range_func.find(vReg) !=
-                   func_live_infos.virtual_register_live_range_func.end() &&
-               "Virtual register not found in map");
-        // If the live range of the two registers intersect, then add
-        // interference to proto
-        if (checkRegIntersectionsWithBBRange(
-                func_live_infos.virtual_register_live_range_func
-                    [operand.virtual_register().name()],
-                func_live_infos.virtual_register_live_range_func[vReg],
-                bb_range)) {
-          operand.mutable_intefered_register()->Add(std::move(vReg));
-        }
+      add_interference_on_name(operand.virtual_register().name(),
+                               operand.mutable_intefered_register());
+    } else if (operand.operand_case() == CanonicalizedOperandProto::kAddress) {
+      if (!operand.address().base_register().empty() &&
+          operand.address().base_register()[0] == '%') {
+        add_interference_on_name(
+            operand.address().base_register(),
+            operand.mutable_address()
+                ->mutable_base_register_intefered_register());
       }
-      // add interference from physical registers to current operand
-      for (auto pReg : live_physical_registers) {
-        auto subRegs = superreg2subreg_[pReg];
-        // if there's one subReg of Preg that has interference with current
-        // operand then add interference to proto
-        for (auto subReg : subRegs) {
-          if (func_live_infos.physical_register_live_range_func.find(subReg) ==
-              func_live_infos.physical_register_live_range_func.end())
-            continue;
-          // pretty print live range of subRegs
-          LOG("Live range of subReg: " << subReg);
-          for (auto& range :
-               func_live_infos.physical_register_live_range_func[subReg]
-                   .rangeList) {
-            LOG("  " << range.first << ", " << range.second);
-          }
-          if (checkRegIntersectionsWithBBRange(
-                  func_live_infos.virtual_register_live_range_func
-                      [operand.virtual_register().name()],
-                  func_live_infos.physical_register_live_range_func[subReg],
-                  bb_range)) {
-            operand.mutable_intefered_register()->Add(std::move(pReg));
-            break;
-          }
-        }
+      if (!operand.address().index_register().empty() &&
+          operand.address().index_register()[0] == '%') {
+        add_interference_on_name(
+            operand.address().index_register(),
+            operand.mutable_address()
+                ->mutable_index_register_intefered_register());
+      }
+      if (!operand.address().segment().empty() &&
+          operand.address().segment()[0] == '%') {
+        add_interference_on_name(
+            operand.address().segment(),
+            operand.mutable_address()->mutable_segment_intefered_register());
       }
     }
   };
