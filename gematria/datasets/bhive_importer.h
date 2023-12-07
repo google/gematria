@@ -70,10 +70,15 @@ namespace gematria {
 // Parser for BHive CSV files.
 class BHiveImporter {
  public:
+ enum MODEL_TYPE{
+  NO_LIVE_INFO,
+  PER_BB_LIVE_INFO,
+  PER_FUNC_LIVE_INFO,
+ };
   // Creates a new BHive importer from a given canonicalizer. The canonicalizer
   // must be for the architecture/microarchitecture of the data set.
   // Does not take ownership of the canonicalizer.
-  explicit BHiveImporter(const Canonicalizer* canonicalizer);
+  explicit BHiveImporter(const Canonicalizer* canonicalizer, const std::string& model_type = "NO_LIVE_INFO");
 
   // Creates a basic block from the given block of machine code. `machine_code`
   // must contain machine code of the instructions to include in the basic
@@ -94,8 +99,8 @@ class BHiveImporter {
   absl::StatusOr<BasicBlockProto> BasicBlockProtoFromMachineCodeHex(
       std::string_view machine_code_hex, uint64_t base_address = 0);
 
-  absl::StatusOr<BasicBlockProto> BasicBlockProtoFromMBBName(
-      std::string_view MBB_name, uint64_t base_address = 0);
+  absl::StatusOr<BasicBlockProto> BasicBlockProtoFromMBB(
+      llvm:: MachineBasicBlock* MBB, uint64_t base_address = 0);
 
   // Parses a basic block with throughput from one BHive CSV line. Expects that
   // the line has the format "{machine_code},{throughput}" where {machine_code}
@@ -146,12 +151,6 @@ class BHiveImporter {
     std::unordered_map<std::string, BhiveLiveRange> BBRangeList;
   };
 
-  void prettyPrintName2Reg() {
-    for (auto& [name, reg] : name_to_reg_) {
-      LOG(name << " " << reg);
-    }
-  }
-
   // pretty print superreg2subreg_
   void prettyPrintSuperReg2SubReg() {
     LOG("SuperReg2SubReg: ");
@@ -185,16 +184,12 @@ class BHiveImporter {
   llvm::DenseMap<llvm::StringRef, llvm::MachineBasicBlock*> name_to_mbb_;
   std::unordered_map<std::string, FunctionLiveIntervalInfo>
       func_to_live_intervals_;
-  std::unordered_map<std::string, llvm::MCPhysReg> name_to_reg_;
   std::unordered_map<std::string, std::vector<std::string>> superreg2subreg_;
   llvm::LLVMContext llvm_context_;
   std::unique_ptr<llvm::Module> mir_module_;
   llvm::MachineModuleInfo MMI_;
   std::unique_ptr<llvm::MIRParser> mir_parser_;
-
-  // Author: Zhan Shi
-  // Add one data strcture to the bhiveimporter storing interference graph
-  llvm::DenseMap<llvm::StringRef, llvm::MachineBasicBlock*> name_to_graph_;
+  MODEL_TYPE model_type_;
 };
 
 }  // namespace gematria

@@ -37,7 +37,7 @@ class BHiveImporterTest : public ::testing::Test {
     x86_canonicalizer_ =
         std::make_unique<X86Canonicalizer>(&x86_llvm_->target_machine());
     x86_bhive_importer_ =
-        std::make_unique<BHiveImporter>(x86_canonicalizer_.get());
+        std::make_unique<BHiveImporter>(x86_canonicalizer_.get(), "PER_FUNC_LIVE_INFO");
   }
 
   std::unique_ptr<LlvmArchitectureSupport> x86_llvm_;

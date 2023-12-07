@@ -49,6 +49,12 @@ _INPUT_DIR2 = flags.DEFINE_string(
     'The name of directory containing all raw MIR files with performance throughput',
 )
 
+_MODEL_TYPE = flags.DEFINE_string(
+    'gematria_model_format',
+    None,
+    'The format of dataset to be imported. [NO_LIVE_INFO, PER_BB_LIVE_INFO, PER_FUNC_LIVE_INFO]',
+)
+
 _OUTPUT_TFRECORD_FILE = flags.DEFINE_string(
     'gematria_output_tfrecord',
     None,
@@ -111,6 +117,9 @@ from gematria.llvm.python import llvm_architecture_support
 from pybind11_abseil import status
 import tensorflow as tf
 
+def is_mode_interference_graph(model_type):
+    return model_type == "PER_BB_LIVE_INFO" or model_type == "PER_FUNC_LIVE_INFO"
+
 
 def main(argv: Sequence[str]) -> None:
   if len(argv) > 1:
@@ -129,7 +138,11 @@ def main(argv: Sequence[str]) -> None:
   # LLVM triple. As of 2023-05, this is OK, because we support only x86-64
   # anyway.
   canonicalizer_obj = canonicalizer.Canonicalizer.x86_64(llvm)
-  importer = bhive_importer.BHiveImporter(canonicalizer_obj)
+  if is_mode_interference_graph(_MODEL_TYPE.value):
+    logging.info('Creating BHiveImporter with interference graph %s', _MODEL_TYPE.value)
+    importer = bhive_importer.BHiveImporter(canonicalizer_obj, _MODEL_TYPE.value)
+  else:
+    importer = bhive_importer.BHiveImporter(canonicalizer_obj)
   
   with (
      tf.io.TFRecordWriter(_OUTPUT_TFRECORD_FILE.value) as writer,
@@ -153,11 +166,15 @@ def main(argv: Sequence[str]) -> None:
                 mir_file = os.path.join(input_dir, filename)
                 print("mir file is " + mir_file)
                 perf_file = os.path.join(input_dir, filename.replace(".mir", ".perf"))
+                liveinfo_file = os.path.join(input_dir, filename + ".liveinfo")
                 try:
                     # load the MIR file
-                    module = importer.LoadMIRModule(mir_file)
-                    num_input_files += 1
                     logging.info('Procssing %s file', mir_file)
+                    importer.LoadMIRModule(mir_file)
+                    logging.info('Loading live info %s file', liveinfo_file)
+                    # if is interference graph, then we need to load the liveinfo file
+                    importer.parse_interference_graph(liveinfo_file)
+                    num_input_files += 1
                     # iterate over each line in the corresponding .perf file
                     with tf.io.gfile.GFile(perf_file, 'r') as bhive_csv_file:
                         for line in bhive_csv_file:

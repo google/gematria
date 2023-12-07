@@ -321,7 +321,7 @@ HSI [0B,16r:0)[240r,256r:2)[368r,400r:1) 0@0B-phi 1@368r 2@240r
 RegMasks: 256r 400r
 BB_26: 0B 464B
 _ZNK3c1013integer_rangeIiLb0ELb1EE5beginEv
-DIL [0B,16r:0) 0@0B-phi
+DIL [0B,32r:0) 0@0B-phi
 DIH [0B,16r:0) 0@0B-phi
 HDI [0B,16r:0) 0@0B-phi
 %0 [16r,160r:0) 0@16r  weight:0.000000e+00
@@ -329,6 +329,7 @@ HDI [0B,16r:0) 0@0B-phi
 %3 [128r,144r:0) 0@128r  weight:0.000000e+00
 %5 [96r,112r:0) 0@96r  weight:0.000000e+00
 %6 [80r,96r:0) 0@80r  weight:0.000000e+00
+%7 [32r,112r:0) 0@80r  weight:0.000000e+00
 RegMasks:
 BB_27: 0B 160B
 _ZNK3c1013integer_rangeIiLb0ELb1EE3endEv

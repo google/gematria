@@ -37,8 +37,9 @@ PYBIND11_MODULE(bhive_importer, m) {
 
   py::class_<BHiveImporter>(m, "BHiveImporter")
       .def(  //
-          py::init<const Canonicalizer* /* canonicalizer */>(),
+          py::init<const Canonicalizer* /* canonicalizer */, const std::string&>(),
           py::arg("canonicalizer"),
+          py::arg("model_type") = std::string("NO_LIVE_INFO"),
           R"(Initializes a new BHive importer for a given architecture.
 
           Args:
@@ -145,13 +146,12 @@ PYBIND11_MODULE(bhive_importer, m) {
         py::arg("source_name"), py::arg("line"),py::arg("BB_name_index"), py::arg("throughput_column_index"),
         py::arg("throughput_scaling") = 1.0, py::arg("base_address") = uint64_t{0},
         R"(Creates a BasicBlockWithThroughputProto from a MIR CSV line.)"
+      ).def(
+        "parse_interference_graph",
+        &BHiveImporter::InteferenceGraphParser, py::arg("file_name"),
+        R"(Parse the interference graph from a file)"
       )
-      .def(
-        "BasicBlockProtoFromMBBName",
-        &BHiveImporter::BasicBlockProtoFromMBBName,
-        py::arg("MBB_name"), py::arg("base_address") = uint64_t{0},
-        R"(Creates a BasicBlockProto from a MIR CSV line.)"
-      );
+      ;
 }
 
 }  // namespace gematria
