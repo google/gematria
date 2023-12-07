@@ -253,15 +253,19 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseMIRCsvLine(
         absl::StrCat("Could not find MBB with name ", BB_unique_name));
   }
 
-  // llvm::MachineBasicBlock* MBB = name_to_mbb_[MBB_name_ref];
-  // std::string func_name = MBB->getParent()->getName().str();
-  // assert(func_to_live_intervals_.find(func_name) !=
-  //            func_to_live_intervals_.end() &&
-  //        "Function not found in map");
-  // addInterferenceGraph(*block_proto_or_status,
-  //                      func_to_live_intervals_[func_name],
-  //                      func_to_live_intervals_[func_name]
-  //                          .BBRangeList[std::string(BB_unique_name)]);
+  llvm::MachineBasicBlock* MBB = name_to_mbb_[MBB_name_ref];
+  std::string func_name = MBB->getParent()->getName().str();
+  assert(func_to_live_intervals_.find(func_name) !=
+             func_to_live_intervals_.end() &&
+         "Function not found in map");
+  auto instrument_result = addInterferenceGraph(
+      *block_proto_or_status, func_to_live_intervals_[func_name],
+      func_to_live_intervals_[func_name]
+          .BBRangeList[std::string(BB_unique_name)]);
+  if (!instrument_result.ok()) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "Could not instrument interference graph for BB ", BB_unique_name));
+  }
   *proto.mutable_basic_block() = std::move(block_proto_or_status).value();
 
   double throughput_cycles = 0.0;
@@ -526,13 +530,23 @@ absl::StatusOr<bool> BHiveImporter::InteferenceGraphParser(
   return true;
 }
 
-static bool checkRegIntersectionsWithBBRange(
+static absl::StatusOr<bool> checkRegIntersectionsWithBBRange(
     const BHiveImporter::RegLiveIntervals& reg_live_interval1,
     const BHiveImporter::RegLiveIntervals& reg_live_interval2,
     const BHiveImporter::BhiveLiveRange& bb_range) {
+  bool is_reg1_in_bb = false;
   const BHiveImporter::BhiveLiveRange* range1HitsBB = nullptr;
   for (auto& interval : reg_live_interval1.rangeList) {
     if (areIntersected(interval, bb_range)) {
+      if (is_reg1_in_bb) {
+        // cannot have two live ranges of the same register in
+        // the same basic block. (To avoid confuse graph builder)
+        return absl::InvalidArgumentError(
+            absl::StrCat("Cannot have two live ranges of the same register %s "
+                         "in the same block",
+                         reg_live_interval1.name));
+      }
+      is_reg1_in_bb = true;
       range1HitsBB = &interval;
     }
   }
@@ -549,7 +563,7 @@ static bool checkRegIntersectionsWithBBRange(
   return false;
 }
 
-void BHiveImporter::addInterferenceGraph(
+absl::StatusOr<bool> BHiveImporter::addInterferenceGraph(
     BasicBlockProto& bb_proto,
     BHiveImporter::FunctionLiveIntervalInfo& func_live_infos,
     BHiveImporter::BhiveLiveRange& bb_range) {
@@ -600,10 +614,12 @@ void BHiveImporter::addInterferenceGraph(
                  "Virtual register not found in map");
           // If the live range of the two registers intersect, then add
           // interference to proto
-          if (checkRegIntersectionsWithBBRange(
-                  func_live_infos.virtual_register_live_range_func[name],
-                  func_live_infos.virtual_register_live_range_func[vReg],
-                  bb_range)) {
+          auto check_result = checkRegIntersectionsWithBBRange(
+              func_live_infos.virtual_register_live_range_func[name],
+              func_live_infos.virtual_register_live_range_func[vReg], bb_range);
+          if (!check_result.ok()) return check_result;
+
+          if (*check_result) {
             mutable_intefered_register->Add(std::move(vReg));
           }
         }
@@ -624,43 +640,52 @@ void BHiveImporter::addInterferenceGraph(
             //          .rangeList) {
             //   LOG("  " << range.first << ", " << range.second);
             // }
-            if (checkRegIntersectionsWithBBRange(
-                    func_live_infos.virtual_register_live_range_func[name],
-                    func_live_infos.physical_register_live_range_func[subReg],
-                    bb_range)) {
+            auto check_result = checkRegIntersectionsWithBBRange(
+                func_live_infos.virtual_register_live_range_func[name],
+                func_live_infos.physical_register_live_range_func[subReg],
+                bb_range);
+            if (!check_result.ok()) return check_result;
+            if (*check_result) {
               mutable_intefered_register->Add(std::move(pReg));
               break;
             }
           }
         }
+        return absl::StatusOr<bool>(true);
       };
 
   auto add_interference = [&](CanonicalizedOperandProto& operand) {
     if (operand.operand_case() == CanonicalizedOperandProto::kVirtualRegister) {
-      add_interference_on_name(operand.virtual_register().name(),
-                               operand.mutable_intefered_register());
+      auto result =
+          add_interference_on_name(operand.virtual_register().name(),
+                                   operand.mutable_intefered_register());
+      if (!result.ok()) return result;
     } else if (operand.operand_case() == CanonicalizedOperandProto::kAddress) {
       if (!operand.address().base_register().empty() &&
           operand.address().base_register()[0] == '%') {
-        add_interference_on_name(
+        auto result = add_interference_on_name(
             operand.address().base_register(),
             operand.mutable_address()
                 ->mutable_base_register_intefered_register());
+        if (!result.ok()) return result;
       }
       if (!operand.address().index_register().empty() &&
           operand.address().index_register()[0] == '%') {
-        add_interference_on_name(
+        auto result = add_interference_on_name(
             operand.address().index_register(),
             operand.mutable_address()
                 ->mutable_index_register_intefered_register());
+        if (!result.ok()) return result;
       }
       if (!operand.address().segment().empty() &&
           operand.address().segment()[0] == '%') {
-        add_interference_on_name(
+        auto result = add_interference_on_name(
             operand.address().segment(),
             operand.mutable_address()->mutable_segment_intefered_register());
+        if (!result.ok()) return result;
       }
     }
+    return absl::StatusOr<bool>(true);
   };
   // iterate over all operands in bb_proto, add virtual registers to
   // live_virtual_registers
@@ -690,13 +715,16 @@ void BHiveImporter::addInterferenceGraph(
   for (auto& instruction : *bb_proto.mutable_canonicalized_instructions()) {
     // LOG("before: " << instruction.DebugString());
     for (auto& operand : *instruction.mutable_input_operands()) {
-      add_interference(operand);
+      auto result = add_interference(operand);
+      if (!result.ok()) return result;
     }
     for (auto& operand : *instruction.mutable_output_operands()) {
-      add_interference(operand);
+      auto result = add_interference(operand);
+      if (!result.ok()) return result;
     }
     // LOG("after: " << instruction.DebugString());
   }
+  return true;
 }
 
 }  // namespace gematria

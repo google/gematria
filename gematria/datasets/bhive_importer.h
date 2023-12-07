@@ -172,7 +172,7 @@ class BHiveImporter {
   // to take in machine instruction/ fucntion
   absl::StatusOr<bool> InteferenceGraphParser(std::string_view file_name);
 
-  void addInterferenceGraph(BasicBlockProto& bb_proto,
+  absl::StatusOr<bool> addInterferenceGraph(BasicBlockProto& bb_proto,
                             FunctionLiveIntervalInfo& func_live_infos,
                             BhiveLiveRange& bb_range);
 
