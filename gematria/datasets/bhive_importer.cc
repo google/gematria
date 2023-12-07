@@ -618,12 +618,12 @@ void BHiveImporter::addInterferenceGraph(
                 func_live_infos.physical_register_live_range_func.end())
               continue;
             // pretty print live range of subRegs
-            LOG("Live range of subReg: " << subReg);
-            for (auto& range :
-                 func_live_infos.physical_register_live_range_func[subReg]
-                     .rangeList) {
-              LOG("  " << range.first << ", " << range.second);
-            }
+            // LOG("Live range of subReg: " << subReg);
+            // for (auto& range :
+            //      func_live_infos.physical_register_live_range_func[subReg]
+            //          .rangeList) {
+            //   LOG("  " << range.first << ", " << range.second);
+            // }
             if (checkRegIntersectionsWithBBRange(
                     func_live_infos.virtual_register_live_range_func[name],
                     func_live_infos.physical_register_live_range_func[subReg],
