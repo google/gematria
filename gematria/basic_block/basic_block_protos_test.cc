@@ -83,19 +83,33 @@ TEST(InstructionOperandFromProtoTest, FpImmediateValue) {
 TEST(InstructionOperandFromProtoTest, Address) {
   const CanonicalizedOperandProto proto = ParseTextProto(R"pb(
     address {
-      base_register: 'RSI'
+      base_register: "%8"
+      base_register_size: 32
+      base_register_intefered_register: "%0"
+      base_register_intefered_register_sizes: 32
       index_register: 'RCX'
       displacement: 32
       scaling: 1
       segment: 'ES'
     })pb");
   InstructionOperand operand = InstructionOperandFromProto(proto);
-  EXPECT_EQ(operand,
-            InstructionOperand::Address(/* base_register = */ "RSI",
-                                        /* displacement = */ 32,
-                                        /* index_register = */ "RCX",
-                                        /* scaling = */ 1,
-                                        /* segment_register = */ "ES"));
+  InstructionOperand expected_operand = InstructionOperand::Address(
+      /* base_register = */ "%8",
+      /* displacement = */ 32,
+      /* index_register = */ "RCX",
+      /* scaling = */ 1,
+      /* segment_register = */ "ES",
+      /* base_register_size = */ 32,  // Assuming these are optional and have
+                                      // default values
+      /* index_register_size = */ 64,
+      /* segment_register_size = */ 64,
+      /* base_register_intefered_register = */ {"%0"},
+      /* index_register_intefered_register = */ {},
+      /* segment_register_intefered_register = */ {},
+      /* base_register_intefered_register_sizes = */ {32},
+      /* index_register_intefered_register_sizes = */ {},
+      /* segment_register_intefered_register_sizes = */ {});
+  EXPECT_EQ(operand, expected_operand);
 }
 
 TEST(InstructionOperandFromProtoTest, Memory) {
@@ -239,10 +253,12 @@ TEST(BasicBlockFromProtoTest, VRegInstructions) {
     canonicalized_instructions {
       mnemonic: "CMP64RI32"
       llvm_mnemonic: "CMP64ri32"
-      input_operands { 
-        virtual_register { name: "%60" size: 64 } 
+      input_operands {
+        virtual_register { name: "%60" size: 64 }
         intefered_register: "%61"
         intefered_register: "%62"
+        intefered_register_sizes: 64
+        intefered_register_sizes: 64
       }
       input_operands { immediate_value: 0 }
       implicit_output_operands { register_name: "EFLAGS" }
@@ -254,7 +270,8 @@ TEST(BasicBlockFromProtoTest, VRegInstructions) {
                 /* mnemonic = */ "CMP64RI32", /* llvm_mnemonic = */ "CMP64ri32",
                 /* prefixes = */ {},
                 /* input_operands = */
-                {InstructionOperand::VirtualRegister("%60", 64, {"%61, %62"}),
+                {InstructionOperand::VirtualRegister("%60", 64, {"%61, %62"},
+                                                     {64, 64}),
                  InstructionOperand::ImmediateValue(0)},
                 /* implicit_input_operands = */ {},
                 /* output_operands = */ {},

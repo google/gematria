@@ -64,24 +64,30 @@ message CanonicalizedOperandProto {
     int32 base_register_size = 2;
     // Optional. The name of the registers where the current register interfered with
     repeated string base_register_intefered_register = 3;
+    // Optional. The size of the registers where the current register interfered with
+    repeated int32  base_register_intefered_register_sizes = 4;
     // The name of the index register; empty when an index register is not used.
-    string index_register = 4;
+    string index_register = 5;
     // The size of the index register in bytes; zero when an index register is not used
-    int32 index_register_size = 5;
+    int32 index_register_size = 6;
     // Optional. The name of the registers where the current register interfered with
-    repeated string index_register_intefered_register = 6;
+    repeated string index_register_intefered_register = 7;
+    // Optional. The size of the registers where the current register interfered with
+    repeated int32  index_register_intefered_register_sizes = 8;
     // The value of the displacement; zero if displacement is not used.
-    int64 displacement = 7;
+    int64 displacement = 9;
     // The value of the scaling factor; one if scaling is not used.
-    int32 scaling = 8;
+    int32 scaling = 10;
     // The name of the segment register; empty when an explicit segment register
     // is not given.
-    string segment = 9;
+    string segment = 11;
     // The size of the segment register in bytes; zero when an explicit segment
     // register is not given.
-    int32 segment_size = 10;
+    int32 segment_size = 12;
     // Optional. The name of the registers where the current register interfered with
-    repeated string segment_intefered_register = 11;
+    repeated string segment_intefered_register = 13;
+    // Optional. The size of the registers where the current register interfered with
+    repeated int32  segment_intefered_register_sizes = 14;
   }
 
   // Contains information about a memory operand of an instruction. We allow
@@ -139,4 +145,5 @@ message CanonicalizedOperandProto {
 
   // Optional. The name of the registers where the current register interfered with
   repeated string intefered_register = 7;
+  repeated int32    intefered_register_sizes = 8;
 }

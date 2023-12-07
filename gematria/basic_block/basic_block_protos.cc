@@ -26,11 +26,15 @@
 namespace gematria {
 
 namespace {
-  std::vector<std::string> ToVector(
+std::vector<std::string> ToVector(
     const google::protobuf::RepeatedPtrField<std::string>& protos) {
   return std::vector<std::string>(protos.begin(), protos.end());
-  }
 }
+
+std::vector<int> ToVector(const google::protobuf::RepeatedField<int>& protos) {
+  return std::vector<int>(protos.begin(), protos.end());
+}
+}  // namespace
 
 AddressTuple AddressTupleFromProto(
     const CanonicalizedOperandProto::AddressTuple& proto) {
@@ -40,17 +44,26 @@ AddressTuple AddressTupleFromProto(
       /* index_register = */ proto.index_register(),
       /* scaling = */ proto.scaling(),
       /* segment_register = */ proto.segment());
-  if (proto.base_register()[0] == '%'){
+  if (proto.base_register()[0] == '%') {
     result.base_register_size = proto.base_register_size();
-    result.base_register_intefered_register = ToVector(proto.base_register_intefered_register());
+    result.base_register_intefered_register =
+        ToVector(proto.base_register_intefered_register());
+    result.base_register_intefered_register_sizes =
+        ToVector(proto.base_register_intefered_register_sizes());
   }
-  if (proto.index_register()[0] == '%'){
+  if (proto.index_register()[0] == '%') {
     result.index_register_size = proto.index_register_size();
-    result.index_register_intefered_register = ToVector(proto.index_register_intefered_register());
+    result.index_register_intefered_register =
+        ToVector(proto.index_register_intefered_register());
+    result.index_register_intefered_register_sizes =
+        ToVector(proto.index_register_intefered_register_sizes());
   }
-  if (proto.segment()[0] == '%'){
+  if (proto.segment()[0] == '%') {
     result.segment_register_size = proto.segment_size();
-    result.segment_register_intefered_register = ToVector(proto.segment_intefered_register());
+    result.segment_register_intefered_register =
+        ToVector(proto.segment_intefered_register());
+    result.segment_register_intefered_register_sizes =
+        ToVector(proto.segment_intefered_register_sizes());
   }
   return result;
 }
@@ -63,21 +76,29 @@ CanonicalizedOperandProto::AddressTuple ProtoFromAddressTuple(
   proto.set_index_register(address_tuple.index_register);
   proto.set_scaling(address_tuple.scaling);
   proto.set_segment(address_tuple.segment_register);
-  if (!address_tuple.base_register.empty() && address_tuple.base_register[0] == '%') {
+  if (!address_tuple.base_register.empty() &&
+      address_tuple.base_register[0] == '%') {
     proto.set_base_register_size(address_tuple.base_register_size);
-    for (auto interfered_register : address_tuple.base_register_intefered_register){
-      proto.add_base_register_intefered_register(std::move(interfered_register));
+    for (auto interfered_register :
+         address_tuple.base_register_intefered_register) {
+      proto.add_base_register_intefered_register(
+          std::move(interfered_register));
     }
   }
-  if (!address_tuple.index_register.empty() && address_tuple.index_register[0] == '%') {
+  if (!address_tuple.index_register.empty() &&
+      address_tuple.index_register[0] == '%') {
     proto.set_index_register_size(address_tuple.index_register_size);
-    for (auto interfered_register : address_tuple.index_register_intefered_register){
-      proto.add_index_register_intefered_register(std::move(interfered_register));
+    for (auto interfered_register :
+         address_tuple.index_register_intefered_register) {
+      proto.add_index_register_intefered_register(
+          std::move(interfered_register));
     }
   }
-  if (!address_tuple.segment_register.empty() && address_tuple.segment_register[0] == '%') {
+  if (!address_tuple.segment_register.empty() &&
+      address_tuple.segment_register[0] == '%') {
     proto.set_segment_size(address_tuple.segment_register_size);
-    for (auto interfered_register : address_tuple.segment_register_intefered_register){
+    for (auto interfered_register :
+         address_tuple.segment_register_intefered_register) {
       proto.add_segment_intefered_register(std::move(interfered_register));
     }
   }
@@ -101,13 +122,15 @@ InstructionOperand InstructionOperandFromProto(
     case CanonicalizedOperandProto::kMemory:
       return InstructionOperand::MemoryLocation(
           proto.memory().alias_group_id());
-    case CanonicalizedOperandProto::kVirtualRegister:
-      {
-        std::vector<std::string> interfered_registers = ToVector(proto.intefered_register());
-        return InstructionOperand::VirtualRegister(
-          proto.virtual_register().name(), proto.virtual_register().size(), interfered_registers);
-      }
-      
+    case CanonicalizedOperandProto::kVirtualRegister: {
+      std::vector<std::string> interfered_registers =
+          ToVector(proto.intefered_register());
+      std::vector<int> interfered_register_sizes =
+          ToVector(proto.intefered_register_sizes());
+      return InstructionOperand::VirtualRegister(
+          proto.virtual_register().name(), proto.virtual_register().size(),
+          interfered_registers, interfered_register_sizes);
+    }
   }
 }
 

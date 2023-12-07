@@ -44,7 +44,7 @@ inline constexpr std::string_view kDisplacementToken = "_DISPLACEMENT_";
 inline constexpr std::string_view kVirtualRegisterToken = "_VREG";
 inline std::string getVREG_TOKEN(size_t size) {
   return std::string(kVirtualRegisterToken) + std::to_string(size) + "_";
-} 
+}
 
 // The type of an operand of an instruction.
 enum class OperandType {
@@ -83,13 +83,17 @@ struct AddressTuple {
   AddressTuple() {}
   AddressTuple(const AddressTuple&) = default;
   AddressTuple(AddressTuple&&) = default;
-  AddressTuple(std::string base_register, int64_t displacement,
-               std::string index_register, int scaling,
-               std::string segment_register, int base_register_size = 64, 
-               int index_register_size = 64, int segment_register_size = 64, 
-               const std::vector<std::string> base_register_intefered_register = {}, 
-               const std::vector<std::string> index_register_intefered_register = {},
-               const std::vector<std::string> segment_register_intefered_register = {})
+  AddressTuple(
+      std::string base_register, int64_t displacement,
+      std::string index_register, int scaling, std::string segment_register,
+      int base_register_size = 64, int index_register_size = 64,
+      int segment_register_size = 64,
+      const std::vector<std::string> base_register_intefered_register = {},
+      const std::vector<std::string> index_register_intefered_register = {},
+      const std::vector<std::string> segment_register_intefered_register = {},
+      const std::vector<int> base_register_intefered_register_sizes = {},
+      const std::vector<int> index_register_intefered_register_sizes = {},
+      const std::vector<int> segment_register_intefered_register_sizes = {})
       : base_register(std::move(base_register)),
         displacement(displacement),
         index_register(std::move(index_register)),
@@ -98,10 +102,18 @@ struct AddressTuple {
         base_register_size(std::move(base_register_size)),
         index_register_size(std::move(index_register_size)),
         segment_register_size(std::move(segment_register_size)),
-        base_register_intefered_register(std::move(base_register_intefered_register)),
-        index_register_intefered_register(std::move(index_register_intefered_register)),
-        segment_register_intefered_register(std::move(segment_register_intefered_register))
-        {}
+        base_register_intefered_register(
+            std::move(base_register_intefered_register)),
+        base_register_intefered_register_sizes(
+            std::move(base_register_intefered_register_sizes)),
+        index_register_intefered_register(
+            std::move(index_register_intefered_register)),
+        index_register_intefered_register_sizes(
+            std::move(index_register_intefered_register_sizes)),
+        segment_register_intefered_register(
+            std::move(segment_register_intefered_register)),
+        segment_register_intefered_register_sizes(
+            std::move(segment_register_intefered_register_sizes)) {}
 
   AddressTuple& operator=(const AddressTuple&) = default;
   AddressTuple& operator=(AddressTuple&&) = default;
@@ -144,12 +156,18 @@ struct AddressTuple {
   // The size of the segment register. Used only when segment_register is
   size_t segment_register_size;
 
-  // The name of the index register of the address. When empty, index register
+  // The name and size of the base register of the address. When empty, base
+  // register
   std::vector<std::string> base_register_intefered_register;
-  // The name of the index register of the address. When empty, index register
+  std::vector<int> base_register_intefered_register_sizes;
+  // The name and size of the index register of the address. When empty, index
+  // register
   std::vector<std::string> index_register_intefered_register;
-  // The name of the index register of the address. When empty, index register
+  std::vector<int> index_register_intefered_register_sizes;
+  // The name of the segment register of the address. When empty, segment
+  // register
   std::vector<std::string> segment_register_intefered_register;
+  std::vector<int> segment_register_intefered_register_sizes;
 };
 
 std::ostream& operator<<(std::ostream& os, const AddressTuple& address_tuple);
@@ -170,19 +188,25 @@ class InstructionOperand {
   InstructionOperand& operator=(InstructionOperand&&) = default;
 
   // The operands must be created through one of the factory functions.
-  static InstructionOperand VirtualRegister(std::string register_name,
-                                            size_t size, const std::vector<std::string>& interfered_registers);
+  static InstructionOperand VirtualRegister(
+      std::string register_name, size_t size,
+      const std::vector<std::string>& interfered_registers,
+      std::vector<int> interfered_registers_size);
   static InstructionOperand Register(std::string register_name);
   static InstructionOperand ImmediateValue(uint64_t immediate_value);
   static InstructionOperand FpImmediateValue(double fp_immediate_value);
   static InstructionOperand Address(AddressTuple address_tuple);
-  static InstructionOperand Address(std::string base_register,
-                                    int64_t displacement,
-                                    std::string index_register, int scaling,
-                                    std::string segment_register, 
-                                    int base_register_size = 64,
-                                    int index_register_size = 64,
-                                    int segment_register_size = 64);
+  static InstructionOperand Address(
+      std::string base_register, int64_t displacement,
+      std::string index_register, int scaling, std::string segment_register,
+      int base_register_size = 64, int index_register_size = 64,
+      int segment_register_size = 64,
+      const std::vector<std::string>& base_register_intefered_register = {},
+      const std::vector<std::string>& index_register_intefered_register = {},
+      const std::vector<std::string>& segment_register_intefered_register = {},
+      const std::vector<int>& base_register_intefered_register_sizes = {},
+      const std::vector<int>& index_register_intefered_register_sizes = {},
+      const std::vector<int>& segment_register_intefered_register_sizes = {});
   static InstructionOperand MemoryLocation(int alias_group_id);
 
   bool operator==(const InstructionOperand&) const;
@@ -198,7 +222,14 @@ class InstructionOperand {
 
   std::vector<std::string> getInterferedRegisters() const {
     assert(type_ == OperandType::kVirtualRegister);
+    assert(interfered_registers_.size() == interfered_registers_size_.size());
     return interfered_registers_;
+  }
+
+  std::vector<int> getInterferedRegistersSize() const {
+    assert(type_ == OperandType::kVirtualRegister);
+    assert(interfered_registers_.size() == interfered_registers_size_.size());
+    return interfered_registers_size_;
   }
 
   // Returns a human-readable representation of the operand.
@@ -258,6 +289,7 @@ class InstructionOperand {
   AddressTuple address_;
   int alias_group_id_ = 0;
   std::vector<std::string> interfered_registers_;
+  std::vector<int> interfered_registers_size_;
 };
 
 std::ostream& operator<<(std::ostream& os, const InstructionOperand& operand);

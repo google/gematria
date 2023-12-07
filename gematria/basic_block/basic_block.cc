@@ -62,7 +62,8 @@ std::string AddressTuple::ToString() const {
     buffer << "base_register='" << base_register << "', ";
     buffer << "base_register_size=" << base_register_size << ", ";
     buffer << "base_register_intefered_register={";
-    for (const std::string& interfered_register : base_register_intefered_register) {
+    for (const std::string& interfered_register :
+         base_register_intefered_register) {
       buffer << "'" << interfered_register << "', ";
     }
     buffer << "}, ";
@@ -74,7 +75,8 @@ std::string AddressTuple::ToString() const {
     buffer << "index_Register='" << index_register << "', ";
     buffer << "index_register_size=" << index_register_size << ", ";
     buffer << "index_register_intefered_register={";
-    for (const std::string& interfered_register : index_register_intefered_register) {
+    for (const std::string& interfered_register :
+         index_register_intefered_register) {
       buffer << "'" << interfered_register << "', ";
     }
     buffer << "}, ";
@@ -86,7 +88,8 @@ std::string AddressTuple::ToString() const {
     buffer << "segment_register='" << segment_register << "', ";
     buffer << "segment_register_size=" << segment_register_size << ", ";
     buffer << "segment_register_intefered_register={";
-    for (const std::string& interfered_register : segment_register_intefered_register) {
+    for (const std::string& interfered_register :
+         segment_register_intefered_register) {
       buffer << "'" << interfered_register << "', ";
     }
     buffer << "}, ";
@@ -126,12 +129,15 @@ bool InstructionOperand::operator==(const InstructionOperand& other) const {
 }
 
 InstructionOperand InstructionOperand::VirtualRegister(
-    const std::string register_name, size_t size, const std::vector<std::string>& interfered_registers) {
+    const std::string register_name, size_t size,
+    const std::vector<std::string>& interfered_registers,
+    std::vector<int> interfered_registers_size) {
   InstructionOperand result;
   result.type_ = OperandType::kVirtualRegister;
   result.register_name_ = std::move(register_name);
   result.size_ = size;
   result.interfered_registers_ = std::move(interfered_registers);
+  result.interfered_registers_size_ = std::move(interfered_registers_size);
   return result;
 }
 
@@ -166,14 +172,16 @@ InstructionOperand InstructionOperand::Address(AddressTuple address_tuple) {
   return result;
 }
 
-InstructionOperand InstructionOperand::Address(std::string base_register,
-                                               int64_t displacement,
-                                               std::string index_register,
-                                               int scaling,
-                                               std::string segment_register,
-                                               int base_register_size,
-                                               int index_register_size,
-                                               int segment_register_size) {
+InstructionOperand InstructionOperand::Address(
+    std::string base_register, int64_t displacement, std::string index_register,
+    int scaling, std::string segment_register, int base_register_size,
+    int index_register_size, int segment_register_size,
+    const std::vector<std::string>& base_register_intefered_register,
+    const std::vector<std::string>& index_register_intefered_register,
+    const std::vector<std::string>& segment_register_intefered_register,
+    const std::vector<int>& base_register_intefered_register_size,
+    const std::vector<int>& index_register_intefered_register_size,
+    const std::vector<int>& segment_register_intefered_register_size) {
   InstructionOperand result;
   result.type_ = OperandType::kAddress;
   result.address_.base_register = std::move(base_register);
@@ -184,9 +192,18 @@ InstructionOperand InstructionOperand::Address(std::string base_register,
   result.address_.base_register_size = base_register_size;
   result.address_.index_register_size = index_register_size;
   result.address_.segment_register_size = segment_register_size;
-  result.address_.base_register_intefered_register = {};
-  result.address_.index_register_intefered_register = {};
-  result.address_.segment_register_intefered_register = {};
+  result.address_.base_register_intefered_register =
+      std::move(base_register_intefered_register);
+  result.address_.index_register_intefered_register =
+      std::move(index_register_intefered_register);
+  result.address_.segment_register_intefered_register =
+      std::move(segment_register_intefered_register);
+  result.address_.base_register_intefered_register_sizes =
+      std::move(base_register_intefered_register_size);
+  result.address_.index_register_intefered_register_sizes =
+      std::move(index_register_intefered_register_size);
+  result.address_.segment_register_intefered_register_sizes =
+      std::move(segment_register_intefered_register_size);
   return result;
 }
 

@@ -509,7 +509,7 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
           InstructionOperand::Register(name));
     } else {
       operand_list.push_back(
-          InstructionOperand::VirtualRegister(name, size, {}));
+          InstructionOperand::VirtualRegister(name, size, {}, {}));
     }
   } else if (operand.isImm()) {
     operand_list.push_back(
@@ -520,6 +520,9 @@ void X86Canonicalizer::AddOperand(const llvm::MachineInstr& mi, int operand_inde
   } else if (operand.isFPImm()) {
     operand_list.push_back(InstructionOperand::FpImmediateValue(
         llvm::bit_cast<double>(operand.getFPImm())));
+  } else if (operand.isFI()){
+    operand_list.push_back(
+          InstructionOperand::Register("RBP"));
   } else {
     llvm::errs() << "Unsupported operand type: ";
     operand.print(llvm::errs());

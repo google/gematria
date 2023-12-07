@@ -567,37 +567,37 @@ absl::StatusOr<bool> BHiveImporter::addInterferenceGraph(
     BasicBlockProto& bb_proto,
     BHiveImporter::FunctionLiveIntervalInfo& func_live_infos,
     BHiveImporter::BhiveLiveRange& bb_range) {
-  std::set<std::string> live_virtual_registers;
-  std::set<std::string> live_physical_registers;
+  std::unordered_map<std::string, int> live_virtual_registers;
+  std::unordered_map<std::string, int> live_physical_registers;
 
   // helper function to update live_virtual_registers and
   // live_physical_registers
   auto update_live_regs = [&](const CanonicalizedOperandProto& operand) {
     if (operand.operand_case() == CanonicalizedOperandProto::kVirtualRegister) {
-      live_virtual_registers.insert(operand.virtual_register().name());
+      live_virtual_registers[operand.virtual_register().name()] = operand.virtual_register().size();
     } else if (operand.operand_case() ==
                CanonicalizedOperandProto::kRegisterName) {
-      live_physical_registers.insert(operand.register_name());
+      live_physical_registers[operand.register_name()] = 64;
     } else if (operand.operand_case() == CanonicalizedOperandProto::kAddress) {
       if (!operand.address().base_register().empty()) {
         if (operand.address().base_register()[0] == '%') {
-          live_virtual_registers.insert(operand.address().base_register());
+          live_virtual_registers[operand.address().base_register()] = operand.address().base_register_size();
         } else {
-          live_physical_registers.insert(operand.address().base_register());
+          live_physical_registers[operand.address().base_register()] = 64;
         }
       }
       if (!operand.address().index_register().empty()) {
         if (operand.address().index_register()[0] == '%') {
-          live_virtual_registers.insert(operand.address().index_register());
+          live_virtual_registers[operand.address().index_register()] = operand.address().index_register_size();
         } else {
-          live_physical_registers.insert(operand.address().index_register());
+          live_physical_registers[operand.address().index_register()] = 64;
         }
       }
       if (!operand.address().segment().empty()) {
         if (operand.address().segment()[0] == '%') {
-          live_virtual_registers.insert(operand.address().segment());
+          live_virtual_registers[operand.address().segment()] = operand.address().segment_size();
         } else {
-          live_physical_registers.insert(operand.address().segment());
+          live_physical_registers[operand.address().segment()] = 64;
         }
       }
     }
@@ -606,8 +606,9 @@ absl::StatusOr<bool> BHiveImporter::addInterferenceGraph(
   auto add_interference_on_name =
       [&](const std::string& name,
           google::protobuf::RepeatedPtrField<std::string>*
-              mutable_intefered_register) {
-        for (auto vReg : live_virtual_registers) {
+              mutable_intefered_register,
+          google::protobuf::RepeatedField<int>* mutable_intefered_register_size) {
+        for (auto [vReg, vRegSize] : live_virtual_registers) {
           if (vReg == name) continue;
           assert(func_live_infos.virtual_register_live_range_func.find(vReg) !=
                      func_live_infos.virtual_register_live_range_func.end() &&
@@ -620,11 +621,12 @@ absl::StatusOr<bool> BHiveImporter::addInterferenceGraph(
           if (!check_result.ok()) return check_result;
 
           if (*check_result) {
-            mutable_intefered_register->Add(std::move(vReg));
+            mutable_intefered_register->Add(std::string(vReg));
+            mutable_intefered_register_size->Add(std::move(vRegSize));
           }
         }
         // add interference from physical registers to current operand
-        for (auto pReg : live_physical_registers) {
+        for (auto [pReg, pRegSize] : live_physical_registers) {
           auto subRegs = superreg2subreg_[pReg];
           // if there's one subReg of Preg that has interference with current
           // operand then add interference to proto
@@ -646,7 +648,8 @@ absl::StatusOr<bool> BHiveImporter::addInterferenceGraph(
                 bb_range);
             if (!check_result.ok()) return check_result;
             if (*check_result) {
-              mutable_intefered_register->Add(std::move(pReg));
+              mutable_intefered_register->Add(std::string(pReg));
+              mutable_intefered_register_size->Add(std::move(pRegSize));
               break;
             }
           }
@@ -658,7 +661,8 @@ absl::StatusOr<bool> BHiveImporter::addInterferenceGraph(
     if (operand.operand_case() == CanonicalizedOperandProto::kVirtualRegister) {
       auto result =
           add_interference_on_name(operand.virtual_register().name(),
-                                   operand.mutable_intefered_register());
+                                   operand.mutable_intefered_register(),
+                                   operand.mutable_intefered_register_sizes());
       if (!result.ok()) return result;
     } else if (operand.operand_case() == CanonicalizedOperandProto::kAddress) {
       if (!operand.address().base_register().empty() &&
@@ -666,7 +670,9 @@ absl::StatusOr<bool> BHiveImporter::addInterferenceGraph(
         auto result = add_interference_on_name(
             operand.address().base_register(),
             operand.mutable_address()
-                ->mutable_base_register_intefered_register());
+                ->mutable_base_register_intefered_register(),
+            operand.mutable_address()
+                ->mutable_base_register_intefered_register_sizes());
         if (!result.ok()) return result;
       }
       if (!operand.address().index_register().empty() &&
@@ -674,14 +680,16 @@ absl::StatusOr<bool> BHiveImporter::addInterferenceGraph(
         auto result = add_interference_on_name(
             operand.address().index_register(),
             operand.mutable_address()
-                ->mutable_index_register_intefered_register());
+                ->mutable_index_register_intefered_register(),
+            operand.mutable_address()->mutable_index_register_intefered_register_sizes());
         if (!result.ok()) return result;
       }
       if (!operand.address().segment().empty() &&
           operand.address().segment()[0] == '%') {
         auto result = add_interference_on_name(
             operand.address().segment(),
-            operand.mutable_address()->mutable_segment_intefered_register());
+            operand.mutable_address()->mutable_segment_intefered_register(),
+            operand.mutable_address()->mutable_segment_intefered_register_sizes());
         if (!result.ok()) return result;
       }
     }

@@ -156,17 +156,25 @@ PYBIND11_MODULE(basic_block, m) {
                   py::arg("fp_immediate_value"))
       .def_static("from_virtual_register",
                   &InstructionOperand::VirtualRegister,
-                  py::arg("register_name"), py::arg("size"), py::arg("interfered_registers"))
+                  py::arg("register_name"), py::arg("size"), py::arg("interfered_registers"), py::arg("interfered_register_sizes"))
       .def_static<InstructionOperand (*)(
           std::string /* base_register */, int64_t /* displacement */,
           std::string /* index_register */, int /* scaling */,
           std::string /* segment_register */, int /* base_register_size */,
-          int /* index_register_size */, int /* segment_register_size */)>(
+          int /* index_register_size */, int /* segment_register_size */,
+          const std::vector<std::string>&, const std::vector<std::string>&, const std::vector<std::string>&,
+          const std::vector<int>&, const std::vector<int>&, const std::vector<int>&)>(
           "from_address", &InstructionOperand::Address,
           py::arg("base_register") = std::string(), py::arg("displacement") = 0,
           py::arg("index_register") = std::string(), py::arg("scaling") = 0,
           py::arg("segment_register") = std::string(), py::arg("base_register_size") = 64,
-          py::arg("index_register_size") = 64, py::arg("segment_register_size") = 64)
+          py::arg("index_register_size") = 64, py::arg("segment_register_size") = 64,
+          py::arg("base_register_intefered_register") = std::vector<std::string>(),
+          py::arg("index_register_intefered_register") = std::vector<std::string>(),
+          py::arg("segment_register_intefered_register") = std::vector<std::string>(),
+          py::arg("base_register_intefered_register_sizes") = std::vector<int>(),
+          py::arg("index_register_intefered_register_sizes") = std::vector<int>(),
+          py::arg("segment_register_intefered_register_sizes") = std::vector<int>())
       .def_static<InstructionOperand (*)(AddressTuple)>(
           "from_address", &InstructionOperand::Address,
           py::arg("address_tuple"))
