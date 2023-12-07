@@ -202,7 +202,7 @@ absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMBBName(
 
     // Assert MI cannot be a CALL instruction
     if (MI.isCall()) {
-      LOG("MI is a CALL instruction, abort this BB " << MI);
+      // LOG("MI is a CALL instruction, abort this BB " << MI);
       return absl::InvalidArgumentError(
           absl::StrCat("Cannot handle CALL instruction "));
     }
@@ -253,15 +253,15 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseMIRCsvLine(
         absl::StrCat("Could not find MBB with name ", BB_unique_name));
   }
 
-  llvm::MachineBasicBlock* MBB = name_to_mbb_[MBB_name_ref];
-  std::string func_name = MBB->getParent()->getName().str();
-  assert(func_to_live_intervals_.find(func_name) !=
-             func_to_live_intervals_.end() &&
-         "Function not found in map");
-  addInterferenceGraph(*block_proto_or_status,
-                       func_to_live_intervals_[func_name],
-                       func_to_live_intervals_[func_name]
-                           .BBRangeList[std::string(BB_unique_name)]);
+  // llvm::MachineBasicBlock* MBB = name_to_mbb_[MBB_name_ref];
+  // std::string func_name = MBB->getParent()->getName().str();
+  // assert(func_to_live_intervals_.find(func_name) !=
+  //            func_to_live_intervals_.end() &&
+  //        "Function not found in map");
+  // addInterferenceGraph(*block_proto_or_status,
+  //                      func_to_live_intervals_[func_name],
+  //                      func_to_live_intervals_[func_name]
+  //                          .BBRangeList[std::string(BB_unique_name)]);
   *proto.mutable_basic_block() = std::move(block_proto_or_status).value();
 
   double throughput_cycles = 0.0;
@@ -680,10 +680,10 @@ void BHiveImporter::addInterferenceGraph(
   }
 
   // pretty print physical registers
-  LOG("Physical Registers: ");
-  for (auto& reg : live_physical_registers) {
-    LOG("Physical Register: " << reg);
-  }
+  // LOG("Physical Registers: ");
+  // for (auto& reg : live_physical_registers) {
+  //   LOG("Physical Register: " << reg);
+  // }
 
   // Iterate over all operands in bb_proto, add interference registers to each
   // operand

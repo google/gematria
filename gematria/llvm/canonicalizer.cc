@@ -153,7 +153,7 @@ llvm::SmallVector<std::string_view, 2> SplitByAny(std::string_view str,
 void AddX86VendorMnemonicAndPrefixes(
     llvm::MCInstPrinter& printer, const llvm::MCSubtargetInfo& subtarget_info,
     const llvm::MCInst& mcinst, Instruction& instruction) {
-  constexpr const char* kKnownPrefixes[] = {"REP", "LOCK", "REPNE", "REPE"};
+  constexpr const char* kKnownPrefixes[] = {"nofpexcept"};
 
   std::string assembly_code;
   llvm::raw_string_ostream stream(assembly_code);
@@ -291,8 +291,8 @@ Instruction X86Canonicalizer::PlatformSpecificInstructionFromMachineInstr(const 
   Instruction instruction;
   instruction.llvm_mnemonic =
       target_machine_.getMCInstrInfo()->getName(MI.getOpcode());
-  AddMIRVendorMnemonicAndPrefixes(*target_machine_.getMCSubtargetInfo(), MI,
-                                  instruction);
+  instruction.mnemonic =
+      target_machine_.getMCInstrInfo()->getName(MI.getOpcode());
 
   const llvm::MCInstrDesc& descriptor = instr_info.get(MI.getOpcode());
   if (descriptor.mayLoad()) {

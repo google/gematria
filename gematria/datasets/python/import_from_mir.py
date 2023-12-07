@@ -150,9 +150,9 @@ def main(argv: Sequence[str]) -> None:
                         num_input_files,
                         num_skipped_files,
                     )
-                mir_file = os.path.join(_INPUT_DIR.value, filename)
+                mir_file = os.path.join(input_dir, filename)
                 print("mir file is " + mir_file)
-                perf_file = os.path.join(_INPUT_DIR.value, filename.replace(".mir", ".perf"))
+                perf_file = os.path.join(input_dir, filename.replace(".mir", ".perf"))
                 try:
                     # load the MIR file
                     module = importer.LoadMIRModule(mir_file)

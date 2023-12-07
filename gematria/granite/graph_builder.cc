@@ -306,7 +306,7 @@ bool BasicBlockGraphBuilder::AddInputOperand(
         }
       }
       if (!address_tuple.index_register.empty()) {
-        bool is_virtual_reg = address_tuple.base_register[0] == '%';
+        bool is_virtual_reg = address_tuple.index_register[0] == '%';
         std::string vreg_token = getVREG_TOKEN(64);
         bool result = AddDependencyOnRegister(address_node,
                                      address_tuple.index_register,
@@ -317,7 +317,7 @@ bool BasicBlockGraphBuilder::AddInputOperand(
         }
       }
       if (!address_tuple.segment_register.empty()) {
-        bool is_virtual_reg = address_tuple.base_register[0] == '%';
+        bool is_virtual_reg = address_tuple.segment_register[0] == '%';
         std::string vreg_token = getVREG_TOKEN(64);
         bool result = AddDependencyOnRegister(address_node,
                                      address_tuple.segment_register,
