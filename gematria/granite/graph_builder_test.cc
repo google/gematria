@@ -15,6 +15,7 @@
 #include "gematria/granite/graph_builder.h"
 
 #include <algorithm>
+#include <iostream>
 #include <iterator>
 #include <memory>
 #include <string>
@@ -51,6 +52,12 @@ constexpr absl::string_view kTokens[] = {
     // 10
     "RBX", "RCX", "RDI", kUnknownToken, "NOP", "LOCK"};
 
+constexpr absl::string_view kTokens_vregs[] = {
+    // 0
+    kImmediateToken, kFpImmediateToken, kAddressToken, kMemoryToken, "COPY",
+    // 5
+    "RDI", "_VREG64_", "_VREG32_", "MOV64mr", "RBP", "EAX", "MOV32rm"};
+
 int TokenIndex(absl::string_view token) {
   const auto it = std::find(std::begin(kTokens), std::end(kTokens), token);
   EXPECT_NE(it, std::end(kTokens)) << "Invalid token: " << token;
@@ -61,6 +68,21 @@ class BasicBlockGraphBuilderTest : public testing::Test {
  protected:
   void CreateBuilder(OutOfVocabularyTokenBehavior out_of_vocabulary_behavior) {
     std::vector<std::string> tokens(std::begin(kTokens), std::end(kTokens));
+    builder_ = std::make_unique<BasicBlockGraphBuilder>(
+        std::move(tokens),
+        /*immediate_token =*/kImmediateToken,
+        /*fp_immediate_token =*/kFpImmediateToken,
+        /*address_token =*/kAddressToken,
+        /*memory_token =*/kMemoryToken, out_of_vocabulary_behavior);
+  }
+  std::unique_ptr<BasicBlockGraphBuilder> builder_;
+};
+
+class BasicBlockGraphBuilderTestVReg : public testing::Test {
+ protected:
+  void CreateBuilder(OutOfVocabularyTokenBehavior out_of_vocabulary_behavior) {
+    std::vector<std::string> tokens(std::begin(kTokens_vregs),
+                                    std::end(kTokens_vregs));
     builder_ = std::make_unique<BasicBlockGraphBuilder>(
         std::move(tokens),
         /*immediate_token =*/kImmediateToken,
@@ -514,6 +536,81 @@ TEST_F(BasicBlockGraphBuilderTest, TwoNops) {
     canonicalized_instructions { mnemonic: "NOP" llvm_mnemonic: "NOOP" }
     canonicalized_instructions { mnemonic: "NOP" llvm_mnemonic: "NOOP" }
   )pb"))));
+}
+
+TEST_F(BasicBlockGraphBuilderTestVReg, VRegTest) {
+  CreateBuilder(OutOfVocabularyTokenBehavior::ReturnError());
+  ASSERT_TRUE(builder_->AddBasicBlock(BasicBlockFromProto(ParseTextProto(R"pb(
+    canonicalized_instructions {
+      mnemonic: "COPY"
+      llvm_mnemonic: "COPY"
+      output_operands {
+        virtual_register { name: "%0" size: 64 }
+        intefered_register: "%6"
+        intefered_register: "%5"
+        intefered_register: "%1"
+        intefered_register: "%outer"
+        intefered_register_sizes: 64
+        intefered_register_sizes: 32
+        intefered_register_sizes: 64
+        intefered_register_sizes: 32
+      }
+      input_operands { register_name: "RDI" }
+    }
+    canonicalized_instructions {
+      mnemonic: "COPY"
+      llvm_mnemonic: "COPY"
+      output_operands {
+        virtual_register { name: "%1" size: 64 }
+        intefered_register: "%0"
+        intefered_register_sizes: 64
+      }
+      input_operands {
+        virtual_register { name: "%0" size: 64 }
+        intefered_register: "%6"
+        intefered_register: "%5"
+        intefered_register: "%1"
+        intefered_register: "%outer"
+        intefered_register_sizes: 64
+        intefered_register_sizes: 32
+        intefered_register_sizes: 64
+        intefered_register_sizes: 32
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV64mr"
+      llvm_mnemonic: "MOV64mr"
+      output_operands { memory { alias_group_id: 1 } }
+      input_operands { address { base_register: "RBP" scaling: 1 } }
+      input_operands {
+        virtual_register { name: "%1" size: 64 }
+        intefered_register: "%0"
+        intefered_register_sizes: 64
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV32rm"
+      llvm_mnemonic: "MOV32rm"
+      output_operands {
+        virtual_register { name: "%5" size: 32 }
+        intefered_register: "%0"
+        intefered_register: "RDI"
+        intefered_register_sizes: 64
+        intefered_register_sizes: 64
+      }
+      input_operands { memory { alias_group_id: 1 } }
+      input_operands {
+        address {
+          base_register: "%6"
+          base_register_size: 64
+          base_register_intefered_register: "%0"
+          base_register_intefered_register_sizes: 64
+          scaling: 1
+        }
+      }
+    }
+  )pb"))));
+  std::cerr << builder_->DebugString() << std::endl;
 }
 
 }  // namespace

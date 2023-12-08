@@ -220,13 +220,13 @@ class InstructionOperand {
   // Returns the list of tokens representing this instruction.
   std::vector<std::string> AsTokenList() const;
 
-  std::vector<std::string> getInterferedRegisters() const {
+  const std::vector<std::string>& getInterferedRegisters() const {
     assert(type_ == OperandType::kVirtualRegister);
     assert(interfered_registers_.size() == interfered_registers_size_.size());
     return interfered_registers_;
   }
 
-  std::vector<int> getInterferedRegistersSize() const {
+  const std::vector<int>& getInterferedRegistersSize() const {
     assert(type_ == OperandType::kVirtualRegister);
     assert(interfered_registers_.size() == interfered_registers_size_.size());
     return interfered_registers_size_;
