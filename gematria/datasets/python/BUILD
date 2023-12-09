@@ -77,3 +77,29 @@ gematria_py_binary(
         "//gematria/proto:throughput_py_pb2",
     ],
 )
+
+gematria_py_binary(
+    name = "evaluate_model",
+    srcs = ["evaluate_model.py"],
+    deps = [
+        "//gematria/basic_block/python:basic_block_protos",
+        "//gematria/basic_block/python:basic_block",
+        "//gematria/io/python:tfrecord",
+        "//gematria/proto:basic_block_py_pb2",
+        "//gematria/proto:canonicalized_instruction_py_pb2",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+)
+
+gematria_py_binary(
+    name = "draw",
+    srcs = ["draw.py"],
+    deps = [
+        "//gematria/basic_block/python:basic_block_protos",
+        "//gematria/basic_block/python:basic_block",
+        "//gematria/io/python:tfrecord",
+        "//gematria/proto:basic_block_py_pb2",
+        "//gematria/proto:canonicalized_instruction_py_pb2",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+)

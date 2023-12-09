@@ -230,14 +230,56 @@ void InstructionOperand::AddTokensToList(
       break;
     case OperandType::kAddress:
       tokens.emplace_back(kAddressToken);
-      tokens.emplace_back(address().base_register.empty()
-                              ? kNoRegisterToken
-                              : address().base_register);
-      tokens.emplace_back(address().index_register.empty()
-                              ? kNoRegisterToken
-                              : address().index_register);
-      if (!address().segment_register.empty()) {
-        tokens.push_back(address().segment_register);
+      if (address().base_register.empty()){
+        tokens.emplace_back(kNoRegisterToken);
+      } else {
+        if (address().base_register_size == '%'){
+          tokens.emplace_back(getVREG_TOKEN(address().base_register_size));
+          assert(address().base_register_intefered_register.size() == address().base_register_intefered_register_sizes.size());
+          for (int i = 0; i < address().base_register_intefered_register.size(); ++i) {
+            if (address().base_register_intefered_register_sizes[i] == '%'){
+              tokens.emplace_back(getVREG_TOKEN(address().base_register_intefered_register_sizes[i]));
+            } else {
+              tokens.emplace_back(address().base_register_intefered_register[i]);
+            }
+          }
+        } else {
+          tokens.emplace_back(address().base_register);
+        }
+      }
+      if (address().index_register.empty()){
+        tokens.emplace_back(kNoRegisterToken);
+      } else {
+        if (address().index_register_size == '%'){
+          tokens.emplace_back(getVREG_TOKEN(address().index_register_size));
+          assert(address().index_register_intefered_register.size() == address().index_register_intefered_register_sizes.size());
+          for (int i = 0; i < address().index_register_intefered_register.size(); ++i) {
+            if (address().index_register_intefered_register_sizes[i] == '%'){
+              tokens.emplace_back(getVREG_TOKEN(address().index_register_intefered_register_sizes[i]));
+            } else {
+              tokens.emplace_back(address().index_register_intefered_register[i]);
+            }
+          }
+        } else {
+          tokens.emplace_back(address().index_register);
+        }
+      }
+      if (address().segment_register.empty()){
+        tokens.emplace_back(kNoRegisterToken);
+      } else {
+        if (address().segment_register_size == '%'){
+          tokens.emplace_back(getVREG_TOKEN(address().segment_register_size));
+          assert(address().segment_register_intefered_register.size() == address().segment_register_intefered_register_sizes.size());
+          for (int i = 0; i < address().segment_register_intefered_register.size(); ++i) {
+            if (address().segment_register_intefered_register_sizes[i] == '%'){
+              tokens.emplace_back(getVREG_TOKEN(address().segment_register_intefered_register_sizes[i]));
+            } else {
+              tokens.emplace_back(address().segment_register_intefered_register[i]);
+            }
+          }
+        } else {
+          tokens.emplace_back(address().segment_register);
+        }
       }
       if (address().displacement != 0) {
         tokens.emplace_back(kDisplacementToken);
@@ -248,6 +290,14 @@ void InstructionOperand::AddTokensToList(
       break;
     case OperandType::kVirtualRegister:
       tokens.emplace_back(getVREG_TOKEN(size()));
+      assert(interfered_registers_.size() == interfered_registers_size_.size());
+      for (int i = 0; i < interfered_registers_.size(); ++i) {
+        if (interfered_registers_size_[i] == '%'){
+          tokens.emplace_back(getVREG_TOKEN(interfered_registers_size_[i]));
+        } else {
+          tokens.emplace_back(interfered_registers_[i]);
+        }
+      }
       break;
   }
 }

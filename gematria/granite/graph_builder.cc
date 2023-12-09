@@ -29,8 +29,6 @@
 #include "gematria/basic_block/basic_block.h"
 #include "gematria/model/oov_token_behavior.h"
 
-#define DEBUG
-
 #ifdef DEBUG
 #define LOG(X) std::cerr << X << "\n"
 #else

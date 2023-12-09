@@ -53,14 +53,13 @@ PYBIND11_MODULE(graph_builder, m) {
 
   py::enum_<EdgeType>(m, "EdgeType")
       .value("STRUCTURAL_DEPENDENCY", EdgeType::kStructuralDependency)
-      .value("REVERSE_STRUCTURAL_DEPENDENCY",
-             EdgeType::kReverseStructuralDependency)
       .value("INPUT_OPERANDS", EdgeType::kInputOperands)
       .value("OUTPUT_OPERANDS", EdgeType::kOutputOperands)
       .value("ADDRESS_BASE_REGISTER", EdgeType::kAddressBaseRegister)
       .value("ADDRESS_INDEX_REGISTER", EdgeType::kAddressIndexRegister)
       .value("ADDRESS_SEGMENT_REGISTER", EdgeType::kAddressSegmentRegister)
       .value("ADDRESS_DISPLACEMENT", EdgeType::kAddressDisplacement)
+      .value("INTERFERENCE", EdgeType::kInterference)
       .export_values();
 
   py::class_<BasicBlockGraphBuilder>(m, "BasicBlockGraphBuilder")

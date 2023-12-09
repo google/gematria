@@ -47,6 +47,7 @@ def main(argv: Sequence[str]) -> None:
   )
   token_set = set()
   for block in output_blocks:
+    print(block)
     for instruction in block.basic_block.canonicalized_instructions:
      ginstruction = basic_block_protos.instruction_from_proto(instruction)
      for token in ginstruction.as_token_list():

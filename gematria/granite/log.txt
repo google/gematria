@@ -1,0 +1,104 @@
+num_graphs = 1
+num_nodes = 13
+num_edges = 15
+num_node_tokens = 12
+num_nodes_per_block = [13]
+num_edges_per_block = [15]
+register_nodes :
+  %5 -> 12
+  %6 -> 11
+  RBP -> 7
+  %1 -> 4
+  %0 -> 2
+  RDI -> 1
+alias_group_nodes :
+  1 -> 8
+node_types =     [NodeType::kInstruction NodeType::kRegister 
+NodeType::kRegister NodeType::kInstruction NodeType::kRegister 
+NodeType::kInstruction NodeType::kAddressOperand 
+NodeType::kRegister NodeType::kMemoryOperand 
+NodeType::kInstruction NodeType::kAddressOperand
+NodeType::kRegister NodeType::kRegister]
+edge_senders =   [10023376455811109]
+edge_receivers = [02334565589910912]
+edge_types = [EdgeType::kInputOperands EdgeType::kOutputOperands
+EdgeType::kStructuralDependency EdgeType::kInputOperands
+EdgeType::kOutputOperands EdgeType::kStructuralDependency
+EdgeType::kAddressBaseRegister EdgeType::kInputOperands
+EdgeType::kInputOperands EdgeType::kOutputOperands
+EdgeType::kStructuralDependency EdgeType::kInputOperands
+EdgeType::kAddressBaseRegister EdgeType::kInputOperands
+EdgeType::kOutputOperands]
+
+
+==========interference========
+
+=====================================
+num_graphs = 1
+num_nodes = 14
+num_edges = 22
+num_node_tokens = 12
+num_nodes_per_block = [14,]
+num_edges_per_block = [22,]
+register_nodes :
+  RBP -> 10
+  %outer -> 6
+  %1 -> 5
+  %5 -> 4
+  %6 -> 3
+  %0 -> 2
+  RDI -> 1
+alias_group_nodes :
+  1 -> 11
+interference_groups :
+  %5 -> [ %0 ]
+  %6 -> [ %0 ]
+  %1 -> [ %0 ]
+  %0 -> [ %outer %1 %5 %6 ]
+node_types =     [NodeType::kInstruction,NodeType::kRegister,NodeType::kRegister,
+NodeType::kRegister,NodeType::kRegister,NodeType::kRegister,
+NodeType::kRegister,NodeType::kInstruction,NodeType::kInstruction,
+NodeType::kAddressOperand,NodeType::kRegister,NodeType::kMemoryOperand,
+NodeType::kInstruction,NodeType::kAddressOperand,]
+edge_senders =   [1,0,3,4,5,6,0,2,7,2,7,10,9,5,8,8,11,3,2,13,12,2,]
+edge_receivers = [0,2,2,2,2,2,7,7,5,5,8,9,8,8,11,12,12,13,3,12,4,4,]
+edge_types = [EdgeType::kInputOperands,EdgeType::kOutputOperands,EdgeType::kInterference,EdgeType::kInterference,
+EdgeType::kInterference,EdgeType::kInterference,EdgeType::kStructuralDependency,
+EdgeType::kInputOperands,EdgeType::kOutputOperands,EdgeType::kInterference,
+EdgeType::kStructuralDependency,EdgeType::kAddressBaseRegister,EdgeType::kInputOperands,
+EdgeType::kInputOperands,EdgeType::kOutputOperands,EdgeType::kStructuralDependency,
+EdgeType::kInputOperands,EdgeType::kAddressBaseRegister,EdgeType::kInterference,
+EdgeType::kInputOperands,EdgeType::kOutputOperands,EdgeType::kInterference,]
+InstructionNodeMask = [1,0,0,0,0,0,0,1,1,0,0,0,1,0,]
+DeltaBlockIndex = [0,0,0,0,]
+
+
+
+num_graphs = 1
+num_nodes = 14
+num_edges = 23
+num_node_tokens = 12
+num_nodes_per_block = [14,]
+num_edges_per_block = [23,]
+register_nodes :
+  RBP -> 10
+  %outer -> 6
+  %1 -> 5
+  %5 -> 4
+  %6 -> 3
+  %0 -> 2
+  RDI -> 1
+alias_group_nodes :
+  1 -> 11
+interference_groups :
+  %outer -> [ %0 ]
+  %1 -> [ %0 ]
+  %5 -> [ %0 ]
+  %6 -> [ %0 ]
+  %0 -> [ %outer %1 %5 %6 ]
+node_types = [NodeType::kInstruction,NodeType::kRegister,NodeType::kRegister,NodeType::kRegister,NodeType::kRegister,NodeType::kRegister,NodeType::kRegister,NodeType::kInstruction,NodeType::kInstruction,NodeType::kAddressOperand,NodeType::kRegister,NodeType::kMemoryOperand,NodeType::kInstruction,NodeType::kAddressOperand,]
+edge_senders =   [1,0,3,2,4,2,5,2,6,2,0,2,7,7,10,9,5,8,8,11,3,13,12,]
+edge_receivers = [0,2,2,3,2,4,2,5,2,6,7,7,5,8,9,8,8,11,12,12,13,12,4,]
+edge_types = [EdgeType::kInputOperands,EdgeType::kOutputOperands,EdgeType::kInterference,EdgeType::kInterference,EdgeType::kInterference,EdgeType::kInterference,EdgeType::kInterference,EdgeType::kInterference,EdgeType::kInterference,EdgeType::kInterference,EdgeType::kStructuralDependency,EdgeType::kInputOperands,EdgeType::kOutputOperands,EdgeType::kStructuralDependency,EdgeType::kAddressBaseRegister,EdgeType::kInputOperands,EdgeType::kInputOperands,EdgeType::kOutputOperands,EdgeType::kStructuralDependency,EdgeType::kInputOperands,EdgeType::kAddressBaseRegister,EdgeType::kInputOperands,EdgeType::kOutputOperands,]
+InstructionNodeMask = [1,0,0,0,0,0,0,1,1,0,0,0,1,0,]
+DeltaBlockIndex = [0,0,0,0,]

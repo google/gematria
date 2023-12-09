@@ -126,13 +126,13 @@ enum class EdgeType {
   kAddressIndexRegister = 4,
   kAddressSegmentRegister = 5,
   kAddressDisplacement = 6,
+  kInterference = 7,
   // TODO(ondrasej): Remove this value after the experiments for the Granite
   // paper are completed. This value is not used, but it affects the size of an
   // embedding vector table; removing it would change the size of this table and
   // it would invalidate existing checkpoints.
-  kReverseStructuralDependency = 7,
-  kInstructionPrefix = 8,
-  kInterference = 9,
+  kReverseStructuralDependency = 8,
+  kInstructionPrefix = 9,
 };
 
 std::ostream& operator<<(std::ostream& os, NodeType node_type);

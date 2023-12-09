@@ -190,7 +190,7 @@ def main(argv: Sequence[str]) -> None:
                                 BB_name = line.split(",")[_MACHINE_BASIC_BLOCK_NAME_COLUMN_INDEX.value]
                                 through_put = line.split(",")[_THROUGHPUT_COLUMN_INDEX.value]
                                 # skip blocks with throughput -1
-                                if float(through_put) == -1 or float(through_put) < 0.1:
+                                if float(through_put) == -1 or float(through_put) < 0.1 or float(through_put) > 10:
                                     num_skipped_blocks += 1
                                     continue
                                 block_proto = importer.ParseMIRCsvLine(
