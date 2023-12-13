@@ -165,14 +165,14 @@ new_git_repository(
 
 # LLVM and its dependencies
 
-# TODO(boomanaiden154): Go back to proper upstream commit once the appropriate
-# patches land there.
+LLVM_COMMIT = "8d300e67d2227f55fc5056cd3eec8c62d084c1b9"
 
-LLVM_COMMIT = "f13b5d31450a095d6e11176b3db787f1e0894337"
+LLVM_SHA256 = "bc92b042ca833514311b273a2422259950ed7069b6a06f85833253f0ac1b5221"
 
 http_archive(
     name = "llvm-raw",
     build_file_content = "# empty",
+    sha256 = LLVM_SHA256,
     strip_prefix = "llvm-project-" + LLVM_COMMIT,
     urls = ["https://github.com/llvm/llvm-project/archive/{commit}.zip".format(commit = LLVM_COMMIT)],
 )

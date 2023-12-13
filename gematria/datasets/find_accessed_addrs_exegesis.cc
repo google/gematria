@@ -50,7 +50,7 @@ Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::Create(
 
   auto RunnerOrErr = State_.getExegesisTarget().createBenchmarkRunner(
       Benchmark::Latency, State_, BenchmarkPhaseSelectorE::Measure,
-      BenchmarkRunner::ExecutionModeE::SubProcess, Benchmark::Min);
+      BenchmarkRunner::ExecutionModeE::SubProcess, 1, Benchmark::Min);
 
   if (!RunnerOrErr) return RunnerOrErr.takeError();
 
@@ -120,24 +120,25 @@ Expected<AccessedAddrs> ExegesisAnnotator::FindAccessedAddrs(
 
     BenchmarkRunner::RunnableConfiguration &RC = *RCOrErr;
 
-    auto BenchmarkResults = Runner->runConfiguration(std::move(RC), {}, true);
+    std::pair<Error, Benchmark> BenchmarkResultOrErr =
+        Runner->runConfiguration(std::move(RC), {});
 
     // If we don't have any errors executing the snippet, we executed the
     // snippet successfully and thus have all the needed memory annotations.
-    if (BenchmarkResults) break;
+    if (!std::get<0>(BenchmarkResultOrErr)) break;
 
-    auto ResultError = BenchmarkResults.takeError();
+    if (!std::get<0>(BenchmarkResultOrErr).isA<SnippetSegmentationFault>())
+      return std::move(std::get<0>(BenchmarkResultOrErr));
 
-    if (!ResultError.isA<SnippetCrash>()) return std::move(ResultError);
+    handleAllErrors(std::move(std::get<0>(BenchmarkResultOrErr)),
+                    [&](SnippetSegmentationFault &CrashInfo) {
+                      if (CrashInfo.getAddress() == 0) return;
 
-    handleAllErrors(std::move(ResultError), [&](SnippetCrash &CrashInfo) {
-      if (CrashInfo.GetCrashAddress() == 0) return;
-
-      MemoryMapping MemMap;
-      MemMap.Address = CrashInfo.GetCrashAddress();
-      MemMap.MemoryValueName = "memdef1";
-      BenchCode.Key.MemoryMappings.push_back(MemMap);
-    });
+                      MemoryMapping MemMap;
+                      MemMap.Address = CrashInfo.getAddress();
+                      MemMap.MemoryValueName = "memdef1";
+                      BenchCode.Key.MemoryMappings.push_back(MemMap);
+                    });
   }
 
   MemAnnotations.accessed_blocks.reserve(BenchCode.Key.MemoryMappings.size());
