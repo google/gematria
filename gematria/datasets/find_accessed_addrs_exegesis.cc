@@ -132,8 +132,6 @@ Expected<AccessedAddrs> ExegesisAnnotator::FindAccessedAddrs(
 
     handleAllErrors(std::move(std::get<0>(BenchmarkResultOrErr)),
                     [&](SnippetSegmentationFault &CrashInfo) {
-                      if (CrashInfo.getAddress() == 0) return;
-
                       MemoryMapping MemMap;
                       MemMap.Address = CrashInfo.getAddress();
                       MemMap.MemoryValueName = "memdef1";
