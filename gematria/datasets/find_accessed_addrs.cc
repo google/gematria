@@ -125,7 +125,9 @@ absl::StatusOr<PipedData> ReadAll(int fd) {
   }
 
   if (current_offset != data_span.size()) {
-    return absl::InternalError("Read less than expected from pipe");
+    return absl::InternalError(absl::StrFormat(
+        "Read less than expected from pipe (expected %uB, got %uB)",
+        data_span.size(), current_offset));
   }
   close(fd);
   return piped_data;
