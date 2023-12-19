@@ -78,6 +78,7 @@ cc_test(
     # We're testing FindAccessedAddrs, which executes code passed to it. In this test we hardcode
     # some assembled x86 code to execute.
     tags = [
+        "noasan",
         "not_build:arm",
     ],
     target_compatible_with = [

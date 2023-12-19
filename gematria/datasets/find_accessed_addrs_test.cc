@@ -56,6 +56,17 @@ class FindAccessedAddrsTest : public testing::Test {
   inline static std::unique_ptr<LlvmArchitectureSupport> llvm_arch_support_;
 
  protected:
+  void SetUp() override {
+    // Disable all find accessed addresses tests under sanitizers. The technique
+    // used to detect memory accesses relies on low-level system hacks and it is
+    // generally incompatible with sanitizers that expect nicely-behaving C++
+    // code.
+#if defined(__has_feature) && \
+    (__has_feature(address_sanitizer) || __has_feature(memory_sanitizer))
+    GTEST_SKIP() << "Not supported under sanitizers";
+#endif
+  }
+
   static void SetUpTestSuite() {
     llvm_arch_support_ = LlvmArchitectureSupport::X86_64();
   }
