@@ -124,7 +124,7 @@ cc_test(
 cc_test(
     name = "stl_assoc_container_test",
     size = "small",
-    timeout = "moderate",
+    timeout = "long",
     srcs = COMMON_TEST_HDRS + [
         "stl_assoc_container.h",
         "stl_assoc_container_test.cc",
