@@ -67,6 +67,13 @@ int main(int argc, char* argv[]) {
     ss << std::hex << kInitialRegVal << std::dec;
     ss >> initialRegValStr;
   }
+  std::string initialMemValStr;
+  {
+    // initialize initialMemValStr with kInitialMemValue in hex
+    std::stringstream ss;
+    ss << std::hex << kInitialMemVal << std::dec;
+    ss >> initialMemValStr;
+  }
   std::string register_defs_lines;
   const std::unique_ptr<gematria::LlvmArchitectureSupport> llvm_support =
       gematria::LlvmArchitectureSupport::X86_64();
@@ -147,7 +154,7 @@ int main(int argc, char* argv[]) {
     // Multiple mappings can point to the same definition.
     if (addrs->accessed_blocks.size() > 0) {
       output_file << kMemDefPrefix << kMemNamePrefix << " " << addrs->block_size
-                  << " " << kInitialMemVal << "\n";
+                  << " " << initialMemValStr << "\n";
     }
     for (const auto& addr : addrs->accessed_blocks) {
       output_file << kMemMapPrefix << kMemNamePrefix << " " << std::dec << addr
