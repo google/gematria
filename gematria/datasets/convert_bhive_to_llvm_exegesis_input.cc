@@ -19,6 +19,8 @@
 #include <string>
 #include <string_view>
 
+#include "X86RegisterInfo.h"
+#include "X86Subtarget.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "gematria/datasets/bhive_importer.h"
@@ -26,10 +28,8 @@
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
-#include "X86RegisterInfo.h"
-#include "X86Subtarget.h"
 
-constexpr uint64_t kInitialRegVal = 10000;
+constexpr uint64_t kInitialRegVal = 65536;
 constexpr uint64_t kInitialMemVal = 2147483647;
 constexpr std::string_view kRegDefPrefix = "# LLVM-EXEGESIS-DEFREG ";
 constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
@@ -60,6 +60,13 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  std::string initialRegValStr;
+  {
+    // initialize initialRegValStr with kInitialRegValue in hex
+    std::stringstream ss;
+    ss << std::hex << kInitialRegVal << std::dec;
+    ss >> initialRegValStr;
+  }
   std::string register_defs_lines;
   const std::unique_ptr<gematria::LlvmArchitectureSupport> llvm_support =
       gematria::LlvmArchitectureSupport::X86_64();
@@ -67,19 +74,21 @@ int main(int argc, char* argv[]) {
 
   // Iterate through all general purpose registers and vector registers
   // and add them to the register definitions.
+  // TODO(9Tempest): Change GR64_NOREXRegClassID to GR64_NOREX2RegClassID to
+  // include r9-r15
   for (unsigned i = 0;
        i < MRI.getRegClass(llvm::X86::GR64_NOREXRegClassID).getNumRegs(); ++i) {
-    llvm::StringRef reg_name =
-        MRI.getName(MRI.getRegClass(llvm::X86::GR64_NOREXRegClassID).getRegister(i));
+    llvm::StringRef reg_name = MRI.getName(
+        MRI.getRegClass(llvm::X86::GR64_NOREXRegClassID).getRegister(i));
     register_defs_lines += std::string(kRegDefPrefix) + std::string(reg_name) +
-                           " " + std::to_string(kInitialRegVal) + "\n";
+                           " " + initialRegValStr + "\n";
   }
-  for (unsigned i = 0; i < MRI.getRegClass(llvm::X86::VR128RegClassID).getNumRegs();
-       ++i) {
+  for (unsigned i = 0;
+       i < MRI.getRegClass(llvm::X86::VR128RegClassID).getNumRegs(); ++i) {
     llvm::StringRef reg_name =
         MRI.getName(MRI.getRegClass(llvm::X86::VR128RegClassID).getRegister(i));
     register_defs_lines += std::string(kRegDefPrefix) + std::string(reg_name) +
-                           " " + std::to_string(kInitialRegVal) + "\n";
+                           " " + initialRegValStr + "\n";
   }
 
   gematria::X86Canonicalizer canonicalizer(&llvm_support->target_machine());
