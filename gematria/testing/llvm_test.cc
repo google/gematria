@@ -16,9 +16,9 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstBuilder.h"
-#include "lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 
 namespace gematria {
 namespace {
