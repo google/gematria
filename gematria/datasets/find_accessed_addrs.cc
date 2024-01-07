@@ -250,6 +250,12 @@ absl::Status ParentProcess(int child_pid, int pipe_read_fd,
   ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
   raise(SIGSTOP);
 
+  // This value will turn up when reading from newly-mapped blocks (see below).
+  // Unmap it so that we can correctly segfault and detect we've accessed it.
+  // If it fails, oh well. Not worth aborting for as we might not even access
+  // this address.
+  munmap(reinterpret_cast<void*>(0x800000000), 0x10000);
+
   // Map all the locations we've previously discovered this code accesses.
   for (uintptr_t accessed_location : accessed_addrs.accessed_blocks) {
     auto location_ptr = reinterpret_cast<void*>(accessed_location);
