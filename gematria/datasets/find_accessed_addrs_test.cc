@@ -169,7 +169,7 @@ TEST_F(FindAccessedAddrsTest, AccessFromRegister) {
     mov [r11+r12], eax
   )asm"),
               IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
-                                 ElementsAre(0x10000, 0x20000))));
+                                 ElementsAre(0x15000, 0x2a000))));
 }
 
 TEST_F(FindAccessedAddrsTest, DoubleIndirection) {
@@ -191,7 +191,7 @@ TEST_F(FindAccessedAddrsTest, DivideByPointee) {
     idiv ebx
   )asm"),
               IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
-                                 ElementsAre(0x10000))));
+                                 ElementsAre(0x15000))));
 }
 
 }  // namespace

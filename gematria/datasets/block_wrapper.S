@@ -16,11 +16,13 @@
 
 .text
 
-// This value is chosen to be one of the lowest addresses that's able to be
+// This value is chosen to be almost the lowest address that's able to be
 // mapped. We want it to be low so that even if a register is multiplied or
-// added to another register, it will still be likely to be within an
-// accessible region of memory.
-INITIAL_REG_VALUE = 0x10000
+// added to another register, it will still be likely to be within an accessible
+// region of memory. But it's very common to take small negative offsets from a
+// register as a memory address, so we want to leave some space below so that
+// such addresses will still be accessible.
+INITIAL_REG_VALUE = 0x15000
 
 .global gematria_before_block
 .type gematria_before_block, %function
