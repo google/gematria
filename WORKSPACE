@@ -27,7 +27,7 @@ protobuf_deps()
 git_repository(
     name = "com_google_absl",
     remote = "https://github.com/abseil/abseil-cpp.git",
-    tag = "20230125.3",
+    tag = "20230802.2",
 )
 
 git_repository(

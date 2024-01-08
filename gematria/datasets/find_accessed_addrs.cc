@@ -34,6 +34,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "gematria/datasets/block_wrapper.h"
 
@@ -50,10 +51,13 @@ constexpr uintptr_t kDefaultCodeLocation = 0x2b00'0000'0000;
 // The data which is communicated from the child to the parent. The protocol is
 // that the child will either write nothing (if it crashes unexpectedly before
 // getting the chance to write to the pipe), or it will write one copy of this
-// struct. Alignment / size of data types etc. isn't an issue here since this
-// is only ever used for IPC with a forked process, so the ABI will be
-// identical.
+// struct. If the inner StatusCode is not OK, the rest of the fields other than
+// status_message are undefined. Alignment / size of data types etc. isn't an
+// issue here since this is only ever used for IPC with a forked process, so the
+// ABI will be identical.
 struct PipedData {
+  absl::StatusCode status_code;
+  char status_message[1024];
   uintptr_t code_address;
 };
 
@@ -237,9 +241,35 @@ absl::Status ParentProcess(int child_pid, int pipe_read_fd,
     return pipe_data.status();
   }
 
+  if (pipe_data->status_code != absl::StatusCode::kOk) {
+    return absl::Status(pipe_data->status_code, pipe_data->status_message);
+  }
+
   accessed_addrs.code_location = pipe_data.value().code_address;
 
   return absl::OkStatus();
+}
+
+// This is used over memcpy as memcpy may get unmapped. Doing the copy manually
+// with a for loop doesn't help, as the compiler will often replace such loops
+// with a call to memcpy.
+void repmovsb(void* dst, const void* src, size_t count) {
+  asm volatile("rep movsb" : "+D"(dst), "+S"(src), "+c"(count) : : "memory");
+}
+
+[[noreturn]] void AbortChildProcess(int pipe_write_fd, absl::Status status) {
+  auto piped_data = MakePipedData();
+  piped_data.status_code = status.code();
+
+  // Write as much of the message as we can fit into the piped data struct. We
+  // subtract one from the size to ensure we always leave a null-terminator on
+  // the end.
+  size_t message_length =
+      std::min(status.message().length(), sizeof piped_data.status_message - 1);
+  repmovsb(piped_data.status_message, status.message().data(), message_length);
+
+  WriteAll(pipe_write_fd, piped_data).IgnoreError();
+  abort();
 }
 
 [[noreturn]] void ChildProcess(absl::Span<const uint8_t> basic_block,
@@ -264,15 +294,18 @@ absl::Status ParentProcess(int child_pid, int pipe_read_fd,
              MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
     if (mapped_address == MAP_FAILED) {
-      perror("mapping previously discovered address failed");
-      abort();
+      AbortChildProcess(pipe_write_fd, absl::InternalError(absl::StrFormat(
+                                           "mapping previously discovered "
+                                           "address %p failed",
+                                           location_ptr)));
     }
     if (mapped_address != location_ptr) {
-      fprintf(stderr,
+      AbortChildProcess(
+          pipe_write_fd,
+          absl::InternalError(absl::StrFormat(
               "tried to map previously discovered address %p, but mmap "
               "couldn't map this address\n",
-              (void*)location_ptr);
-      continue;
+              (void*)location_ptr)));
     }
 
     // Initialise every fourth byte to 8, leaving the rest as zeroes. This
@@ -308,6 +341,7 @@ absl::Status ParentProcess(int child_pid, int pipe_read_fd,
   }
 
   auto piped_data = MakePipedData();
+  piped_data.status_code = absl::OkStatus().code();
   piped_data.code_address = reinterpret_cast<uintptr_t>(mapped_address);
   auto status = WriteAll(pipe_write_fd, piped_data);
   if (!status.ok()) {
