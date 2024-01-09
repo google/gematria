@@ -16,12 +16,10 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <string_view>
 
-#include "TargetSelect.h"
 #include "absl/log/check.h"
 #include "absl/memory/memory.h"
 #include "absl/random/distributions.h"
@@ -29,13 +27,11 @@
 #include "absl/random/seed_sequences.h"
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"
-#include "gematria/datasets/find_accessed_addrs_exegesis.h"
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/testing/matchers.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/InlineAsm.h"
 #include "llvm/MC/MCAsmInfo.h"
@@ -58,15 +54,10 @@ uintptr_t AlignDown(uintptr_t x, size_t align) { return x - (x % align); }
 class FindAccessedAddrsTest : public testing::Test {
  private:
   inline static std::unique_ptr<LlvmArchitectureSupport> llvm_arch_support_;
-  llvm::exegesis::LLVMState state;
 
  protected:
-  FindAccessedAddrsTest()
-      : state(cantFail(llvm::exegesis::LLVMState::Create("", "native"))) {}
-
   static void SetUpTestSuite() {
     llvm_arch_support_ = LlvmArchitectureSupport::X86_64();
-    llvm::exegesis::InitializeX86ExegesisTarget();
   }
 
   std::string Assemble(std::string_view textual_assembly) {
@@ -101,15 +92,6 @@ class FindAccessedAddrsTest : public testing::Test {
     auto span = absl::MakeConstSpan(
         reinterpret_cast<const uint8_t*>(code.data()), code.size());
     return FindAccessedAddrs(span);
-  }
-
-  llvm::Expected<AccessedAddrs> FindAccessedAddrsExegesis(
-      std::string_view textual_assembly) {
-    auto code = Assemble(textual_assembly);
-    auto annotator =
-        cantFail(ExegesisAnnotator::Create(*llvm_arch_support_, state));
-    return annotator->FindAccessedAddrs(llvm::ArrayRef(
-        reinterpret_cast<const uint8_t*>(code.data()), code.size()));
   }
 };
 
@@ -177,25 +159,6 @@ TEST_F(FindAccessedAddrsTest, AccessFromRegister) {
   )asm"),
               IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
                                  ElementsAre(0x10000, 0x20000))));
-}
-
-TEST_F(FindAccessedAddrsTest, ExegesisNoAccess) {
-  auto addrs_or_err = FindAccessedAddrsExegesis(R"asm(
-    mov r11, r12
-  )asm");
-  ASSERT_TRUE(static_cast<bool>(addrs_or_err));
-  AccessedAddrs Result = *addrs_or_err;
-  EXPECT_EQ(Result.accessed_blocks.size(), 0);
-}
-
-TEST_F(FindAccessedAddrsTest, ExegesisOneAccess) {
-  auto addrs_or_err = FindAccessedAddrsExegesis(R"asm(
-    mov [0x10000], rax
-  )asm");
-  ASSERT_TRUE(static_cast<bool>(addrs_or_err));
-  AccessedAddrs Result = *addrs_or_err;
-  EXPECT_EQ(Result.accessed_blocks.size(), 1);
-  EXPECT_EQ(Result.accessed_blocks[0], 0x10000);
 }
 
 }  // namespace

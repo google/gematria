@@ -98,7 +98,6 @@ cc_test(
     ],
     deps = [
         ":find_accessed_addrs",
-        ":find_accessed_addrs_exegesis",
         "//gematria/llvm:asm_parser",
         "//gematria/llvm:llvm_architecture_support",
         "//gematria/testing:matchers",
@@ -114,6 +113,25 @@ cc_test(
         "@llvm-project//llvm:Support",
         "@llvm-project//llvm:Target",
         "@llvm-project//llvm:ir_headers",
+    ],
+)
+
+cc_test(
+    name = "find_accessed_addrs_exegesis_test",
+    srcs = ["find_accessed_addrs_exegesis_test.cc"],
+    # The llvm-exegesis features used in the exegesis snippet annotator and thus
+    # the tests are currently only supported on X86_64.
+    tags = [
+        "not_build:arm",
+    ],
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
+    deps = [
+        ":find_accessed_addrs_exegesis",
+        "//gematria/llvm:asm_parser",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 

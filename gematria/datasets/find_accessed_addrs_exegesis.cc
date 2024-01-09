@@ -29,17 +29,17 @@ using namespace llvm::exegesis;
 namespace gematria {
 
 ExegesisAnnotator::ExegesisAnnotator(
-    LlvmArchitectureSupport &ArchSupport_, LLVMState &State_,
-    std::unique_ptr<BenchmarkRunner> Runner_,
-    std::unique_ptr<const SnippetRepetitor> Repetitor_)
-    : ArchSupport(ArchSupport_),
+    LlvmArchitectureSupport &ArchSup, LLVMState &ExegesisState,
+    std::unique_ptr<BenchmarkRunner> BenchRunner,
+    std::unique_ptr<const SnippetRepetitor> SnipRepetitor)
+    : ArchSupport(ArchSup),
       MCPrinter(ArchSupport.CreateMCInstPrinter(0)),
-      State(State_),
-      Runner(std::move(Runner_)),
-      Repetitor(std::move(Repetitor_)) {}
+      State(ExegesisState),
+      Runner(std::move(BenchRunner)),
+      Repetitor(std::move(SnipRepetitor)) {}
 
-Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::Create(
-    LlvmArchitectureSupport &ArchSupport_, LLVMState &State_) {
+Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::create(
+    LlvmArchitectureSupport &ArchSup, LLVMState &ExegesisState) {
   // Initialize the supported Exegesis targets. Currently we only support X86.
   InitializeX86ExegesisTarget();
 
@@ -48,20 +48,22 @@ Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::Create(
         "Failed to initialize libpfm",
         std::make_error_code(std::errc::invalid_argument));
 
-  auto RunnerOrErr = State_.getExegesisTarget().createBenchmarkRunner(
-      Benchmark::Latency, State_, BenchmarkPhaseSelectorE::Measure,
+  auto RunnerOrErr = ExegesisState.getExegesisTarget().createBenchmarkRunner(
+      Benchmark::Latency, ExegesisState, BenchmarkPhaseSelectorE::Measure,
       BenchmarkRunner::ExecutionModeE::SubProcess, 1, Benchmark::Min);
 
   if (!RunnerOrErr) return RunnerOrErr.takeError();
 
-  std::unique_ptr<const SnippetRepetitor> Repetitor_ =
-      SnippetRepetitor::Create(Benchmark::RepetitionModeE::Duplicate, State_);
+  std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
+      SnippetRepetitor::Create(Benchmark::RepetitionModeE::Duplicate,
+                               ExegesisState);
 
-  return std::unique_ptr<ExegesisAnnotator>(new ExegesisAnnotator(
-      ArchSupport_, State_, std::move(*RunnerOrErr), std::move(Repetitor_)));
+  return std::unique_ptr<ExegesisAnnotator>(
+      new ExegesisAnnotator(ArchSup, ExegesisState, std::move(*RunnerOrErr),
+                            std::move(SnipRepetitor)));
 }
 
-Expected<AccessedAddrs> ExegesisAnnotator::FindAccessedAddrs(
+Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
     ArrayRef<uint8_t> BasicBlock) {
   Expected<std::vector<DisassembledInstruction>> DisInstructions =
       DisassembleAllInstructions(

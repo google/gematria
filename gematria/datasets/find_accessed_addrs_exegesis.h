@@ -24,26 +24,27 @@
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "llvm/ADT/ArrayRef.h"
 
+using namespace llvm;
+using namespace llvm::exegesis;
+
 namespace gematria {
 
 class ExegesisAnnotator {
   LlvmArchitectureSupport &ArchSupport;
-  std::unique_ptr<llvm::MCInstPrinter> MCPrinter;
+  std::unique_ptr<MCInstPrinter> MCPrinter;
 
-  llvm::exegesis::LLVMState &State;
-  std::unique_ptr<llvm::exegesis::BenchmarkRunner> Runner;
-  std::unique_ptr<const llvm::exegesis::SnippetRepetitor> Repetitor;
+  LLVMState &State;
+  std::unique_ptr<BenchmarkRunner> Runner;
+  std::unique_ptr<const SnippetRepetitor> Repetitor;
 
-  ExegesisAnnotator(
-      LlvmArchitectureSupport &ArchSupport_, llvm::exegesis::LLVMState &State_,
-      std::unique_ptr<llvm::exegesis::BenchmarkRunner> Runner_,
-      std::unique_ptr<const llvm::exegesis::SnippetRepetitor> Repetitor_);
+  ExegesisAnnotator(LlvmArchitectureSupport &ArchSup, LLVMState &ExegesisState,
+                    std::unique_ptr<BenchmarkRunner> BenchRunner,
+                    std::unique_ptr<const SnippetRepetitor> SnipRepetitor);
 
  public:
-  static llvm::Expected<std::unique_ptr<ExegesisAnnotator>> Create(
-      LlvmArchitectureSupport &ArchSupport_, llvm::exegesis::LLVMState &State_);
-  llvm::Expected<AccessedAddrs> FindAccessedAddrs(
-      llvm::ArrayRef<uint8_t> BasicBlock);
+  static Expected<std::unique_ptr<ExegesisAnnotator>> create(
+      LlvmArchitectureSupport &ArchSup, LLVMState &ExegesisState);
+  Expected<AccessedAddrs> findAccessedAddrs(ArrayRef<uint8_t> BasicBlock);
 };
 
 }  // namespace gematria
