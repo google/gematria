@@ -198,7 +198,7 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
         instruction.instruction_annotations.size());
     std::transform(instruction.instruction_annotations.begin(),
                    instruction.instruction_annotations.end(),
-                   instruction_annotation_values,
+                   instruction_annotation_values.begin(),
                    [](Annotation annotation) { return annotation.value; });
     instruction_annotations_.push_back(instruction_annotation_values);
 
