@@ -160,6 +160,45 @@ TEST_F(BasicBlockGraphBuilderTest, SingleInstructionWithPrefix) {
       ElementsAre(ElementsAre(0, 0, 1, 2, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1)));
 }
 
+TEST_F(BasicBlockGraphBuilderTest, SingleInstructionWithAnnotation) {
+  CreateBuilder(OutOfVocabularyTokenBehavior::ReturnError());
+  ASSERT_TRUE(builder_->AddBasicBlock(BasicBlockFromProto(ParseTextProto(R"pb(
+    canonicalized_instructions: {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands: { register_name: "RCX" }
+      input_operands: { register_name: "RAX" }
+      instruction_annotations: { name: "cache_miss_freq" value: 0.875 }
+    })pb"))));
+  EXPECT_EQ(builder_->num_graphs(), 1);
+  EXPECT_EQ(builder_->num_nodes(), 3);
+  EXPECT_EQ(builder_->num_edges(), 2);
+  EXPECT_EQ(builder_->num_node_tokens(), std::size(kTokens));
+  EXPECT_THAT(builder_->num_nodes_per_block(), ElementsAre(3));
+  EXPECT_THAT(builder_->num_edges_per_block(), ElementsAre(2));
+
+  EXPECT_THAT(builder_->node_types(),
+              ElementsAre(NodeType::kInstruction, NodeType::kRegister,
+                          NodeType::kRegister));
+  EXPECT_THAT(builder_->node_features(),
+              ElementsAre(TokenIndex("MOV"), TokenIndex("RAX"),
+                          TokenIndex("RCX")));
+  EXPECT_THAT(builder_->InstructionNodeMask(),
+              ElementsAre(true, false, false));
+
+  EXPECT_THAT(builder_->edge_senders(), ElementsAre(1, 0));
+  EXPECT_THAT(builder_->edge_receivers(), ElementsAre(0, 2));
+  EXPECT_THAT(
+      builder_->edge_types(),
+      ElementsAre(EdgeType::kInputOperands, EdgeType::kOutputOperands));
+
+  EXPECT_THAT(
+      builder_->global_features(),
+      ElementsAre(ElementsAre(0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0)));
+
+  EXPECT_THAT(builder_->instruction_annotations(), ElementsAre(ElementsAre(0.875)));
+}
+
 TEST_F(BasicBlockGraphBuilderTest, InvalidMnemonic_ReturnError) {
   CreateBuilder(OutOfVocabularyTokenBehavior::ReturnError());
   EXPECT_FALSE(builder_->AddBasicBlock(BasicBlockFromProto(ParseTextProto(R"pb(
