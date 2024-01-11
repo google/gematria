@@ -242,6 +242,8 @@ struct Annotation {
   double value;
 };
 
+std::ostream& operator<<(std::ostream& os, const Annotation& annotation);
+
 // Represents a single instruction.
 struct Instruction {
   Instruction() {}
