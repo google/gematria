@@ -229,7 +229,7 @@ std::ostream& operator<<(std::ostream& os, const InstructionOperand& operand) {
   return os;
 }
 
-Annotation::Annotation(const std::string &name, double value)
+Annotation::Annotation(const std::string& name, double value)
     : name(std::move(name)), value(value) {}
 
 bool Annotation::operator==(const Annotation& other) const {
@@ -257,8 +257,7 @@ std::string Annotation::ToString() const {
   return msg;
 }
 
-std::ostream& operator<<(std::ostream& os,
-                         const Annotation& annotation) {
+std::ostream& operator<<(std::ostream& os, const Annotation& annotation) {
   os << annotation.ToString();
   return os;
 }

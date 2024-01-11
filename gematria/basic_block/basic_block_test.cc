@@ -319,6 +319,26 @@ TEST(InstructionOperandTest, AsTokenList) {
 }
 
 // TODO(virajbshah): Add tests for Annotation.
+TEST(AnnotationTest, Constructor) {
+  constexpr char kName[] = "cache_miss_freq";
+  constexpr double kValue = 0.875;
+
+  const Annotation annotation(
+      /* name = */ kName,
+      /* value = */ kValue);
+  EXPECT_EQ(annotation.name, kName);
+  EXPECT_EQ(annotation.value, kValue);
+}
+
+TEST(AnnotationTest, ToString) {
+  const Annotation annotation(
+      /* name = */ "cache_miss_freq",
+      /* value = */ 0.875);
+
+  constexpr char kExpectedString[] =
+      "Annotation(name='cache_miss_freq', value=0.875)";
+  EXPECT_EQ(annotation.ToString(), kExpectedString);
+}
 
 TEST(InstructionTest, Constructor) {
   constexpr char kMnemonic[] = "MOV";
@@ -333,7 +353,7 @@ TEST(InstructionTest, Constructor) {
   const std::vector<InstructionOperand> kImplicitOutputOperands = {
       InstructionOperand::Register("EFLAGS")};
   const std::vector<Annotation> kInstructionAnnotations = {
-    Annotation("MEM_LOAD_RETIRED:L3_MISS", 0.875)};
+      Annotation("cache_miss_freq", 0.875)};
 
   const Instruction instruction(
       /* mnemonic = */ kMnemonic,
@@ -367,7 +387,7 @@ TEST(InstructionTest, AsTokenList) {
   const std::vector<InstructionOperand> kImplicitOutputOperands = {
       InstructionOperand::Register("EFLAGS")};
   const std::vector<Annotation> kInstructionAnnotations = {
-    Annotation("MEM_LOAD_RETIRED:L3_MISS", 0.875)};
+      Annotation("cache_miss_freq", 0.875)};
 
   const Instruction instruction(
       /* mnemonic = */ kMnemonic,
@@ -407,7 +427,8 @@ TEST(InstructionTest, ToString) {
       "implicit_input_operands=(InstructionOperand.from_register('EFLAGS'),), "
       "output_operands=(InstructionOperand.from_register('RAX'),), "
       "implicit_output_operands=(InstructionOperand.from_register('EFLAGS'),), "
-      "instruction_annotations=(Annotation(name='MEM_LOAD_RETIRED:L3_MISS', value=0.875),))";
+      "instruction_annotations=(Annotation(name='MEM_LOAD_RETIRED:L3_MISS', "
+      "value=0.875),))";
   EXPECT_EQ(instruction.ToString(), kExpectedString);
 }
 
@@ -585,7 +606,8 @@ TEST(BasicBlockTest, ToString) {
       "implicit_input_operands=(InstructionOperand.from_register('EFLAGS'),), "
       "output_operands=(InstructionOperand.from_register('RAX'),), "
       "implicit_output_operands=(InstructionOperand.from_register('EFLAGS'),), "
-      "instruction_annotations=(Annotation(name='MEM_LOAD_RETIRED:L3_MISS', value=0.875),)),"
+      "instruction_annotations=(Annotation(name='MEM_LOAD_RETIRED:L3_MISS', "
+      "value=0.875),)),"
       ")))";
   EXPECT_EQ(block.ToString(), kExpectedString);
 }

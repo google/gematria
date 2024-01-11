@@ -30,6 +30,7 @@
 
 PYBIND11_MAKE_OPAQUE(std::vector<std::string>);
 PYBIND11_MAKE_OPAQUE(std::vector<gematria::InstructionOperand>);
+PYBIND11_MAKE_OPAQUE(std::vector<gematria::Annotation>);
 PYBIND11_MAKE_OPAQUE(std::vector<gematria::Instruction>);
 
 namespace gematria {
@@ -185,10 +186,11 @@ PYBIND11_MODULE(basic_block, m) {
 
   py::bind_vector<std::vector<InstructionOperand>>(m, "InstructionOperandList");
 
-  py::class_<Annotation>(m, "Annotation")
+  py::class_<Annotation> annotation(m, "Annotation");
+  annotation
       .def(py::init<std::string /* name */, double /* value */>(),
           py::arg("name") = std::string(),
-          py::arg("value") = 0)
+          py::arg("value") = -1)
       .def("__repr__", &Annotation::ToString)
       .def("__eq__", &Annotation::operator==)
       .def("__copy__",

@@ -221,10 +221,11 @@ std::ostream& operator<<(std::ostream& os, const InstructionOperand& operand);
 // Represents an annotation holding a value such as some measure/statistic
 // paired with the instruction.
 struct Annotation {
+  // Values default to -1 to have name only annotations.
   Annotation() : value(-1){};
 
   // Initializes all fields of the annotation.
-  Annotation(const std::string &name, double value);
+  Annotation(const std::string& name, double value);
 
   Annotation(const Annotation&) = default;
   Annotation(Annotation&&) = default;
@@ -233,9 +234,7 @@ struct Annotation {
   Annotation& operator=(Annotation&&) = default;
 
   bool operator==(const Annotation& other) const;
-  bool operator!=(const Annotation& other) const {
-    return !(*this == other);
-  }
+  bool operator!=(const Annotation& other) const { return !(*this == other); }
 
   std::string ToString() const;
 
@@ -256,7 +255,7 @@ struct Instruction {
               std::vector<InstructionOperand> output_operands,
               std::vector<InstructionOperand> implicit_output_operands,
               std::vector<Annotation> instruction_annotations =
-                  std::vector<Annotation>{Annotation()});
+                  std::vector<Annotation>{});
 
   Instruction(const Instruction&) = default;
   Instruction(Instruction&&) = default;

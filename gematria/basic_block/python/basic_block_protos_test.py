@@ -27,9 +27,8 @@ _CanonicalizedOperandProto = (
 _CanonicalizedInstructionProto = (
     canonicalized_instruction_pb2.CanonicalizedInstructionProto
 )
-_Annotation = (
-    annotation_pb2.Annotation
-)
+_AnnotationProto = annotation_pb2.AnnotationProto
+
 
 class AddressTupleTest(absltest.TestCase):
 
@@ -119,6 +118,18 @@ class InstructionOperandFromProtoTest(absltest.TestCase):
     self.assertIsNone(operand.address)
 
 
+class AnnotationFromProtoTest(absltest.TestCase):
+
+  def test_annotation_from_proto(self):
+    proto = _AnnotationProto(
+        name='cache_miss_freq',
+        value=0.875,
+    )
+    annotation = basic_block_protos.annotation_from_proto(proto)
+    self.assertEqual(annotation.name, 'cache_miss_freq')
+    self.assertEqual(annotation.value, 0.875)
+
+
 class InstructionFromProtoTest(absltest.TestCase):
 
   def test_instruction_from_proto(self):
@@ -136,6 +147,9 @@ class InstructionFromProtoTest(absltest.TestCase):
         output_operands=(_CanonicalizedOperandProto(register_name='RBX'),),
         implicit_input_operands=(
             _CanonicalizedOperandProto(register_name='EFLAGS'),
+        ),
+        instruction_annotations=(
+            _AnnotationProto(name='cache_miss_freq', value=0.875),
         ),
     )
     instruction = basic_block_protos.instruction_from_proto(proto)
@@ -161,6 +175,10 @@ class InstructionFromProtoTest(absltest.TestCase):
         instruction.implicit_output_operands,
         (basic_block.InstructionOperand.from_register('EFLAGS'),),
     )
+    self.assertSequenceEqual(
+        instruction.instruction_annotations,
+        (basic_block.Annotation('cache_miss_freq', 0.875),),
+    )
 
 
 class BasicBlockFromProtoTest(absltest.TestCase):
@@ -178,8 +196,8 @@ class BasicBlockFromProtoTest(absltest.TestCase):
                     _CanonicalizedOperandProto(register_name='RCX'),
                 ),
                 instruction_annotations=(
-                    _Annotation(
-                        name='MEM_LOAD_RETIRED:L3_MISS',
+                    _AnnotationProto(
+                        name='cache_miss_freq',
                         value=0.875,
                     ),
                 ),
@@ -206,12 +224,6 @@ class BasicBlockFromProtoTest(absltest.TestCase):
                         )
                     ),
                 ),
-                instruction_annotations=(
-                    _Annotation(
-                        name='MEM_LOAD_RETIRED:L3_MISS',
-                        value=0.95,
-                    ),
-                ),
             ),
         )
     )
@@ -228,10 +240,7 @@ class BasicBlockFromProtoTest(absltest.TestCase):
                 basic_block.InstructionOperand.from_register('RCX'),
             )),
             instruction_annotations=basic_block.AnnotationList((
-                basic_block.Annotation(
-                    name='MEM_LOAD_RETIRED:L3_MISS',
-                    value=0.875,
-                ),
+                basic_block.Annotation('cache_miss_freq', 0.875),
             )),
         ),
         basic_block.Instruction(
@@ -247,12 +256,6 @@ class BasicBlockFromProtoTest(absltest.TestCase):
                 basic_block.InstructionOperand.from_register('RSI'),
                 basic_block.InstructionOperand.from_register('RDI'),
                 basic_block.InstructionOperand.from_memory(2),
-            )),
-            instruction_annotations=basic_block.AnnotationList((
-                basic_block.Annotation(
-                    name='MEM_LOAD_RETIRED:L3_MISS',
-                    value=0.95,
-                ),
             )),
         ),
     )

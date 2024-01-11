@@ -20,8 +20,8 @@
 #include <vector>
 
 #include "gematria/basic_block/basic_block.h"
-#include "gematria/proto/canonicalized_instruction.pb.h"
 #include "gematria/proto/annotation.pb.h"
+#include "gematria/proto/canonicalized_instruction.pb.h"
 #include "google/protobuf/repeated_ptr_field.h"
 
 namespace gematria {
