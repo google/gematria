@@ -396,7 +396,8 @@ TEST_F(BasicBlockGraphBuilderTest, InvalidAddress_ReplaceToken) {
 }
 
 // Tests that the instruction nodes within the basic block are connected through
-// their operands when they refer to the same value.
+// their operands when they refer to the same value. Also ensures annotated and
+// non-annotated instructions are handled correctly when mixed.
 TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
   CreateBuilder(OutOfVocabularyTokenBehavior::ReturnError());
   ASSERT_TRUE(builder_->AddBasicBlock(BasicBlockFromProto(ParseTextProto(R"pb(
@@ -406,6 +407,7 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
       output_operands: { register_name: "R14" }
       input_operands: { memory: { alias_group_id: 1 } }
       input_operands: { address: { base_register: "R15" scaling: 1 } }
+      instruction_annotations: { name: "cache_miss_freq" value: 0.9 }
     }
     canonicalized_instructions: {
       mnemonic: "MOV"
@@ -421,6 +423,7 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
       llvm_mnemonic: "MOV64rr"
       output_operands: { register_name: "RCX" }
       input_operands: { register_name: "RAX" }
+      instruction_annotations: { name: "cache_miss_freq" value: 0.01 }
     }
     canonicalized_instructions: {
       mnemonic: "NOT"
@@ -494,6 +497,10 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
               ElementsAre(1, 3, 2, 0, 0, 1, 4, 7, 6, 5, 5, 8, 9, 9, 10, 11));
   EXPECT_THAT(builder_->edge_receivers(),
               ElementsAre(0, 2, 0, 4, 5, 5, 6, 6, 5, 8, 9, 9, 10, 11, 11, 12));
+
+  EXPECT_THAT(builder_->instruction_annotations(),
+              ElementsAre(ElementsAre(0.9), ElementsAre(),
+              ElementsAre(0.01), ElementsAre()));
 }
 
 // Tests that nodes in basic blocks added through different AddBasicBlock()
