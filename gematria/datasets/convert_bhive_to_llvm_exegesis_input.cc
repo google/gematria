@@ -60,20 +60,10 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  std::string initial_reg_val_str;
-  {
-    // initialize initial_reg_val_str with kInitialRegValue in hex
-    std::stringstream ss;
-    ss << std::hex << kInitialRegVal << std::dec;
-    ss >> initial_reg_val_str;
-  }
-  std::string initial_mem_val_str;
-  {
-    // initialize initial_mem_val_str with kInitialMemValue in hex
-    std::stringstream ss;
-    ss << std::hex << kInitialMemVal << std::dec;
-    ss >> initial_mem_val_str;
-  }
+  std::string initial_reg_val_str =
+      gematria::ConvertHexToString(kInitialRegVal);
+  std::string initial_mem_val_str =
+      gematria::ConvertHexToString(kInitialMemVal);
   std::string register_defs_lines;
   const std::unique_ptr<gematria::LlvmArchitectureSupport> llvm_support =
       gematria::LlvmArchitectureSupport::X86_64();
@@ -89,25 +79,23 @@ int main(int argc, char* argv[]) {
        ++i) {
     llvm::StringRef reg_name = reg_info.getName(
         reg_info.getRegClass(llvm::X86::GR64_NOREXRegClassID).getRegister(i));
-    register_defs_lines = llvm::Twine(register_defs_lines)
-                              .concat(kRegDefPrefix)
-                              .concat(reg_name)
-                              .concat(" ")
-                              .concat(initial_reg_val_str)
-                              .concat("\n")
-                              .str();
+    register_defs_lines += llvm::Twine(kRegDefPrefix)
+                               .concat(reg_name)
+                               .concat(" ")
+                               .concat(initial_reg_val_str)
+                               .concat("\n")
+                               .str();
   }
   for (unsigned i = 0;
        i < reg_info.getRegClass(llvm::X86::VR128RegClassID).getNumRegs(); ++i) {
     llvm::StringRef reg_name = reg_info.getName(
         reg_info.getRegClass(llvm::X86::VR128RegClassID).getRegister(i));
-    register_defs_lines = llvm::Twine(register_defs_lines)
-                              .concat(kRegDefPrefix)
-                              .concat(reg_name)
-                              .concat(" ")
-                              .concat(initial_reg_val_str)
-                              .concat("\n")
-                              .str();
+    register_defs_lines += llvm::Twine(kRegDefPrefix)
+                               .concat(reg_name)
+                               .concat(" ")
+                               .concat(initial_reg_val_str)
+                               .concat("\n")
+                               .str();
   }
 
   gematria::X86Canonicalizer canonicalizer(&llvm_support->target_machine());
