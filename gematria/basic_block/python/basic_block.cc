@@ -189,15 +189,13 @@ PYBIND11_MODULE(basic_block, m) {
   py::class_<Annotation> annotation(m, "Annotation");
   annotation
       .def(py::init<std::string /* name */, double /* value */>(),
-          py::arg("name") = std::string(),
-          py::arg("value") = -1)
+           py::arg("name") = std::string(), py::arg("value") = -1)
       .def("__repr__", &Annotation::ToString)
       .def("__eq__", &Annotation::operator==)
       .def("__copy__",
-          [](const Annotation& annotation) {
-            return Annotation(annotation);
-          })
-      .def("__deepcopy__",
+           [](const Annotation& annotation) { return Annotation(annotation); })
+      .def(
+          "__deepcopy__",
           [](const Annotation& annotation, py::dict) {
             return Annotation(annotation);
           },
@@ -208,25 +206,24 @@ PYBIND11_MODULE(basic_block, m) {
   py::bind_vector<std::vector<Annotation>>(m, "AnnotationList");
 
   py::class_<Instruction>(m, "Instruction")
-      .def(
-          py::init<
-              std::string /* mnemonic */, std::string /* llvm_mnemonic */,
-              std::vector<std::string> /* prefixes */,
-              std::vector<InstructionOperand> /* input_operands */,
-              std::vector<InstructionOperand> /* implicit_input_operands */,
-              std::vector<InstructionOperand> /* output_operands */,
-              std::vector<InstructionOperand> /* implicit_output_operands */,
-              std::vector<Annotation> /* instruction_annotations */>(),
-          py::arg("mnemonic") = std::string(),
-          py::arg("llvm_mnemonic") = std::string(),
-          py::arg("prefixes") = std::vector<std::string>(),
-          py::arg("input_operands") = std::vector<InstructionOperand>(),
-          py::arg("implicit_input_operands") =
-              std::vector<InstructionOperand>(),
-          py::arg("output_operands") = std::vector<InstructionOperand>(),
-          py::arg("implicit_output_operands") =
-              std::vector<InstructionOperand>(),
-          py::arg("instruction_annotations") = std::vector<Annotation>())
+      .def(py::init<
+               std::string /* mnemonic */, std::string /* llvm_mnemonic */,
+               std::vector<std::string> /* prefixes */,
+               std::vector<InstructionOperand> /* input_operands */,
+               std::vector<InstructionOperand> /* implicit_input_operands */,
+               std::vector<InstructionOperand> /* output_operands */,
+               std::vector<InstructionOperand> /* implicit_output_operands */,
+               std::vector<Annotation> /* instruction_annotations */>(),
+           py::arg("mnemonic") = std::string(),
+           py::arg("llvm_mnemonic") = std::string(),
+           py::arg("prefixes") = std::vector<std::string>(),
+           py::arg("input_operands") = std::vector<InstructionOperand>(),
+           py::arg("implicit_input_operands") =
+               std::vector<InstructionOperand>(),
+           py::arg("output_operands") = std::vector<InstructionOperand>(),
+           py::arg("implicit_output_operands") =
+               std::vector<InstructionOperand>(),
+           py::arg("instruction_annotations") = std::vector<Annotation>())
       .def("__str__", &Instruction::ToString)
       .def("__repr__", &Instruction::ToString)
       .def("__eq__", &Instruction::operator==)
