@@ -127,7 +127,13 @@ class GraphBuilderModelBase(
         tokens=tokens,
         **kwargs,
     )
-    self._instruction_node_mask = None
+    # Definition moved up from _create_readout_network_resources since
+    # _instruction_node_mask is needed earlier for embedding calculations.
+    self._instruction_node_mask = tf.placeholder(
+        dtype=tf.dtypes.bool,
+        shape=(None,),
+        name=GraphBuilderModelBase.INSTRUCTION_NODE_MASK_TENSOR_NAME,
+    )
     self._instruction_features = None
     self._batch_graph_builder = graph_builder.BasicBlockGraphBuilder(
         node_tokens=self._token_list,
@@ -187,11 +193,6 @@ class GraphBuilderModelBase(
   # @Override
   def _create_readout_network_resources(self) -> None:
     super()._create_readout_network_resources()
-    self._instruction_node_mask = tf.placeholder(
-        dtype=tf.dtypes.bool,
-        shape=(None,),
-        name=GraphBuilderModelBase.INSTRUCTION_NODE_MASK_TENSOR_NAME,
-    )
     self._instruction_features = tf.boolean_mask(
         self._graphs_tuple_outputs.nodes, self._instruction_node_mask
     )

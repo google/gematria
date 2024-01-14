@@ -236,8 +236,9 @@ class BasicBlockGraphBuilder {
   // corresponding to the nodes). Corresponds to `GraphsTuple.nodes`.
   const std::vector<int>& node_features() const { return node_features_; }
   // Values of instruction level runtime annotations in the same order as
-  // the instructions in the block.
-  const std::vector<std::vector<double>>& instruction_annotations() const {
+  // the instructions in the block, indexed by the annotation name.
+  const std::unordered_map<std::string, std::vector<double>>&
+  instruction_annotations() const {
     return instruction_annotations_;
   }
 
@@ -387,7 +388,7 @@ class BasicBlockGraphBuilder {
 
   std::vector<NodeType> node_types_;
   std::vector<TokenIndex> node_features_;
-  std::vector<std::vector<double>> instruction_annotations_;
+  std::unordered_map<std::string, std::vector<double>> instruction_annotations_;
 
   std::vector<NodeIndex> edge_senders_;
   std::vector<NodeIndex> edge_receivers_;

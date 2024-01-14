@@ -183,6 +183,7 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
   const int prev_num_edges = num_edges();
 
   NodeIndex previous_instruction_node = kInvalidNode;
+  int instruction_idx = 0;
   for (const Instruction& instruction : instructions) {
     // Add the instruction node.
     const NodeIndex instruction_node =
@@ -191,16 +192,16 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
       return false;
     }
 
-    // Store the annotation within the instruction annotations vector for later
-    // use (inclusion in embeddings).
-    std::vector<double> instruction_annotation_values;
-    instruction_annotation_values.reserve(
-        instruction.instruction_annotations.size());
-    std::transform(instruction.instruction_annotations.begin(),
-                   instruction.instruction_annotations.end(),
-                   std::back_inserter(instruction_annotation_values),
-                   [](Annotation annotation) { return annotation.value; });
-    instruction_annotations_.push_back(instruction_annotation_values);
+    // Store the annotations for later use (inclusion in embeddings), using -1
+    // as a default value wherever annotations are missing.
+    for (const auto& [name, value] : instruction.instruction_annotations) {
+      if (!instruction_annotations_.count(name)) {
+        instruction_annotations_.emplace(
+            name, std::vector<double>(instructions.size(), -1));
+      }
+      instruction_annotations_[name][instruction_idx] = value;
+    }
+    instruction_idx++;
 
     // Add nodes for prefixes of the instruction.
     for (const std::string& prefix : instruction.prefixes) {
