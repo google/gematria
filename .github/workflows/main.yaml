@@ -90,6 +90,8 @@ jobs:
   check-bazel:
     name: Run bazel build
     runs-on: ubuntu-latest
+    env:
+      USE_BAZEL_VERSION: 6.4.0
     steps:
     - uses: actions/checkout@v3
     - name: Cache Bazel
