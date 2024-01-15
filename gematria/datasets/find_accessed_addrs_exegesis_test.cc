@@ -14,13 +14,16 @@
 
 #include "gematria/datasets/find_accessed_addrs_exegesis.h"
 
-#include "TargetSelect.h"
+// Use the absolute path for headers from llvm-exegesis as there is no
+// canonical include path within LLVM as they are not properly exposed through
+// a library and could potentially be confused with other LLVM includes.
+
 #include "absl/log/check.h"
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gtest/gtest.h"
 #include "llvm/MC/MCCodeEmitter.h"
-// #include "llvm/Testing/Support/Error.h"
+#include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 
 using namespace llvm;
 using namespace llvm::exegesis;

@@ -18,11 +18,15 @@
 #include <cstdint>
 #include <vector>
 
-#include "BenchmarkRunner.h"
-#include "LlvmState.h"
+// Use the absolute path for headers from llvm-exegesis as there is no
+// canonical include path within LLVM as they are not properly exposed through
+// a library and could potentially be confused with other LLVM includes.
+
 #include "gematria/datasets/find_accessed_addrs.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/tools/llvm-exegesis/lib/BenchmarkRunner.h"
+#include "llvm/tools/llvm-exegesis/lib/LlvmState.h"
 
 using namespace llvm;
 using namespace llvm::exegesis;

@@ -14,14 +14,18 @@
 
 #include "gematria/datasets/find_accessed_addrs_exegesis.h"
 
-#include "BenchmarkRunner.h"
-#include "LlvmState.h"
-#include "Target.h"
-#include "TargetSelect.h"
+// Use the absolute path for headers from llvm-exegesis as there is no
+// canonical include path within LLVM as they are not properly exposed through
+// a library and could potentially be confused with other LLVM includes.
+
 #include "X86.h"
 #include "X86InstrInfo.h"
 #include "X86RegisterInfo.h"
 #include "gematria/llvm/disassembler.h"
+#include "llvm/tools/llvm-exegesis/lib/BenchmarkRunner.h"
+#include "llvm/tools/llvm-exegesis/lib/LlvmState.h"
+#include "llvm/tools/llvm-exegesis/lib/Target.h"
+#include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 
 using namespace llvm;
 using namespace llvm::exegesis;
