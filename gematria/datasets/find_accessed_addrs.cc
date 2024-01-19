@@ -399,18 +399,12 @@ absl::Status ForkAndTestAddresses(absl::Span<const uint8_t> basic_block,
 }  // namespace
 
 // TODO(orodley):
-// * Support blocks which access multiple addresses (need to re-execute with the
-//   previously segfaulting address mapped until no segfaults).
 // * Set up registers to minimise chance of needing to map an unmappable or
 //   already mapped address, the communicate the necessary set of register in
 //   order for the returned addresses to be accessed.
 // * Be more robust against the code trying to access addresses that happen to
 //   already be mapped upon forking the process, and therefore not segfaulting,
 //   so we can't observe the access.
-// * Determine when an address is relative to the instruction pointer, hence
-//   may be different the next time it's executed if we load the code at a
-//   different location (and/or return the address we loaded it at, which may be
-//   necessary for the return addresses to be accessed).
 // * Better error handling, return specific errors for different situations that
 //   may occur, and document them well (e.g. handle SIGILL and return an error
 //   stating that the code passed in is invalid, with a bad instruction at a
