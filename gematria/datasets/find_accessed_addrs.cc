@@ -356,8 +356,9 @@ void repmovsb(void* dst, const void* src, size_t count) {
   std::copy(after_block.begin(), after_block.end(),
             &mapped_span[before_block.size() + basic_block.size()]);
 
-  auto mapped_func = reinterpret_cast<void (*)()>(mapped_address);
-  mapped_func();
+  auto mapped_func =
+      reinterpret_cast<void (*)(const X64Regs* initial_regs)>(mapped_address);
+  mapped_func(&accessed_addrs.initial_regs);
 
   // mapped_func should never return, but we can't put [[noreturn]] on a
   // function pointer. So stick this here to satisfy the compiler.
@@ -417,10 +418,38 @@ absl::Status ForkAndTestAddresses(absl::Span<const uint8_t> basic_block,
 // * Much more complete testing.
 absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
     absl::Span<const uint8_t> basic_block) {
+  // This value is chosen to be almost the lowest address that's able to be
+  // mapped. We want it to be low so that even if a register is multiplied or
+  // added to another register, it will still be likely to be within an
+  // accessible region of memory. But it's very common to take small negative
+  // offsets from a register as a memory address, so we want to leave some space
+  // below so that such addresses will still be accessible.
+  constexpr int64_t kInitialRegValue = 0x15000;
+
   AccessedAddrs accessed_addrs = {
       .code_location = 0,
       .block_size = static_cast<size_t>(getpagesize()),
-      .accessed_blocks = {}};
+      .accessed_blocks = {},
+      .initial_regs =
+          {
+              .rax = kInitialRegValue,
+              .rbx = kInitialRegValue,
+              .rcx = kInitialRegValue,
+              .rdx = kInitialRegValue,
+              .rsi = kInitialRegValue,
+              .rdi = kInitialRegValue,
+              .rsp = kInitialRegValue,
+              .rbp = kInitialRegValue,
+              .r8 = kInitialRegValue,
+              .r9 = kInitialRegValue,
+              .r10 = kInitialRegValue,
+              .r11 = kInitialRegValue,
+              .r12 = kInitialRegValue,
+              .r13 = kInitialRegValue,
+              .r14 = kInitialRegValue,
+              .r15 = kInitialRegValue,
+          },
+  };
 
   size_t num_accessed_blocks;
   do {
