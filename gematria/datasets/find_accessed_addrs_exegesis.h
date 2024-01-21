@@ -34,20 +34,21 @@ using namespace llvm::exegesis;
 namespace gematria {
 
 class ExegesisAnnotator {
-  LlvmArchitectureSupport &ArchSupport;
-  std::unique_ptr<MCInstPrinter> MCPrinter;
+  std::unique_ptr<MCInstPrinter> MachinePrinter;
+  std::unique_ptr<MCContext> MachineContext;
+  std::unique_ptr<MCDisassembler> MachineDisassembler;
 
   LLVMState &State;
   std::unique_ptr<BenchmarkRunner> Runner;
   std::unique_ptr<const SnippetRepetitor> Repetitor;
 
-  ExegesisAnnotator(LlvmArchitectureSupport &ArchSup, LLVMState &ExegesisState,
+  ExegesisAnnotator(LLVMState &ExegesisState,
                     std::unique_ptr<BenchmarkRunner> BenchRunner,
                     std::unique_ptr<const SnippetRepetitor> SnipRepetitor);
 
  public:
   static Expected<std::unique_ptr<ExegesisAnnotator>> create(
-      LlvmArchitectureSupport &ArchSup, LLVMState &ExegesisState);
+      LLVMState &ExegesisState);
   Expected<AccessedAddrs> findAccessedAddrs(ArrayRef<uint8_t> BasicBlock);
 };
 

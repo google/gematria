@@ -72,8 +72,7 @@ class FindAccessedAddrsExegesisTest : public testing::Test {
   llvm::Expected<AccessedAddrs> FindAccessedAddrsExegesis(
       std::string_view TextualAssembly) {
     auto Code = Assemble(TextualAssembly);
-    auto Annotator =
-        cantFail(ExegesisAnnotator::create(*LLVMArchSupport, State));
+    auto Annotator = cantFail(ExegesisAnnotator::create(State));
     return Annotator->findAccessedAddrs(llvm::ArrayRef(
         reinterpret_cast<const uint8_t*>(Code.data()), Code.size()));
   }

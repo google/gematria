@@ -33,17 +33,26 @@ using namespace llvm::exegesis;
 namespace gematria {
 
 ExegesisAnnotator::ExegesisAnnotator(
-    LlvmArchitectureSupport &ArchSup, LLVMState &ExegesisState,
-    std::unique_ptr<BenchmarkRunner> BenchRunner,
+    LLVMState &ExegesisState, std::unique_ptr<BenchmarkRunner> BenchRunner,
     std::unique_ptr<const SnippetRepetitor> SnipRepetitor)
-    : ArchSupport(ArchSup),
-      MCPrinter(ArchSupport.CreateMCInstPrinter(0)),
-      State(ExegesisState),
+    : State(ExegesisState),
       Runner(std::move(BenchRunner)),
-      Repetitor(std::move(SnipRepetitor)) {}
+      Repetitor(std::move(SnipRepetitor)) {
+  MachineContext = std::make_unique<MCContext>(
+      State.getTargetMachine().getTargetTriple(),
+      State.getTargetMachine().getMCAsmInfo(), &State.getRegInfo(),
+      &State.getSubtargetInfo());
+  MachineDisassembler.reset(
+      State.getTargetMachine().getTarget().createMCDisassembler(
+          State.getSubtargetInfo(), *MachineContext));
+  MachinePrinter.reset(State.getTargetMachine().getTarget().createMCInstPrinter(
+      State.getTargetMachine().getTargetTriple(), 0,
+      *State.getTargetMachine().getMCAsmInfo(), State.getInstrInfo(),
+      State.getRegInfo()));
+}
 
 Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::create(
-    LlvmArchitectureSupport &ArchSup, LLVMState &ExegesisState) {
+    LLVMState &ExegesisState) {
   // Initialize the supported Exegesis targets. Currently we only support X86.
   InitializeX86ExegesisTarget();
 
@@ -62,18 +71,16 @@ Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::create(
       SnippetRepetitor::Create(Benchmark::RepetitionModeE::Duplicate,
                                ExegesisState);
 
-  return std::unique_ptr<ExegesisAnnotator>(
-      new ExegesisAnnotator(ArchSup, ExegesisState, std::move(*RunnerOrErr),
-                            std::move(SnipRepetitor)));
+  return std::unique_ptr<ExegesisAnnotator>(new ExegesisAnnotator(
+      ExegesisState, std::move(*RunnerOrErr), std::move(SnipRepetitor)));
 }
 
 Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
     ArrayRef<uint8_t> BasicBlock) {
   Expected<std::vector<DisassembledInstruction>> DisInstructions =
-      DisassembleAllInstructions(
-          ArchSupport.mc_disassembler(), ArchSupport.mc_instr_info(),
-          ArchSupport.mc_register_info(), ArchSupport.mc_subtarget_info(),
-          *MCPrinter, 0, BasicBlock);
+      DisassembleAllInstructions(*MachineDisassembler, State.getInstrInfo(),
+                                 State.getRegInfo(), State.getSubtargetInfo(),
+                                 *MachinePrinter, 0, BasicBlock);
 
   if (!DisInstructions) return DisInstructions.takeError();
 
@@ -97,7 +104,7 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
 
   BenchCode.Key.MemoryValues["memdef1"] = MemVal;
 
-  const llvm::MCRegisterInfo &MRI = ArchSupport.mc_register_info();
+  const llvm::MCRegisterInfo &MRI = State.getRegInfo();
 
   for (unsigned i = 0;
        i < MRI.getRegClass(X86::GR64_NOREX2RegClassID).getNumRegs(); ++i) {
