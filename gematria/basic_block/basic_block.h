@@ -225,7 +225,7 @@ struct Annotation {
   Annotation() : value(-1){};
 
   // Initializes all fields of the annotation.
-  Annotation(const std::string& name, double value);
+  Annotation(std::string name, double value);
 
   Annotation(const Annotation&) = default;
   Annotation(Annotation&&) = default;

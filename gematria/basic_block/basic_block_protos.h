@@ -41,7 +41,7 @@ InstructionOperand InstructionOperandFromProto(
 CanonicalizedOperandProto ProtoFromInstructionOperand(
     const InstructionOperand& operand);
 
-// Creates a annotation data structure from a proto.
+// Creates an annotation data structure from a proto.
 Annotation AnnotationFromProto(const AnnotationProto& proto);
 
 // Creates a proto representing the given annotation.
