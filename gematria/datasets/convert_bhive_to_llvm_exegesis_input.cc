@@ -29,8 +29,9 @@
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
 
-constexpr uint64_t kInitialRegVal = 0x10000;
-constexpr uint64_t kInitialMemVal = 0x7FFFFFFF;
+constexpr uint64_t kInitialRegVal = 0x12345600;
+constexpr uint64_t kInitialMemVal = 0x12345600;
+constexpr unsigned kInitialMemValBitWidth = 64;
 constexpr std::string_view kRegDefPrefix = "# LLVM-EXEGESIS-DEFREG ";
 constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
 constexpr std::string_view kMemMapPrefix = "# LLVM-EXEGESIS-MEM-MAP ";
@@ -64,6 +65,14 @@ int main(int argc, char* argv[]) {
       gematria::ConvertHexToString(kInitialRegVal);
   std::string initial_mem_val_str =
       gematria::ConvertHexToString(kInitialMemVal);
+  // Prefix the string with zeroes as llvm-exegesis assumes the bit width
+  // of the memory value based on the number of characters in the string.
+  if (kInitialMemValBitWidth > initial_mem_val_str.size() * 4)
+    initial_mem_val_str =
+        std::string(
+            (kInitialMemValBitWidth - initial_mem_val_str.size() * 4) / 4,
+            '0') +
+        initial_mem_val_str;
   std::string register_defs_lines;
   const std::unique_ptr<gematria::LlvmArchitectureSupport> llvm_support =
       gematria::LlvmArchitectureSupport::X86_64();
