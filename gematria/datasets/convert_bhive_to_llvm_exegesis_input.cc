@@ -71,14 +71,11 @@ int main(int argc, char* argv[]) {
 
   // Iterate through all general purpose registers and vector registers
   // and add them to the register definitions.
-  // TODO(9Temptest): Change GR64_NOREXRegClassID to GR64_NOREX2RegClassID when
-  // the LLVM version is bumped to avoid including the new APX GPRs (r16-r31)
-  // that have recently been added to LLVM.
   for (unsigned i = 0;
-       i < reg_info.getRegClass(llvm::X86::GR64_NOREXRegClassID).getNumRegs();
+       i < reg_info.getRegClass(llvm::X86::GR64_NOREX2RegClassID).getNumRegs();
        ++i) {
     llvm::StringRef reg_name = reg_info.getName(
-        reg_info.getRegClass(llvm::X86::GR64_NOREXRegClassID).getRegister(i));
+        reg_info.getRegClass(llvm::X86::GR64_NOREX2RegClassID).getRegister(i));
     register_defs_lines += llvm::Twine(kRegDefPrefix)
                                .concat(reg_name)
                                .concat(" ")
