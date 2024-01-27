@@ -63,7 +63,7 @@ Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::create(
 
   auto RunnerOrErr = ExegesisState.getExegesisTarget().createBenchmarkRunner(
       Benchmark::Latency, ExegesisState, BenchmarkPhaseSelectorE::Measure,
-      BenchmarkRunner::ExecutionModeE::SubProcess, 1, Benchmark::Min);
+      BenchmarkRunner::ExecutionModeE::SubProcess, 1, {}, Benchmark::Min);
 
   if (!RunnerOrErr) return RunnerOrErr.takeError();
 
