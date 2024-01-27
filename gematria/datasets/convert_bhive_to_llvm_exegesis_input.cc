@@ -14,6 +14,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -44,6 +45,8 @@ ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
 ABSL_FLAG(
     std::string, output_dir, "",
     "Directory containing output files that can be executed by llvm-exegesis");
+ABSL_FLAG(unsigned, max_bb_count, std::numeric_limits<unsigned>::max(),
+          "The maximum number of basic blocks to process");
 
 int main(int argc, char* argv[]) {
   absl::ParseCommandLine(argc, argv);
@@ -102,7 +105,10 @@ int main(int argc, char* argv[]) {
   gematria::BHiveImporter bhive_importer(&canonicalizer);
 
   std::ifstream bhive_csv_file(bhive_filename);
+  const unsigned max_bb_count = absl::GetFlag(FLAGS_max_bb_count);
   for (std::string line; std::getline(bhive_csv_file, line);) {
+    if (file_counter >= max_bb_count) break;
+
     auto comma_index = line.find(',');
     if (comma_index == std::string::npos) {
       std::cerr << "Invalid CSV file: no comma in line '" << line << "'\n";
