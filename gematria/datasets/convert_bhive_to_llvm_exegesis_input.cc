@@ -25,9 +25,11 @@
 #include "absl/flags/parse.h"
 #include "gematria/datasets/bhive_importer.h"
 #include "gematria/datasets/find_accessed_addrs.h"
+#include "gematria/datasets/find_accessed_addrs_exegesis.h"
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
+#include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 
 constexpr uint64_t kInitialRegVal = 0x10000;
 constexpr uint64_t kInitialMemVal = 0x7FFFFFFF;
@@ -40,10 +42,60 @@ namespace {
 unsigned int file_counter = 0;
 }
 
+enum class annotator_type { exegesis, fast };
+
+bool AbslParseFlag(absl::string_view text, annotator_type* type,
+                   std::string* error) {
+  if (text == "exegesis") {
+    *type = annotator_type::exegesis;
+    return true;
+  } else if (text == "fast") {
+    *type = annotator_type::fast;
+    return true;
+  }
+
+  *error = "unknown annotator type";
+  return false;
+}
+
+std::string AbslUnparseFlag(annotator_type type) {
+  switch (type) {
+    case annotator_type::exegesis:
+      return "exegesis";
+    case annotator_type::fast:
+      return "fast";
+  }
+}
+
 ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
 ABSL_FLAG(
     std::string, output_dir, "",
     "Directory containing output files that can be executed by llvm-exegesis");
+ABSL_FLAG(annotator_type, annotator_implementation, annotator_type::fast,
+          "The annotator implementation to use.");
+
+std::optional<gematria::AccessedAddrs> GetAccessedAddrs(
+    absl::Span<const uint8_t> basic_block,
+    gematria::ExegesisAnnotator* exegesis_annotator) {
+  const annotator_type annotator_implementation =
+      absl::GetFlag(FLAGS_annotator_implementation);
+  if (annotator_implementation == annotator_type::fast) {
+    // This will only get the first segfault address.
+    auto addrs = gematria::FindAccessedAddrs(basic_block);
+
+    if (!addrs.ok()) return std::nullopt;
+
+    return *addrs;
+  } else if (annotator_implementation == annotator_type::exegesis) {
+    auto addrs = exegesis_annotator->findAccessedAddrs(
+        llvm::ArrayRef(basic_block.begin(), basic_block.end()));
+
+    if (!addrs) return std::nullopt;
+
+    return *addrs;
+  }
+  return std::nullopt;
+}
 
 int main(int argc, char* argv[]) {
   absl::ParseCommandLine(argc, argv);
@@ -59,6 +111,9 @@ int main(int argc, char* argv[]) {
     std::cerr << "Error: --output_dir is required\n";
     return 1;
   }
+
+  const annotator_type annotator_implementation =
+      absl::GetFlag(FLAGS_annotator_implementation);
 
   std::string initial_reg_val_str =
       gematria::ConvertHexToString(kInitialRegVal);
@@ -101,6 +156,25 @@ int main(int argc, char* argv[]) {
   gematria::X86Canonicalizer canonicalizer(&llvm_support->target_machine());
   gematria::BHiveImporter bhive_importer(&canonicalizer);
 
+  llvm::exegesis::InitializeX86ExegesisTarget();
+
+  auto llvm_state_or_error = llvm::exegesis::LLVMState::Create("", "native");
+  if (!llvm_state_or_error) {
+    std::cerr << "Failed to create LLVMState\n";
+    return 1;
+  }
+
+  std::unique_ptr<gematria::ExegesisAnnotator> exegesis_annotator = nullptr;
+  if (annotator_implementation == annotator_type::exegesis) {
+    auto exegesis_annotator_or_error =
+        gematria::ExegesisAnnotator::create(*llvm_state_or_error);
+    if (!exegesis_annotator_or_error) {
+      std::cerr << "Failed to create exegesis annotator\n";
+      return 1;
+    }
+    exegesis_annotator = std::move(*exegesis_annotator_or_error);
+  }
+
   std::ifstream bhive_csv_file(bhive_filename);
   for (std::string line; std::getline(bhive_csv_file, line);) {
     auto comma_index = line.find(',');
@@ -127,11 +201,10 @@ int main(int argc, char* argv[]) {
     }
 
     // This will only get the first segfault address.
-    auto addrs = gematria::FindAccessedAddrs(*bytes);
+    auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator.get());
 
-    if (!addrs.ok()) {
-      std::cerr << "Failed to find addresses for block '" << hex
-                << "': " << addrs.status() << "\n";
+    if (!addrs) {
+      std::cerr << "Failed to find addresses for block '" << hex << "\n";
       std::cerr << "Block disassembly:\n";
       for (const auto& instr : proto->machine_instructions()) {
         std::cerr << "\t" << instr.assembly() << "\n";
