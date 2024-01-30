@@ -15,6 +15,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -29,6 +30,9 @@
 ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
 ABSL_FLAG(bool, failures_only, false,
           "Only produce output for blocks which FindAccessedAddrs fails on");
+ABSL_FLAG(std::string, failing_blocks_csv, "",
+          "Filename of an output CSV file to which any failing blocks are "
+          "written. This can be used as an input for subsequent runs.");
 
 int main(int argc, char* argv[]) {
   absl::ParseCommandLine(argc, argv);
@@ -43,6 +47,12 @@ int main(int argc, char* argv[]) {
       gematria::LlvmArchitectureSupport::X86_64();
   gematria::X86Canonicalizer canonicalizer(&llvm_support->target_machine());
   gematria::BHiveImporter bhive_importer(&canonicalizer);
+
+  std::optional<std::ofstream> failing_blocks_csv_file;
+  if (!absl::GetFlag(FLAGS_failing_blocks_csv).empty()) {
+    failing_blocks_csv_file =
+        std::ofstream(absl::GetFlag(FLAGS_failing_blocks_csv));
+  }
 
   std::ifstream bhive_csv_file(bhive_filename);
   int successful_calls = 0;
@@ -72,7 +82,7 @@ int main(int argc, char* argv[]) {
                   << ". When mapped at 0x" << std::hex << addrs.code_location
                   << ", block accesses addresses in " << std::dec
                   << addrs.accessed_blocks.size() << " chunk(s) of size 0x"
-                  << std::hex << addrs.block_size << ":";
+                  << std::hex << addrs.block_size << std::dec << ":";
 
         for (const auto& addr : addrs.accessed_blocks) {
           std::cout << " 0x" << addr;
@@ -91,6 +101,10 @@ int main(int argc, char* argv[]) {
           std::cerr << "\t" << instr.assembly() << "\n";
         }
       }
+    }
+
+    if (failing_blocks_csv_file.has_value()) {
+      *failing_blocks_csv_file << line << "\n";
     }
     total_calls++;
   }
