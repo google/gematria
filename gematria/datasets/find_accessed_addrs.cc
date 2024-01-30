@@ -23,6 +23,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <cassert>
 #include <cerrno>
 #include <csignal>
 #include <cstddef>
@@ -31,6 +32,8 @@
 #include <cstring>
 #include <string>
 
+#include "absl/random/random.h"
+#include "absl/random/uniform_int_distribution.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
@@ -300,9 +303,14 @@ void repmovsb(void* dst, const void* src, size_t count) {
                                            location_ptr)));
     }
     if (mapped_address != location_ptr) {
+      // Use InvalidArgument only for the case where we couldn't map an address.
+      // This can happen when an address is computed based on registers and ends
+      // up not being valid to map, which is potentially fixable by running
+      // again with different register values. By using a unique error code we
+      // can distinguish this case easily.
       AbortChildProcess(
           pipe_write_fd,
-          absl::InternalError(absl::StrFormat(
+          absl::InvalidArgumentError(absl::StrFormat(
               "tried to map previously discovered address %p, but mmap "
               "couldn't map this address\n",
               (void*)location_ptr)));
@@ -396,6 +404,44 @@ absl::Status ForkAndTestAddresses(absl::Span<const uint8_t> basic_block,
   }
 }
 
+void RandomiseRegs(absl::BitGen& gen, X64Regs& regs) {
+  // Pick between three values: 0, a low address, and a high address. These are
+  // picked to try to maximise the chance that some combination will produce a
+  // valid address when run through a wide range of functions. This is just a
+  // first stab, there are likely better sets of values we could use here.
+  auto dist = absl::uniform_int_distribution<int>(0, 2);
+  auto random_reg = [&gen, &dist]() {
+    switch (dist(gen)) {
+      case 0:
+        return 0;
+      case 1:
+        return 0x15000;
+      case 2:
+        return 0x1000000;
+      default:
+        assert(false);  // unreachable
+        return 0;
+    }
+  };
+
+  regs.rax = random_reg();
+  regs.rbx = random_reg();
+  regs.rcx = random_reg();
+  regs.rdx = random_reg();
+  regs.rsi = random_reg();
+  regs.rdi = random_reg();
+  regs.rsp = random_reg();
+  regs.rbp = random_reg();
+  regs.r8 = random_reg();
+  regs.r9 = random_reg();
+  regs.r10 = random_reg();
+  regs.r11 = random_reg();
+  regs.r12 = random_reg();
+  regs.r13 = random_reg();
+  regs.r14 = random_reg();
+  regs.r15 = random_reg();
+}
+
 }  // namespace
 
 // TODO(orodley):
@@ -419,6 +465,8 @@ absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
   // offsets from a register as a memory address, so we want to leave some space
   // below so that such addresses will still be accessible.
   constexpr int64_t kInitialRegValue = 0x15000;
+
+  absl::BitGen gen;
 
   AccessedAddrs accessed_addrs = {
       .code_location = 0,
@@ -445,13 +493,23 @@ absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
           },
   };
 
+  int n = 0;
   size_t num_accessed_blocks;
   do {
     num_accessed_blocks = accessed_addrs.accessed_blocks.size();
     auto status = ForkAndTestAddresses(basic_block, accessed_addrs);
-    if (!status.ok()) {
+    if (absl::IsInvalidArgument(status)) {
+      if (n > 100) {
+        return status;
+      }
+
+      accessed_addrs.accessed_blocks.clear();
+      RandomiseRegs(gen, accessed_addrs.initial_regs);
+    } else if (!status.ok()) {
       return status;
     }
+
+    n++;
   } while (accessed_addrs.accessed_blocks.size() != num_accessed_blocks);
 
   return accessed_addrs;
