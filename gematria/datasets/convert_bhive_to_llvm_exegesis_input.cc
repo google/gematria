@@ -40,14 +40,18 @@ constexpr std::string_view kMemNamePrefix = "MEM";
 
 enum class AnnotatorType { kExegesis, kFast };
 
+constexpr std::array<std::pair<AnnotatorType, std::string_view>, 2> kAnnotatorTypeNames = {{
+  {AnnotatorType::kExegesis, "exegesis"},
+  {AnnotatorType::kFast, "fast"}
+}};
+
 bool AbslParseFlag(absl::string_view text, AnnotatorType* type,
                    std::string* error) {
-  if (text == "exegesis") {
-    *type = AnnotatorType::kExegesis;
-    return true;
-  } else if (text == "fast") {
-    *type = AnnotatorType::kFast;
-    return true;
+  for (const auto& [annotator_type, type_string] : kAnnotatorTypeNames) {
+    if (text == type_string) {
+      *type = annotator_type;
+      return true;
+    }
   }
 
   *error = "unknown annotator type";
@@ -55,12 +59,12 @@ bool AbslParseFlag(absl::string_view text, AnnotatorType* type,
 }
 
 std::string AbslUnparseFlag(AnnotatorType type) {
-  switch (type) {
-    case AnnotatorType::kExegesis:
-      return "exegesis";
-    case AnnotatorType::kFast:
-      return "fast";
+  for (const auto& [annotator_type, type_string] : kAnnotatorTypeNames) {
+    if (annotator_type == type)
+      return std::string(type_string);
   }
+
+  __builtin_unreachable();
 }
 
 ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
