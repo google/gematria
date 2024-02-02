@@ -38,10 +38,6 @@ constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
 constexpr std::string_view kMemMapPrefix = "# LLVM-EXEGESIS-MEM-MAP ";
 constexpr std::string_view kMemNamePrefix = "MEM";
 
-namespace {
-unsigned int file_counter = 0;
-}
-
 enum class annotator_type { exegesis, fast };
 
 bool AbslParseFlag(absl::string_view text, annotator_type* type,
@@ -176,6 +172,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::ifstream bhive_csv_file(bhive_filename);
+  unsigned int file_counter = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
     auto comma_index = line.find(',');
     if (comma_index == std::string::npos) {
