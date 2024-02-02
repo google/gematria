@@ -40,10 +40,9 @@ constexpr std::string_view kMemNamePrefix = "MEM";
 
 enum class AnnotatorType { kExegesis, kFast };
 
-constexpr std::array<std::pair<AnnotatorType, std::string_view>, 2> kAnnotatorTypeNames = {{
-  {AnnotatorType::kExegesis, "exegesis"},
-  {AnnotatorType::kFast, "fast"}
-}};
+constexpr std::array<std::pair<AnnotatorType, std::string_view>, 2>
+    kAnnotatorTypeNames = {{{AnnotatorType::kExegesis, "exegesis"},
+                            {AnnotatorType::kFast, "fast"}}};
 
 bool AbslParseFlag(absl::string_view text, AnnotatorType* type,
                    std::string* error) {
@@ -60,8 +59,7 @@ bool AbslParseFlag(absl::string_view text, AnnotatorType* type,
 
 std::string AbslUnparseFlag(AnnotatorType type) {
   for (const auto& [annotator_type, type_string] : kAnnotatorTypeNames) {
-    if (annotator_type == type)
-      return std::string(type_string);
+    if (annotator_type == type) return std::string(type_string);
   }
 
   __builtin_unreachable();

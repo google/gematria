@@ -43,7 +43,7 @@ jobs:
     - name: Check c++ formatting
       uses: jidicula/clang-format-action@v4.11.0
       with:
-        clang-format-version: '16'
+        clang-format-version: '17'
         check-path: 'src'
   check-bazel-formatting:
     name: Bazel Formatting Check
