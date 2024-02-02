@@ -38,15 +38,15 @@ constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
 constexpr std::string_view kMemMapPrefix = "# LLVM-EXEGESIS-MEM-MAP ";
 constexpr std::string_view kMemNamePrefix = "MEM";
 
-enum class annotator_type { exegesis, fast };
+enum class AnnotatorType { kExegesis, kFast };
 
-bool AbslParseFlag(absl::string_view text, annotator_type* type,
+bool AbslParseFlag(absl::string_view text, AnnotatorType* type,
                    std::string* error) {
   if (text == "exegesis") {
-    *type = annotator_type::exegesis;
+    *type = AnnotatorType::kExegesis;
     return true;
   } else if (text == "fast") {
-    *type = annotator_type::fast;
+    *type = AnnotatorType::kFast;
     return true;
   }
 
@@ -54,11 +54,11 @@ bool AbslParseFlag(absl::string_view text, annotator_type* type,
   return false;
 }
 
-std::string AbslUnparseFlag(annotator_type type) {
+std::string AbslUnparseFlag(AnnotatorType type) {
   switch (type) {
-    case annotator_type::exegesis:
+    case AnnotatorType::kExegesis:
       return "exegesis";
-    case annotator_type::fast:
+    case AnnotatorType::kFast:
       return "fast";
   }
 }
@@ -67,28 +67,31 @@ ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
 ABSL_FLAG(
     std::string, output_dir, "",
     "Directory containing output files that can be executed by llvm-exegesis");
-ABSL_FLAG(annotator_type, annotator_implementation, annotator_type::fast,
+ABSL_FLAG(AnnotatorType, annotator_implementation, AnnotatorType::kFast,
           "The annotator implementation to use.");
 
 std::optional<gematria::AccessedAddrs> GetAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
     gematria::ExegesisAnnotator* exegesis_annotator) {
-  const annotator_type annotator_implementation =
+  const AnnotatorType annotator_implementation =
       absl::GetFlag(FLAGS_annotator_implementation);
-  if (annotator_implementation == annotator_type::fast) {
-    // This will only get the first segfault address.
-    auto addrs = gematria::FindAccessedAddrs(basic_block);
+  switch (annotator_implementation) {
+    case AnnotatorType::kFast: {
+      // This will only get the first segfault address.
+      auto addrs_fast = gematria::FindAccessedAddrs(basic_block);
 
-    if (!addrs.ok()) return std::nullopt;
+      if (!addrs_fast.ok()) return std::nullopt;
 
-    return *addrs;
-  } else if (annotator_implementation == annotator_type::exegesis) {
-    auto addrs = exegesis_annotator->findAccessedAddrs(
-        llvm::ArrayRef(basic_block.begin(), basic_block.end()));
+      return *addrs_fast;
+    }
+    case AnnotatorType::kExegesis: {
+      auto addrs_exegesis = exegesis_annotator->findAccessedAddrs(
+          llvm::ArrayRef(basic_block.begin(), basic_block.end()));
 
-    if (!addrs) return std::nullopt;
+      if (!addrs_exegesis) return std::nullopt;
 
-    return *addrs;
+      return *addrs_exegesis;
+    }
   }
   return std::nullopt;
 }
@@ -108,7 +111,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  const annotator_type annotator_implementation =
+  const AnnotatorType annotator_implementation =
       absl::GetFlag(FLAGS_annotator_implementation);
 
   std::string initial_reg_val_str =
@@ -161,7 +164,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::unique_ptr<gematria::ExegesisAnnotator> exegesis_annotator = nullptr;
-  if (annotator_implementation == annotator_type::exegesis) {
+  if (annotator_implementation == AnnotatorType::kExegesis) {
     auto exegesis_annotator_or_error =
         gematria::ExegesisAnnotator::create(*llvm_state_or_error);
     if (!exegesis_annotator_or_error) {
