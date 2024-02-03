@@ -367,8 +367,9 @@ static void collectBBtoAddressLabels(
   const uint64_t EndAddress = SectionAddr + End;
   auto Iter = AddrToBBAddrMap.find(StartAddress);
   if (Iter == AddrToBBAddrMap.end()) return;
-  for (const llvm::object::BBAddrMap::BBEntry &BB : Iter->second.BBEntries) {
-    const uint64_t BBAddress = BB.Offset + Iter->second.Addr;
+  for (const llvm::object::BBAddrMap::BBEntry &BB :
+       Iter->second.getBBEntries()) {
+    const uint64_t BBAddress = BB.Offset + Iter->second.getFunctionAddress();
     if (BBAddress >= EndAddress) continue;
     Labels[BBAddress].push_back(BB.ID);
   }
@@ -542,7 +543,7 @@ int main(int argc, char *argv[]) {
       auto BBAddrMappingOrErr = Elf->readBBAddrMap();
       exitIf(!BBAddrMappingOrErr, "failed to read basic block address mapping");
       for (auto &BBAddr : *BBAddrMappingOrErr) {
-        BBAddrMap.try_emplace(BBAddr.Addr, std::move(BBAddr));
+        BBAddrMap.try_emplace(BBAddr.getFunctionAddress(), std::move(BBAddr));
       }
     }
   };
