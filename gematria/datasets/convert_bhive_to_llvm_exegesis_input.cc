@@ -74,6 +74,9 @@ int main(int argc, char* argv[]) {
   for (unsigned i = 0;
        i < reg_info.getRegClass(llvm::X86::GR64_NOREX2RegClassID).getNumRegs();
        ++i) {
+    if (reg_info.getRegClass(llvm::X86::GR64_NOREX2RegClassID).getRegister(i) ==
+        llvm::X86::RIP)
+      continue;
     llvm::StringRef reg_name = reg_info.getName(
         reg_info.getRegClass(llvm::X86::GR64_NOREX2RegClassID).getRegister(i));
     register_defs_lines += llvm::Twine(kRegDefPrefix)
