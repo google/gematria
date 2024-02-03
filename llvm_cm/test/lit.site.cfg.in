@@ -1,5 +1,7 @@
 @LIT_SITE_CFG_IN_HEADER@
 
+config.host_triple = "@LLVM_HOST_TRIPLE@"
+config.target_triple = "@LLVM_TARGET_TRIPLE@"
 config.src_root = "@LLVM_SOURCE_DIR@"
 config.obj_root = "@LLVM_BINARY_DIR@"
 config.llvm_tools_dir = lit_config.substitute("@LLVM_TOOLS_DIR@")
