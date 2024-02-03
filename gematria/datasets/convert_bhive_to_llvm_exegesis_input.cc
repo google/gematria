@@ -42,19 +42,16 @@ constexpr std::string_view kMemNamePrefix = "MEM";
 
 ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
 ABSL_FLAG(
-    std::string, output_dir, "",
+    std::string, asm_output_dir, "",
     "Directory containing output files that can be executed by llvm-exegesis");
 ABSL_FLAG(std::string, json_output_dir, "",
           "Directory containing JSON output files");
 ABSL_FLAG(
     unsigned, json_split_count, std::numeric_limits<unsigned>::max(),
     "The number of annotated basic blocks to include in a single JSON file");
-ABSL_FLAG(std::vector<std::string>, output_types,
-          std::vector<std::string>({"asm"}),
-          "A comma separated list of output types to generate");
 
-bool write_json_file(llvm::json::Array to_write, size_t json_file_number,
-                     std::string json_output_dir) {
+bool WriteJsonFile(llvm::json::Array to_write, size_t json_file_number,
+                   std::string json_output_dir) {
   llvm::Twine json_output_file_path = llvm::Twine(json_output_dir)
                                           .concat("/")
                                           .concat(llvm::Twine(json_file_number))
@@ -83,27 +80,7 @@ int main(int argc, char* argv[]) {
   }
 
   const std::string json_output_dir = absl::GetFlag(FLAGS_json_output_dir);
-  const std::string output_dir = absl::GetFlag(FLAGS_output_dir);
-  const std::vector<std::string> output_types =
-      absl::GetFlag(FLAGS_output_types);
-  bool json_output_enabled = false;
-  bool asm_output_enabled = false;
-  for (const std::string& output_type : output_types) {
-    if (output_type == "json")
-      json_output_enabled = true;
-    else if (output_type == "asm")
-      asm_output_enabled = true;
-  }
-
-  if (json_output_enabled && json_output_dir.empty()) {
-    std::cerr << "Error: --json_output_dir is required when the json output "
-                 "type is requested\n";
-    return 1;
-  } else if (asm_output_enabled && output_dir.empty()) {
-    std::cerr << "Error: --output_dir is required when the asm output type is "
-                 "requested\n";
-    return 1;
-  }
+  const std::string asm_output_dir = absl::GetFlag(FLAGS_asm_output_dir);
 
   std::string initial_reg_val_str =
       gematria::ConvertHexToString(kInitialRegVal);
@@ -187,9 +164,9 @@ int main(int argc, char* argv[]) {
       continue;
     }
 
-    if (asm_output_enabled) {
+    if (!asm_output_dir.empty()) {
       // Create output file path.
-      llvm::Twine output_file_path = llvm::Twine(output_dir)
+      llvm::Twine output_file_path = llvm::Twine(asm_output_dir)
                                          .concat("/")
                                          .concat(llvm::Twine(file_counter))
                                          .concat(".test");
@@ -221,15 +198,14 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    if (json_output_enabled) {
+    if (!json_output_dir.empty()) {
       llvm::json::Object current_snippet;
 
       if (addrs->accessed_blocks.size() > 0) {
         llvm::json::Array memory_definitions;
         llvm::json::Object current_memory_definition;
         current_memory_definition["Name"] = llvm::json::Value(kMemNamePrefix);
-        current_memory_definition["Size"] =
-            llvm::json::Value(addrs->block_size);
+        current_memory_definition["Size"] = addrs->block_size;
         current_memory_definition["Value"] = llvm::json::Value(kInitialMemVal);
         memory_definitions.push_back(std::move(current_memory_definition));
         current_snippet["MemoryDefinitions"] =
@@ -239,7 +215,7 @@ int main(int argc, char* argv[]) {
         for (const uintptr_t addr : addrs->accessed_blocks) {
           llvm::json::Object current_memory_mapping;
           current_memory_mapping["Value"] = llvm::json::Value(kMemNamePrefix);
-          current_memory_mapping["Address"] = llvm::json::Value(addr);
+          current_memory_mapping["Address"] = addr;
           memory_mappings.push_back(std::move(current_memory_mapping));
         }
         current_snippet["MemoryMappings"] =
@@ -249,15 +225,14 @@ int main(int argc, char* argv[]) {
         current_snippet["MemoryMappings"] = llvm::json::Array();
       }
 
-      std::string hex_string = {hex.begin(), hex.end()};
-      current_snippet["Hex"] = llvm::json::Value(hex_string);
+      current_snippet["Hex"] = std::string(hex);
 
       processed_snippets.push_back(
           llvm::json::Value(std::move(current_snippet)));
 
       if (file_counter % json_split_count == 0) {
         size_t json_file_number = file_counter / json_split_count;
-        bool write_successfully = write_json_file(
+        bool write_successfully = WriteJsonFile(
             std::move(processed_snippets), json_file_number, json_output_dir);
         if (!write_successfully) return 4;
         processed_snippets.clear();
@@ -267,10 +242,12 @@ int main(int argc, char* argv[]) {
     file_counter++;
   }
 
-  if (json_output_enabled) {
+  if (!json_output_dir.empty()) {
     size_t json_file_number = file_counter / json_split_count;
-    bool write_successfully = write_json_file(
-        std::move(processed_snippets), json_file_number, json_output_dir);
+    bool write_successfully = WriteJsonFile(std::move(processed_snippets),
+                                            json_file_number, json_output_dir);
     if (!write_successfully) return 4;
   }
+
+  return 0;
 }
