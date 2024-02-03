@@ -29,6 +29,10 @@
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
 
+// Use the constants from the BHive paper for setting initial register and
+// memory values. These constants are set to a high enough value to avoid
+// underflow and accesses within the first page, but low enough to avoid
+// exceeding the virtual address space ceiling in most cases.
 constexpr uint64_t kInitialRegVal = 0x12345600;
 constexpr uint64_t kInitialMemVal = 0x12345600;
 constexpr unsigned kInitialMemValBitWidth = 64;
