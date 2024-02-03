@@ -89,6 +89,12 @@ ninja llvm-granite llvm-cm
 Where `LLVM_PROJECT_SRC` is the absolute path to your local llvm repo, and
 `GEMATRIA_SRC` the path to this (the gematria) repo.
 
+To run the `llvm-cm` tests, you can run the following target:
+
+```shell
+ninja check-llvm-tools-llvm-cm
+```
+
 ### Platform Support
 
 We develop and test our code on Linux and x86-64, and we test it on Mac OS X and

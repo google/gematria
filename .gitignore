@@ -9,3 +9,6 @@
 
 # Editor temporary files
 *.swp
+
+# CMake build directory according to the docs
+cmake-build/*

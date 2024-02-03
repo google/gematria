@@ -40,10 +40,6 @@ constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
 constexpr std::string_view kMemMapPrefix = "# LLVM-EXEGESIS-MEM-MAP ";
 constexpr std::string_view kMemNamePrefix = "MEM";
 
-namespace {
-unsigned int file_counter = 0;
-}
-
 ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
 ABSL_FLAG(
     std::string, output_dir, "",
@@ -153,6 +149,7 @@ int main(int argc, char* argv[]) {
   std::ifstream bhive_csv_file(bhive_filename);
   llvm::json::Array processed_snippets;
   const int json_split_count = absl::GetFlag(FLAGS_json_split_count);
+  unsigned int file_counter = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
     auto comma_index = line.find(',');
     if (comma_index == std::string::npos) {
