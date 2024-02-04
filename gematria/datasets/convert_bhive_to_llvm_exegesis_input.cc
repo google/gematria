@@ -28,6 +28,7 @@
 #include "gematria/datasets/find_accessed_addrs_exegesis.h"
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/llvm_architecture_support.h"
+#include "gematria/llvm/llvm_to_absl.h"
 #include "gematria/utils/string.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 
@@ -78,22 +79,13 @@ std::optional<gematria::AccessedAddrs> GetAccessedAddrs(
   const AnnotatorType annotator_implementation =
       absl::GetFlag(FLAGS_annotator_implementation);
   switch (annotator_implementation) {
-    case AnnotatorType::kFast: {
+    case AnnotatorType::kFast:
       // This will only get the first segfault address.
-      auto addrs_fast = gematria::FindAccessedAddrs(basic_block);
-
-      if (!addrs_fast.ok()) return std::nullopt;
-
-      return *addrs_fast;
-    }
-    case AnnotatorType::kExegesis: {
-      auto addrs_exegesis = exegesis_annotator->findAccessedAddrs(
-          llvm::ArrayRef(basic_block.begin(), basic_block.end()));
-
-      if (!addrs_exegesis) return std::nullopt;
-
-      return *addrs_exegesis;
-    }
+      return gematria::StatusOrToOptional(
+          gematria::FindAccessedAddrs(basic_block));
+    case AnnotatorType::kExegesis:
+      return llvm::expectedToOptional(exegesis_annotator->findAccessedAddrs(
+          llvm::ArrayRef(basic_block.begin(), basic_block.end())));
   }
   return std::nullopt;
 }
