@@ -28,22 +28,25 @@ namespace gematria {
 
 namespace {
 
-template <typename T, typename U>
-std::vector<T> ToVector(const google::protobuf::RepeatedPtrField<U>& protos,
-                        T (*ObjectFromProto)(const U&)) {
-  std::vector<T> result(protos.size());
-  std::transform(protos.begin(), protos.end(), result.begin(), ObjectFromProto);
+template <typename Object, typename Proto, typename Convertor>
+std::vector<Object> ToVector(
+    const google::protobuf::RepeatedPtrField<Proto>& protos,
+    Convertor object_from_proto) {
+  std::vector<Object> result(protos.size());
+  std::transform(protos.begin(), protos.end(), result.begin(),
+                 object_from_proto);
   return result;
 }
 
-template <typename T, typename U>
-void ToRepeatedPtrField(const std::vector<T>& objects,
-                        google::protobuf::RepeatedPtrField<U>* repeated_field,
-                        U (*ProtoFromObject)(const T&)) {
+template <typename Object, typename Proto, typename Convertor>
+void ToRepeatedPtrField(
+    const std::vector<Object>& objects,
+    google::protobuf::RepeatedPtrField<Proto>* repeated_field,
+    Convertor proto_from_object) {
   repeated_field->Reserve(objects.size());
   std::transform(objects.begin(), objects.end(),
                  google::protobuf::RepeatedFieldBackInserter(repeated_field),
-                 ProtoFromObject);
+                 proto_from_object);
 }
 
 }  // namespace
@@ -135,15 +138,20 @@ Instruction InstructionFromProto(const CanonicalizedInstructionProto& proto) {
       std::vector<std::string>(proto.prefixes().begin(),
                                proto.prefixes().end()),
       /* input_operands = */
-      ToVector(proto.input_operands(), InstructionOperandFromProto),
+      ToVector<InstructionOperand>(proto.input_operands(),
+                                   InstructionOperandFromProto),
       /* implicit_input_operands = */
-      ToVector(proto.implicit_input_operands(), InstructionOperandFromProto),
+      ToVector<InstructionOperand>(proto.implicit_input_operands(),
+                                   InstructionOperandFromProto),
       /* output_operands = */
-      ToVector(proto.output_operands(), InstructionOperandFromProto),
+      ToVector<InstructionOperand>(proto.output_operands(),
+                                   InstructionOperandFromProto),
       /* implicit_output_operands = */
-      ToVector(proto.implicit_output_operands(), InstructionOperandFromProto),
+      ToVector<InstructionOperand>(proto.implicit_output_operands(),
+                                   InstructionOperandFromProto),
       /* instruction_annotations = */
-      ToVector(proto.instruction_annotations(), AnnotationFromProto));
+      ToVector<Annotation>(proto.instruction_annotations(),
+                           AnnotationFromProto));
 }
 
 CanonicalizedInstructionProto ProtoFromInstruction(
@@ -172,8 +180,8 @@ CanonicalizedInstructionProto ProtoFromInstruction(
 
 BasicBlock BasicBlockFromProto(const BasicBlockProto& proto) {
   return BasicBlock(
-      /* instructions = */ ToVector(proto.canonicalized_instructions(),
-                                    InstructionFromProto));
+      /* instructions = */ ToVector<Instruction>(
+          proto.canonicalized_instructions(), InstructionFromProto));
 }
 
 }  // namespace gematria
