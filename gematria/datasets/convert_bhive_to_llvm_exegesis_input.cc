@@ -41,9 +41,8 @@ constexpr std::string_view kMemNamePrefix = "MEM";
 
 enum class AnnotatorType { kExegesis, kFast };
 
-constexpr std::array<std::pair<AnnotatorType, std::string_view>, 2>
-    kAnnotatorTypeNames = {{{AnnotatorType::kExegesis, "exegesis"},
-                            {AnnotatorType::kFast, "fast"}}};
+constexpr std::pair<AnnotatorType, std::string_view> kAnnotatorTypeNames[] = {
+    {AnnotatorType::kExegesis, "exegesis"}, {AnnotatorType::kFast, "fast"}};
 
 bool AbslParseFlag(absl::string_view text, AnnotatorType* type,
                    std::string* error) {
@@ -73,7 +72,7 @@ ABSL_FLAG(
 ABSL_FLAG(AnnotatorType, annotator_implementation, AnnotatorType::kFast,
           "The annotator implementation to use.");
 
-std::optional<gematria::AccessedAddrs> GetAccessedAddrs(
+absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
     gematria::ExegesisAnnotator* exegesis_annotator) {
   const AnnotatorType annotator_implementation =
@@ -81,13 +80,13 @@ std::optional<gematria::AccessedAddrs> GetAccessedAddrs(
   switch (annotator_implementation) {
     case AnnotatorType::kFast:
       // This will only get the first segfault address.
-      return gematria::StatusOrToOptional(
-          gematria::FindAccessedAddrs(basic_block));
+      return gematria::FindAccessedAddrs(basic_block);
     case AnnotatorType::kExegesis:
-      return llvm::expectedToOptional(exegesis_annotator->findAccessedAddrs(
-          llvm::ArrayRef(basic_block.begin(), basic_block.end())));
+      return gematria::LlvmExpectedToStatusOr(
+          exegesis_annotator->findAccessedAddrs(
+              llvm::ArrayRef(basic_block.begin(), basic_block.end())));
   }
-  return std::nullopt;
+  return absl::InvalidArgumentError("unknown annotator type");
 }
 
 int main(int argc, char* argv[]) {
@@ -197,8 +196,9 @@ int main(int argc, char* argv[]) {
     // This will only get the first segfault address.
     auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator.get());
 
-    if (!addrs) {
-      std::cerr << "Failed to find addresses for block '" << hex << "\n";
+    if (!addrs.ok()) {
+      std::cerr << "Failed to find addresses for block '" << hex
+                << "': " << addrs.status() << "\n";
       std::cerr << "Block disassembly:\n";
       for (const auto& instr : proto->machine_instructions()) {
         std::cerr << "\t" << instr.assembly() << "\n";
