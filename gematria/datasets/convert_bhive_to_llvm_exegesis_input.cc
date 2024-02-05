@@ -80,14 +80,12 @@ int main(int argc, char* argv[]) {
 
   // Iterate through all general purpose registers and vector registers
   // and add them to the register definitions.
-  // TODO(9Temptest): Change GR64_NOREXRegClassID to GR64_NOREX2RegClassID when
-  // the LLVM version is bumped to avoid including the new APX GPRs (r16-r31)
-  // that have recently been added to LLVM.
-  for (unsigned i = 0;
-       i < reg_info.getRegClass(llvm::X86::GR64_NOREXRegClassID).getNumRegs();
-       ++i) {
-    llvm::StringRef reg_name = reg_info.getName(
-        reg_info.getRegClass(llvm::X86::GR64_NOREXRegClassID).getRegister(i));
+  const auto& gr64_register_class =
+      reg_info.getRegClass(llvm::X86::GR64_NOREX2RegClassID);
+  for (unsigned i = 0; i < gr64_register_class.getNumRegs(); ++i) {
+    if (gr64_register_class.getRegister(i) == llvm::X86::RIP) continue;
+    llvm::StringRef reg_name =
+        reg_info.getName(gr64_register_class.getRegister(i));
     register_defs_lines += llvm::Twine(kRegDefPrefix)
                                .concat(reg_name)
                                .concat(" ")
@@ -95,10 +93,11 @@ int main(int argc, char* argv[]) {
                                .concat("\n")
                                .str();
   }
-  for (unsigned i = 0;
-       i < reg_info.getRegClass(llvm::X86::VR128RegClassID).getNumRegs(); ++i) {
-    llvm::StringRef reg_name = reg_info.getName(
-        reg_info.getRegClass(llvm::X86::VR128RegClassID).getRegister(i));
+  const auto& vr128_register_class =
+      reg_info.getRegClass(llvm::X86::VR128RegClassID);
+  for (unsigned i = 0; i < vr128_register_class.getNumRegs(); ++i) {
+    llvm::StringRef reg_name =
+        reg_info.getName(vr128_register_class.getRegister(i));
     register_defs_lines += llvm::Twine(kRegDefPrefix)
                                .concat(reg_name)
                                .concat(" ")
