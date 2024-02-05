@@ -30,16 +30,17 @@
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
 
-constexpr uint64_t kInitialRegVal = 0x10000;
-constexpr uint64_t kInitialMemVal = 0x7FFFFFFF;
+// Use the constants from the BHive paper for setting initial register and
+// memory values. These constants are set to a high enough value to avoid
+// underflow and accesses within the first page, but low enough to avoid
+// exceeding the virtual address space ceiling in most cases.
+constexpr uint64_t kInitialRegVal = 0x12345600;
+constexpr uint64_t kInitialMemVal = 0x12345600;
+constexpr unsigned kInitialMemValBitWidth = 64;
 constexpr std::string_view kRegDefPrefix = "# LLVM-EXEGESIS-DEFREG ";
 constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
 constexpr std::string_view kMemMapPrefix = "# LLVM-EXEGESIS-MEM-MAP ";
 constexpr std::string_view kMemNamePrefix = "MEM";
-
-namespace {
-unsigned int file_counter = 0;
-}
 
 ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
 ABSL_FLAG(
@@ -67,6 +68,14 @@ int main(int argc, char* argv[]) {
       gematria::ConvertHexToString(kInitialRegVal);
   std::string initial_mem_val_str =
       gematria::ConvertHexToString(kInitialMemVal);
+  // Prefix the string with zeroes as llvm-exegesis assumes the bit width
+  // of the memory value based on the number of characters in the string.
+  if (kInitialMemValBitWidth > initial_mem_val_str.size() * 4)
+    initial_mem_val_str =
+        std::string(
+            (kInitialMemValBitWidth - initial_mem_val_str.size() * 4) / 4,
+            '0') +
+        initial_mem_val_str;
   std::string register_defs_lines;
   const std::unique_ptr<gematria::LlvmArchitectureSupport> llvm_support =
       gematria::LlvmArchitectureSupport::X86_64();
@@ -106,6 +115,7 @@ int main(int argc, char* argv[]) {
 
   std::ifstream bhive_csv_file(bhive_filename);
   const unsigned max_bb_count = absl::GetFlag(FLAGS_max_bb_count);
+  unsigned int file_counter = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
     if (file_counter >= max_bb_count) break;
 
