@@ -30,6 +30,7 @@
 ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
 ABSL_FLAG(bool, failures_only, false,
           "Only produce output for blocks which FindAccessedAddrs fails on");
+ABSL_FLAG(bool, quiet, false, "Omit all output except for the final summary");
 ABSL_FLAG(std::string, failing_blocks_csv, "",
           "Filename of an output CSV file to which any failing blocks are "
           "written. This can be used as an input for subsequent runs.");
@@ -42,6 +43,10 @@ int main(int argc, char* argv[]) {
     std::cerr << "Error: --bhive_csv is required\n";
     return 1;
   }
+
+  const bool print_failures = !absl::GetFlag(FLAGS_quiet);
+  const bool print_successes =
+      !absl::GetFlag(FLAGS_failures_only) && !absl::GetFlag(FLAGS_quiet);
 
   const std::unique_ptr<gematria::LlvmArchitectureSupport> llvm_support =
       gematria::LlvmArchitectureSupport::X86_64();
@@ -76,7 +81,7 @@ int main(int argc, char* argv[]) {
     if (addrs_or.ok()) {
       successful_calls++;
 
-      if (!absl::GetFlag(FLAGS_failures_only)) {
+      if (print_successes) {
         auto addrs = addrs_or.value();
         std::cout << "Successfully found addresses for block '" << hex << "'"
                   << ". When mapped at 0x" << std::hex << addrs.code_location
@@ -92,20 +97,22 @@ int main(int argc, char* argv[]) {
         std::cout << "\n";
       }
     } else {
-      std::cerr << "Failed to find addresses for block '" << hex
-                << "': " << addrs_or.status() << "\n";
-      auto proto = bhive_importer.BasicBlockProtoFromMachineCode(bytes);
-      if (proto.ok()) {
-        std::cerr << "Block disassembly:\n";
-        for (const auto& instr : proto->machine_instructions()) {
-          std::cerr << "\t" << instr.assembly() << "\n";
+      if (failing_blocks_csv_file.has_value()) {
+        *failing_blocks_csv_file << line << "\n";
+      }
+      if (print_failures) {
+        std::cerr << "Failed to find addresses for block '" << hex
+                  << "': " << addrs_or.status() << "\n";
+        auto proto = bhive_importer.BasicBlockProtoFromMachineCode(bytes);
+        if (proto.ok()) {
+          std::cerr << "Block disassembly:\n";
+          for (const auto& instr : proto->machine_instructions()) {
+            std::cerr << "\t" << instr.assembly() << "\n";
+          }
         }
       }
     }
 
-    if (failing_blocks_csv_file.has_value()) {
-      *failing_blocks_csv_file << line << "\n";
-    }
     total_calls++;
   }
 
