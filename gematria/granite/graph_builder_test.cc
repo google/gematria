@@ -35,6 +35,7 @@ namespace {
 
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
+using ::testing::Pair;
 
 // Tokens used in the basic blocks in tests. For simplicity, we do not use the
 // full set of x86-64 tokens.
@@ -498,9 +499,9 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
   EXPECT_THAT(builder_->edge_receivers(),
               ElementsAre(0, 2, 0, 4, 5, 5, 6, 6, 5, 8, 9, 9, 10, 11, 11, 12));
 
-  EXPECT_EQ(builder_->instruction_annotations().size(), 1);
-  EXPECT_THAT(builder_->instruction_annotations().at("cache_miss_freq"),
-              ElementsAre(0.9, -1, 0.01, -1));
+  EXPECT_THAT(
+      builder_->instruction_annotations(),
+      ElementsAre(Pair("cache_miss_freq", ElementsAre(0.9, -1, 0.01, -1))));
 }
 
 // Tests that nodes in basic blocks added through different AddBasicBlock()
