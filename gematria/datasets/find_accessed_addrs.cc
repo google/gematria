@@ -409,20 +409,9 @@ void RandomiseRegs(absl::BitGen& gen, X64Regs& regs) {
   // picked to try to maximise the chance that some combination will produce a
   // valid address when run through a wide range of functions. This is just a
   // first stab, there are likely better sets of values we could use here.
-  auto dist = absl::uniform_int_distribution<int>(0, 2);
-  auto random_reg = [&gen, &dist]() {
-    switch (dist(gen)) {
-      case 0:
-        return 0;
-      case 1:
-        return 0x15000;
-      case 2:
-        return 0x1000000;
-      default:
-        assert(false);  // unreachable
-        return 0;
-    }
-  };
+  constexpr int64_t kValues[] = {0, 0x15000, 0x1000000};
+  absl::uniform_int_distribution<int> dist(0, std::size(kValues) - 1);
+  auto random_reg = [&gen, &dist]() { return kValues[dist(gen)]; };
 
   regs.rax = random_reg();
   regs.rbx = random_reg();
