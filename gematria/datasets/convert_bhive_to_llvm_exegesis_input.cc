@@ -31,6 +31,7 @@
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
 #include "llvm/Support/JSON.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
 
 constexpr uint64_t kInitialRegVal = 0x10000;
@@ -47,20 +48,19 @@ ABSL_FLAG(
 ABSL_FLAG(std::string, json_output_dir, "",
           "Directory containing JSON output files");
 ABSL_FLAG(
-    unsigned, json_split_count, std::numeric_limits<unsigned>::max(),
+    unsigned, blocks_per_json_file, std::numeric_limits<unsigned>::max(),
     "The number of annotated basic blocks to include in a single JSON file");
 
 bool WriteJsonFile(llvm::json::Array to_write, size_t json_file_number,
-                   std::string json_output_dir) {
-  llvm::Twine json_output_file_path = llvm::Twine(json_output_dir)
-                                          .concat("/")
-                                          .concat(llvm::Twine(json_file_number))
-                                          .concat(".json");
+                   llvm::StringRef json_output_dir) {
+  llvm::SmallString<40> json_output_file_path(json_output_dir);
+  llvm::sys::path::append(json_output_file_path,
+                          llvm::Twine(json_file_number).concat(".json"));
   std::error_code file_ec;
-  llvm::raw_fd_ostream json_output_file(json_output_file_path.str(), file_ec);
+  llvm::raw_fd_ostream json_output_file(json_output_file_path, file_ec);
 
   if (file_ec) {
-    std::cerr << "Failed to open output file: " << json_output_file_path.str()
+    std::cerr << "Failed to open output file: " << json_output_file_path.c_str()
               << "\n";
     return false;
   }
@@ -81,6 +81,12 @@ int main(int argc, char* argv[]) {
 
   const std::string json_output_dir = absl::GetFlag(FLAGS_json_output_dir);
   const std::string asm_output_dir = absl::GetFlag(FLAGS_asm_output_dir);
+
+  const int blocks_per_json_file = absl::GetFlag(FLAGS_blocks_per_json_file);
+  if (blocks_per_json_file <= 0) {
+    std::cerr << "Error: --blocks_per_json_file must be greater than 1.\n";
+    return 1;
+  }
 
   std::string initial_reg_val_str =
       gematria::ConvertHexToString(kInitialRegVal);
@@ -125,7 +131,6 @@ int main(int argc, char* argv[]) {
 
   std::ifstream bhive_csv_file(bhive_filename);
   llvm::json::Array processed_snippets;
-  const int json_split_count = absl::GetFlag(FLAGS_json_split_count);
   unsigned int file_counter = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
     auto comma_index = line.find(',');
@@ -230,8 +235,8 @@ int main(int argc, char* argv[]) {
       processed_snippets.push_back(
           llvm::json::Value(std::move(current_snippet)));
 
-      if (file_counter % json_split_count == 0) {
-        size_t json_file_number = file_counter / json_split_count;
+      if (file_counter % blocks_per_json_file == 0) {
+        size_t json_file_number = file_counter / blocks_per_json_file;
         bool write_successfully = WriteJsonFile(
             std::move(processed_snippets), json_file_number, json_output_dir);
         if (!write_successfully) return 4;
@@ -243,7 +248,7 @@ int main(int argc, char* argv[]) {
   }
 
   if (!json_output_dir.empty()) {
-    size_t json_file_number = file_counter / json_split_count;
+    size_t json_file_number = file_counter / blocks_per_json_file;
     bool write_successfully = WriteJsonFile(std::move(processed_snippets),
                                             json_file_number, json_output_dir);
     if (!write_successfully) return 4;
