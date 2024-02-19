@@ -32,10 +32,10 @@
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/llvm/llvm_to_absl.h"
 #include "gematria/utils/string.h"
-#include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 
 // Use the constants from the BHive paper for setting initial register and
 // memory values. These constants are set to a high enough value to avoid
