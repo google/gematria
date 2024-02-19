@@ -54,6 +54,20 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "convert_bhive_to_llvm_exegesis_input",
+    srcs = ["convert_bhive_to_llvm_exegesis_input.cc"],
+    deps = [
+        ":bhive_importer",
+        ":find_accessed_addrs",
+        "//gematria/llvm:canonicalizer",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/utils:string",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+    ],
+)
+
 cc_library(
     name = "find_accessed_addrs",
     srcs = ["find_accessed_addrs.cc"],

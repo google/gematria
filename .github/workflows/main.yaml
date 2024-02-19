@@ -86,7 +86,7 @@ jobs:
       - name: build
         run: |
           cd /tmp/cmake-build
-          ninja llvm-granite llvm-cm
+          ninja llvm-granite check-llvm-tools-llvm-cm
   check-bazel:
     name: Run bazel build
     runs-on: ubuntu-latest
