@@ -63,7 +63,7 @@ Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::create(
 
   auto RunnerOrErr = ExegesisState.getExegesisTarget().createBenchmarkRunner(
       Benchmark::Latency, ExegesisState, BenchmarkPhaseSelectorE::Measure,
-      BenchmarkRunner::ExecutionModeE::SubProcess, 1, Benchmark::Min);
+      BenchmarkRunner::ExecutionModeE::SubProcess, 1, {}, Benchmark::Min);
 
   if (!RunnerOrErr) return RunnerOrErr.takeError();
 
@@ -146,7 +146,10 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
     handleAllErrors(std::move(std::get<0>(BenchmarkResultOrErr)),
                     [&](SnippetSegmentationFault &CrashInfo) {
                       MemoryMapping MemMap;
-                      MemMap.Address = CrashInfo.getAddress();
+                      // Zero out the last twelve bits of the address to align
+                      // the address to a page boundary.
+                      uintptr_t MapAddress = (CrashInfo.getAddress() & ~0xfff);
+                      MemMap.Address = MapAddress;
                       MemMap.MemoryValueName = "memdef1";
                       BenchCode.Key.MemoryMappings.push_back(MemMap);
                     });

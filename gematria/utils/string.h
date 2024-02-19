@@ -52,6 +52,13 @@ std::vector<std::string> StrSplitAsCopy(std::string_view text, char separator);
 // modified text.
 void StripAsciiWhitespace(std::string* text);
 
+// Converts a hex to a string.
+inline std::string ConvertHexToString(uint64_t hex) {
+  std::stringstream out;
+  out << std::hex << hex << std::dec;
+  return out.str();
+}
+
 }  // namespace gematria
 
 #endif  // THIRD_PARTY_GEMATRIA_GEMATRIA_UTILS_STRING_H_
