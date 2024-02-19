@@ -34,8 +34,13 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
 
-constexpr uint64_t kInitialRegVal = 0x10000;
-constexpr uint64_t kInitialMemVal = 0x7FFFFFFF;
+// Use the constants from the BHive paper for setting initial register and
+// memory values. These constants are set to a high enough value to avoid
+// underflow and accesses within the first page, but low enough to avoid
+// exceeding the virtual address space ceiling in most cases.
+constexpr uint64_t kInitialRegVal = 0x12345600;
+constexpr uint64_t kInitialMemVal = 0x12345600;
+constexpr unsigned kInitialMemValBitWidth = 64;
 constexpr std::string_view kRegDefPrefix = "# LLVM-EXEGESIS-DEFREG ";
 constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
 constexpr std::string_view kMemMapPrefix = "# LLVM-EXEGESIS-MEM-MAP ";
@@ -50,6 +55,8 @@ ABSL_FLAG(std::string, json_output_dir, "",
 ABSL_FLAG(
     unsigned, blocks_per_json_file, std::numeric_limits<unsigned>::max(),
     "The number of annotated basic blocks to include in a single JSON file");
+ABSL_FLAG(unsigned, max_bb_count, std::numeric_limits<unsigned>::max(),
+          "The maximum number of basic blocks to process");
 
 bool WriteJsonFile(llvm::json::Array to_write, size_t json_file_number,
                    llvm::StringRef json_output_dir) {
@@ -92,6 +99,14 @@ int main(int argc, char* argv[]) {
       gematria::ConvertHexToString(kInitialRegVal);
   std::string initial_mem_val_str =
       gematria::ConvertHexToString(kInitialMemVal);
+  // Prefix the string with zeroes as llvm-exegesis assumes the bit width
+  // of the memory value based on the number of characters in the string.
+  if (kInitialMemValBitWidth > initial_mem_val_str.size() * 4)
+    initial_mem_val_str =
+        std::string(
+            (kInitialMemValBitWidth - initial_mem_val_str.size() * 4) / 4,
+            '0') +
+        initial_mem_val_str;
   std::string register_defs_lines;
   const std::unique_ptr<gematria::LlvmArchitectureSupport> llvm_support =
       gematria::LlvmArchitectureSupport::X86_64();
@@ -99,14 +114,12 @@ int main(int argc, char* argv[]) {
 
   // Iterate through all general purpose registers and vector registers
   // and add them to the register definitions.
-  // TODO(9Temptest): Change GR64_NOREXRegClassID to GR64_NOREX2RegClassID when
-  // the LLVM version is bumped to avoid including the new APX GPRs (r16-r31)
-  // that have recently been added to LLVM.
-  for (unsigned i = 0;
-       i < reg_info.getRegClass(llvm::X86::GR64_NOREXRegClassID).getNumRegs();
-       ++i) {
-    llvm::StringRef reg_name = reg_info.getName(
-        reg_info.getRegClass(llvm::X86::GR64_NOREXRegClassID).getRegister(i));
+  const auto& gr64_register_class =
+      reg_info.getRegClass(llvm::X86::GR64_NOREX2RegClassID);
+  for (unsigned i = 0; i < gr64_register_class.getNumRegs(); ++i) {
+    if (gr64_register_class.getRegister(i) == llvm::X86::RIP) continue;
+    llvm::StringRef reg_name =
+        reg_info.getName(gr64_register_class.getRegister(i));
     register_defs_lines += llvm::Twine(kRegDefPrefix)
                                .concat(reg_name)
                                .concat(" ")
@@ -114,10 +127,11 @@ int main(int argc, char* argv[]) {
                                .concat("\n")
                                .str();
   }
-  for (unsigned i = 0;
-       i < reg_info.getRegClass(llvm::X86::VR128RegClassID).getNumRegs(); ++i) {
-    llvm::StringRef reg_name = reg_info.getName(
-        reg_info.getRegClass(llvm::X86::VR128RegClassID).getRegister(i));
+  const auto& vr128_register_class =
+      reg_info.getRegClass(llvm::X86::VR128RegClassID);
+  for (unsigned i = 0; i < vr128_register_class.getNumRegs(); ++i) {
+    llvm::StringRef reg_name =
+        reg_info.getName(vr128_register_class.getRegister(i));
     register_defs_lines += llvm::Twine(kRegDefPrefix)
                                .concat(reg_name)
                                .concat(" ")
@@ -131,8 +145,11 @@ int main(int argc, char* argv[]) {
 
   std::ifstream bhive_csv_file(bhive_filename);
   llvm::json::Array processed_snippets;
+  const unsigned max_bb_count = absl::GetFlag(FLAGS_max_bb_count);
   unsigned int file_counter = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
+    if (file_counter >= max_bb_count) break;
+
     auto comma_index = line.find(',');
     if (comma_index == std::string::npos) {
       std::cerr << "Invalid CSV file: no comma in line '" << line << "'\n";

@@ -102,5 +102,16 @@ TEST_F(FindAccessedAddrsExegesisTest, ExegesisOneAccess) {
   EXPECT_EQ(Result.accessed_blocks[0], 0x10000);
 }
 
+TEST_F(FindAccessedAddrsExegesisTest, ExegesisNotPageAligned) {
+  auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
+    movq $0x10001, %rax
+    movq (%rax), %rax
+  )asm");
+  ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
+  AccessedAddrs Result = *AddrsOrErr;
+  EXPECT_EQ(Result.accessed_blocks.size(), 1);
+  EXPECT_EQ(Result.accessed_blocks[0], 0x10000);
+}
+
 }  // namespace
 }  // namespace gematria
