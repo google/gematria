@@ -91,6 +91,7 @@
 
 #include <cstddef>
 #include <ostream>
+#include <set>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -159,6 +160,11 @@ class BasicBlockGraphBuilder {
   //    address computation.
   //  - memory_token: the token associated with nodes that represent memory
   //    accesses.
+  //  - annotation_names: the set of names of annotations to be used.
+  //    Annotations with names belonging to this list will be stored and
+  //    available for use, the rest will be discarded. All instructions need
+  //    not have all annotations corresponding to the elements of this list,
+  //    i.e. missing annotations will be handled.
   //  - unknown_token_behavior and unknown_token: controls for the behavior of
   //    the basic block graph builder when it encounters an unknown token when
   //    adding new basic blocks to the builder. When unknown_node_behavior is
@@ -171,6 +177,7 @@ class BasicBlockGraphBuilder {
       std::vector<std::string> node_tokens, std::string_view immediate_token,
       std::string_view fp_immediate_token, std::string_view address_token,
       std::string_view memory_token,
+      std::set<std::string> annotation_names = std::set<std::string>(),
       OutOfVocabularyTokenBehavior out_of_vocabulary_behavior =
           OutOfVocabularyTokenBehavior::ReturnError());
 
@@ -235,10 +242,16 @@ class BasicBlockGraphBuilder {
   // Feature value of the nodes in the batch (i.e. the indices of the tokens
   // corresponding to the nodes). Corresponds to `GraphsTuple.nodes`.
   const std::vector<int>& node_features() const { return node_features_; }
-  // Values of instruction level runtime annotations in the same order as
-  // the instructions in the block, indexed by the annotation name.
-  const std::unordered_map<std::string, std::vector<double>>&
-  instruction_annotations() const {
+
+  // Names of types of instruction annotations stored.
+  const std::set<std::string>& annotation_names() const {
+    return annotation_names_;
+  }
+  // Values of instruction level runtime annotations. Represents a
+  // `annotation_names.size() x `num_instructions` matrix, each entry of which
+  // represents the value of the annotation of the type corresponding to the
+  // row for the instruction corresponding to the column.
+  const std::vector<std::vector<double>>& instruction_annotations() const {
     return instruction_annotations_;
   }
 
@@ -380,6 +393,11 @@ class BasicBlockGraphBuilder {
   const TokenIndex address_token_;
   const TokenIndex memory_token_;
 
+  // Holds valid annotation names in sorted order. Instruction annotations with
+  // names belonging to this list are stored in `instruction_annotations_` and
+  // the rest are discarded.
+  const std::set<std::string> annotation_names_;
+
   const OutOfVocabularyTokenBehavior out_of_vocabulary_behavior_;
   const TokenIndex replacement_token_;
 
@@ -388,7 +406,7 @@ class BasicBlockGraphBuilder {
 
   std::vector<NodeType> node_types_;
   std::vector<TokenIndex> node_features_;
-  std::unordered_map<std::string, std::vector<double>> instruction_annotations_;
+  std::vector<std::vector<double>> instruction_annotations_;
 
   std::vector<NodeIndex> edge_senders_;
   std::vector<NodeIndex> edge_receivers_;

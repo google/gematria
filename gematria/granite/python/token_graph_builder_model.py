@@ -165,9 +165,18 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     self._readout_activation = readout_activation or leaky_relu
     self._update_activation = update_activation or leaky_relu
 
+    self._annotation_names = list(self._batch_graph_builder.annotation_names)
+    self._to_feed_instruction_annotations = np.zeros(
+        (0, 0), dtype=self.dtype.as_numpy_dtype
+    )
+    if self._annotation_names:
+      self._to_feed_instruction_annotations = np.array(
+          self._batch_graph_builder.instruction_annotations,
+          dtype=self.dtype.as_numpy_dtype,
+      ).transpose()
     self._instruction_annotations = tf.placeholder(
         dtype=self.dtype,
-        shape=(None, len(self._batch_graph_builder.instruction_annotations)),
+        shape=self._to_feed_instruction_annotations.shape,
         name=TokenGraphBuilderModel.INSTRUCTION_ANNOTATIONS_TENSOR_NAME,
     )
 
@@ -361,15 +370,10 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
 
   def _make_batch_feed_dict(self) -> model_base.FeedDict:
     feed_dict = super()._make_batch_feed_dict()
-    to_feed_instruction_annotations = None
-    if len(self._batch_graph_builder.instruction_annotations) == 0:
-      to_feed_instruction_annotations = np.zeros((0, 0), dtype=self.dtype)
-    else:
-      to_feed_instruction_annotations = np.array(
-          list(self._batch_graph_builder.instruction_annotations.values()),
-          dtype=self.dtype,
-      ).transpose()
-    feed_dict[self._instruction_annotations] = to_feed_instruction_annotations
+
+    feed_dict[self._instruction_annotations] = (
+        self._to_feed_instruction_annotations
+    )
     return feed_dict
 
 

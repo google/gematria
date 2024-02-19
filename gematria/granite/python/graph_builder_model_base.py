@@ -89,6 +89,7 @@ class GraphBuilderModelBase(
       fp_immediate_token: str,
       address_token: str,
       memory_token: str,
+      annotation_names: Sequence[str] = [],
       **kwargs: Any,
   ) -> None:
     """Initializes the model with the given feature factory.
@@ -108,6 +109,7 @@ class GraphBuilderModelBase(
         in the basic block graph.
       memory_token: The token that is associated with memory value nodes in the
         basic block graph.
+      annotation_names: The list of names of annotations to be used.
       **kwargs: Additional keyword arguments are passed to the constructor of
         the base class.
     """
@@ -141,6 +143,7 @@ class GraphBuilderModelBase(
         fp_immediate_token=fp_immediate_token,
         address_token=address_token,
         memory_token=memory_token,
+        annotation_names=set(annotation_names),
         out_of_vocabulary_behavior=self._oov_behavior,
     )
 

@@ -52,6 +52,9 @@ constexpr absl::string_view kTokens[] = {
     // 10
     "RBX", "RCX", "RDI", kUnknownToken, "NOP", "LOCK"};
 
+// Names of Instruction annotations used in tests.
+const std::set<std::string> kAnnotationNames{"cache_miss_freq"};
+
 int TokenIndex(absl::string_view token) {
   const auto it = std::find(std::begin(kTokens), std::end(kTokens), token);
   EXPECT_NE(it, std::end(kTokens)) << "Invalid token: " << token;
@@ -67,7 +70,8 @@ class BasicBlockGraphBuilderTest : public testing::Test {
         /*immediate_token =*/kImmediateToken,
         /*fp_immediate_token =*/kFpImmediateToken,
         /*address_token =*/kAddressToken,
-        /*memory_token =*/kMemoryToken, out_of_vocabulary_behavior);
+        /*memory_token =*/kMemoryToken,
+        /*annotation_names=*/kAnnotationNames, out_of_vocabulary_behavior);
   }
   std::unique_ptr<BasicBlockGraphBuilder> builder_;
 };
@@ -195,9 +199,9 @@ TEST_F(BasicBlockGraphBuilderTest, SingleInstructionWithAnnotation) {
       builder_->global_features(),
       ElementsAre(ElementsAre(0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0)));
 
-  EXPECT_EQ(builder_->instruction_annotations().size(), 1);
-  EXPECT_THAT(builder_->instruction_annotations().at("cache_miss_freq"),
-              ElementsAre(0.875));
+  EXPECT_THAT(builder_->annotation_names(), ElementsAre("cache_miss_freq"));
+  EXPECT_THAT(builder_->instruction_annotations(),
+              ElementsAre(ElementsAre(0.875)));
 }
 
 TEST_F(BasicBlockGraphBuilderTest, InvalidMnemonic_ReturnError) {
@@ -499,9 +503,8 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
   EXPECT_THAT(builder_->edge_receivers(),
               ElementsAre(0, 2, 0, 4, 5, 5, 6, 6, 5, 8, 9, 9, 10, 11, 11, 12));
 
-  EXPECT_THAT(
-      builder_->instruction_annotations(),
-      ElementsAre(Pair("cache_miss_freq", ElementsAre(0.9, -1, 0.01, -1))));
+  EXPECT_THAT(builder_->instruction_annotations(),
+              ElementsAre(ElementsAre(0.9, -1, 0.01, -1)));
 }
 
 // Tests that nodes in basic blocks added through different AddBasicBlock()
