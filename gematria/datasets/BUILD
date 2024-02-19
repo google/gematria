@@ -68,6 +68,15 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "exegesis-benchmark",
+    srcs = ["exegesis-benchmark.cc"],
+    deps = [
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+    ],
+)
+
 cc_library(
     name = "find_accessed_addrs",
     srcs = ["find_accessed_addrs.cc"],
