@@ -19,6 +19,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "X86RegisterInfo.h"
 #include "X86Subtarget.h"
@@ -29,6 +30,9 @@
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
+#include "llvm/Support/JSON.h"
+#include "llvm/Support/Path.h"
+#include "llvm/Support/raw_ostream.h"
 
 // Use the constants from the BHive paper for setting initial register and
 // memory values. These constants are set to a high enough value to avoid
@@ -44,10 +48,35 @@ constexpr std::string_view kMemNamePrefix = "MEM";
 
 ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
 ABSL_FLAG(
-    std::string, output_dir, "",
+    std::string, asm_output_dir, "",
     "Directory containing output files that can be executed by llvm-exegesis");
+ABSL_FLAG(std::string, json_output_dir, "",
+          "Directory containing JSON output files");
+ABSL_FLAG(
+    unsigned, blocks_per_json_file, std::numeric_limits<unsigned>::max(),
+    "The number of annotated basic blocks to include in a single JSON file");
 ABSL_FLAG(unsigned, max_bb_count, std::numeric_limits<unsigned>::max(),
           "The maximum number of basic blocks to process");
+
+bool WriteJsonFile(llvm::json::Array to_write, size_t json_file_number,
+                   llvm::StringRef json_output_dir) {
+  llvm::SmallString<40> json_output_file_path(json_output_dir);
+  llvm::sys::path::append(json_output_file_path,
+                          llvm::Twine(json_file_number).concat(".json"));
+  std::error_code file_ec;
+  llvm::raw_fd_ostream json_output_file(json_output_file_path, file_ec);
+
+  if (file_ec) {
+    std::cerr << "Failed to open output file: "
+              << static_cast<std::string_view>(json_output_file_path.str())
+              << "\n";
+    return false;
+  }
+
+  json_output_file
+      << llvm::formatv("{0:2}", llvm::json::Value(std::move(to_write))).str();
+  return true;
+}
 
 int main(int argc, char* argv[]) {
   absl::ParseCommandLine(argc, argv);
@@ -58,9 +87,12 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  const std::string output_dir = absl::GetFlag(FLAGS_output_dir);
-  if (output_dir.empty()) {
-    std::cerr << "Error: --output_dir is required\n";
+  const std::string json_output_dir = absl::GetFlag(FLAGS_json_output_dir);
+  const std::string asm_output_dir = absl::GetFlag(FLAGS_asm_output_dir);
+
+  const int blocks_per_json_file = absl::GetFlag(FLAGS_blocks_per_json_file);
+  if (blocks_per_json_file <= 0) {
+    std::cerr << "Error: --blocks_per_json_file must be greater than 1.\n";
     return 1;
   }
 
@@ -113,6 +145,7 @@ int main(int argc, char* argv[]) {
   gematria::BHiveImporter bhive_importer(&canonicalizer);
 
   std::ifstream bhive_csv_file(bhive_filename);
+  llvm::json::Array processed_snippets;
   const unsigned max_bb_count = absl::GetFlag(FLAGS_max_bb_count);
   unsigned int file_counter = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
@@ -154,38 +187,90 @@ int main(int argc, char* argv[]) {
       continue;
     }
 
-    // Create output file path.
-    llvm::Twine output_file_path = llvm::Twine(output_dir)
-                                       .concat("/")
-                                       .concat(llvm::Twine(file_counter))
-                                       .concat(".test");
+    if (!asm_output_dir.empty()) {
+      // Create output file path.
+      llvm::Twine output_file_path = llvm::Twine(asm_output_dir)
+                                         .concat("/")
+                                         .concat(llvm::Twine(file_counter))
+                                         .concat(".test");
 
-    // Open output file for writing.
-    std::ofstream output_file(output_file_path.str());
-    if (!output_file.is_open()) {
-      std::cerr << "Failed to open output file: " << output_file_path.str()
-                << "\n";
-      return 4;
-    }
-
-    // Write the register definition lines into the output file.
-    output_file << register_defs_lines;
-
-    // Multiple mappings can point to the same definition.
-    if (addrs->accessed_blocks.size() > 0) {
-      output_file << kMemDefPrefix << kMemNamePrefix << " " << addrs->block_size
-                  << " " << initial_mem_val_str << "\n";
-    }
-    for (const auto& addr : addrs->accessed_blocks) {
-      output_file << kMemMapPrefix << kMemNamePrefix << " " << std::dec << addr
+      // Open output file for writing.
+      std::ofstream output_file(output_file_path.str());
+      if (!output_file.is_open()) {
+        std::cerr << "Failed to open output file: " << output_file_path.str()
                   << "\n";
+        return 4;
+      }
+
+      // Write the register definition lines into the output file.
+      output_file << register_defs_lines;
+
+      // Multiple mappings can point to the same definition.
+      if (addrs->accessed_blocks.size() > 0) {
+        output_file << kMemDefPrefix << kMemNamePrefix << " "
+                    << addrs->block_size << " " << initial_mem_val_str << "\n";
+      }
+      for (const auto& addr : addrs->accessed_blocks) {
+        output_file << kMemMapPrefix << kMemNamePrefix << " " << std::dec
+                    << addr << "\n";
+      }
+
+      // Append disassembled instructions.
+      for (const auto& instr : proto->machine_instructions()) {
+        output_file << instr.assembly() << "\n";
+      }
     }
 
-    // Append disassembled instructions.
-    for (const auto& instr : proto->machine_instructions()) {
-      output_file << instr.assembly() << "\n";
+    if (!json_output_dir.empty()) {
+      llvm::json::Object current_snippet;
+
+      if (addrs->accessed_blocks.size() > 0) {
+        llvm::json::Array memory_definitions;
+        llvm::json::Object current_memory_definition;
+        current_memory_definition["Name"] = llvm::json::Value(kMemNamePrefix);
+        current_memory_definition["Size"] = addrs->block_size;
+        current_memory_definition["Value"] = llvm::json::Value(kInitialMemVal);
+        memory_definitions.push_back(std::move(current_memory_definition));
+        current_snippet["MemoryDefinitions"] =
+            llvm::json::Value(std::move(memory_definitions));
+
+        llvm::json::Array memory_mappings;
+        for (const uintptr_t addr : addrs->accessed_blocks) {
+          llvm::json::Object current_memory_mapping;
+          current_memory_mapping["Value"] = llvm::json::Value(kMemNamePrefix);
+          current_memory_mapping["Address"] = addr;
+          memory_mappings.push_back(std::move(current_memory_mapping));
+        }
+        current_snippet["MemoryMappings"] =
+            llvm::json::Value(std::move(memory_mappings));
+      } else {
+        current_snippet["MemoryDefinitions"] = llvm::json::Array();
+        current_snippet["MemoryMappings"] = llvm::json::Array();
+      }
+
+      current_snippet["Hex"] = std::string(hex);
+
+      processed_snippets.push_back(
+          llvm::json::Value(std::move(current_snippet)));
+
+      if (file_counter % blocks_per_json_file == 0) {
+        size_t json_file_number = file_counter / blocks_per_json_file;
+        bool write_successfully = WriteJsonFile(
+            std::move(processed_snippets), json_file_number, json_output_dir);
+        if (!write_successfully) return 4;
+        processed_snippets.clear();
+      }
     }
 
     file_counter++;
   }
+
+  if (!json_output_dir.empty()) {
+    size_t json_file_number = file_counter / blocks_per_json_file;
+    bool write_successfully = WriteJsonFile(std::move(processed_snippets),
+                                            json_file_number, json_output_dir);
+    if (!write_successfully) return 4;
+  }
+
+  return 0;
 }
