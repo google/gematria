@@ -85,7 +85,7 @@ constexpr std::string_view kNodeTokensTensorName = "TokenModel.token_list";
 constexpr std::string_view kSpecialTokensTensorName =
     "GraphBuilderModelBase.special_tokens";
 constexpr std::string_view kAnnotationNamesTensorName =
-    "TokenGraphBuilderModel.annotation_names"
+    "TokenGraphBuilderModel.annotation_names";
 
     // Checks that:
     // 1. `tensor` != nullptr,
