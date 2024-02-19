@@ -87,20 +87,21 @@ constexpr std::string_view kSpecialTokensTensorName =
 constexpr std::string_view kAnnotationNamesTensorName =
     "TokenGraphBuilderModel.annotation_names";
 
-    // Checks that:
-    // 1. `tensor` != nullptr,
-    // 2. `tensor` has type `tensor_type`.
-    // 3. `tensor` has the number of dimensions corresponding to the number of
-    // elements of `sizes`, and the sizes in those dimensions are equal to
-    // `sizes`. Returns `llvm::Error::success()` when all checks pass, an error
-    // otherwise.
-    //
-    // TODO(ondrasej): See if we can replace this function and the one below
-    // with TFModelEvaluatorImpl::checkReportAndInvalidate.
-    template <typename... Args>
-    llvm::Error CheckTensorTypeAndDimensions(
-        int tensor_index, const TfLiteTensor* tensor, TfLiteType tensor_type,
-        Args... sizes) {
+// Checks that:
+// 1. `tensor` != nullptr,
+// 2. `tensor` has type `tensor_type`.
+// 3. `tensor` has the number of dimensions corresponding to the number of
+// elements of `sizes`, and the sizes in those dimensions are equal to
+// `sizes`. Returns `llvm::Error::success()` when all checks pass, an error
+// otherwise.
+//
+// TODO(ondrasej): See if we can replace this function and the one below
+// with TFModelEvaluatorImpl::checkReportAndInvalidate.
+template <typename... Args>
+llvm::Error CheckTensorTypeAndDimensions(int tensor_index,
+                                         const TfLiteTensor* tensor,
+                                         TfLiteType tensor_type,
+                                         Args... sizes) {
   const int64_t sizes_array[] = {static_cast<int64_t>(sizes)...};
   const int num_dimensions = std::size(sizes_array);
   if (tensor == nullptr) {
