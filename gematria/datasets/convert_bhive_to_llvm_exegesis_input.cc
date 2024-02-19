@@ -67,7 +67,8 @@ bool WriteJsonFile(llvm::json::Array to_write, size_t json_file_number,
   llvm::raw_fd_ostream json_output_file(json_output_file_path, file_ec);
 
   if (file_ec) {
-    std::cerr << "Failed to open output file: " << json_output_file_path.c_str()
+    std::cerr << "Failed to open output file: "
+              << static_cast<std::string_view>(json_output_file_path.str())
               << "\n";
     return false;
   }
