@@ -27,12 +27,15 @@
 #include "absl/flags/parse.h"
 #include "gematria/datasets/bhive_importer.h"
 #include "gematria/datasets/find_accessed_addrs.h"
+#include "gematria/datasets/find_accessed_addrs_exegesis.h"
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/llvm_architecture_support.h"
+#include "gematria/llvm/llvm_to_absl.h"
 #include "gematria/utils/string.h"
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 
 // Use the constants from the BHive paper for setting initial register and
 // memory values. These constants are set to a high enough value to avoid
@@ -46,10 +49,38 @@ constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
 constexpr std::string_view kMemMapPrefix = "# LLVM-EXEGESIS-MEM-MAP ";
 constexpr std::string_view kMemNamePrefix = "MEM";
 
+enum class AnnotatorType { kExegesis, kFast };
+
+constexpr std::pair<AnnotatorType, std::string_view> kAnnotatorTypeNames[] = {
+    {AnnotatorType::kExegesis, "exegesis"}, {AnnotatorType::kFast, "fast"}};
+
+bool AbslParseFlag(absl::string_view text, AnnotatorType* type,
+                   std::string* error) {
+  for (const auto& [annotator_type, type_string] : kAnnotatorTypeNames) {
+    if (text == type_string) {
+      *type = annotator_type;
+      return true;
+    }
+  }
+
+  *error = "unknown annotator type";
+  return false;
+}
+
+std::string AbslUnparseFlag(AnnotatorType type) {
+  for (const auto& [annotator_type, type_string] : kAnnotatorTypeNames) {
+    if (annotator_type == type) return std::string(type_string);
+  }
+
+  __builtin_unreachable();
+}
+
 ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
 ABSL_FLAG(
     std::string, asm_output_dir, "",
     "Directory containing output files that can be executed by llvm-exegesis");
+ABSL_FLAG(AnnotatorType, annotator_implementation, AnnotatorType::kFast,
+          "The annotator implementation to use.");
 ABSL_FLAG(std::string, json_output_dir, "",
           "Directory containing JSON output files");
 ABSL_FLAG(
@@ -57,6 +88,23 @@ ABSL_FLAG(
     "The number of annotated basic blocks to include in a single JSON file");
 ABSL_FLAG(unsigned, max_bb_count, std::numeric_limits<unsigned>::max(),
           "The maximum number of basic blocks to process");
+
+absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
+    absl::Span<const uint8_t> basic_block,
+    gematria::ExegesisAnnotator* exegesis_annotator) {
+  const AnnotatorType annotator_implementation =
+      absl::GetFlag(FLAGS_annotator_implementation);
+  switch (annotator_implementation) {
+    case AnnotatorType::kFast:
+      // This will only get the first segfault address.
+      return gematria::FindAccessedAddrs(basic_block);
+    case AnnotatorType::kExegesis:
+      return gematria::LlvmExpectedToStatusOr(
+          exegesis_annotator->findAccessedAddrs(
+              llvm::ArrayRef(basic_block.begin(), basic_block.end())));
+  }
+  return absl::InvalidArgumentError("unknown annotator type");
+}
 
 bool WriteJsonFile(llvm::json::Array to_write, size_t json_file_number,
                    llvm::StringRef json_output_dir) {
@@ -95,6 +143,9 @@ int main(int argc, char* argv[]) {
     std::cerr << "Error: --blocks_per_json_file must be greater than 1.\n";
     return 1;
   }
+
+  const AnnotatorType annotator_implementation =
+      absl::GetFlag(FLAGS_annotator_implementation);
 
   std::string initial_reg_val_str =
       gematria::ConvertHexToString(kInitialRegVal);
@@ -144,6 +195,25 @@ int main(int argc, char* argv[]) {
   gematria::X86Canonicalizer canonicalizer(&llvm_support->target_machine());
   gematria::BHiveImporter bhive_importer(&canonicalizer);
 
+  llvm::exegesis::InitializeX86ExegesisTarget();
+
+  auto llvm_state_or_error = llvm::exegesis::LLVMState::Create("", "native");
+  if (!llvm_state_or_error) {
+    std::cerr << "Failed to create LLVMState\n";
+    return 1;
+  }
+
+  std::unique_ptr<gematria::ExegesisAnnotator> exegesis_annotator = nullptr;
+  if (annotator_implementation == AnnotatorType::kExegesis) {
+    auto exegesis_annotator_or_error =
+        gematria::ExegesisAnnotator::create(*llvm_state_or_error);
+    if (!exegesis_annotator_or_error) {
+      std::cerr << "Failed to create exegesis annotator\n";
+      return 1;
+    }
+    exegesis_annotator = std::move(*exegesis_annotator_or_error);
+  }
+
   std::ifstream bhive_csv_file(bhive_filename);
   llvm::json::Array processed_snippets;
   const unsigned max_bb_count = absl::GetFlag(FLAGS_max_bb_count);
@@ -175,7 +245,7 @@ int main(int argc, char* argv[]) {
     }
 
     // This will only get the first segfault address.
-    auto addrs = gematria::FindAccessedAddrs(*bytes);
+    auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator.get());
 
     if (!addrs.ok()) {
       std::cerr << "Failed to find addresses for block '" << hex

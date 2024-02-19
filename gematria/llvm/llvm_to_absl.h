@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_GEMATRIA_GEMATRIA_LLVM_LLVM_TO_ABSL_H_
 #define THIRD_PARTY_GEMATRIA_GEMATRIA_LLVM_LLVM_TO_ABSL_H_
 
+#include <optional>
 #include <string>
 
 #include "absl/status/status.h"
@@ -36,6 +37,12 @@ template <typename T>
 absl::StatusOr<T> LlvmExpectedToStatusOr(llvm::Expected<T> expected) {
   if (expected) return std::move(*expected);
   return LlvmErrorToStatus(expected.takeError());
+}
+
+template <typename T>
+std::optional<T> StatusOrToOptional(absl::StatusOr<T> status_or) {
+  if (status_or.ok()) return std::move(*status_or);
+  return std::nullopt;
 }
 }  // namespace gematria
 
