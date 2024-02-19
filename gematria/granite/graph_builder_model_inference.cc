@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <set>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -83,21 +84,23 @@ constexpr int kNumSpecialNodeTokens = 5;
 constexpr std::string_view kNodeTokensTensorName = "TokenModel.token_list";
 constexpr std::string_view kSpecialTokensTensorName =
     "GraphBuilderModelBase.special_tokens";
+constexpr std::string_view kAnnotationNamesTensorName =
+    "TokenGraphBuilderModel.annotation_names"
 
-// Checks that:
-// 1. `tensor` != nullptr,
-// 2. `tensor` has type `tensor_type`.
-// 3. `tensor` has the number of dimensions corresponding to the number of
-// elements of `sizes`, and the sizes in those dimensions are equal to `sizes`.
-// Returns `llvm::Error::success()` when all checks pass, an error otherwise.
-//
-// TODO(ondrasej): See if we can replace this function and the one below with
-// TFModelEvaluatorImpl::checkReportAndInvalidate.
-template <typename... Args>
-llvm::Error CheckTensorTypeAndDimensions(int tensor_index,
-                                         const TfLiteTensor* tensor,
-                                         TfLiteType tensor_type,
-                                         Args... sizes) {
+    // Checks that:
+    // 1. `tensor` != nullptr,
+    // 2. `tensor` has type `tensor_type`.
+    // 3. `tensor` has the number of dimensions corresponding to the number of
+    // elements of `sizes`, and the sizes in those dimensions are equal to
+    // `sizes`. Returns `llvm::Error::success()` when all checks pass, an error
+    // otherwise.
+    //
+    // TODO(ondrasej): See if we can replace this function and the one below
+    // with TFModelEvaluatorImpl::checkReportAndInvalidate.
+    template <typename... Args>
+    llvm::Error CheckTensorTypeAndDimensions(
+        int tensor_index, const TfLiteTensor* tensor, TfLiteType tensor_type,
+        Args... sizes) {
   const int64_t sizes_array[] = {static_cast<int64_t>(sizes)...};
   const int num_dimensions = std::size(sizes_array);
   if (tensor == nullptr) {
@@ -335,6 +338,37 @@ llvm::Expected<std::string> GetNodeTokenAtIndex(
   return node_token_list[token_index];
 }
 
+// Extracts the set of annotation names from the model. This should be a Const
+// tensor, and as such, it should be readable without providing any inputs.
+// Returns an error when the annotation names tensor is not found or when it is
+// not readable.
+llvm::Expected<std::set<std::string>> GetAnnotationNames(
+    const tflite::Interpreter& interpreter) {
+  llvm::Expected<int> annotation_names_tensor_index = TensorIndexByName(
+      interpreter, interpreter.outputs(), kAnnotationNamesTensorName);
+  if (auto error = annotation_names_tensor_index.takeError()) return error;
+  const TfLiteTensor* const annotation_names_tensor =
+      interpreter.tensor(*annotation_names_tensor_index);
+  assert(annotation_names_tensor != nullptr);
+
+  const size_t annotation_names_size_bytes = annotation_names_tensor->bytes;
+  // The token list tensor is a Const operation, so it should be readable before
+  // running the inference or providing any inputs.
+  const char* const annotation_names_raw_data = reinterpret_cast<const char*>(
+      interpreter.typed_tensor<uint8_t>(*annotation_names_tensor_index));
+  if (annotation_names_raw_data == nullptr) {
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "The annotation names could not be read");
+  }
+  const std::string_view annotation_names_data(annotation_names_raw_data,
+                                               annotation_names_size_bytes);
+  std::vector<std::string> annotation_names =
+      StrSplitAsCopy(annotation_names_data, '\0');
+  return std::set<std::string>(
+      std::make_move_iterator(annotation_names.begin()),
+      std::make_move_iterator(annotation_names.end()));
+}
+
 }  // namespace
 
 llvm::Expected<std::unique_ptr<GraphBuilderModelInference>>
@@ -373,6 +407,12 @@ GraphBuilderModelInference::FromTfLiteModel(
         llvm::errc::invalid_argument,
         "The special token index tensor could not be read");
   }
+
+  // Get the set of annotation names used by the model.
+  llvm::Expected<std::set<std::string>> annotation_names =
+      GetAnnotationNames(**interpreter);
+  if (llvm::Error error = annotation_names.takeError()) return error;
+
   // We'll be std::move()-ing the node list vector in the same function call
   // where we use the token names. To be safe from any move effects, we make a
   // copy of all the tokens instead of taking a const reference.
@@ -412,6 +452,7 @@ GraphBuilderModelInference::FromTfLiteModel(
       *std::move(node_token_list), /* immediate_token = */ *immediate_token,
       /* fp_immediate_token = */ *fp_immediate_token,
       /* address_token = */ *address_token, /* memory_token = */ *memory_token,
+      /* annotation_names = */ *std::move(annotation_names),
       /* out_of_vocabulary_behavior = */ out_of_vocabulary_behavior);
 
   // We can't use std::make_unique<GraphBuilderModelInference>(), because

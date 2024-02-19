@@ -162,7 +162,7 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
           FindTokenOrDie(node_tokens_, std::string(fp_immediate_token))),
       address_token_(FindTokenOrDie(node_tokens_, std::string(address_token))),
       memory_token_(FindTokenOrDie(node_tokens_, std::string(memory_token))),
-      annotation_names_(annotation_names),
+      annotation_names_(std::move(annotation_names)),
       out_of_vocabulary_behavior_(out_of_vocabulary_behavior),
       replacement_token_(
           out_of_vocabulary_behavior.behavior_type() ==

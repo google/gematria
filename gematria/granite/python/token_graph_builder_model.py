@@ -56,9 +56,11 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
       'TokenGraphBuilderModel.instruction_annotations'
   )
   NODE_FEATURES_TENSOR_NAME = 'TokenGraphBuilderModel.node_features'
+  ANNOTATION_NAMES_TENSOR_NAME = 'TokenGraphBuilderModel.annotation_names'
 
   _instruction_annotations: tf.Tensor
   _node_features: tf.Tensor
+  _annotation_names: tf.Tensor
 
   def __init__(
       self,
@@ -165,11 +167,18 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     self._readout_activation = readout_activation or leaky_relu
     self._update_activation = update_activation or leaky_relu
 
-    self._annotation_names = list(self._batch_graph_builder.annotation_names)
+    annotation_names_list = list(self._batch_graph_builder.annotation_names)
+    annotation_names_array = np.frombuffer(
+        b'\0'.join(name.encode('utf-8') for name in annotation_names_list)
+    )
+    self._annotation_names = tf.constant(
+        annotation_names_array,
+        name=TokenGraphBuilderModel.ANNOTATION_NAMES_TENSOR_NAME,
+    )
     self._to_feed_instruction_annotations = np.zeros(
         (0, 0), dtype=self.dtype.as_numpy_dtype
     )
-    if self._annotation_names:
+    if annotation_names_list:
       self._to_feed_instruction_annotations = np.array(
           self._batch_graph_builder.instruction_annotations,
           dtype=self.dtype.as_numpy_dtype,
