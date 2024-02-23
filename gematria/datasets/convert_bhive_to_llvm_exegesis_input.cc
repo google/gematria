@@ -138,7 +138,8 @@ int main(int argc, char* argv[]) {
   const std::string json_output_dir = absl::GetFlag(FLAGS_json_output_dir);
   const std::string asm_output_dir = absl::GetFlag(FLAGS_asm_output_dir);
 
-  const int blocks_per_json_file = absl::GetFlag(FLAGS_blocks_per_json_file);
+  const unsigned blocks_per_json_file =
+      absl::GetFlag(FLAGS_blocks_per_json_file);
   if (blocks_per_json_file <= 0) {
     std::cerr << "Error: --blocks_per_json_file must be greater than 1.\n";
     return 1;
