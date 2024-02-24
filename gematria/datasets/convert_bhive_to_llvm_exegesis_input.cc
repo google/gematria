@@ -324,7 +324,7 @@ int main(int argc, char* argv[]) {
       processed_snippets.push_back(
           llvm::json::Value(std::move(current_snippet)));
 
-      if (file_counter % blocks_per_json_file == 0) {
+      if ((file_counter + 1) % blocks_per_json_file == 0) {
         size_t json_file_number = file_counter / blocks_per_json_file;
         bool write_successfully = WriteJsonFile(
             std::move(processed_snippets), json_file_number, json_output_dir);
