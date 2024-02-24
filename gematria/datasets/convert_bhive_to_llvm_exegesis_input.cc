@@ -88,9 +88,8 @@ ABSL_FLAG(
     "The number of annotated basic blocks to include in a single JSON file");
 ABSL_FLAG(unsigned, max_bb_count, std::numeric_limits<unsigned>::max(),
           "The maximum number of basic blocks to process");
-ABSL_FLAG(
-    bool, report_progress, false,
-    "Whether or not to report progress after annotating each basic block.");
+ABSL_FLAG(unsigned, report_progress_every, std::numeric_limits<unsigned>::max(),
+          "The number of blocks after which to report progress.");
 
 absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
@@ -220,7 +219,8 @@ int main(int argc, char* argv[]) {
   std::ifstream bhive_csv_file(bhive_filename);
   llvm::json::Array processed_snippets;
   const unsigned max_bb_count = absl::GetFlag(FLAGS_max_bb_count);
-  const bool report_progress = absl::GetFlag(FLAGS_report_progress);
+  const unsigned report_progress_every =
+      absl::GetFlag(FLAGS_report_progress_every);
   unsigned int file_counter = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
     if (file_counter >= max_bb_count) break;
@@ -336,8 +336,8 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    if (report_progress)
-      std::cout << "Finished annotating block #" << file_counter << ".\n";
+    if (file_counter % report_progress_every == 0)
+      std::cerr << "Finished annotating block #" << file_counter << ".\n";
 
     file_counter++;
   }
