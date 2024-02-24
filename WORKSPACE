@@ -165,9 +165,9 @@ new_git_repository(
 
 # LLVM and its dependencies
 
-LLVM_COMMIT = "ce75cbeda21e3e4e5d0c47ecf44954caf98acfe8"
+LLVM_COMMIT = "31ab2c4f616d686c06e9b573c8f1a4ae7ad2d8c3"
 
-LLVM_SHA256 = "04b70d6c199b32614a7fa2a321f8aebfb100f76a5445f6c34f6467d42e1e341d"
+LLVM_SHA256 = "4d2ed1cd8f1ce8b1a41002dfcac0ff0f12f0734cc5161192deecd5513e873af5"
 
 http_archive(
     name = "llvm-raw",
