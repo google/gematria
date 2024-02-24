@@ -108,7 +108,7 @@ int main(int Argc, char *Argv[]) {
           BenchmarkRunner::ExecutionModeE::SubProcess, 30, {}, Benchmark::Min));
 
   std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
-      SnippetRepetitor::Create(Benchmark::RepetitionModeE::Duplicate, State);
+      SnippetRepetitor::Create(Benchmark::RepetitionModeE::Loop, State);
 
   if (pfm::pfmInitialize()) ExitWithError("Failed to initialize libpfm");
 
@@ -192,7 +192,6 @@ int main(int Argc, char *Argv[]) {
     }
 
     Benchmark Bench = std::move(std::get<1>(BenchmarkResultOrErr));
-    dbgs() << Bench.Measurements.size() << "\n";
     dbgs() << Bench.Measurements[0].PerSnippetValue << "\n";
 
     dbgs() << *HexValue << "\n";
