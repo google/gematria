@@ -27,10 +27,9 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkRunner.h"
 #include "llvm/tools/llvm-exegesis/lib/LlvmState.h"
+#include "llvm/tools/llvm-exegesis/lib/ResultAggregator.h"
 #include "llvm/tools/llvm-exegesis/lib/Target.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
-#include "llvm/tools/llvm-exegesis/lib/ResultAggregator.h"
-
 
 using namespace llvm;
 using namespace llvm::exegesis;
@@ -111,7 +110,8 @@ int main(int Argc, char *Argv[]) {
           BenchmarkRunner::ExecutionModeE::SubProcess, 30, {}, Benchmark::Min));
 
   std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
-      SnippetRepetitor::Create(Benchmark::RepetitionModeE::MiddleHalfLoop, State);
+      SnippetRepetitor::Create(Benchmark::RepetitionModeE::MiddleHalfLoop,
+                               State);
 
   if (pfm::pfmInitialize()) ExitWithError("Failed to initialize libpfm");
 
@@ -186,21 +186,24 @@ int main(int Argc, char *Argv[]) {
       BenchCode.Key.MemoryValues[MemoryDefinitionName->str()] = MemVal;
     }
 
-    const json::Array *MemoryMappings = TestValue.getAsObject()->getArray("MemoryMappings");
+    const json::Array *MemoryMappings =
+        TestValue.getAsObject()->getArray("MemoryMappings");
 
-    if (!MemoryMappings)
-      ExitWithError("Malformed memory mapping");
+    if (!MemoryMappings) ExitWithError("Malformed memory mapping");
 
     for (const auto &MemoryMappingValue : *MemoryMappings) {
-      const json::Object *MemoryMappingObject = MemoryMappingValue.getAsObject();
+      const json::Object *MemoryMappingObject =
+          MemoryMappingValue.getAsObject();
 
-      if (!MemoryMappingObject)
-        ExitWithError("Malformed memory mapping");
+      if (!MemoryMappingObject) ExitWithError("Malformed memory mapping");
 
-      std::optional<StringRef> MemoryMappingDefinitionName = MemoryMappingObject->getString("Value");
-      std::optional<uintptr_t> MemoryMappingAddress = MemoryMappingObject->getInteger("Address");
+      std::optional<StringRef> MemoryMappingDefinitionName =
+          MemoryMappingObject->getString("Value");
+      std::optional<uintptr_t> MemoryMappingAddress =
+          MemoryMappingObject->getInteger("Address");
 
-      if (!MemoryMappingDefinitionName.has_value() || !MemoryMappingAddress.has_value())
+      if (!MemoryMappingDefinitionName.has_value() ||
+          !MemoryMappingAddress.has_value())
         ExitWithError("Malformed memory mapping");
 
       MemoryMapping MemMap;
@@ -226,18 +229,21 @@ int main(int Argc, char *Argv[]) {
     AllResults.push_back(std::move(std::get<1>(BenchmarkResult1OrErr)));
 
     std::pair<Error, Benchmark> BenchmarkResult2OrErr =
-      Runner->runConfiguration(std::move(RC2), {});
+        Runner->runConfiguration(std::move(RC2), {});
 
     if (std::get<0>(BenchmarkResult2OrErr))
       ExitOnErr(std::move(std::get<0>(BenchmarkResult2OrErr)));
 
     AllResults.push_back(std::move(std::get<1>(BenchmarkResult2OrErr)));
 
-    std::unique_ptr<ResultAggregator> ResultAgg = ResultAggregator::CreateAggregator(Benchmark::RepetitionModeE::MiddleHalfLoop);
-    
+    std::unique_ptr<ResultAggregator> ResultAgg =
+        ResultAggregator::CreateAggregator(
+            Benchmark::RepetitionModeE::MiddleHalfLoop);
+
     Benchmark Result = std::move(AllResults[0]);
 
-    ResultAgg->AggregateResults(Result, ArrayRef<Benchmark>(AllResults).drop_front());
+    ResultAgg->AggregateResults(Result,
+                                ArrayRef<Benchmark>(AllResults).drop_front());
 
     dbgs() << Result.Measurements[0].PerSnippetValue << "\n";
 
