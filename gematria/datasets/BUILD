@@ -60,6 +60,7 @@ cc_binary(
     deps = [
         ":bhive_importer",
         ":find_accessed_addrs",
+        ":find_accessed_addrs_exegesis",
         "//gematria/llvm:canonicalizer",
         "//gematria/llvm:llvm_architecture_support",
         "//gematria/utils:string",
