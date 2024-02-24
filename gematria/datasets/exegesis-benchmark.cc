@@ -29,6 +29,8 @@
 #include "llvm/tools/llvm-exegesis/lib/LlvmState.h"
 #include "llvm/tools/llvm-exegesis/lib/Target.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
+#include "llvm/tools/llvm-exegesis/lib/ResultAggregator.h"
+
 
 using namespace llvm;
 using namespace llvm::exegesis;
@@ -102,13 +104,14 @@ int main(int Argc, char *Argv[]) {
 
   // More exegesis setup
   // TODO(boomanaiden154): Switch to middle-half-loop eventually
+  // TODO(boomanaiden154): Enable the usage of validation counters eventually
   const std::unique_ptr<BenchmarkRunner> Runner =
       ExitOnErr(State.getExegesisTarget().createBenchmarkRunner(
           Benchmark::Latency, State, BenchmarkPhaseSelectorE::Measure,
           BenchmarkRunner::ExecutionModeE::SubProcess, 30, {}, Benchmark::Min));
 
   std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
-      SnippetRepetitor::Create(Benchmark::RepetitionModeE::Loop, State);
+      SnippetRepetitor::Create(Benchmark::RepetitionModeE::MiddleHalfLoop, State);
 
   if (pfm::pfmInitialize()) ExitWithError("Failed to initialize libpfm");
 
@@ -165,7 +168,9 @@ int main(int Argc, char *Argv[]) {
           MemoryDefinitionObject->getString("Name");
       std::optional<int64_t> MemoryDefinitionSize =
           MemoryDefinitionObject->getInteger("Size");
-      std::optional<uintptr_t> MemoryDefinitionHexValue =
+      // Might need to figure out something better for this as the value should
+      // be an arbitrarily big integer.
+      std::optional<int64_t> MemoryDefinitionHexValue =
           MemoryDefinitionObject->getInteger("Value");
 
       if (!MemoryDefinitionName.has_value() ||
@@ -181,18 +186,60 @@ int main(int Argc, char *Argv[]) {
       BenchCode.Key.MemoryValues[MemoryDefinitionName->str()] = MemVal;
     }
 
-    BenchmarkRunner::RunnableConfiguration RC = ExitOnErr(
-        Runner->getRunnableConfiguration(BenchCode, 10000, 0, *SnipRepetitor));
+    const json::Array *MemoryMappings = TestValue.getAsObject()->getArray("MemoryMappings");
 
-    std::pair<Error, Benchmark> BenchmarkResultOrErr =
-        Runner->runConfiguration(std::move(RC), {});
+    if (!MemoryMappings)
+      ExitWithError("Malformed memory mapping");
 
-    if (std::get<0>(BenchmarkResultOrErr)) {
-      ExitOnErr(std::move(std::get<0>(BenchmarkResultOrErr)));
+    for (const auto &MemoryMappingValue : *MemoryMappings) {
+      const json::Object *MemoryMappingObject = MemoryMappingValue.getAsObject();
+
+      if (!MemoryMappingObject)
+        ExitWithError("Malformed memory mapping");
+
+      std::optional<StringRef> MemoryMappingDefinitionName = MemoryMappingObject->getString("Value");
+      std::optional<uintptr_t> MemoryMappingAddress = MemoryMappingObject->getInteger("Address");
+
+      if (!MemoryMappingDefinitionName.has_value() || !MemoryMappingAddress.has_value())
+        ExitWithError("Malformed memory mapping");
+
+      MemoryMapping MemMap;
+      MemMap.Address = *MemoryMappingAddress;
+      MemMap.MemoryValueName = MemoryMappingDefinitionName->str();
+      BenchCode.Key.MemoryMappings.push_back(MemMap);
     }
 
-    Benchmark Bench = std::move(std::get<1>(BenchmarkResultOrErr));
-    dbgs() << Bench.Measurements[0].PerSnippetValue << "\n";
+    SmallVector<Benchmark, 2> AllResults;
+
+    BenchmarkRunner::RunnableConfiguration RC1 = ExitOnErr(
+        Runner->getRunnableConfiguration(BenchCode, 5000, 0, *SnipRepetitor));
+    BenchmarkRunner::RunnableConfiguration RC2 = ExitOnErr(
+        Runner->getRunnableConfiguration(BenchCode, 10000, 0, *SnipRepetitor));
+
+    std::pair<Error, Benchmark> BenchmarkResult1OrErr =
+        Runner->runConfiguration(std::move(RC1), {});
+
+    if (std::get<0>(BenchmarkResult1OrErr)) {
+      ExitOnErr(std::move(std::get<0>(BenchmarkResult1OrErr)));
+    }
+
+    AllResults.push_back(std::move(std::get<1>(BenchmarkResult1OrErr)));
+
+    std::pair<Error, Benchmark> BenchmarkResult2OrErr =
+      Runner->runConfiguration(std::move(RC2), {});
+
+    if (std::get<0>(BenchmarkResult2OrErr))
+      ExitOnErr(std::move(std::get<0>(BenchmarkResult2OrErr)));
+
+    AllResults.push_back(std::move(std::get<1>(BenchmarkResult2OrErr)));
+
+    std::unique_ptr<ResultAggregator> ResultAgg = ResultAggregator::CreateAggregator(Benchmark::RepetitionModeE::MiddleHalfLoop);
+    
+    Benchmark Result = std::move(AllResults[0]);
+
+    ResultAgg->AggregateResults(Result, ArrayRef<Benchmark>(AllResults).drop_front());
+
+    dbgs() << Result.Measurements[0].PerSnippetValue << "\n";
 
     dbgs() << *HexValue << "\n";
 
