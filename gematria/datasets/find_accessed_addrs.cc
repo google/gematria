@@ -198,6 +198,12 @@ absl::Status ParentProcessInner(int child_pid, AccessedAddrs& accessed_addrs) {
     return absl::OkStatus();
   }
 
+  if (signal == SIGFPE) {
+    // Floating point exceptions are potentially fixable by setting different
+    // register values, so return 'Invalid argument', which communicates this.
+    return absl::InvalidArgumentError("Floating point exception");
+  }
+
   // Any other case is an unexpected signal, so let's capture the registers for
   // ease of debugging.
   struct user_regs_struct registers;
