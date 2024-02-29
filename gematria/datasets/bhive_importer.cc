@@ -63,9 +63,9 @@ BHiveImporter::BHiveImporter(const Canonicalizer* canonicalizer)
           *target_machine_.getMCAsmInfo(), *target_machine_.getMCInstrInfo(),
           *target_machine_.getMCRegisterInfo())) {}
 
-
 BasicBlockProto BHiveImporter::BasicBlockProtoFromInstructions(
-  llvm::ArrayRef<DisassembledInstruction> disassembled_instructions, uint64_t base_address /*= 0*/) {
+    llvm::ArrayRef<DisassembledInstruction> disassembled_instructions,
+    uint64_t base_address /*= 0*/) {
   BasicBlockProto basic_block_proto;
   for (const DisassembledInstruction& instruction : disassembled_instructions) {
     MachineInstructionProto& machine_instruction =
