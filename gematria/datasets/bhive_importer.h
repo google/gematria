@@ -51,9 +51,9 @@ class BHiveImporter {
   // the sizes of the instructions that preceded it.
   // Returns an error when parts of `machine_code` do not disassemble using the
   // provided canonicalizer.
-
   absl::StatusOr<BasicBlockProto> BasicBlockProtoFromMachineCode(
       llvm::ArrayRef<uint8_t> machine_code, uint64_t base_address = 0);
+
   // A version of BasicBlockProtoFromMachineCode() where the machine code bytes
   // are provided in the form of a sequence of hex digits, two digits per byte,
   // with no separators between them. For example, the string "AABB11"
