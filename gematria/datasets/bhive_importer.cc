@@ -63,6 +63,22 @@ BHiveImporter::BHiveImporter(const Canonicalizer* canonicalizer)
           *target_machine_.getMCAsmInfo(), *target_machine_.getMCInstrInfo(),
           *target_machine_.getMCRegisterInfo())) {}
 
+
+BasicBlockProto BHiveImporter::BasicBlockProtoFromInstructions(
+  llvm::ArrayRef<DisassembledInstruction> disassembled_instructions, uint64_t base_address /*= 0*/) {
+  BasicBlockProto basic_block_proto;
+  for (const DisassembledInstruction& instruction : disassembled_instructions) {
+    MachineInstructionProto& machine_instruction =
+        *basic_block_proto.add_machine_instructions();
+    machine_instruction.set_address(instruction.address);
+    machine_instruction.set_assembly(instruction.assembly);
+    machine_instruction.set_machine_code(instruction.machine_code);
+    *basic_block_proto.add_canonicalized_instructions() = ProtoFromInstruction(
+        canonicalizer_.InstructionFromMCInst(instruction.mc_inst));
+  }
+  return basic_block_proto;
+}
+
 absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMachineCode(
     llvm::ArrayRef<uint8_t> machine_code, uint64_t base_address /*= 0*/) {
   BasicBlockProto basic_block_proto;
@@ -76,16 +92,7 @@ absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMachineCode(
     return LlvmErrorToStatus(std::move(error));
   }
 
-  for (DisassembledInstruction& instruction : *instructions) {
-    MachineInstructionProto& machine_instruction =
-        *basic_block_proto.add_machine_instructions();
-    machine_instruction.set_address(instruction.address);
-    machine_instruction.set_assembly(instruction.assembly);
-    machine_instruction.set_machine_code(instruction.machine_code);
-    *basic_block_proto.add_canonicalized_instructions() = ProtoFromInstruction(
-        canonicalizer_.InstructionFromMCInst(instruction.mc_inst));
-  }
-  return basic_block_proto;
+  return BasicBlockProtoFromInstructions(*instructions);
 }
 
 absl::StatusOr<BasicBlockProto>

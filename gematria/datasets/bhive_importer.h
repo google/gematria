@@ -24,6 +24,7 @@
 
 #include "absl/status/statusor.h"
 #include "gematria/llvm/canonicalizer.h"
+#include "gematria/llvm/disassembler.h"
 #include "gematria/proto/basic_block.pb.h"
 #include "gematria/proto/throughput.pb.h"
 #include "llvm/ADT/ArrayRef.h"
@@ -41,6 +42,9 @@ class BHiveImporter {
   // must be for the architecture/microarchitecture of the data set.
   // Does not take ownership of the canonicalizer.
   explicit BHiveImporter(const Canonicalizer* canonicalizer);
+
+  BasicBlockProto BasicBlockProtoFromInstructions(
+     llvm::ArrayRef<DisassembledInstruction> disassembled_instructions, uint64_t base_address = 0); 
 
   // Creates a basic block from the given block of machine code. `machine_code`
   // must contain machine code of the instructions to include in the basic
