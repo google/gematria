@@ -1,3 +1,8 @@
+load(
+    "//:python.bzl",
+    "gematria_py_test",
+)
+
 package(
     default_visibility = ["//visibility:private"],
 )
@@ -66,6 +71,19 @@ cc_binary(
         "//gematria/utils:string",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
+    ],
+)
+
+gematria_py_test(
+    name = "convert_bhive_to_llvm_exegesis_input_test",
+    size = "small",
+    srcs = ["convert_bhive_to_llvm_exegesis_input_test.py"],
+    data = [
+	":convert_bhive_to_llvm_exegesis_input",
+	"@llvm-project//llvm:FileCheck",
+	"tests/conversion.csv",
+	"tests/lit.cfg.py",
+	"tests/lit.site.cfg.py",
     ],
 )
 
