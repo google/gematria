@@ -7,5 +7,5 @@ import sys
 sys.argv.append("./gematria/datasets/tests")
 sys.argv.append("-vv")
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+  main()
