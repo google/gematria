@@ -82,10 +82,9 @@ gematria_py_test(
 	":convert_bhive_to_llvm_exegesis_input",
 	"@llvm-project//llvm:FileCheck",
 	"@llvm-project//llvm:split-file",
-	"tests/conversion.csv",
 	"tests/lit.cfg.py",
 	"tests/lit.site.cfg.py",
-    ],
+    ] + glob(["tests/*.test"]),
 )
 
 cc_library(
