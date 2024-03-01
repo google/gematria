@@ -341,13 +341,17 @@ llvm::Expected<std::string> GetNodeTokenAtIndex(
 
 // Extracts the set of annotation names from the model. This should be a Const
 // tensor, and as such, it should be readable without providing any inputs.
-// Returns an error when the annotation names tensor is not found or when it is
-// not readable.
+// Returns an empty set when the annotation names tensor is not found, and an
+// error when it is not readable.
 llvm::Expected<std::set<std::string>> GetAnnotationNames(
     const tflite::Interpreter& interpreter) {
   llvm::Expected<int> annotation_names_tensor_index = TensorIndexByName(
       interpreter, interpreter.outputs(), kAnnotationNamesTensorName);
-  if (auto error = annotation_names_tensor_index.takeError()) return error;
+  if (llvm::Error error = annotation_names_tensor_index.takeError()) {
+    // Assume the annotation names tensor was not found because the model
+    // was created without annotations and return an empty set.
+    return std::set<std::string>();
+  }
   const TfLiteTensor* const annotation_names_tensor =
       interpreter.tensor(*annotation_names_tensor_index);
   assert(annotation_names_tensor != nullptr);
