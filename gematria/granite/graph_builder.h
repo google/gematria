@@ -248,9 +248,9 @@ class BasicBlockGraphBuilder {
     return annotation_names_;
   }
   // Values of instruction level runtime annotations. Represents a
-  // `annotation_names.size() x `num_instructions` matrix, each entry of which
+  // `num_instructions` x `annotation_names.size()` matrix, each entry of which
   // represents the value of the annotation of the type corresponding to the
-  // row for the instruction corresponding to the column.
+  // column for the instruction corresponding to the row.
   const std::vector<std::vector<double>>& instruction_annotations() const {
     return instruction_annotations_;
   }

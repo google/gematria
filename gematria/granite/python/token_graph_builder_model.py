@@ -182,7 +182,7 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
       self._to_feed_instruction_annotations = np.array(
           self._batch_graph_builder.instruction_annotations,
           dtype=self.dtype.as_numpy_dtype,
-      ).transpose()
+      )
     self._instruction_annotations = tf.placeholder(
         dtype=self.dtype,
         shape=self._to_feed_instruction_annotations.shape,

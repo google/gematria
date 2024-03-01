@@ -191,11 +191,9 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
     annotation_name_to_idx[annotation_name] = annotation_idx;
     ++annotation_idx;
   }
-  instruction_annotations_ =
-      std::vector<std::vector<double>>(annotation_names_.size());
+  instruction_annotations_ = std::vector<std::vector<double>>();
 
   NodeIndex previous_instruction_node = kInvalidNode;
-  int instruction_idx = 0;
   for (const Instruction& instruction : instructions) {
     // Add the instruction node.
     const NodeIndex instruction_node =
@@ -206,18 +204,14 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
 
     // Store the annotations for later use (inclusion in embeddings), using -1
     // as a default value wherever annotations are missing.
+    std::vector<double> row = std::vector<double>(annotation_names_.size(), -1);
     for (const auto& [name, value] : instruction.instruction_annotations) {
       if (!annotation_name_to_idx.count(name)) {
         continue;
       }
-      std::vector<double>& row =
-          instruction_annotations_[annotation_name_to_idx[name]];
-      while (row.size() < instruction_idx) {
-        row.push_back(-1);
-      }
-      row.push_back(value);
+      row[annotation_name_to_idx[name]] = value;
     }
-    instruction_idx++;
+    instruction_annotations_.push_back(row);
 
     // Add nodes for prefixes of the instruction.
     for (const std::string& prefix : instruction.prefixes) {
@@ -259,14 +253,6 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
   std::vector<int>& global_features = global_features_.back();
   for (NodeIndex i = prev_num_nodes; i < node_features_.size(); ++i) {
     ++global_features[node_features_[i]];
-  }
-
-  // Ensure `instruction_annotations_` has the correct shape in annotations
-  // for the final instructions are missing.
-  for (auto& row : instruction_annotations_) {
-    while (row.size() < instruction_idx) {
-      row.push_back(-1);
-    }
   }
 
   // Record the number of nodes and edges created for this graph.

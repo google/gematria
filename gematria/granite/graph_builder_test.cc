@@ -504,7 +504,8 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
               ElementsAre(0, 2, 0, 4, 5, 5, 6, 6, 5, 8, 9, 9, 10, 11, 11, 12));
 
   EXPECT_THAT(builder_->instruction_annotations(),
-              ElementsAre(ElementsAre(0.9, -1, 0.01, -1)));
+              ElementsAre(ElementsAre(0.9), ElementsAre(-1), ElementsAre(0.01),
+                          ElementsAre(-1)));
 }
 
 // Tests that nodes in basic blocks added through different AddBasicBlock()
