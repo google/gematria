@@ -24,6 +24,7 @@
 
 #include "absl/status/statusor.h"
 #include "gematria/llvm/canonicalizer.h"
+#include "gematria/llvm/disassembler.h"
 #include "gematria/proto/basic_block.pb.h"
 #include "gematria/proto/throughput.pb.h"
 #include "llvm/ADT/ArrayRef.h"
@@ -42,15 +43,21 @@ class BHiveImporter {
   // Does not take ownership of the canonicalizer.
   explicit BHiveImporter(const Canonicalizer* canonicalizer);
 
-  // Creates a basic block from the given block of machine code. `machine_code`
-  // must contain machine code of the instructions to include in the basic
-  // block. Expects that the `machine_code.begin()` is the first byte of the
-  // first instruction, and `machine_code.rbegin()` is the last byte of the last
-  // instruction. Uses `base_address` as the address of the first instruction;
-  // the addresses of following instructions are derived from `base_address` and
-  // the sizes of the instructions that preceded it.
-  // Returns an error when parts of `machine_code` do not disassemble using the
-  // provided canonicalizer.
+  // Creates a basic block from the given instructions. Uses `base_address` as
+  // the address of the first instruction; the addresses of following
+  // instructions are derived from `base_address` and the sizes of the
+  // instructions that preceded it.
+  BasicBlockProto BasicBlockProtoFromInstructions(
+      llvm::ArrayRef<DisassembledInstruction> disassembled_instructions,
+      uint64_t base_address = 0);
+
+  // A version of BasicBlockProtoFromInstructions. Creates a basic block from
+  // the given block of machine code. `machine_code` must contain machine code
+  // of the instructions to include in the basic block. Expects that the
+  // `machine_code.begin()` is the first byte of the first instruction, and
+  // `machine_code.rbegin()` is the last byte of the last instruction. Returns
+  // an error when parts of `machine_code` do not disassemble using the provided
+  // canonicalizer.
   absl::StatusOr<BasicBlockProto> BasicBlockProtoFromMachineCode(
       llvm::ArrayRef<uint8_t> machine_code, uint64_t base_address = 0);
 
