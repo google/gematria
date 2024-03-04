@@ -102,6 +102,15 @@ jobs:
         key: ${{ runner.os }}-bazel-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}
         restore-keys: |
           ${{ runner.os }}-bazel-
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+    - name: Install python deps
+      run: pip3 install -r requirements.in
     - name: Run build
       run: bazel build ...
+    - name: Run tests
+      run: bazel test --test_tag_filters="-perf_counters" ...
 

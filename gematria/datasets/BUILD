@@ -60,6 +60,7 @@ cc_binary(
     deps = [
         ":bhive_importer",
         ":find_accessed_addrs",
+        ":find_accessed_addrs_exegesis",
         "//gematria/llvm:canonicalizer",
         "//gematria/llvm:llvm_architecture_support",
         "//gematria/utils:string",
@@ -137,6 +138,7 @@ cc_test(
     # the tests are currently only supported on X86_64.
     tags = [
         "not_build:arm",
+        "perf_counters",
     ],
     target_compatible_with = [
         "@platforms//cpu:x86_64",
