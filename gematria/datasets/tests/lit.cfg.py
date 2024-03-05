@@ -14,6 +14,9 @@ config.substitutions.append(
 config.substitutions.append(
     ('split-file', os.path.join(config.llvm_tools_root, 'split-file'))
 )
+config.substitutions.append(
+    ('%not', os.path.join(config.llvm_tools_root, 'not'))
+)
 
 config.substitutions.append((
     '%convert_bhive_to_llvm_exegesis_input',
