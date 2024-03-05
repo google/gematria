@@ -15,3 +15,4 @@ tensorflow-probability>=0.19.0
 tensorflow-ranking; sys_platform!='darwin'
 tensorflow>=2.11.0; sys_platform=='linux'
 tensorflow-macos>=2.11.0; sys_platform=='darwin'
+lit>=17.0.6
