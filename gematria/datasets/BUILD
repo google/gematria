@@ -1,3 +1,8 @@
+load(
+    "//:python.bzl",
+    "gematria_py_test",
+)
+
 package(
     default_visibility = ["//visibility:private"],
 )
@@ -69,6 +74,19 @@ cc_binary(
     ],
 )
 
+gematria_py_test(
+    name = "convert_bhive_to_llvm_exegesis_input_test",
+    size = "small",
+    srcs = ["convert_bhive_to_llvm_exegesis_input_test.py"],
+    data = [
+        "tests/lit.cfg.py",
+        "tests/lit.site.cfg.py",
+        ":convert_bhive_to_llvm_exegesis_input",
+        "@llvm-project//llvm:FileCheck",
+        "@llvm-project//llvm:split-file",
+    ] + glob(["tests/*.test"]),
+)
+
 cc_library(
     name = "find_accessed_addrs",
     srcs = ["find_accessed_addrs.cc"],
@@ -138,6 +156,7 @@ cc_test(
     # the tests are currently only supported on X86_64.
     tags = [
         "not_build:arm",
+        "perf_counters",
     ],
     target_compatible_with = [
         "@platforms//cpu:x86_64",
