@@ -343,7 +343,7 @@ int main(int argc, char* argv[]) {
     file_counter++;
   }
 
-  if (!json_output_dir.empty()) {
+  if (!json_output_dir.empty() && processed_snippets.size() != 0) {
     size_t json_file_number = file_counter / blocks_per_json_file;
     bool write_successfully = WriteJsonFile(std::move(processed_snippets),
                                             json_file_number, json_output_dir);
