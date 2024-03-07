@@ -1,0 +1,52 @@
+; Test that splitting a dataset among multiple JSON files works as expected.
+
+; Test currently fails as underlying functionality needs to be fixed, see #61.
+; XFAIL: *
+
+; RUN: split-file %s %t
+; RUN: mkdir %t.jsondir
+; RUN: %convert_bhive_to_llvm_exegesis_input --json_output_dir=%t.jsondir --bhive_csv=%t/test.csv
+; RUN: cat %t.jsondir/0.json | FileCheck --check-prefix FILE1 %s
+; RUN: cat %t.jsondir/1.json | FileCheck --check-prefix FILE2 %s
+
+; FILE1-CHECK: [
+; FILE1-CHECK:   {
+; FILE1-CHECK:     "Hex": "85c044897c2460",
+; FILE1-CHECK:     "MemoryDefinitions": [
+; FILE1-CHECK:       {
+; FILE1-CHECK:         "Name": "MEM",
+; FILE1-CHECK:         "Size": 4096,
+; FILE1-CHECK:         "Value": 305419776
+; FILE1-CHECK:       }
+; FILE1-CHECK:     ],
+; FILE1-CHECK:     "MemoryMappings": [
+; FILE1-CHECK:       {
+; FILE1-CHECK:         "Address": 65536,
+; FILE1-CHECK:         "Value": "MEM"
+; FILE1-CHECK:       }
+; FILE1-CHECK:     ]
+; FILE1-CHECK:   }
+; FILE1-CHECK: ]
+
+; FILE2-CHECK: [
+; FILE2-CHECK:   {
+; FILE2-CHECK:     "Hex": "3b31",
+; FILE2-CHECK:     "MemoryDefinitions": [
+; FILE2-CHECK:       {
+; FILE2-CHECK:         "Name": "MEM",
+; FILE2-CHECK:         "Size": 4096,
+; FILE2-CHECK:         "Value": 305419776
+; FILE2-CHECK:       }
+; FILE2-CHECK:     ],
+; FILE2-CHECK:     "MemoryMappings": [
+; FILE2-CHECK:       {
+; FILE2-CHECK:         "Address": 65536,
+; FILE2-CHECK:         "Value": "MEM"
+; FILE2-CHECK:       }
+; FILE2-CHECK:     ]
+; FILE2-CHECK:   }
+; FILE2-CHECK: ]
+
+;--- test.csv
+3b31,45.000000
+85c044897c2460,98.000000
