@@ -302,6 +302,16 @@ int main(int argc, char* argv[]) {
     if (!json_output_dir.empty()) {
       llvm::json::Object current_snippet;
 
+      llvm::json::Array register_definitions;
+      for (const auto [register_number, used] : used_registers) {
+        llvm::json::Object current_register_definition;
+        current_register_definition["Register"] = register_number;
+        current_register_definition["Value"] = kInitialRegVal;
+        register_definitions.push_back(std::move(current_register_definition));
+      }
+      current_snippet["RegisterDefinitions"] =
+          llvm::json::Value(std::move(register_definitions));
+
       if (addrs->accessed_blocks.size() > 0) {
         llvm::json::Array memory_definitions;
         llvm::json::Object current_memory_definition;
