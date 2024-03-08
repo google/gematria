@@ -337,7 +337,7 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    if (file_counter % report_progress_every == 0)
+    if (file_counter != 0 && file_counter % report_progress_every == 0)
       std::cerr << "Finished annotating block #" << file_counter << ".\n";
 
     file_counter++;
