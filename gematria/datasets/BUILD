@@ -83,6 +83,7 @@ gematria_py_test(
         "tests/lit.site.cfg.py",
         ":convert_bhive_to_llvm_exegesis_input",
         "@llvm-project//llvm:FileCheck",
+        "@llvm-project//llvm:not",
         "@llvm-project//llvm:split-file",
     ] + glob(["tests/*.test"]),
 )

@@ -249,7 +249,6 @@ int main(int argc, char* argv[]) {
 
     auto proto = bhive_importer.BasicBlockProtoFromInstructions(*instructions);
 
-    // This will only get the first segfault address.
     auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator.get());
 
     if (!addrs.ok()) {
