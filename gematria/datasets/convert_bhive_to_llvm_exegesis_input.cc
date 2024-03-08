@@ -48,6 +48,8 @@ constexpr unsigned kInitialMemValBitWidth = 64;
 constexpr std::string_view kRegDefPrefix = "# LLVM-EXEGESIS-DEFREG ";
 constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
 constexpr std::string_view kMemMapPrefix = "# LLVM-EXEGESIS-MEM-MAP ";
+constexpr std::string_view kLoopRegisterPrefix =
+    "# LLVM-EXEGESIS-LOOP-REGISTER ";
 constexpr std::string_view kMemNamePrefix = "MEM";
 
 enum class AnnotatorType { kExegesis, kFast };
@@ -261,6 +263,23 @@ int main(int argc, char* argv[]) {
       continue;
     }
 
+    // Get a register that we can use as the loop register.
+    unsigned loop_register = -1;
+    const auto& gr64_register_class =
+        reg_info.getRegClass(llvm::X86::GR64_NOREX2RegClassID);
+    for (unsigned i = 0; i < gr64_register_class.getNumRegs(); ++i) {
+      if (gr64_register_class.getRegister(i) == llvm::X86::RIP) continue;
+      if (used_registers.count(gr64_register_class.getRegister(i)) == 0) {
+        loop_register = gr64_register_class.getRegister(i);
+        break;
+      }
+    }
+
+    // If we can't find a loop register, skip writing out this basic block
+    // so that downstream tooling doesn't execute the incorrect number of
+    // iterations.
+    if (loop_register == -1) continue;
+
     if (!asm_output_dir.empty()) {
       // Create output file path.
       llvm::Twine output_file_path = llvm::Twine(asm_output_dir)
@@ -292,6 +311,11 @@ int main(int argc, char* argv[]) {
                     << addr << "\n";
       }
 
+      // Write the loop register annotation, assuming we were able to find one.
+      if (loop_register != -1)
+        output_file << kLoopRegisterPrefix << reg_info.getName(loop_register)
+                    << "\n";
+
       // Append disassembled instructions.
       for (const auto& instr : proto.machine_instructions()) {
         output_file << instr.assembly() << "\n";
@@ -310,6 +334,9 @@ int main(int argc, char* argv[]) {
       }
       current_snippet["RegisterDefinitions"] =
           llvm::json::Value(std::move(register_definitions));
+
+      // Output the loop register.
+      current_snippet["LoopRegister"] = loop_register;
 
       if (addrs->accessed_blocks.size() > 0) {
         llvm::json::Array memory_definitions;
