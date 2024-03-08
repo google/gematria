@@ -93,6 +93,9 @@ ABSL_FLAG(unsigned, max_bb_count, std::numeric_limits<unsigned>::max(),
           "The maximum number of basic blocks to process");
 ABSL_FLAG(unsigned, report_progress_every, std::numeric_limits<unsigned>::max(),
           "The number of blocks after which to report progress.");
+ABSL_FLAG(bool, skip_no_loop_register, true,
+          "Whether or not to skip basic blocks where a loop counter register "
+          "cannot be found.");
 
 absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
@@ -199,6 +202,7 @@ int main(int argc, char* argv[]) {
   const unsigned max_bb_count = absl::GetFlag(FLAGS_max_bb_count);
   const unsigned report_progress_every =
       absl::GetFlag(FLAGS_report_progress_every);
+  const bool skip_no_loop_register = absl::GetFlag(FLAGS_skip_no_loop_register);
   unsigned int file_counter = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
     if (file_counter >= max_bb_count) break;
@@ -264,7 +268,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Get a register that we can use as the loop register.
-    unsigned loop_register = -1;
+    std::optional<unsigned> loop_register = std::nullopt;
     const auto& gr64_register_class =
         reg_info.getRegClass(llvm::X86::GR64_NOREX2RegClassID);
     for (unsigned i = 0; i < gr64_register_class.getNumRegs(); ++i) {
@@ -278,7 +282,11 @@ int main(int argc, char* argv[]) {
     // If we can't find a loop register, skip writing out this basic block
     // so that downstream tooling doesn't execute the incorrect number of
     // iterations.
-    if (loop_register == -1) continue;
+    if (!loop_register && skip_no_loop_register) {
+      std::cerr
+          << "Skipping block due to not being able to find a loop register\n";
+      continue;
+    }
 
     if (!asm_output_dir.empty()) {
       // Create output file path.
@@ -312,8 +320,8 @@ int main(int argc, char* argv[]) {
       }
 
       // Write the loop register annotation, assuming we were able to find one.
-      if (loop_register != -1)
-        output_file << kLoopRegisterPrefix << reg_info.getName(loop_register)
+      if (loop_register)
+        output_file << kLoopRegisterPrefix << reg_info.getName(*loop_register)
                     << "\n";
 
       // Append disassembled instructions.
@@ -336,7 +344,10 @@ int main(int argc, char* argv[]) {
           llvm::json::Value(std::move(register_definitions));
 
       // Output the loop register.
-      current_snippet["LoopRegister"] = loop_register;
+      if (loop_register)
+        current_snippet["LoopRegister"] = *loop_register;
+      else
+        current_snippet["LoopRegister"] = llvm::json::Value(nullptr);
 
       if (addrs->accessed_blocks.size() > 0) {
         llvm::json::Array memory_definitions;
