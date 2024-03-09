@@ -49,10 +49,12 @@ constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
 constexpr std::string_view kMemMapPrefix = "# LLVM-EXEGESIS-MEM-MAP ";
 constexpr std::string_view kMemNamePrefix = "MEM";
 
-enum class AnnotatorType { kExegesis, kFast };
+enum class AnnotatorType { kExegesis, kFast, kNone };
 
 constexpr std::pair<AnnotatorType, std::string_view> kAnnotatorTypeNames[] = {
-    {AnnotatorType::kExegesis, "exegesis"}, {AnnotatorType::kFast, "fast"}};
+    {AnnotatorType::kExegesis, "exegesis"},
+    {AnnotatorType::kFast, "fast"},
+    {AnnotatorType::kNone, "none"}};
 
 bool AbslParseFlag(absl::string_view text, AnnotatorType* type,
                    std::string* error) {
@@ -104,6 +106,8 @@ absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
       return gematria::LlvmExpectedToStatusOr(
           exegesis_annotator->findAccessedAddrs(
               llvm::ArrayRef(basic_block.begin(), basic_block.end())));
+    case AnnotatorType::kNone:
+      return gematria::AccessedAddrs();
   }
   return absl::InvalidArgumentError("unknown annotator type");
 }
