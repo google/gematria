@@ -14,6 +14,7 @@
 
 #include <fstream>
 
+#include "X86InstrInfo.h"
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
@@ -75,6 +76,9 @@ int main(int Argc, char **Argv) {
 
     for (const gematria::DisassembledInstruction &Instruction :
          DisassembledInstructions) {
+      MCInstrDesc InstDesc =
+          llvm_support->mc_instr_info().get(Instruction.mc_inst.getOpcode());
+      if (InstDesc.isReturn() || InstDesc.isCall()) continue;
       OutputFileStream << toHex(Instruction.machine_code);
     }
     OutputFileStream << "\n";
