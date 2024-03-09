@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Error.h"
-#include "llvm/ADT/StringExtras.h"
+#include <fstream>
 
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
-
-#include <fstream>
+#include "llvm/ADT/StringExtras.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/Error.h"
 
 using namespace llvm;
 
@@ -31,7 +30,8 @@ static cl::opt<std::string> InputFile(
 
 static cl::opt<std::string> OutputFile(
     "output-file",
-    cl::desc("Path to the output CSV file with processed/filtered basic blocks"),
+    cl::desc(
+        "Path to the output CSV file with processed/filtered basic blocks"),
     cl::init(""));
 
 static cl::opt<bool> LastInstructionIsTerminator(
@@ -47,14 +47,14 @@ static void ExitOnFileError(const Twine &FileName, Error Err) {
   }
 }
 
-int main(int Argc, char** Argv) {
-  cl::ParseCommandLineOptions(
-    Argc, Argv, "process_and_filter_bbs");
+int main(int Argc, char **Argv) {
+  cl::ParseCommandLineOptions(Argc, Argv, "process_and_filter_bbs");
 
   const std::unique_ptr<gematria::LlvmArchitectureSupport> llvm_support =
-    gematria::LlvmArchitectureSupport::X86_64();
+      gematria::LlvmArchitectureSupport::X86_64();
 
-  std::unique_ptr<MCInstPrinter> MachineInstructionPrinter = llvm_support->CreateMCInstPrinter(0);
+  std::unique_ptr<MCInstPrinter> MachineInstructionPrinter =
+      llvm_support->CreateMCInstPrinter(0);
 
   std::ifstream InputFileStream(InputFile);
   std::ofstream OutputFileStream(OutputFile);
@@ -65,15 +65,16 @@ int main(int Argc, char** Argv) {
       return 3;
     }
 
-    std::vector<gematria::DisassembledInstruction> DisassembledInstructions = ExitOnErr(gematria::DisassembleAllInstructions(
-        llvm_support->mc_disassembler(), llvm_support->mc_instr_info(),
-        llvm_support->mc_register_info(), llvm_support->mc_subtarget_info(),
-        *MachineInstructionPrinter, 0, *MachineCodeHex));
+    std::vector<gematria::DisassembledInstruction> DisassembledInstructions =
+        ExitOnErr(gematria::DisassembleAllInstructions(
+            llvm_support->mc_disassembler(), llvm_support->mc_instr_info(),
+            llvm_support->mc_register_info(), llvm_support->mc_subtarget_info(),
+            *MachineInstructionPrinter, 0, *MachineCodeHex));
 
-    if (LastInstructionIsTerminator)
-      DisassembledInstructions.pop_back();
+    if (LastInstructionIsTerminator) DisassembledInstructions.pop_back();
 
-    for (const gematria::DisassembledInstruction &Instruction : DisassembledInstructions) {
+    for (const gematria::DisassembledInstruction &Instruction :
+         DisassembledInstructions) {
       OutputFileStream << toHex(Instruction.machine_code);
     }
     OutputFileStream << "\n";
