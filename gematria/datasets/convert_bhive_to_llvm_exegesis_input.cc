@@ -244,7 +244,7 @@ int main(int argc, char* argv[]) {
 
     // Check for errors.
     if (!proto.ok()) {
-      std::cerr << "Failed to disassemble block '" << hex << ": "
+      std::cerr << "Failed to disassemble block '" << hex << "': "
                 << proto.status() << "\n";
       continue;
     }
