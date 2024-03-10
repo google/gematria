@@ -75,6 +75,10 @@ int main(int Argc, char **Argv) {
 
     for (const gematria::DisassembledInstruction &Instruction :
          DisassembledInstructions) {
+      MCInstrDesc InstDesc =
+          llvm_support->mc_instr_info().get(Instruction.mc_inst.getOpcode());
+      if (InstDesc.isReturn() || InstDesc.isCall() || InstDesc.isBranch())
+        continue;
       OutputFileStream << toHex(Instruction.machine_code);
     }
     OutputFileStream << "\n";
