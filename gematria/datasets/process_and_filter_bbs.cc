@@ -34,17 +34,45 @@ static cl::opt<std::string> OutputFile(
         "Path to the output CSV file with processed/filtered basic blocks"),
     cl::init(""));
 
-static cl::opt<bool> LastInstructionIsTerminator(
-    "last-instruction-is-terminator",
-    cl::desc("Whether or not the last instruction changes the control flow"),
-    cl::init(true));
-
 static ExitOnError ExitOnErr("process_and_filter_bbs error: ");
 
-static void ExitOnFileError(const Twine &FileName, Error Err) {
-  if (Err) {
-    ExitOnErr(createFileError(FileName, std::move(Err)));
+Expected<std::string> ProcessBasicBlock(
+    const std::string &BasicBlock,
+    const std::unique_ptr<gematria::LlvmArchitectureSupport> &llvm_support,
+    const std::unique_ptr<MCInstPrinter> &MachineInstructionPrinter,
+    const StringRef FileName) {
+  // TODO(boomanaiden154): Update this to use llvm::Expected once
+  // gematria::ParseHex is refactored to return llvm::Expected.
+  auto MachineCodeHex = gematria::ParseHexString(BasicBlock);
+  if (!MachineCodeHex.has_value()) {
+    return createFileError(
+        FileName,
+        make_error<StringError>(
+            llvm::Twine("Could not parse: '").concat(BasicBlock).concat("'"),
+            std::make_error_code(std::errc::invalid_argument)));
   }
+
+  Expected<std::vector<gematria::DisassembledInstruction>>
+      DisassembledInstructionsOrErr = gematria::DisassembleAllInstructions(
+          llvm_support->mc_disassembler(), llvm_support->mc_instr_info(),
+          llvm_support->mc_register_info(), llvm_support->mc_subtarget_info(),
+          *MachineInstructionPrinter, 0, *MachineCodeHex);
+
+  if (!DisassembledInstructionsOrErr)
+    return createFileError(FileName, DisassembledInstructionsOrErr.takeError());
+
+  std::string OutputBlock;
+
+  for (const gematria::DisassembledInstruction &Instruction :
+       *DisassembledInstructionsOrErr) {
+    MCInstrDesc InstDesc =
+        llvm_support->mc_instr_info().get(Instruction.mc_inst.getOpcode());
+    if (InstDesc.isReturn() || InstDesc.isCall() || InstDesc.isBranch())
+      continue;
+    OutputBlock += toHex(Instruction.machine_code);
+  }
+
+  return OutputBlock;
 }
 
 int main(int Argc, char **Argv) {
@@ -59,29 +87,11 @@ int main(int Argc, char **Argv) {
   std::ifstream InputFileStream(InputFile);
   std::ofstream OutputFileStream(OutputFile);
   for (std::string Line; std::getline(InputFileStream, Line);) {
-    auto MachineCodeHex = gematria::ParseHexString(Line);
-    if (!MachineCodeHex.has_value()) {
-      dbgs() << "could not parse: " << Line << "\n";
-      return 3;
-    }
+    Expected<std::string> ProcessedBlockOrErr = ProcessBasicBlock(
+        Line, llvm_support, MachineInstructionPrinter, InputFile);
+    if (!ProcessedBlockOrErr) ExitOnErr(ProcessedBlockOrErr.takeError());
 
-    std::vector<gematria::DisassembledInstruction> DisassembledInstructions =
-        ExitOnErr(gematria::DisassembleAllInstructions(
-            llvm_support->mc_disassembler(), llvm_support->mc_instr_info(),
-            llvm_support->mc_register_info(), llvm_support->mc_subtarget_info(),
-            *MachineInstructionPrinter, 0, *MachineCodeHex));
-
-    if (LastInstructionIsTerminator) DisassembledInstructions.pop_back();
-
-    for (const gematria::DisassembledInstruction &Instruction :
-         DisassembledInstructions) {
-      MCInstrDesc InstDesc =
-          llvm_support->mc_instr_info().get(Instruction.mc_inst.getOpcode());
-      if (InstDesc.isReturn() || InstDesc.isCall() || InstDesc.isBranch())
-        continue;
-      OutputFileStream << toHex(Instruction.machine_code);
-    }
-    OutputFileStream << "\n";
+    OutputFileStream << *ProcessedBlockOrErr << "\n";
   }
   return 0;
 }
