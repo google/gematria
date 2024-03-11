@@ -184,3 +184,23 @@ cc_library(
     ],
     deps = ["@com_google_absl//absl/types:span"],
 )
+
+cc_library(
+    name = "basic_block_utils",
+    srcs = ["basic_block_utils.cc"],
+    hdrs = ["basic_block_utils.h"],
+    deps = ["//gematria/llvm:disassembler"]
+)
+
+cc_test(
+    name = "basic_block_utils_test",
+    srcs = ["basic_block_utils_test.cc"],
+    deps = [
+      ":basic_block_utils",
+      "//gematria/llvm:llvm_architecture_support",
+      "//gematria/llvm:asm_parser",
+      "//gematria/llvm:disassembler",
+      "//gematria/testing:matchers",
+      "@com_google_googletest//:gtest_main",
+    ]
+)
