@@ -63,6 +63,7 @@ cc_binary(
     name = "convert_bhive_to_llvm_exegesis_input",
     srcs = ["convert_bhive_to_llvm_exegesis_input.cc"],
     deps = [
+        ":basic_block_utils",
         ":bhive_importer",
         ":find_accessed_addrs",
         ":find_accessed_addrs_exegesis",
@@ -183,4 +184,27 @@ cc_library(
         "@platforms//cpu:x86_64",
     ],
     deps = ["@com_google_absl//absl/types:span"],
+)
+
+cc_library(
+    name = "basic_block_utils",
+    srcs = ["basic_block_utils.cc"],
+    hdrs = ["basic_block_utils.h"],
+    deps = [
+        "//gematria/llvm:disassembler",
+        "@llvm-project//llvm:X86CodeGen",
+    ],
+)
+
+cc_test(
+    name = "basic_block_utils_test",
+    srcs = ["basic_block_utils_test.cc"],
+    deps = [
+        ":basic_block_utils",
+        "//gematria/llvm:asm_parser",
+        "//gematria/llvm:disassembler",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/testing:matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
 )

@@ -25,6 +25,7 @@
 #include "X86Subtarget.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "gematria/datasets/basic_block_utils.h"
 #include "gematria/datasets/bhive_importer.h"
 #include "gematria/datasets/find_accessed_addrs.h"
 #include "gematria/datasets/find_accessed_addrs_exegesis.h"
@@ -52,10 +53,12 @@ constexpr std::string_view kLoopRegisterPrefix =
     "# LLVM-EXEGESIS-LOOP-REGISTER ";
 constexpr std::string_view kMemNamePrefix = "MEM";
 
-enum class AnnotatorType { kExegesis, kFast };
+enum class AnnotatorType { kExegesis, kFast, kNone };
 
 constexpr std::pair<AnnotatorType, std::string_view> kAnnotatorTypeNames[] = {
-    {AnnotatorType::kExegesis, "exegesis"}, {AnnotatorType::kFast, "fast"}};
+    {AnnotatorType::kExegesis, "exegesis"},
+    {AnnotatorType::kFast, "fast"},
+    {AnnotatorType::kNone, "none"}};
 
 bool AbslParseFlag(absl::string_view text, AnnotatorType* type,
                    std::string* error) {
@@ -110,6 +113,8 @@ absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
       return gematria::LlvmExpectedToStatusOr(
           exegesis_annotator->findAccessedAddrs(
               llvm::ArrayRef(basic_block.begin(), basic_block.end())));
+    case AnnotatorType::kNone:
+      return gematria::AccessedAddrs();
   }
   return absl::InvalidArgumentError("unknown annotator type");
 }
@@ -227,31 +232,15 @@ int main(int argc, char* argv[]) {
             llvm_support->mc_register_info(), llvm_support->mc_subtarget_info(),
             *inst_printer, 0, *bytes);
 
-    // Check for errors.
     if (!instructions) {
       std::cerr << "Failed to disassemble block '" << hex << "\n";
       continue;
     }
 
     // Get used registers
-    std::map<unsigned, bool> used_registers;
-    for (const gematria::DisassembledInstruction& instruction : *instructions) {
-      for (unsigned operand_index = 0;
-           operand_index < instruction.mc_inst.getNumOperands();
-           ++operand_index) {
-        if (instruction.mc_inst.getOperand(operand_index).isReg()) {
-          unsigned register_number =
-              instruction.mc_inst.getOperand(operand_index).getReg();
-          if (register_number == 0) continue;
-          unsigned super_register_number = 0;
-          for (MCPhysReg testing :
-               reg_info.superregs_inclusive(register_number)) {
-            super_register_number = testing;
-          }
-          used_registers[super_register_number] = true;
-        }
-      }
-    }
+    std::vector<unsigned> used_registers =
+        gematria::BasicBlockUtils::getUsedRegisters(
+            *instructions, reg_info, llvm_support->mc_instr_info());
 
     auto proto = bhive_importer.BasicBlockProtoFromInstructions(*instructions);
 
@@ -304,8 +293,8 @@ int main(int argc, char* argv[]) {
       }
 
       // Write registers to the output file.
-      for (const auto [register_number, used] : used_registers) {
-        output_file << kRegDefPrefix << reg_info.getName(register_number) << " "
+      for (const auto register_id : used_registers) {
+        output_file << kRegDefPrefix << reg_info.getName(register_id) << " "
                     << initial_reg_val_str << "\n";
       }
 
@@ -334,9 +323,9 @@ int main(int argc, char* argv[]) {
       llvm::json::Object current_snippet;
 
       llvm::json::Array register_definitions;
-      for (const auto [register_number, used] : used_registers) {
+      for (const auto register_id : used_registers) {
         llvm::json::Object current_register_definition;
-        current_register_definition["Register"] = register_number;
+        current_register_definition["Register"] = register_id;
         current_register_definition["Value"] = kInitialRegVal;
         register_definitions.push_back(std::move(current_register_definition));
       }
@@ -387,13 +376,13 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    if (file_counter % report_progress_every == 0)
+    if (file_counter != 0 && file_counter % report_progress_every == 0)
       std::cerr << "Finished annotating block #" << file_counter << ".\n";
 
     file_counter++;
   }
 
-  if (!json_output_dir.empty()) {
+  if (!json_output_dir.empty() && processed_snippets.size() != 0) {
     size_t json_file_number = file_counter / blocks_per_json_file;
     bool write_successfully = WriteJsonFile(std::move(processed_snippets),
                                             json_file_number, json_output_dir);
