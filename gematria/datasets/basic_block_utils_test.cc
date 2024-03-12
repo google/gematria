@@ -57,6 +57,12 @@ class BasicBlockUtilsTest : public ::testing::Test {
         getInstructions(TextualAssembly), LlvmArchSupport->mc_register_info(),
         LlvmArchSupport->mc_instr_info());
   }
+
+  std::optional<unsigned> getLoopRegister(std::string_view TextualAssembly) {
+    return BasicBlockUtils::getLoopRegister(getInstructions(TextualAssembly),
+                                            LlvmArchSupport->mc_register_info(),
+                                            LlvmArchSupport->mc_instr_info());
+  }
 };
 
 TEST_F(BasicBlockUtilsTest, UsedRegistersSingleRegister) {
@@ -110,6 +116,39 @@ TEST_F(BasicBlockUtilsTest, UsedRegistersImplicitUse) {
     pushq %rax
   )asm");
   EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RAX, X86::RSP));
+}
+
+TEST_F(BasicBlockUtilsTest, LoopRegisterSingleInstruction) {
+  std::optional<unsigned> LoopRegister = getLoopRegister(R"asm(
+    mov %rax, %rcx
+  )asm");
+  EXPECT_EQ(*LoopRegister, X86::RDX);
+}
+
+TEST_F(BasicBlockUtilsTest, LoopRegisterImplicitUseDef) {
+  std::optional<unsigned> LoopRegister = getLoopRegister(R"asm(
+    pushq %rax
+    pushq %rcx
+    pushq %rdx
+    pushq %rbx
+    pushq %rsi
+    pushq %rdi
+  )asm");
+  EXPECT_EQ(*LoopRegister, X86::R8);
+}
+
+TEST_F(BasicBlockUtilsTest, LoopRegisterFullPressure) {
+  std::optional<unsigned> LoopRegister = getLoopRegister(R"asm(
+    movq %rax, %rcx
+    movq %rdx, %rbx
+    movq %rsi, %rdi
+    movq %rsp, %rbp
+    movq %r8, %r9
+    movq %r10, %r11
+    movq %r12, %r13
+    movq %r14, %r15
+  )asm");
+  EXPECT_FALSE(LoopRegister.has_value());
 }
 
 }  // namespace

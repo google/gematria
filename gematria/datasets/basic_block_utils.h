@@ -35,6 +35,10 @@ class BasicBlockUtils {
   static std::vector<unsigned> getUsedRegisters(
       const std::vector<DisassembledInstruction> &Instructions,
       const MCRegisterInfo &RegisterInfo, const MCInstrInfo &InstructionInfo);
+
+  static std::optional<unsigned> getLoopRegister(
+      const std::vector<DisassembledInstruction> &Instructions,
+      const MCRegisterInfo &RegisterInfo, const MCInstrInfo &InstructionInfo);
 };
 }  // namespace gematria
 

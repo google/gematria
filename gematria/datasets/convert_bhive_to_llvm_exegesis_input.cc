@@ -257,16 +257,9 @@ int main(int argc, char* argv[]) {
     }
 
     // Get a register that we can use as the loop register.
-    std::optional<unsigned> loop_register = std::nullopt;
-    const auto& gr64_register_class =
-        reg_info.getRegClass(llvm::X86::GR64_NOREX2RegClassID);
-    for (unsigned i = 0; i < gr64_register_class.getNumRegs(); ++i) {
-      if (gr64_register_class.getRegister(i) == llvm::X86::RIP) continue;
-      if (used_registers.count(gr64_register_class.getRegister(i)) == 0) {
-        loop_register = gr64_register_class.getRegister(i);
-        break;
-      }
-    }
+    std::optional<unsigned> loop_register =
+        gematria::BasicBlockUtils::getLoopRegister(
+            *instructions, reg_info, llvm_support->mc_instr_info());
 
     // If we can't find a loop register, skip writing out this basic block
     // so that downstream tooling doesn't execute the incorrect number of

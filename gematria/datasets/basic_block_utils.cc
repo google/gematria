@@ -90,4 +90,53 @@ std::vector<unsigned> BasicBlockUtils::getUsedRegisters(
   return UsedRegistersList;
 }
 
+unsigned getSuperRegisterAllClasses(unsigned OriginalRegister,
+                                    const MCRegisterInfo &RegisterInfo) {
+  unsigned SuperRegister = OriginalRegister;
+  for (MCPhysReg CurrentSuperRegister :
+       RegisterInfo.superregs_inclusive(OriginalRegister))
+    SuperRegister = CurrentSuperRegister;
+  return SuperRegister;
+}
+
+std::optional<unsigned> BasicBlockUtils::getLoopRegister(
+    const std::vector<DisassembledInstruction> &Instructions,
+    const MCRegisterInfo &RegisterInfo, const MCInstrInfo &InstructionInfo) {
+  std::map<unsigned, bool> UsedRegisters;
+  for (const gematria::DisassembledInstruction &Instruction : Instructions) {
+    for (unsigned OperandIndex = 0;
+         OperandIndex < Instruction.mc_inst.getNumOperands(); ++OperandIndex) {
+      if (Instruction.mc_inst.getOperand(OperandIndex).isReg()) {
+        unsigned RegisterNumber =
+            Instruction.mc_inst.getOperand(OperandIndex).getReg();
+        if (RegisterNumber == 0) continue;
+        UsedRegisters[getSuperRegisterAllClasses(RegisterNumber,
+                                                 RegisterInfo)] = true;
+      }
+    }
+    for (unsigned ImplicitlyUsedRegister :
+         InstructionInfo.get(Instruction.mc_inst.getOpcode()).implicit_uses())
+      UsedRegisters[getSuperRegisterAllClasses(ImplicitlyUsedRegister,
+                                               RegisterInfo)] = true;
+    for (unsigned ImplicitlyDefinedRegister :
+         InstructionInfo.get(Instruction.mc_inst.getOpcode()).implicit_defs())
+      UsedRegisters[getSuperRegisterAllClasses(ImplicitlyDefinedRegister,
+                                               RegisterInfo)] = true;
+  }
+
+  const auto &GR64RegisterClass =
+      RegisterInfo.getRegClass(X86::GR64_NOREX2RegClassID);
+  std::optional<unsigned> LoopRegister = std::nullopt;
+  for (unsigned I = 0; I < GR64RegisterClass.getNumRegs(); ++I) {
+    unsigned CurrentRegister = GR64RegisterClass.getRegister(I);
+    if (CurrentRegister == X86::RIP) continue;
+    if (UsedRegisters.count(CurrentRegister) == 0) {
+      LoopRegister = CurrentRegister;
+      break;
+    }
+  }
+
+  return LoopRegister;
+}
+
 }  // namespace gematria
