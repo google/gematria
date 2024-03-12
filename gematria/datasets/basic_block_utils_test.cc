@@ -61,16 +61,16 @@ class BasicBlockUtilsTest : public ::testing::Test {
 
 TEST_F(BasicBlockUtilsTest, UsedRegistersSingleRegister) {
   std::vector<unsigned> UsedRegisters = getUsedRegisters(R"asm(
-    mov $0, %rax
+    mov %rax, %rcx
   )asm");
   EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RAX));
 }
 
 TEST_F(BasicBlockUtilsTest, UsedRegistersSubRegister) {
   std::vector<unsigned> UsedRegisters = getUsedRegisters(R"asm(
-    mov $0, %al
-    mov $0, %ax
-    mov $0, %rax
+    mov %al, %cl
+    mov %ax, %cx
+    mov %rax, %rcx
   )asm");
   EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RAX));
 }
@@ -87,17 +87,29 @@ TEST_F(BasicBlockUtilsTest, UsedRegistersMultipleRegisters) {
     movq %r14, %r15
   )asm");
   EXPECT_THAT(UsedRegisters,
-              UnorderedElementsAre(X86::RAX, X86::RCX, X86::RDX, X86::RBX,
-                                   X86::RSI, X86::RDI, X86::RSP, X86::RBP,
-                                   X86::R8, X86::R9, X86::R10, X86::R11,
-                                   X86::R12, X86::R13, X86::R14, X86::R15));
+              UnorderedElementsAre(X86::RAX, X86::RDX, X86::RSI, X86::RSP,
+                                   X86::R8, X86::R10, X86::R12, X86::R14));
 }
 
 TEST_F(BasicBlockUtilsTest, UsedRegistersVectorRegisters) {
   std::vector<unsigned> UsedRegisters = getUsedRegisters(R"asm(
     vmovapd %zmm1, %zmm2
   )asm");
-  EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::ZMM1, X86::ZMM2));
+  EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::ZMM1));
+}
+
+TEST_F(BasicBlockUtilsTest, UsedRegistersVectorSubRegisters) {
+  std::vector<unsigned> UsedRegisters = getUsedRegisters(R"asm(
+    movaps %xmm1, %xmm2
+  )asm");
+  EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::XMM1));
+}
+
+TEST_F(BasicBlockUtilsTest, UsedRegistersImplicitUse) {
+  std::vector<unsigned> UsedRegisters = getUsedRegisters(R"asm(
+    pushq %rax
+  )asm");
+  EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RAX, X86::RSP));
 }
 
 }  // namespace

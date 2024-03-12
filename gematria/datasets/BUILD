@@ -189,7 +189,10 @@ cc_library(
     name = "basic_block_utils",
     srcs = ["basic_block_utils.cc"],
     hdrs = ["basic_block_utils.h"],
-    deps = ["//gematria/llvm:disassembler"],
+    deps = [
+        "//gematria/llvm:disassembler",
+        "@llvm-project//llvm:X86CodeGen",
+    ]
 )
 
 cc_test(
