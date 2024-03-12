@@ -192,7 +192,7 @@ cc_library(
     deps = [
         "//gematria/llvm:disassembler",
         "@llvm-project//llvm:X86CodeGen",
-    ]
+    ],
 )
 
 cc_test(
