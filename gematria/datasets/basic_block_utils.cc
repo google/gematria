@@ -12,22 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "gematria/datasets/basic_block_utils.h"
+
 #include <map>
 
-#include "gematria/datasets/basic_block_utils.h"
-#include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCRegisterInfo.h"
 
 using namespace llvm;
 
 namespace gematria {
 
-std::vector<unsigned> BasicBlockUtils::getUsedRegisters(const std::vector<DisassembledInstruction> &Instructions, const MCRegisterInfo &RegisterInfo, const MCInstrInfo &InstructionInfo) {
+std::vector<unsigned> BasicBlockUtils::getUsedRegisters(
+    const std::vector<DisassembledInstruction> &Instructions,
+    const MCRegisterInfo &RegisterInfo, const MCInstrInfo &InstructionInfo) {
   std::map<unsigned, bool> UsedRegisters;
-  for (const gematria::DisassembledInstruction& Instruction : Instructions) {
+  for (const gematria::DisassembledInstruction &Instruction : Instructions) {
     for (unsigned OperandIndex = 0;
-         OperandIndex < Instruction.mc_inst.getNumOperands();
-         ++OperandIndex) {
+         OperandIndex < Instruction.mc_inst.getNumOperands(); ++OperandIndex) {
       if (Instruction.mc_inst.getOperand(OperandIndex).isReg()) {
         unsigned RegisterNumber =
             Instruction.mc_inst.getOperand(OperandIndex).getReg();
@@ -51,4 +53,4 @@ std::vector<unsigned> BasicBlockUtils::getUsedRegisters(const std::vector<Disass
   return UsedRegistersList;
 }
 
-} // namespace gematria
+}  // namespace gematria
