@@ -50,10 +50,12 @@ constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
 constexpr std::string_view kMemMapPrefix = "# LLVM-EXEGESIS-MEM-MAP ";
 constexpr std::string_view kMemNamePrefix = "MEM";
 
-enum class AnnotatorType { kExegesis, kFast };
+enum class AnnotatorType { kExegesis, kFast, kNone };
 
 constexpr std::pair<AnnotatorType, std::string_view> kAnnotatorTypeNames[] = {
-    {AnnotatorType::kExegesis, "exegesis"}, {AnnotatorType::kFast, "fast"}};
+    {AnnotatorType::kExegesis, "exegesis"},
+    {AnnotatorType::kFast, "fast"},
+    {AnnotatorType::kNone, "none"}};
 
 bool AbslParseFlag(absl::string_view text, AnnotatorType* type,
                    std::string* error) {
@@ -105,6 +107,8 @@ absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
       return gematria::LlvmExpectedToStatusOr(
           exegesis_annotator->findAccessedAddrs(
               llvm::ArrayRef(basic_block.begin(), basic_block.end())));
+    case AnnotatorType::kNone:
+      return gematria::AccessedAddrs();
   }
   return absl::InvalidArgumentError("unknown annotator type");
 }
@@ -222,8 +226,9 @@ int main(int argc, char* argv[]) {
             *inst_printer, 0, *bytes);
 
     // Check for errors.
-    if (!instructions) {
-      std::cerr << "Failed to disassemble block '" << hex << "\n";
+    if (!proto.ok()) {
+      std::cerr << "Failed to disassemble block '" << hex
+                << "': " << proto.status() << "\n";
       continue;
     }
 
@@ -349,13 +354,13 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    if (file_counter % report_progress_every == 0)
+    if (file_counter != 0 && file_counter % report_progress_every == 0)
       std::cerr << "Finished annotating block #" << file_counter << ".\n";
 
     file_counter++;
   }
 
-  if (!json_output_dir.empty()) {
+  if (!json_output_dir.empty() && processed_snippets.size() != 0) {
     size_t json_file_number = file_counter / blocks_per_json_file;
     bool write_successfully = WriteJsonFile(std::move(processed_snippets),
                                             json_file_number, json_output_dir);
