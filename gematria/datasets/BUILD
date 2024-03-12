@@ -196,11 +196,11 @@ cc_test(
     name = "basic_block_utils_test",
     srcs = ["basic_block_utils_test.cc"],
     deps = [
-      ":basic_block_utils",
-      "//gematria/llvm:llvm_architecture_support",
-      "//gematria/llvm:asm_parser",
-      "//gematria/llvm:disassembler",
-      "//gematria/testing:matchers",
-      "@com_google_googletest//:gtest_main",
+        ":basic_block_utils",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/llvm:asm_parser",
+        "//gematria/llvm:disassembler",
+        "//gematria/testing:matchers",
+        "@com_google_googletest//:gtest_main",
     ]
 )
