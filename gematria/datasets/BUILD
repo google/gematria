@@ -75,6 +75,17 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "process_and_filter_bbs",
+    srcs = ["process_and_filter_bbs.cc"],
+    deps = [
+        "//gematria/utils:string",
+        "//gematria/llvm:disassembler",
+        "//gematria/llvm:llvm_architecture_support",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
 gematria_py_test(
     name = "convert_bhive_to_llvm_exegesis_input_test",
     size = "small",
