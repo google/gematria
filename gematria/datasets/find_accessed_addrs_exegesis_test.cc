@@ -113,5 +113,13 @@ TEST_F(FindAccessedAddrsExegesisTest, ExegesisNotPageAligned) {
   EXPECT_EQ(Result.accessed_blocks[0], 0x10000);
 }
 
+TEST_F(FindAccessedAddrsExegesisTest, ExegesisZeroAddressError) {
+  auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
+    movq $0x0, %rax
+    movq (%rax), %rax
+  )asm");
+  ASSERT_FALSE(static_cast<bool>(AddrsOrErr));
+}
+
 }  // namespace
 }  // namespace gematria

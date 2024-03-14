@@ -143,16 +143,23 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
     if (!std::get<0>(BenchmarkResultOrErr).isA<SnippetSegmentationFault>())
       return std::move(std::get<0>(BenchmarkResultOrErr));
 
-    handleAllErrors(std::move(std::get<0>(BenchmarkResultOrErr)),
-                    [&](SnippetSegmentationFault &CrashInfo) {
-                      MemoryMapping MemMap;
-                      // Zero out the last twelve bits of the address to align
-                      // the address to a page boundary.
-                      uintptr_t MapAddress = (CrashInfo.getAddress() & ~0xfff);
-                      MemMap.Address = MapAddress;
-                      MemMap.MemoryValueName = "memdef1";
-                      BenchCode.Key.MemoryMappings.push_back(MemMap);
-                    });
+    Error AnnotationError = handleErrors(
+        std::move(std::get<0>(BenchmarkResultOrErr)),
+        [&](SnippetSegmentationFault &CrashInfo) -> Error {
+          MemoryMapping MemMap;
+          // Zero out the last twelve bits of the address to align
+          // the address to a page boundary.
+          uintptr_t MapAddress = (CrashInfo.getAddress() & ~0xfff);
+          if (MapAddress == 0)
+            return make_error<Failure>("Segfault at zero address, cannot map.");
+          MemMap.Address = MapAddress;
+          MemMap.MemoryValueName = "memdef1";
+          BenchCode.Key.MemoryMappings.push_back(MemMap);
+
+          return Error::success();
+        });
+
+    if (AnnotationError) return std::move(AnnotationError);
   }
 
   MemAnnotations.accessed_blocks.reserve(BenchCode.Key.MemoryMappings.size());
