@@ -133,5 +133,16 @@ TEST_F(FindAccessedAddrsExegesisTest, ExegesisMultipleSameAddressError) {
   ASSERT_FALSE(static_cast<bool>(AddrsOrErr));
 }
 
+// This test is disabled due to taking ~20 seconds to run.
+// TODO(boomanaiden154): Make this test run as part of an "expensive checks"
+// configuration.
+TEST_F(FindAccessedAddrsExegesisTest, DISABLED_QuitMaxAnnotationAttempts) {
+  auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
+    movq (%rax), %rdx
+    addq $0x1000, %rax
+  )asm");
+  ASSERT_FALSE(static_cast<bool>(AddrsOrErr));
+}
+
 }  // namespace
 }  // namespace gematria
