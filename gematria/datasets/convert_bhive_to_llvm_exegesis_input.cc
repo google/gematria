@@ -253,6 +253,7 @@ int main(int argc, char* argv[]) {
       for (const auto& instr : proto.machine_instructions()) {
         std::cerr << "\t" << instr.assembly() << "\n";
       }
+      ++file_counter;
       continue;
     }
 
