@@ -32,6 +32,10 @@ using namespace llvm::exegesis;
 
 namespace gematria {
 
+// This value specifies the maximum number of times the annotator will attempt
+// to map segmentation fault addresses before giving up and throwing an error.
+constexpr unsigned kMaxAnnotationAttempts = 100;
+
 ExegesisAnnotator::ExegesisAnnotator(
     LLVMState &ExegesisState, std::unique_ptr<BenchmarkRunner> BenchRunner,
     std::unique_ptr<const SnippetRepetitor> SnipRepetitor)
@@ -146,6 +150,10 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
     Error AnnotationError = handleErrors(
         std::move(std::get<0>(BenchmarkResultOrErr)),
         [&](SnippetSegmentationFault &CrashInfo) -> Error {
+          if (BenchCode.Key.MemoryMappings.size() > kMaxAnnotationAttempts)
+            return make_error<Failure>(
+                "Hit the maximum number of annotation attempts.");
+
           MemoryMapping MemMap;
           // Zero out the last twelve bits of the address to align
           // the address to a page boundary.
