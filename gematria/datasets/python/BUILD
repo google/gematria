@@ -29,6 +29,26 @@ gematria_pybind_extension(
     ],
 )
 
+gematria_pybind_extension(
+    name = "json_importer",
+    srcs = ["json_importer.cc"],
+    py_deps = [
+        "//gematria/llvm/python:canonicalizer",
+        "//gematria/proto:annotation_py_pb2",
+        "//gematria/proto:basic_block_py_pb2",
+        "//gematria/proto:canonicalized_instruction_py_pb2",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/datasets:json_importer",
+        "//gematria/llvm:canonicalizer",
+        "@com_google_pybind11_protobuf//pybind11_protobuf:native_proto_caster",
+        "@llvm-project//llvm:Support",
+        "@pybind11_abseil_repo//pybind11_abseil:status_casters",
+    ],
+)
+
 gematria_py_test(
     name = "bhive_importer_test",
     size = "small",
@@ -37,6 +57,21 @@ gematria_py_test(
         ":bhive_importer",
         "//gematria/llvm/python:canonicalizer",
         "//gematria/llvm/python:llvm_architecture_support",
+        "//gematria/proto:basic_block_py_pb2",
+        "//gematria/proto:canonicalized_instruction_py_pb2",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+)
+
+gematria_py_test(
+    name = "json_importer_test",
+    size = "small",
+    srcs = ["json_importer_test.py"],
+    deps = [
+        ":json_importer",
+        "//gematria/llvm/python:canonicalizer",
+        "//gematria/llvm/python:llvm_architecture_support",
+        "//gematria/proto:annotation_py_pb2",
         "//gematria/proto:basic_block_py_pb2",
         "//gematria/proto:canonicalized_instruction_py_pb2",
         "//gematria/proto:throughput_py_pb2",
