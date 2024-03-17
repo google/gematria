@@ -406,6 +406,10 @@ class BasicBlockGraphBuilder {
 
   std::vector<NodeType> node_types_;
   std::vector<TokenIndex> node_features_;
+
+  // Mapping from annotation type names to corresponding row index in the
+  // `instruction_annotations_` matrix.
+  std::unordered_map<std::string, int> annotation_name_to_idx_;
   std::vector<std::vector<double>> instruction_annotations_;
 
   std::vector<NodeIndex> edge_senders_;

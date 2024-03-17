@@ -170,7 +170,16 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
               ? kInvalidTokenIndex
               : FindTokenOrDie(
                     node_tokens_,
-                    out_of_vocabulary_behavior.replacement_token())) {}
+                    out_of_vocabulary_behavior.replacement_token())) {
+  instruction_annotations_ = std::vector<std::vector<double>>();
+
+  // Store row indices corresponding to specific annotation names.
+  int annotation_idx = 0;
+  for (auto& annotation_name : annotation_names_) {
+    annotation_name_to_idx_[annotation_name] = annotation_idx;
+    ++annotation_idx;
+  }
+}
 
 bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
     const std::vector<Instruction>& instructions) {
@@ -183,15 +192,6 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
 
   const int prev_num_nodes = num_nodes();
   const int prev_num_edges = num_edges();
-
-  // Store row indices corresponding to specific annotation names.
-  std::unordered_map<std::string, int> annotation_name_to_idx;
-  int annotation_idx = 0;
-  for (auto& annotation_name : annotation_names_) {
-    annotation_name_to_idx[annotation_name] = annotation_idx;
-    ++annotation_idx;
-  }
-  instruction_annotations_ = std::vector<std::vector<double>>();
 
   NodeIndex previous_instruction_node = kInvalidNode;
   for (const Instruction& instruction : instructions) {
@@ -206,10 +206,9 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
     // as a default value wherever annotations are missing.
     std::vector<double> row = std::vector<double>(annotation_names_.size(), -1);
     for (const auto& [name, value] : instruction.instruction_annotations) {
-      if (!annotation_name_to_idx.count(name)) {
-        continue;
-      }
-      row[annotation_name_to_idx[name]] = value;
+      const auto annotation_index = annotation_name_to_idx_.find(name);
+      if (annotation_index == annotation_name_to_idx_.end()) continue;
+      row[annotation_index->second] = value;
     }
     instruction_annotations_.push_back(row);
 
