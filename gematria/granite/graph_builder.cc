@@ -149,6 +149,7 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
     std::vector<std::string> node_tokens, std::string_view immediate_token,
     std::string_view fp_immediate_token, std::string_view address_token,
     std::string_view memory_token,
+    std::set<std::string> annotation_names /* = std::set<std::string>() */,
     OutOfVocabularyTokenBehavior
         out_of_vocabulary_behavior /* = ReturnError() */
     )
@@ -161,6 +162,7 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
           FindTokenOrDie(node_tokens_, std::string(fp_immediate_token))),
       address_token_(FindTokenOrDie(node_tokens_, std::string(address_token))),
       memory_token_(FindTokenOrDie(node_tokens_, std::string(memory_token))),
+      annotation_names_(std::move(annotation_names)),
       out_of_vocabulary_behavior_(out_of_vocabulary_behavior),
       replacement_token_(
           out_of_vocabulary_behavior.behavior_type() ==
@@ -182,6 +184,15 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
   const int prev_num_nodes = num_nodes();
   const int prev_num_edges = num_edges();
 
+  // Store row indices corresponding to specific annotation names.
+  std::unordered_map<std::string, int> annotation_name_to_idx;
+  int annotation_idx = 0;
+  for (auto& annotation_name : annotation_names_) {
+    annotation_name_to_idx[annotation_name] = annotation_idx;
+    ++annotation_idx;
+  }
+  instruction_annotations_ = std::vector<std::vector<double>>();
+
   NodeIndex previous_instruction_node = kInvalidNode;
   for (const Instruction& instruction : instructions) {
     // Add the instruction node.
@@ -190,6 +201,17 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
     if (instruction_node == kInvalidNode) {
       return false;
     }
+
+    // Store the annotations for later use (inclusion in embeddings), using -1
+    // as a default value wherever annotations are missing.
+    std::vector<double> row = std::vector<double>(annotation_names_.size(), -1);
+    for (const auto& [name, value] : instruction.instruction_annotations) {
+      if (!annotation_name_to_idx.count(name)) {
+        continue;
+      }
+      row[annotation_name_to_idx[name]] = value;
+    }
+    instruction_annotations_.push_back(row);
 
     // Add nodes for prefixes of the instruction.
     for (const std::string& prefix : instruction.prefixes) {

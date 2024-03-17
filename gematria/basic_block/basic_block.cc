@@ -229,27 +229,63 @@ std::ostream& operator<<(std::ostream& os, const InstructionOperand& operand) {
   return os;
 }
 
+Annotation::Annotation(std::string name, double value)
+    : name(std::move(name)), value(value) {}
+
+bool Annotation::operator==(const Annotation& other) const {
+  const auto as_tuple = [](const Annotation& annotation) {
+    return std::tie(annotation.name, annotation.value);
+  };
+  return as_tuple(*this) == as_tuple(other);
+}
+
+std::string Annotation::ToString() const {
+  std::stringstream buffer;
+  buffer << "Annotation(";
+  if (!name.empty()) {
+    buffer << "name='" << name << "', ";
+  }
+  if (value != -1) {
+    buffer << "value=" << value << ", ";
+  }
+  // If we added any keyword args to the buffer, drop the last two characters
+  // (a comma and a space). This is not strictly necessary, but it looks better.
+  auto msg = buffer.str();
+  assert(msg.size() >= 2);
+  if (msg.back() == ' ') msg.resize(msg.size() - 2);
+  msg.push_back(')');
+  return msg;
+}
+
+std::ostream& operator<<(std::ostream& os, const Annotation& annotation) {
+  os << annotation.ToString();
+  return os;
+}
+
 Instruction::Instruction(
     std::string mnemonic, std::string llvm_mnemonic,
     std::vector<std::string> prefixes,
     std::vector<InstructionOperand> input_operands,
     std::vector<InstructionOperand> implicit_input_operands,
     std::vector<InstructionOperand> output_operands,
-    std::vector<InstructionOperand> implicit_output_operands)
+    std::vector<InstructionOperand> implicit_output_operands,
+    std::vector<Annotation> instruction_annotations)
     : mnemonic(std::move(mnemonic)),
       llvm_mnemonic(std::move(llvm_mnemonic)),
       prefixes(std::move(prefixes)),
       input_operands(std::move(input_operands)),
       implicit_input_operands(std::move(implicit_input_operands)),
       output_operands(std::move(output_operands)),
-      implicit_output_operands(std::move(implicit_output_operands)) {}
+      implicit_output_operands(std::move(implicit_output_operands)),
+      instruction_annotations(std::move(instruction_annotations)) {}
 
 bool Instruction::operator==(const Instruction& other) const {
   const auto as_tuple = [](const Instruction& instruction) {
     return std::tie(
         instruction.mnemonic, instruction.llvm_mnemonic, instruction.prefixes,
         instruction.input_operands, instruction.implicit_input_operands,
-        instruction.output_operands, instruction.implicit_output_operands);
+        instruction.output_operands, instruction.implicit_output_operands,
+        instruction.instruction_annotations);
   };
   return as_tuple(*this) == as_tuple(other);
 }
@@ -291,6 +327,17 @@ std::string Instruction::ToString() const {
   add_operand_list("implicit_input_operands", implicit_input_operands);
   add_operand_list("output_operands", output_operands);
   add_operand_list("implicit_output_operands", implicit_output_operands);
+
+  if (!instruction_annotations.empty()) {
+    buffer << "instruction_annotations=(";
+    for (const Annotation& annotation : instruction_annotations) {
+      buffer << annotation.ToString() << ", ";
+    }
+    // Pop only the trailing space. For simplicity, we leave the trailing comma
+    // which is required in case there is only one element.
+    buffer.seekp(-1, std::ios_base::end);
+    buffer << "), ";
+  }
 
   auto msg = buffer.str();
   assert(msg.size() >= 2);

@@ -46,6 +46,7 @@ gematria_py_test(
     deps = [
         ":basic_block",
         ":basic_block_protos",
+        "//gematria/proto:annotation_py_pb2",
         "//gematria/proto:basic_block_py_pb2",
         "//gematria/proto:canonicalized_instruction_py_pb2",
     ],

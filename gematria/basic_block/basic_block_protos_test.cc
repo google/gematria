@@ -144,6 +144,26 @@ TEST(ProtoFromInstructionOperandTest, Memory) {
       EqualsProto(R"pb(memory { alias_group_id: 123 })pb"));
 }
 
+TEST(AnnotationFromProtoTest, AllFields) {
+  const AnnotationProto proto = ParseTextProto(R"pb(
+    name: 'cache_miss_freq'
+    value: 0.875
+  )pb");
+  Annotation annotation = AnnotationFromProto(proto);
+  EXPECT_EQ(annotation.name, "cache_miss_freq");
+  EXPECT_EQ(annotation.value, 0.875);
+}
+
+TEST(ProtoFromAnnotationTest, AllFields) {
+  const Annotation annotation(
+      /* name = */ "cache_miss_freq",
+      /* value = */ 0.875);
+  EXPECT_THAT(ProtoFromAnnotation(annotation), EqualsProto(R"pb(
+                name: 'cache_miss_freq'
+                value: 0.875
+              )pb"));
+}
+
 TEST(InstructionFromProtoTest, AllFields) {
   const CanonicalizedInstructionProto proto = ParseTextProto(R"pb(
     mnemonic: "ADC"
@@ -156,6 +176,7 @@ TEST(InstructionFromProtoTest, AllFields) {
     implicit_output_operands { register_name: "EFLAGS" }
     implicit_input_operands { register_name: "EFLAGS" }
     implicit_input_operands { immediate_value: 1 }
+    instruction_annotations { name: "cache_miss_freq" value: 0.875 }
   )pb");
   Instruction instruction = InstructionFromProto(proto);
   EXPECT_EQ(
@@ -169,7 +190,9 @@ TEST(InstructionFromProtoTest, AllFields) {
                    InstructionOperand::ImmediateValue(1)},
                   /* output_operands = */ {InstructionOperand::Register("RAX")},
                   /* implicit_output_operands = */
-                  {InstructionOperand::Register("EFLAGS")}));
+                  {InstructionOperand::Register("EFLAGS")},
+                  /* instruction_annotations = */
+                  {Annotation("cache_miss_freq", 0.875)}));
 }
 
 TEST(ProtoFromInstructionTest, AllFields) {
@@ -205,6 +228,7 @@ TEST(BasicBlockFromProtoTest, SomeInstructions) {
       llvm_mnemonic: "MOV64rr"
       output_operands: { register_name: "RCX" }
       input_operands: { register_name: "RAX" }
+      instruction_annotations: { name: "cache_miss_freq" value: 0.875 }
     }
     canonicalized_instructions: {
       mnemonic: "NOT"
@@ -223,7 +247,9 @@ TEST(BasicBlockFromProtoTest, SomeInstructions) {
                /* input_operands = */ {InstructionOperand::Register("RAX")},
                /* implicit_input_operands = */ {},
                /* output_operands = */ {InstructionOperand::Register("RCX")},
-               /* implicit_output_operands = */ {}),
+               /* implicit_output_operands = */ {},
+               /* instruction_annotations = */
+               {Annotation("cache_miss_freq", 0.875)}),
            Instruction(
                /* mnemonic = */ "NOT",
                /* llvm_mnemonic = */ "NOT64r",
@@ -231,7 +257,8 @@ TEST(BasicBlockFromProtoTest, SomeInstructions) {
                /* input_operands = */ {InstructionOperand::Register("RCX")},
                /* implicit_input_operands = */ {},
                /* output_operands = */ {InstructionOperand::Register("RCX")},
-               /* implicit_output_operands = */ {})}));
+               /* implicit_output_operands = */ {},
+               /* instruction_annotations = */ {})}));
 }
 
 }  // namespace

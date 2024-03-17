@@ -89,6 +89,7 @@ class GraphBuilderModelBase(
       fp_immediate_token: str,
       address_token: str,
       memory_token: str,
+      annotation_names: Sequence[str] = [],
       **kwargs: Any,
   ) -> None:
     """Initializes the model with the given feature factory.
@@ -108,6 +109,7 @@ class GraphBuilderModelBase(
         in the basic block graph.
       memory_token: The token that is associated with memory value nodes in the
         basic block graph.
+      annotation_names: The list of names of annotations to be used.
       **kwargs: Additional keyword arguments are passed to the constructor of
         the base class.
     """
@@ -127,7 +129,13 @@ class GraphBuilderModelBase(
         tokens=tokens,
         **kwargs,
     )
-    self._instruction_node_mask = None
+    # Definition moved up from _create_readout_network_resources since
+    # _instruction_node_mask is needed earlier for embedding calculations.
+    self._instruction_node_mask = tf.placeholder(
+        dtype=tf.dtypes.bool,
+        shape=(None,),
+        name=GraphBuilderModelBase.INSTRUCTION_NODE_MASK_TENSOR_NAME,
+    )
     self._instruction_features = None
     self._batch_graph_builder = graph_builder.BasicBlockGraphBuilder(
         node_tokens=self._token_list,
@@ -135,6 +143,7 @@ class GraphBuilderModelBase(
         fp_immediate_token=fp_immediate_token,
         address_token=address_token,
         memory_token=memory_token,
+        annotation_names=set(annotation_names),
         out_of_vocabulary_behavior=self._oov_behavior,
     )
 
@@ -187,11 +196,6 @@ class GraphBuilderModelBase(
   # @Override
   def _create_readout_network_resources(self) -> None:
     super()._create_readout_network_resources()
-    self._instruction_node_mask = tf.placeholder(
-        dtype=tf.dtypes.bool,
-        shape=(None,),
-        name=GraphBuilderModelBase.INSTRUCTION_NODE_MASK_TENSOR_NAME,
-    )
     self._instruction_features = tf.boolean_mask(
         self._graphs_tuple_outputs.nodes, self._instruction_node_mask
     )

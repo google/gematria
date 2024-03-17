@@ -15,6 +15,9 @@ gematria_proto_library(
 gematria_proto_library(
     name = "canonicalized_instruction_proto",
     srcs = ["canonicalized_instruction.proto"],
+    deps = [
+        ":annotation_proto",
+    ],
 )
 
 gematria_proto_library(
@@ -23,4 +26,9 @@ gematria_proto_library(
     deps = [
         ":basic_block_proto",
     ],
+)
+
+gematria_proto_library(
+    name = "annotation_proto",
+    srcs = ["annotation.proto"],
 )

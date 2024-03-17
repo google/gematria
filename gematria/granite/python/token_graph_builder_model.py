@@ -22,9 +22,11 @@ from gematria.granite.python import gnn_model_base
 from gematria.granite.python import graph_builder
 from gematria.granite.python import graph_builder_model_base
 from gematria.model.python import model_blocks
+from gematria.model.python import model_base
 from gematria.model.python import options
 import graph_nets
 import sonnet as snt
+import numpy as np
 import tensorflow.compat.v1 as tf
 
 
@@ -49,6 +51,16 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
 
   READOUT_VARIABLES = 'TokenGraphBuilderModel.readout'
   TASK_READOUT_VARIABLES = 'TokenGraphBuilderModel.task_readout'
+
+  INSTRUCTION_ANNOTATIONS_TENSOR_NAME = (
+      'TokenGraphBuilderModel.instruction_annotations'
+  )
+  NODE_FEATURES_TENSOR_NAME = 'TokenGraphBuilderModel.node_features'
+  ANNOTATION_NAMES_TENSOR_NAME = 'TokenGraphBuilderModel.annotation_names'
+
+  _instruction_annotations: tf.Tensor
+  _node_features: tf.Tensor
+  _annotation_names: tf.Tensor
 
   def __init__(
       self,
@@ -154,6 +166,28 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     leaky_relu = functools.partial(tf.keras.activations.relu, alpha=0.1)
     self._readout_activation = readout_activation or leaky_relu
     self._update_activation = update_activation or leaky_relu
+
+    annotation_names_list = list(self._batch_graph_builder.annotation_names)
+    annotation_names_array = np.frombuffer(
+        b'\0'.join(name.encode('utf-8') for name in annotation_names_list)
+    )
+    self._annotation_names = tf.constant(
+        annotation_names_array,
+        name=TokenGraphBuilderModel.ANNOTATION_NAMES_TENSOR_NAME,
+    )
+    self._to_feed_instruction_annotations = np.zeros(
+        (0, 0), dtype=self.dtype.as_numpy_dtype
+    )
+    if annotation_names_list:
+      self._to_feed_instruction_annotations = np.array(
+          self._batch_graph_builder.instruction_annotations,
+          dtype=self.dtype.as_numpy_dtype,
+      )
+    self._instruction_annotations = tf.placeholder(
+        dtype=self.dtype,
+        shape=self._to_feed_instruction_annotations.shape,
+        name=TokenGraphBuilderModel.INSTRUCTION_ANNOTATIONS_TENSOR_NAME,
+    )
 
   # @Override
   def _make_model_name(self) -> str:
@@ -288,10 +322,12 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
                     initializers=embedding_initializers,
                 ),
                 node_model_fn=functools.partial(
-                    snt.Embed,
+                    TokenGraphBuilderModelNodeEmbed,
                     vocab_size=len(self._token_list),
                     embed_dim=self._node_embedding_size,
                     initializers=embedding_initializers,
+                    instruction_annotations=self._instruction_annotations,
+                    instruction_node_mask=self._instruction_node_mask,
                 ),
                 global_model_fn=functools.partial(
                     snt.Sequential,
@@ -339,4 +375,72 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
             layer_normalization=options.EnableFeature.BY_FLAG,
             residual_connection=options.EnableFeature.BY_FLAG,
         ),
+    )
+
+  def _make_batch_feed_dict(self) -> model_base.FeedDict:
+    feed_dict = super()._make_batch_feed_dict()
+
+    feed_dict[self._instruction_annotations] = (
+        self._to_feed_instruction_annotations
+    )
+    return feed_dict
+
+
+class TokenGraphBuilderModelNodeEmbed(snt.Embed):
+  """Extends `snt.Embed` to include instruction annotations in node embeddings.
+
+  Generates node embeddings normally, then replaces the last `num_annotation`
+  values of the embeddings corresponding to instructions with the annotation
+  values. The embeddings for other node types remain unchanged.
+  """
+
+  def __init__(
+      self,
+      instruction_annotations,
+      instruction_node_mask,
+      **kwargs,
+  ) -> None:
+    """Initializes node embeddings.
+
+    Args:
+      instruction_annotations: Tensor holding instruction level runtime
+        annotations as in `BasicBlockGraphBuilder`.
+      instruction_node_mask: As in `BasicBlockGraphBuilder`.
+      **kwargs: Additional arguments to be passed to the internal `snt.Embed`.
+    """
+    super().__init__(**kwargs)
+
+    # The number of annotations per instruction.
+    self.num_annotations = int(instruction_annotations.shape[1])
+
+    if self.num_annotations > self.embed_dim:
+      raise ValueError('num_annotations cannot be greater than embed_dim.')
+
+    self.instruction_annotations = instruction_annotations
+    self.instruction_node_mask = instruction_node_mask
+
+  def __call__(self, inputs):
+    embeddings = super().__call__(inputs)
+
+    if self.num_annotations == 0:
+      return embeddings
+
+    return tf.concat(
+        [
+            tf.slice(
+                embeddings,
+                begin=[0, 0],
+                size=[-1, self.embed_dim - self.num_annotations],
+            ),
+            tf.tensor_scatter_nd_update(
+                tf.slice(
+                    embeddings,
+                    begin=[0, self.embed_dim - self.num_annotations],
+                    size=[-1, self.num_annotations],
+                ),
+                indices=tf.where(self.instruction_node_mask),
+                updates=self.instruction_annotations,
+            ),
+        ],
+        axis=1,
     )
