@@ -274,6 +274,8 @@ void BasicBlockGraphBuilder::Reset() {
   edge_types_.clear();
 
   global_features_.clear();
+
+  instruction_annotations_.clear();
 }
 
 bool BasicBlockGraphBuilder::AddInputOperand(

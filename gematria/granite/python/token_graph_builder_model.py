@@ -55,12 +55,16 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
   INSTRUCTION_ANNOTATIONS_TENSOR_NAME = (
       'TokenGraphBuilderModel.instruction_annotations'
   )
-  NODE_FEATURES_TENSOR_NAME = 'TokenGraphBuilderModel.node_features'
   ANNOTATION_NAMES_TENSOR_NAME = 'TokenGraphBuilderModel.annotation_names'
 
+  # A 1D byte tensor that contains the list of annotation names in the order of
+  # their indices in the graph builder.
+  _annotation_name_tensor: tf.Tensor
+
+  # The list of annotation names, in the order of their indices in the model.
+  _annotation_name_list: Sequence[str]
+
   _instruction_annotations: tf.Tensor
-  _node_features: tf.Tensor
-  _annotation_names: tf.Tensor
 
   def __init__(
       self,
@@ -167,25 +171,12 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     self._readout_activation = readout_activation or leaky_relu
     self._update_activation = update_activation or leaky_relu
 
-    annotation_names_list = list(self._batch_graph_builder.annotation_names)
-    annotation_names_array = np.frombuffer(
-        b'\0'.join(name.encode('utf-8') for name in annotation_names_list)
+    self._annotation_name_list = tuple(
+        self._batch_graph_builder.annotation_names
     )
-    self._annotation_names = tf.constant(
-        annotation_names_array,
-        name=TokenGraphBuilderModel.ANNOTATION_NAMES_TENSOR_NAME,
-    )
-    self._to_feed_instruction_annotations = np.zeros(
-        (0, 0), dtype=self.dtype.as_numpy_dtype
-    )
-    if annotation_names_list:
-      self._to_feed_instruction_annotations = np.array(
-          self._batch_graph_builder.instruction_annotations,
-          dtype=self.dtype.as_numpy_dtype,
-      )
     self._instruction_annotations = tf.placeholder(
         dtype=self.dtype,
-        shape=self._to_feed_instruction_annotations.shape,
+        shape=(None, len(self._annotation_name_list)),
         name=TokenGraphBuilderModel.INSTRUCTION_ANNOTATIONS_TENSOR_NAME,
     )
 
@@ -209,6 +200,19 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
         f'readout_input_layer_norm={self._readout_input_layer_normalization}, '
         'task_readout_input_layer_norm='
         f'{self._task_readout_input_layer_normalization}'
+    )
+
+  # @Override
+  def _create_tf_graph(self) -> None:
+    super()._create_tf_graph()
+
+    annotation_names_array = np.frombuffer(
+        b'\0'.join(name.encode('utf-8') for name in self._annotation_name_list),
+        dtype=np.uint8,
+    )
+    self._annotation_name_tensor = tf.constant(
+        annotation_names_array,
+        name=TokenGraphBuilderModel.ANNOTATION_NAMES_TENSOR_NAME,
     )
 
   def _create_dense_readout_network(self, data: tf.Tensor) -> tf.Tensor:
@@ -381,7 +385,7 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     feed_dict = super()._make_batch_feed_dict()
 
     feed_dict[self._instruction_annotations] = (
-        self._to_feed_instruction_annotations
+        self._batch_graph_builder.instruction_annotations
     )
     return feed_dict
 
