@@ -152,6 +152,9 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
           uintptr_t MapAddress = (CrashInfo.getAddress() & ~0xfff);
           if (MapAddress == 0)
             return make_error<Failure>("Segfault at zero address, cannot map.");
+          // TODO(boomanaiden154): The fault captured below occurs when
+	  // exegesis tries to map an address and the mmap fails. When these
+	  // errors are handled within exegesis, we should remove this check.
           for (const auto &MemoryMapping : BenchCode.Key.MemoryMappings) {
             if (MemoryMapping.Address == MapAddress)
               return make_error<Failure>(
