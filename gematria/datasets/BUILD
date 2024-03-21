@@ -78,9 +78,9 @@ cc_binary(
     name = "process_and_filter_bbs",
     srcs = ["process_and_filter_bbs.cc"],
     deps = [
-        "//gematria/utils:string",
         "//gematria/llvm:disassembler",
         "//gematria/llvm:llvm_architecture_support",
+        "//gematria/utils:string",
         "@llvm-project//llvm:Support",
     ],
 )
