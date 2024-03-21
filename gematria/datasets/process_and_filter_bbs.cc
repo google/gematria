@@ -36,7 +36,7 @@ static cl::opt<std::string> OutputFile(
 
 Expected<std::string> ProcessBasicBlock(
     const std::string &BasicBlock,
-    const gematria::LlvmArchitectureSupport &llvm_support,
+    const gematria::LlvmArchitectureSupport &LLVMSupport,
     MCInstPrinter &MachineInstructionPrinter, const StringRef FileName) {
   // TODO(boomanaiden154): Update this to use llvm::Expected once
   // gematria::ParseHex is refactored to return llvm::Expected.
@@ -51,8 +51,8 @@ Expected<std::string> ProcessBasicBlock(
 
   Expected<std::vector<gematria::DisassembledInstruction>>
       DisassembledInstructionsOrErr = gematria::DisassembleAllInstructions(
-          llvm_support.mc_disassembler(), llvm_support.mc_instr_info(),
-          llvm_support.mc_register_info(), llvm_support.mc_subtarget_info(),
+          LLVMSupport.mc_disassembler(), LLVMSupport.mc_instr_info(),
+          LLVMSupport.mc_register_info(), LLVMSupport.mc_subtarget_info(),
           MachineInstructionPrinter, 0, *MachineCodeHex);
 
   if (!DisassembledInstructionsOrErr)
@@ -63,7 +63,7 @@ Expected<std::string> ProcessBasicBlock(
   for (const gematria::DisassembledInstruction &Instruction :
        *DisassembledInstructionsOrErr) {
     MCInstrDesc InstDesc =
-        llvm_support.mc_instr_info().get(Instruction.mc_inst.getOpcode());
+        LLVMSupport.mc_instr_info().get(Instruction.mc_inst.getOpcode());
     if (InstDesc.isReturn() || InstDesc.isCall() || InstDesc.isBranch())
       continue;
     OutputBlock += toHex(Instruction.machine_code);
@@ -77,17 +77,17 @@ int main(int Argc, char **Argv) {
 
   ExitOnError ExitOnErr("process_and_filter_bbs error: ");
 
-  const std::unique_ptr<gematria::LlvmArchitectureSupport> llvm_support =
+  const std::unique_ptr<gematria::LlvmArchitectureSupport> LLVMSupport =
       gematria::LlvmArchitectureSupport::X86_64();
 
   std::unique_ptr<MCInstPrinter> MachineInstructionPrinter =
-      llvm_support->CreateMCInstPrinter(0);
+      LLVMSupport->CreateMCInstPrinter(0);
 
   std::ifstream InputFileStream(InputFile);
   std::ofstream OutputFileStream(OutputFile);
   for (std::string Line; std::getline(InputFileStream, Line);) {
     Expected<std::string> ProcessedBlockOrErr = ProcessBasicBlock(
-        Line, *llvm_support, *MachineInstructionPrinter, InputFile);
+        Line, *LLVMSupport, *MachineInstructionPrinter, InputFile);
     if (!ProcessedBlockOrErr) ExitOnErr(ProcessedBlockOrErr.takeError());
 
     OutputFileStream << *ProcessedBlockOrErr << "\n";
