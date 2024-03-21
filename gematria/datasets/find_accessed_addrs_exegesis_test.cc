@@ -73,8 +73,10 @@ class FindAccessedAddrsExegesisTest : public testing::Test {
       std::string_view TextualAssembly) {
     auto Code = Assemble(TextualAssembly);
     auto Annotator = cantFail(ExegesisAnnotator::create(State));
-    return Annotator->findAccessedAddrs(llvm::ArrayRef(
-        reinterpret_cast<const uint8_t*>(Code.data()), Code.size()));
+    return Annotator->findAccessedAddrs(
+        llvm::ArrayRef(reinterpret_cast<const uint8_t*>(Code.data()),
+                       Code.size()),
+        50);
   }
 };
 
