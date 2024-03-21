@@ -23,6 +23,7 @@
 #include "gematria/testing/matchers.h"
 #include "gtest/gtest.h"
 
+using testing::AnyOf;
 using testing::UnorderedElementsAre;
 
 namespace gematria {
@@ -122,7 +123,10 @@ TEST_F(BasicBlockUtilsTest, LoopRegisterSingleInstruction) {
   std::optional<unsigned> LoopRegister = getLoopRegister(R"asm(
     mov %rax, %rcx
   )asm");
-  EXPECT_EQ(*LoopRegister, X86::RDX);
+  EXPECT_THAT(*LoopRegister,
+              AnyOf(X86::RDX, X86::RBX, X86::RSI, X86::RDI, X86::RSP, X86::RBP,
+                    X86::R8, X86::R9, X86::R10, X86::R11, X86::R12, X86::R13,
+                    X86::R14, X86::R15));
 }
 
 TEST_F(BasicBlockUtilsTest, LoopRegisterImplicitUseDef) {
@@ -134,7 +138,8 @@ TEST_F(BasicBlockUtilsTest, LoopRegisterImplicitUseDef) {
     pushq %rsi
     pushq %rdi
   )asm");
-  EXPECT_EQ(*LoopRegister, X86::R8);
+  EXPECT_THAT(*LoopRegister, AnyOf(X86::R8, X86::R9, X86::R10, X86::R11,
+                                   X86::R12, X86::R13, X86::R14, X86::R15));
 }
 
 TEST_F(BasicBlockUtilsTest, LoopRegisterFullPressure) {

@@ -209,6 +209,7 @@ int main(int argc, char* argv[]) {
       absl::GetFlag(FLAGS_report_progress_every);
   const bool skip_no_loop_register = absl::GetFlag(FLAGS_skip_no_loop_register);
   unsigned int file_counter = 0;
+  unsigned int loop_register_failures = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
     if (file_counter >= max_bb_count) break;
 
@@ -267,6 +268,7 @@ int main(int argc, char* argv[]) {
     if (!loop_register && skip_no_loop_register) {
       std::cerr
           << "Skipping block due to not being able to find a loop register\n";
+      ++loop_register_failures;
       continue;
     }
 
@@ -381,6 +383,9 @@ int main(int argc, char* argv[]) {
                                             json_file_number, json_output_dir);
     if (!write_successfully) return 4;
   }
+
+  std::cerr << "Failed to find a loop register for " << loop_register_failures
+            << " blocks\n";
 
   return 0;
 }

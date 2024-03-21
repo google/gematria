@@ -1,12 +1,16 @@
 ; Test that by default, snippets are skipped when we can't find a loop register.
+; Additionally test that the annotation script outputs the number of blocks
+; where it failed to find a loop register at the end of execution.
 
 ; RUN: split-file %s %t
 ; RUN: mkdir %t.asmdir
-; RUN: %convert_bhive_to_llvm_exegesis_input --asm_output_dir=%t.asmdir --bhive_csv=%t/test.csv
+; RUN: %convert_bhive_to_llvm_exegesis_input --asm_output_dir=%t.asmdir --bhive_csv=%t/test.csv 2>&1 | FileCheck %s --check-prefix CONVERTER-OUTPUT
 ; RUN: ls %t.asmdir | FileCheck %s --check-prefix DEFAULT-DIR
 
 ; DEFAULT-DIR: 0.test
 ; DEFAULT-DIR-NOT: 1.test
+
+; CONVERTER-OUTPUT: Failed to find a loop register for 1 blocks
 
 ; Check that we actually get a reasonable loop register annotation
 
