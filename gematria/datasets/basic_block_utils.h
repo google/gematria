@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "gematria/llvm/disassembler.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
 
@@ -27,15 +28,12 @@ namespace gematria {
 
 using namespace llvm;
 
-// Basic Block Utilities.
-class BasicBlockUtils {
- public:
-  // Gets the registers used by a basic block (in the form of a sequence of
-  // instructions).
-  static std::vector<unsigned> getUsedRegisters(
-      const std::vector<DisassembledInstruction> &Instructions,
-      const MCRegisterInfo &RegisterInfo, const MCInstrInfo &InstructionInfo);
-};
+// Gets the registers used by a basic block (in the form of a sequence of
+// instructions).
+std::vector<unsigned> getUsedRegisters(
+    const ArrayRef<DisassembledInstruction> Instructions,
+    const MCRegisterInfo &RegisterInfo, const MCInstrInfo &InstructionInfo);
+
 }  // namespace gematria
 
 #endif  // THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_BASIC_BLOCK_UTILS_H_

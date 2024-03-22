@@ -14,7 +14,7 @@
 
 #include "gematria/datasets/basic_block_utils.h"
 
-#include <map>
+#include <set>
 
 #include "X86.h"
 #include "X86InstrInfo.h"
@@ -28,6 +28,11 @@ namespace gematria {
 
 unsigned getSuperRegister(unsigned OriginalRegister,
                           const MCRegisterInfo &RegisterInfo) {
+  // We should be able to get the super register by getting an iterator from
+  // RegisterInfo and getting the back, but this always returns a value of
+  // zero.
+  // TODO(boomanaiden154): Investigate why this is ocurring on the LLVM side
+  // and fix it.
   unsigned SuperRegister = OriginalRegister;
   for (MCPhysReg CurrentSuperRegister :
        RegisterInfo.superregs_inclusive(OriginalRegister)) {
@@ -42,32 +47,39 @@ unsigned getSuperRegister(unsigned OriginalRegister,
     return OriginalRegister;
 }
 
-std::vector<unsigned> BasicBlockUtils::getUsedRegisters(
-    const std::vector<DisassembledInstruction> &Instructions,
+std::vector<unsigned> getUsedRegisters(
+    const ArrayRef<DisassembledInstruction> Instructions,
     const MCRegisterInfo &RegisterInfo, const MCInstrInfo &InstructionInfo) {
-  std::map<unsigned, bool> UsedInputRegisters;
-  std::map<unsigned, bool> DefinedInBBRegisters;
+  std::set<unsigned> UsedInputRegisters;
+  std::set<unsigned> DefinedInBBRegisters;
   for (const gematria::DisassembledInstruction &Instruction : Instructions) {
     unsigned InstructionDefs =
         InstructionInfo.get(Instruction.mc_inst.getOpcode()).getNumDefs();
     for (unsigned OperandIndex = InstructionDefs;
          OperandIndex < Instruction.mc_inst.getNumOperands(); ++OperandIndex) {
-      if (Instruction.mc_inst.getOperand(OperandIndex).isReg()) {
-        unsigned RegisterNumber =
-            Instruction.mc_inst.getOperand(OperandIndex).getReg();
+      const MCOperand &CurrentOperand =
+          Instruction.mc_inst.getOperand(OperandIndex);
+      if (CurrentOperand.isReg()) {
+        unsigned RegisterNumber = CurrentOperand.getReg();
         if (RegisterNumber == 0) continue;
         unsigned SuperRegister = getSuperRegister(RegisterNumber, RegisterInfo);
         // If the register was already defined within the basic block, we don't
         // need to define it ourselves.
         if (DefinedInBBRegisters.count(SuperRegister) > 0) continue;
-        UsedInputRegisters[SuperRegister] = true;
+        UsedInputRegisters.insert(SuperRegister);
       }
     }
     // We also need to handle instructions that have implict uses.
     for (unsigned ImplicitlyUsedRegister :
          InstructionInfo.get(Instruction.mc_inst.getOpcode()).implicit_uses()) {
-      UsedInputRegisters[getSuperRegister(ImplicitlyUsedRegister,
-                                          RegisterInfo)] = true;
+      UsedInputRegisters.insert(
+          getSuperRegister(ImplicitlyUsedRegister, RegisterInfo));
+    }
+    // Handle instructions that have implicit defs
+    for (unsigned ImplicitlyDefinedRegister :
+         InstructionInfo.get(Instruction.mc_inst.getOpcode()).implicit_defs()) {
+      DefinedInBBRegisters.insert(
+          getSuperRegister(ImplicitlyDefinedRegister, RegisterInfo));
     }
     for (unsigned OperandIndex = 0; OperandIndex < InstructionDefs;
          ++OperandIndex) {
@@ -75,8 +87,8 @@ std::vector<unsigned> BasicBlockUtils::getUsedRegisters(
         unsigned RegisterNumber =
             Instruction.mc_inst.getOperand(OperandIndex).getReg();
         if (RegisterNumber == 0) continue;
-        DefinedInBBRegisters[getSuperRegister(RegisterNumber, RegisterInfo)] =
-            true;
+        DefinedInBBRegisters.insert(
+            getSuperRegister(RegisterNumber, RegisterInfo));
       }
     }
   }
@@ -84,8 +96,8 @@ std::vector<unsigned> BasicBlockUtils::getUsedRegisters(
   std::vector<unsigned> UsedRegistersList;
   UsedRegistersList.reserve(UsedInputRegisters.size());
 
-  for (const auto [RegisterIndex, RegisterUsed] : UsedInputRegisters)
-    UsedRegistersList.push_back(RegisterIndex);
+  UsedRegistersList.assign(UsedInputRegisters.begin(),
+                           UsedInputRegisters.end());
 
   return UsedRegistersList;
 }
