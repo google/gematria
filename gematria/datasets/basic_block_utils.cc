@@ -78,6 +78,15 @@ std::vector<unsigned> getUsedRegisters(
     // Handle instructions that have implicit defs
     for (unsigned ImplicitlyDefinedRegister :
          InstructionInfo.get(Instruction.mc_inst.getOpcode()).implicit_defs()) {
+      // Do not define the super register of 8-bit or 16-bit registers as
+      // already being defined, as moving values into those registers does not
+      // zero the rest of the bits in the register, unlike when writing to
+      // 32-bit registers.
+      if (RegisterInfo.getRegClass(X86::GR8RegClassID)
+              .contains(ImplicitlyDefinedRegister) ||
+          RegisterInfo.getRegClass(X86::GR16RegClassID)
+              .contains(ImplicitlyDefinedRegister))
+        continue;
       DefinedInBBRegisters.insert(
           getSuperRegister(ImplicitlyDefinedRegister, RegisterInfo));
     }
@@ -87,6 +96,15 @@ std::vector<unsigned> getUsedRegisters(
         unsigned RegisterNumber =
             Instruction.mc_inst.getOperand(OperandIndex).getReg();
         if (RegisterNumber == 0) continue;
+        // Do not define the super register of 8-bit or 16-bit registers as
+        // already being defined, as moving values into those registers does not
+        // zero the rest of the bits in the register, unlike when writing to
+        // 32-bit registers.
+        if (RegisterInfo.getRegClass(X86::GR8RegClassID)
+                .contains(RegisterNumber) ||
+            RegisterInfo.getRegClass(X86::GR16RegClassID)
+                .contains(RegisterNumber))
+          continue;
         DefinedInBBRegisters.insert(
             getSuperRegister(RegisterNumber, RegisterInfo));
       }

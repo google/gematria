@@ -122,5 +122,47 @@ TEST_F(BasicBlockUtilsTest, UsedRegistersImplicitDefs) {
   EXPECT_THAT(UsedRegisters, IsEmpty());
 }
 
+TEST_F(BasicBlockUtilsTest, UsedRegistersCPUID) {
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
+    cpuid
+    movq %rax, %r8
+    movq %rbx, %r8
+    movq %rcx, %r8
+    movq %rdx, %r8
+  )asm");
+  EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RAX, X86::RCX));
+}
+
+TEST_F(BasicBlockUtilsTest, UsedRegistersUseDefSameRegister) {
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
+    addq %rax, %rbx
+  )asm");
+  EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RAX, X86::RBX));
+}
+
+TEST_F(BasicBlockUtilsTest, UsedRegistersRegisterAliasing) {
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
+    movb 1, %al
+    addq %rax, %rbx
+  )asm");
+  EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RAX, X86::RBX));
+}
+
+TEST_F(BasicBlockUtilsTest, UsedRegistersRegisterAliasing32Bit) {
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
+    movl $1, %eax
+    add %rax, %rbx
+  )asm");
+  EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RBX));
+}
+
+TEST_F(BasicBlockUtilsTest, UsedRegistersAddressingModes) {
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
+    add %rax, -16(%rbx, %rcx, 8)
+  )asm");
+  EXPECT_THAT(UsedRegisters,
+              UnorderedElementsAre(X86::RAX, X86::RBX, X86::RCX));
+}
+
 }  // namespace
 }  // namespace gematria
