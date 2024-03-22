@@ -91,6 +91,7 @@ readonly INPUT_TENSORS_LIST=(
   GnnModelBase.num_edges
   GnnModelBase.num_nodes
   GraphBuilderModelBase.instruction_node_mask
+  TokenGraphBuilderModel.instruction_annotations
 )
 INPUT_TENSORS=$(str_join "${INPUT_TENSORS_LIST[@]}")
 readonly INPUT_TENSORS
@@ -109,12 +110,14 @@ if (( FLAGS_gematria_export_as_seq2seq )); then
     ModelBase.output_tensor_deltas
     TokenModel.token_list
     GraphBuilderModelBase.special_tokens
+    TokenGraphBuilderModel.annotation_names
   )
 else
   readonly OUTPUT_TENSOR_LIST=(
     ModelBase.output_tensor
     TokenModel.token_list
     GraphBuilderModelBase.special_tokens
+    TokenGraphBuilderModel.annotation_names
   )
 fi
 OUTPUT_TENSORS=$(str_join "${OUTPUT_TENSOR_LIST[@]}")

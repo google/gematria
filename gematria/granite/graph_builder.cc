@@ -171,7 +171,7 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
               : FindTokenOrDie(
                     node_tokens_,
                     out_of_vocabulary_behavior.replacement_token())) {
-  instruction_annotations_ = std::vector<std::vector<double>>();
+  instruction_annotations_ = std::vector<std::vector<float>>();
 
   // Store row indices corresponding to specific annotation names.
   int annotation_idx = 0;
@@ -204,7 +204,7 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
 
     // Store the annotations for later use (inclusion in embeddings), using -1
     // as a default value wherever annotations are missing.
-    std::vector<double> row = std::vector<double>(annotation_names_.size(), -1);
+    std::vector<float> row = std::vector<float>(annotation_names_.size(), -1);
     for (const auto& [name, value] : instruction.instruction_annotations) {
       const auto annotation_index = annotation_name_to_idx_.find(name);
       if (annotation_index == annotation_name_to_idx_.end()) continue;

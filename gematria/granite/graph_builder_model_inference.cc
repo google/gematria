@@ -507,6 +507,8 @@ GraphBuilderModelInference::RunInference() {
 
   const std::vector<bool> instruction_node_mask =
       graph_builder_->InstructionNodeMask();
+  const std::vector<std::vector<float>> instruction_annotations =
+      graph_builder_->instruction_annotations();
   const std::vector<int> delta_block_index = graph_builder_->DeltaBlockIndex();
 
   // Resize the input tensors according to the size of the input data.
@@ -534,6 +536,12 @@ GraphBuilderModelInference::RunInference() {
   GEMATRIA_RETURN_IF_ERROR(
       Resize1DTensor(interpreter->get(), kInstructionNodeMaskTensor,
                      static_cast<int>(instruction_node_mask.size())));
+  GEMATRIA_RETURN_IF_ERROR(Resize2DTensor(
+      interpreter->get(), kInstructionAnnotationsTensor,
+      /* desired_first_dimension_size = */
+      static_cast<int>(instruction_annotations.size()),
+      /* expected_second_dimension_size = */
+      static_cast<int>(graph_builder_->annotation_names().size())));
   GEMATRIA_RETURN_IF_ERROR(Resize2DTensor(
       interpreter->get(), kGraphGlobalsTensor,
       /* desired_first_dimension_size = */ graph_builder_->num_graphs(),
@@ -568,6 +576,9 @@ GraphBuilderModelInference::RunInference() {
       kGraphNEdgeTensor));
   GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<bool>(
       interpreter->get(), instruction_node_mask, kInstructionNodeMaskTensor));
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVectorMatrix<float>(
+      interpreter->get(), instruction_annotations,
+      kInstructionAnnotationsTensor));
   if (auto error = FillTensorFromStdVectorMatrix<int32_t>(
           interpreter->get(), graph_builder_->global_features(),
           kGraphGlobalsTensor)) {

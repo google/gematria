@@ -251,7 +251,7 @@ class BasicBlockGraphBuilder {
   // `num_instructions` x `annotation_names.size()` matrix, each entry of which
   // represents the value of the annotation of the type corresponding to the
   // column for the instruction corresponding to the row.
-  const std::vector<std::vector<double>>& instruction_annotations() const {
+  const std::vector<std::vector<float>>& instruction_annotations() const {
     return instruction_annotations_;
   }
 
@@ -410,7 +410,7 @@ class BasicBlockGraphBuilder {
   // Mapping from annotation type names to corresponding row index in the
   // `instruction_annotations_` matrix.
   std::unordered_map<std::string, int> annotation_name_to_idx_;
-  std::vector<std::vector<double>> instruction_annotations_;
+  std::vector<std::vector<float>> instruction_annotations_;
 
   std::vector<NodeIndex> edge_senders_;
   std::vector<NodeIndex> edge_receivers_;

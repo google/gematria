@@ -202,6 +202,17 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
         f'{self._task_readout_input_layer_normalization}'
     )
 
+  @property
+  def annotation_name_tensor(self) -> tf.Tensor:
+    return self._annotation_name_tensor
+
+  @property
+  def output_tensor_names(self) -> Sequence[str]:
+    return (
+        *super().output_tensor_names,
+        TokenGraphBuilderModel.ANNOTATION_NAMES_TENSOR_NAME,
+    )
+
   # @Override
   def _create_tf_graph(self) -> None:
     super()._create_tf_graph()
@@ -425,11 +436,13 @@ class TokenGraphBuilderModelNodeEmbed(snt.Embed):
 
   def __call__(self, inputs):
     embeddings = super().__call__(inputs)
+    # print(embeddings.op.name)
+    # print(self.num_annotations)
 
     if self.num_annotations == 0:
       return embeddings
 
-    return tf.concat(
+    out = tf.concat(
         [
             tf.slice(
                 embeddings,
@@ -448,3 +461,5 @@ class TokenGraphBuilderModelNodeEmbed(snt.Embed):
         ],
         axis=1,
     )
+
+    return out
