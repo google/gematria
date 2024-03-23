@@ -24,6 +24,7 @@
 #include "gtest/gtest.h"
 
 using testing::AnyOf;
+using testing::IsEmpty;
 using testing::UnorderedElementsAre;
 
 namespace gematria {
@@ -53,28 +54,28 @@ class BasicBlockUtilsTest : public ::testing::Test {
     return Instructions;
   }
 
-  std::vector<unsigned> getUsedRegisters(std::string_view TextualAssembly) {
-    return BasicBlockUtils::getUsedRegisters(
-        getInstructions(TextualAssembly), LlvmArchSupport->mc_register_info(),
-        LlvmArchSupport->mc_instr_info());
+  std::vector<unsigned> getUsedRegs(std::string_view TextualAssembly) {
+    return getUsedRegisters(getInstructions(TextualAssembly),
+                            LlvmArchSupport->mc_register_info(),
+                            LlvmArchSupport->mc_instr_info());
   }
 
-  std::optional<unsigned> getLoopRegister(std::string_view TextualAssembly) {
-    return BasicBlockUtils::getLoopRegister(getInstructions(TextualAssembly),
-                                            LlvmArchSupport->mc_register_info(),
-                                            LlvmArchSupport->mc_instr_info());
+  std::optional<unsigned> getLoopReg(std::string_view TextualAssembly) {
+    return getLoopRegister(getInstructions(TextualAssembly),
+                           LlvmArchSupport->mc_register_info(),
+                           LlvmArchSupport->mc_instr_info());
   }
 };
 
 TEST_F(BasicBlockUtilsTest, UsedRegistersSingleRegister) {
-  std::vector<unsigned> UsedRegisters = getUsedRegisters(R"asm(
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
     mov %rax, %rcx
   )asm");
   EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RAX));
 }
 
 TEST_F(BasicBlockUtilsTest, UsedRegistersSubRegister) {
-  std::vector<unsigned> UsedRegisters = getUsedRegisters(R"asm(
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
     mov %al, %cl
     mov %ax, %cx
     mov %rax, %rcx
@@ -83,7 +84,7 @@ TEST_F(BasicBlockUtilsTest, UsedRegistersSubRegister) {
 }
 
 TEST_F(BasicBlockUtilsTest, UsedRegistersMultipleRegisters) {
-  std::vector<unsigned> UsedRegisters = getUsedRegisters(R"asm(
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
     movq %rax, %rcx
     movq %rdx, %rbx
     movq %rsi, %rdi
@@ -99,28 +100,79 @@ TEST_F(BasicBlockUtilsTest, UsedRegistersMultipleRegisters) {
 }
 
 TEST_F(BasicBlockUtilsTest, UsedRegistersVectorRegisters) {
-  std::vector<unsigned> UsedRegisters = getUsedRegisters(R"asm(
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
     vmovapd %zmm1, %zmm2
   )asm");
   EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::ZMM1));
 }
 
 TEST_F(BasicBlockUtilsTest, UsedRegistersVectorSubRegisters) {
-  std::vector<unsigned> UsedRegisters = getUsedRegisters(R"asm(
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
     movaps %xmm1, %xmm2
   )asm");
   EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::XMM1));
 }
 
 TEST_F(BasicBlockUtilsTest, UsedRegistersImplicitUse) {
-  std::vector<unsigned> UsedRegisters = getUsedRegisters(R"asm(
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
     pushq %rax
   )asm");
   EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RAX, X86::RSP));
 }
 
+TEST_F(BasicBlockUtilsTest, UsedRegistersImplicitDefs) {
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
+    rdtsc
+    movq %rax, %r8
+    movq %rdx, %r8
+  )asm");
+  EXPECT_THAT(UsedRegisters, IsEmpty());
+}
+
+TEST_F(BasicBlockUtilsTest, UsedRegistersCPUID) {
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
+    cpuid
+    movq %rax, %r8
+    movq %rbx, %r8
+    movq %rcx, %r8
+    movq %rdx, %r8
+  )asm");
+  EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RAX, X86::RCX));
+}
+
+TEST_F(BasicBlockUtilsTest, UsedRegistersUseDefSameRegister) {
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
+    addq %rax, %rbx
+  )asm");
+  EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RAX, X86::RBX));
+}
+
+TEST_F(BasicBlockUtilsTest, UsedRegistersRegisterAliasing) {
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
+    movb 1, %al
+    addq %rax, %rbx
+  )asm");
+  EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RAX, X86::RBX));
+}
+
+TEST_F(BasicBlockUtilsTest, UsedRegistersRegisterAliasing32Bit) {
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
+    movl $1, %eax
+    add %rax, %rbx
+  )asm");
+  EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RBX));
+}
+
+TEST_F(BasicBlockUtilsTest, UsedRegistersAddressingModes) {
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
+    add %rax, -16(%rbx, %rcx, 8)
+  )asm");
+  EXPECT_THAT(UsedRegisters,
+              UnorderedElementsAre(X86::RAX, X86::RBX, X86::RCX));
+}
+
 TEST_F(BasicBlockUtilsTest, LoopRegisterSingleInstruction) {
-  std::optional<unsigned> LoopRegister = getLoopRegister(R"asm(
+  std::optional<unsigned> LoopRegister = getLoopReg(R"asm(
     mov %rax, %rcx
   )asm");
   EXPECT_THAT(*LoopRegister,
@@ -130,7 +182,7 @@ TEST_F(BasicBlockUtilsTest, LoopRegisterSingleInstruction) {
 }
 
 TEST_F(BasicBlockUtilsTest, LoopRegisterImplicitUseDef) {
-  std::optional<unsigned> LoopRegister = getLoopRegister(R"asm(
+  std::optional<unsigned> LoopRegister = getLoopReg(R"asm(
     pushq %rax
     pushq %rcx
     pushq %rdx
@@ -143,7 +195,7 @@ TEST_F(BasicBlockUtilsTest, LoopRegisterImplicitUseDef) {
 }
 
 TEST_F(BasicBlockUtilsTest, LoopRegisterFullPressure) {
-  std::optional<unsigned> LoopRegister = getLoopRegister(R"asm(
+  std::optional<unsigned> LoopRegister = getLoopReg(R"asm(
     movq %rax, %rcx
     movq %rdx, %rbx
     movq %rsi, %rdi
