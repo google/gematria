@@ -186,6 +186,57 @@ absl::StatusOr<AnnotatedBlock> AnnotateBasicBlock(
   return std::move(annotated_block);
 }
 
+llvm::json::Value GetJSONForSnippet(const AnnotatedBlock& annotated_block,
+                                    std::string_view hex) {
+  llvm::json::Object current_snippet;
+
+  llvm::json::Array register_definitions;
+  for (const auto register_id : annotated_block.used_registers) {
+    llvm::json::Object current_register_definition;
+    current_register_definition["Register"] = register_id;
+    current_register_definition["Value"] = kInitialRegVal;
+    register_definitions.push_back(std::move(current_register_definition));
+  }
+  current_snippet["RegisterDefinitions"] =
+      llvm::json::Value(std::move(register_definitions));
+
+  // Output the loop register.
+  if (annotated_block.loop_register)
+    current_snippet["LoopRegister"] = *annotated_block.loop_register;
+  else
+    current_snippet["LoopRegister"] = llvm::json::Value(nullptr);
+
+  if (annotated_block.accessed_addrs.accessed_blocks.size() > 0) {
+    llvm::json::Array memory_definitions;
+    llvm::json::Object current_memory_definition;
+    current_memory_definition["Name"] = llvm::json::Value(kMemNamePrefix);
+    current_memory_definition["Size"] =
+        annotated_block.accessed_addrs.block_size;
+    current_memory_definition["Value"] = llvm::json::Value(kInitialMemVal);
+    memory_definitions.push_back(std::move(current_memory_definition));
+    current_snippet["MemoryDefinitions"] =
+        llvm::json::Value(std::move(memory_definitions));
+
+    llvm::json::Array memory_mappings;
+    for (const uintptr_t addr :
+         annotated_block.accessed_addrs.accessed_blocks) {
+      llvm::json::Object current_memory_mapping;
+      current_memory_mapping["Value"] = llvm::json::Value(kMemNamePrefix);
+      current_memory_mapping["Address"] = addr;
+      memory_mappings.push_back(std::move(current_memory_mapping));
+    }
+    current_snippet["MemoryMappings"] =
+        llvm::json::Value(std::move(memory_mappings));
+  } else {
+    current_snippet["MemoryDefinitions"] = llvm::json::Array();
+    current_snippet["MemoryMappings"] = llvm::json::Array();
+  }
+
+  current_snippet["Hex"] = std::string(hex);
+
+  return llvm::json::Value(std::move(current_snippet));
+}
+
 absl::Status WriteAsmOutput(const AnnotatedBlock& annotated_block,
                             llvm::StringRef asm_output_dir,
                             unsigned int file_counter,
@@ -353,54 +404,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (!json_output_dir.empty()) {
-      llvm::json::Object current_snippet;
-
-      llvm::json::Array register_definitions;
-      for (const auto register_id : annotated_block->used_registers) {
-        llvm::json::Object current_register_definition;
-        current_register_definition["Register"] = register_id;
-        current_register_definition["Value"] = kInitialRegVal;
-        register_definitions.push_back(std::move(current_register_definition));
-      }
-      current_snippet["RegisterDefinitions"] =
-          llvm::json::Value(std::move(register_definitions));
-
-      // Output the loop register.
-      if (annotated_block->loop_register)
-        current_snippet["LoopRegister"] = *annotated_block->loop_register;
-      else
-        current_snippet["LoopRegister"] = llvm::json::Value(nullptr);
-
-      if (annotated_block->accessed_addrs.accessed_blocks.size() > 0) {
-        llvm::json::Array memory_definitions;
-        llvm::json::Object current_memory_definition;
-        current_memory_definition["Name"] = llvm::json::Value(kMemNamePrefix);
-        current_memory_definition["Size"] =
-            annotated_block->accessed_addrs.block_size;
-        current_memory_definition["Value"] = llvm::json::Value(kInitialMemVal);
-        memory_definitions.push_back(std::move(current_memory_definition));
-        current_snippet["MemoryDefinitions"] =
-            llvm::json::Value(std::move(memory_definitions));
-
-        llvm::json::Array memory_mappings;
-        for (const uintptr_t addr :
-             annotated_block->accessed_addrs.accessed_blocks) {
-          llvm::json::Object current_memory_mapping;
-          current_memory_mapping["Value"] = llvm::json::Value(kMemNamePrefix);
-          current_memory_mapping["Address"] = addr;
-          memory_mappings.push_back(std::move(current_memory_mapping));
-        }
-        current_snippet["MemoryMappings"] =
-            llvm::json::Value(std::move(memory_mappings));
-      } else {
-        current_snippet["MemoryDefinitions"] = llvm::json::Array();
-        current_snippet["MemoryMappings"] = llvm::json::Array();
-      }
-
-      current_snippet["Hex"] = std::string(hex);
-
-      processed_snippets.push_back(
-          llvm::json::Value(std::move(current_snippet)));
+      processed_snippets.push_back(GetJSONForSnippet(*annotated_block, hex));
 
       if ((file_counter + 1) % blocks_per_json_file == 0) {
         size_t json_file_number = file_counter / blocks_per_json_file;
