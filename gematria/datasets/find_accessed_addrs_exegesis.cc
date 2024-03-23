@@ -69,7 +69,7 @@ Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::create(
 
   std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
       SnippetRepetitor::Create(Benchmark::RepetitionModeE::Duplicate,
-                               ExegesisState);
+                               ExegesisState, X86::R8);
 
   return std::unique_ptr<ExegesisAnnotator>(new ExegesisAnnotator(
       ExegesisState, std::move(*RunnerOrErr), std::move(SnipRepetitor)));
@@ -124,8 +124,8 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
   }
 
   while (true) {
-    std::unique_ptr<const SnippetRepetitor> SR =
-        SnippetRepetitor::Create(Benchmark::RepetitionModeE::Duplicate, State);
+    std::unique_ptr<const SnippetRepetitor> SR = SnippetRepetitor::Create(
+        Benchmark::RepetitionModeE::Duplicate, State, X86::R8);
     Expected<BenchmarkRunner::RunnableConfiguration> RCOrErr =
         Runner->getRunnableConfiguration(BenchCode, 10000, 0, *SR);
 

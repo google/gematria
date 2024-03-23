@@ -3,10 +3,9 @@
 
 ; RUN: split-file %s %t
 ; RUN: mkdir %t.asmdir
-; RUN: %convert_bhive_to_llvm_exegesis_input --asm_output_dir=%t.asmdir --bhive_csv=%t/test.csv --report_progress_every=2 2>&1 | FileCheck %s
+; RUN: %convert_bhive_to_llvm_exegesis_input --asm_output_dir=%t.asmdir --bhive_csv=%t/test.csv --report_progress_every=2 --blocks_per_json_file=2 2>&1 | FileCheck %s
 
-; CHECK: Finished annotating block #2.
-; CHECK: Finished annotating block #4.
+; CHECK: Finished annotating 2 blocks.
 
 ; Test that --report_progress_every doesn't output anything with the default
 ; value.
@@ -20,3 +19,4 @@
 48895d1844886520488945004889e84883c4085b5d415c415d,335.000000
 418b4424084d8b3424498d2cc64939ee,98.000000
 85c044897c2460,98.000000
+4889de4889c24c89ff,93.000000
