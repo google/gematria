@@ -14,7 +14,6 @@
 
 #include "gematria/datasets/basic_block_utils.h"
 
-#include <map>
 #include <set>
 
 #include "X86.h"
@@ -133,7 +132,7 @@ unsigned getSuperRegisterAllClasses(unsigned OriginalRegister,
 std::optional<unsigned> getLoopRegister(
     const std::vector<DisassembledInstruction> &Instructions,
     const MCRegisterInfo &RegisterInfo, const MCInstrInfo &InstructionInfo) {
-  std::map<unsigned, bool> UsedRegisters;
+  std::set<unsigned> UsedRegisters;
   for (const gematria::DisassembledInstruction &Instruction : Instructions) {
     for (unsigned OperandIndex = 0;
          OperandIndex < Instruction.mc_inst.getNumOperands(); ++OperandIndex) {
@@ -141,18 +140,18 @@ std::optional<unsigned> getLoopRegister(
         unsigned RegisterNumber =
             Instruction.mc_inst.getOperand(OperandIndex).getReg();
         if (RegisterNumber == 0) continue;
-        UsedRegisters[getSuperRegisterAllClasses(RegisterNumber,
-                                                 RegisterInfo)] = true;
+        UsedRegisters.insert(
+            getSuperRegisterAllClasses(RegisterNumber, RegisterInfo));
       }
     }
     for (unsigned ImplicitlyUsedRegister :
          InstructionInfo.get(Instruction.mc_inst.getOpcode()).implicit_uses())
-      UsedRegisters[getSuperRegisterAllClasses(ImplicitlyUsedRegister,
-                                               RegisterInfo)] = true;
+      UsedRegisters.insert(
+          getSuperRegisterAllClasses(ImplicitlyUsedRegister, RegisterInfo));
     for (unsigned ImplicitlyDefinedRegister :
          InstructionInfo.get(Instruction.mc_inst.getOpcode()).implicit_defs())
-      UsedRegisters[getSuperRegisterAllClasses(ImplicitlyDefinedRegister,
-                                               RegisterInfo)] = true;
+      UsedRegisters.insert(
+          getSuperRegisterAllClasses(ImplicitlyDefinedRegister, RegisterInfo));
   }
 
   const auto &GR64RegisterClass =
