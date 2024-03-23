@@ -32,6 +32,24 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "json_importer",
+    srcs = ["json_importer.cc"],
+    hdrs = ["json_importer.h"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/datasets:bhive_importer",
+        "//gematria/llvm:canonicalizer",
+        "//gematria/llvm:llvm_to_absl",
+        "//gematria/proto:annotation_cc_proto",
+        "//gematria/proto:basic_block_cc_proto",
+        "//gematria/proto:throughput_cc_proto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
 cc_test(
     name = "bhive_importer_test",
     size = "small",
