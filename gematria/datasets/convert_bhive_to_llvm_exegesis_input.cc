@@ -232,9 +232,8 @@ int main(int argc, char* argv[]) {
     }
 
     // Get used registers
-    std::vector<unsigned> used_registers =
-        gematria::BasicBlockUtils::getUsedRegisters(
-            *instructions, reg_info, llvm_support->mc_instr_info());
+    std::vector<unsigned> used_registers = gematria::getUsedRegisters(
+        *instructions, reg_info, llvm_support->mc_instr_info());
 
     auto proto = bhive_importer.BasicBlockProtoFromInstructions(*instructions);
 
