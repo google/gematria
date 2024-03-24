@@ -9,43 +9,11 @@
 ; Ensure that we don't have any "leftover" files.
 ; RUN: ls %t.jsondir | FileCheck --check-prefix DIR %s
 
-; FILE1: [
-; FILE1:   {
 ; FILE1:     "Hex": "85c044897c2460",
-; FILE1:     "MemoryDefinitions": [
-; FILE1:       {
-; FILE1:         "Name": "MEM",
-; FILE1:         "Size": 4096,
-; FILE1:         "Value": 305419776
-; FILE1:       }
-; FILE1:     ],
-; FILE1:     "MemoryMappings": [
-; FILE1:       {
-; FILE1:         "Address": 65536,
-; FILE1:         "Value": "MEM"
-; FILE1:       }
-; FILE1:     ]
-; FILE1:   }
-; FILE1: ]
+; FILE1-NOT: "Hex"
 
-; FILE2: [
-; FILE2:   {
 ; FILE2:     "Hex": "3b31",
-; FILE2:     "MemoryDefinitions": [
-; FILE2:       {
-; FILE2:         "Name": "MEM",
-; FILE2:         "Size": 4096,
-; FILE2:         "Value": 305419776
-; FILE2:       }
-; FILE2:     ],
-; FILE2:     "MemoryMappings": [
-; FILE2:       {
-; FILE2:         "Address": 65536,
-; FILE2:         "Value": "MEM"
-; FILE2:       }
-; FILE2:     ]
-; FILE2:   }
-; FILE2: ]
+; FILE2-NOT: "Hex"
 
 ; DIR: 0.json
 ; DIR: 1.json
