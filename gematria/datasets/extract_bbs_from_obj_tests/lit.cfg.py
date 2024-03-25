@@ -17,5 +17,5 @@ config.substitutions.append(
 
 config.substitutions.append((
     '%extract_bbs_from_obj',
-    os.path.join(config.tools_root, 'extract_bbs_from_obj')
+    os.path.join(config.tools_root, 'extract_bbs_from_obj'),
 ))

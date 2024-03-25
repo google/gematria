@@ -1,6 +1,8 @@
 import os
 
-config.obj_root = os.path.join(os.getcwd(), 'gematria/datasets/extract_bbs_from_obj_tests')
+config.obj_root = os.path.join(
+    os.getcwd(), 'gematria/datasets/extract_bbs_from_obj_tests'
+)
 config.tools_root = os.path.join(os.getcwd(), 'gematria/datasets')
 config.llvm_tools_root = os.path.join(os.getcwd(), 'external/llvm-project/llvm')
 
