@@ -21,7 +21,7 @@
 ; FILE1:     ],
 ; FILE1:     "MemoryMappings": [
 ; FILE1:       {
-; FILE1:         "Address": 65536,
+; FILE1:         "Address": 86016,
 ; FILE1:         "Value": "MEM"
 ; FILE1:       }
 ; FILE1:     ]
@@ -40,7 +40,7 @@
 ; FILE2:     ],
 ; FILE2:     "MemoryMappings": [
 ; FILE2:       {
-; FILE2:         "Address": 65536,
+; FILE2:         "Address": 86016,
 ; FILE2:         "Value": "MEM"
 ; FILE2:       }
 ; FILE2:     ]
