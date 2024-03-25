@@ -82,9 +82,9 @@ cc_binary(
         "//gematria/utils:string",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
-        "@llvm-project//llvm:Support",
         "@llvm-project//llvm:Exegesis",
-	"@llvm-project//llvm:X86Disassembler",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:X86Disassembler",
     ],
 )
 
