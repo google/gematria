@@ -1,0 +1,99 @@
+// Copyright 2024 Google Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "llvm/ADT/StringExtras.h"
+#include "llvm/Object/ELFObjectFile.h"
+#include "llvm/Object/ELFTypes.h"
+#include "llvm/Object/ObjectFile.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/Errc.h"
+#include "llvm/Support/WithColor.h"
+
+using namespace llvm;
+
+static cl::opt<std::string> InputFilename(cl::Positional,
+                                          cl::desc("Input object file"),
+                                          cl::init("-"));
+
+int main(int argc, char **argv) {
+  cl::ParseCommandLineOptions(argc, argv, "llvm-tokenizer\n");
+
+  ExitOnError ExitOnErr("extract_bbs_from_obj error: ");
+
+  object::OwningBinary<object::Binary> ObjBinary =
+      ExitOnErr(object::createBinary(InputFilename));
+  object::Binary &Binary = *ObjBinary.getBinary();
+  object::ObjectFile *Obj = cast<object::ObjectFile>(&Binary);
+
+  for (const auto &Section : Obj->sections()) {
+    if (!Section.isText()) continue;
+
+    DenseMap<uint64_t, object::BBAddrMap> BBAddrMap;
+    if (const auto *Elf = dyn_cast<object::ELFObjectFileBase>(Obj)) {
+      auto BBAddrMapping = ExitOnErr(Elf->readBBAddrMap(Section.getIndex()));
+      for (auto &BBAddr : BBAddrMapping) {
+        BBAddrMap.try_emplace(BBAddr.getFunctionAddress(), std::move(BBAddr));
+      }
+    } else {
+      ExitOnErr(make_error<StringError>(errc::invalid_argument,
+                                        "Specified object file is not ELF."));
+    }
+
+    std::vector<std::pair<uint64_t, uint64_t>> BasicBlocks;
+
+    for (const auto &[FunctionAddress, BasicBlockAddressMap] : BBAddrMap) {
+      for (const auto &BasicBlockEntry : BasicBlockAddressMap.getBBEntries()) {
+        uint64_t StartAddress = FunctionAddress + BasicBlockEntry.Offset;
+        BasicBlocks.push_back(
+            std::make_pair(StartAddress, BasicBlockEntry.Size));
+      }
+    }
+
+    assert(is_sorted(BasicBlocks,
+                     [](auto &LHS, auto &RHS) {
+                       return std::get<0>(LHS) < std::get<0>(RHS);
+                     }) &&
+           "Expected basic blocks to be sorted by address\n");
+
+    if (BasicBlocks.size() == 0) {
+      dbgs() << "No basic blocks present in section.\n";
+    }
+
+    size_t BasicBlockIndex = 0;
+
+    uint64_t SectionEndAddress = Section.getAddress() + Section.getSize();
+
+    uint64_t CurrentAddress = std::get<0>(BasicBlocks[BasicBlockIndex]);
+
+    if (SectionEndAddress < CurrentAddress) continue;
+
+    StringRef SectionContents = ExitOnErr(Section.getContents());
+
+    while (CurrentAddress < SectionEndAddress &&
+           BasicBlockIndex < BasicBlocks.size()) {
+      uint64_t OffsetInSection = CurrentAddress - Section.getAddress();
+      StringRef BasicBlock(SectionContents.data() + OffsetInSection,
+                           std::get<1>(BasicBlocks[BasicBlockIndex]));
+      std::string BBHex = toHex(BasicBlock);
+      outs() << BBHex << "\n";
+      BasicBlockIndex++;
+      if (BasicBlockIndex >= BasicBlocks.size()) {
+        break;
+      }
+      CurrentAddress = std::get<0>(BasicBlocks[BasicBlockIndex]);
+    }
+  }
+
+  return 0;
+}
