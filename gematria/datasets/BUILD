@@ -75,8 +75,8 @@ cc_binary(
 )
 
 cc_binary(
-    name = "exegesis-benchmark",
-    srcs = ["exegesis-benchmark.cc"],
+    name = "exegesis_benchmark",
+    srcs = ["exegesis_benchmark.cc"],
     deps = [
         "//gematria/llvm:disassembler",
         "//gematria/utils:string",

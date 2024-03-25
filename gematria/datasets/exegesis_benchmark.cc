@@ -13,6 +13,9 @@
 // limitations under the License.
 
 #include <iostream>
+#include <optional>
+#include <string>
+#include <vector>
 
 #include "X86.h"
 #include "X86InstrInfo.h"
