@@ -29,9 +29,9 @@ TEST(LinkedListTest, CreateRandomLinkedList) {
   const auto *head = list.get();
   for (int i = 0; i < kSize; ++i) {
     ASSERT_NE(head, nullptr);
-    head = head->next;
     EXPECT_GE(head->value, 0);
     EXPECT_LE(head->value, kMaxRandomListValue);
+    head = head->next;
   }
   ASSERT_EQ(head, nullptr);
 }
