@@ -49,10 +49,12 @@ constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
 constexpr std::string_view kMemMapPrefix = "# LLVM-EXEGESIS-MEM-MAP ";
 constexpr std::string_view kMemNamePrefix = "MEM";
 
-enum class AnnotatorType { kExegesis, kFast };
+enum class AnnotatorType { kExegesis, kFast, kNone };
 
 constexpr std::pair<AnnotatorType, std::string_view> kAnnotatorTypeNames[] = {
-    {AnnotatorType::kExegesis, "exegesis"}, {AnnotatorType::kFast, "fast"}};
+    {AnnotatorType::kExegesis, "exegesis"},
+    {AnnotatorType::kFast, "fast"},
+    {AnnotatorType::kNone, "none"}};
 
 bool AbslParseFlag(absl::string_view text, AnnotatorType* type,
                    std::string* error) {
@@ -88,6 +90,8 @@ ABSL_FLAG(
     "The number of annotated basic blocks to include in a single JSON file");
 ABSL_FLAG(unsigned, max_bb_count, std::numeric_limits<unsigned>::max(),
           "The maximum number of basic blocks to process");
+ABSL_FLAG(unsigned, report_progress_every, std::numeric_limits<unsigned>::max(),
+          "The number of blocks after which to report progress.");
 
 absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
@@ -102,6 +106,8 @@ absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
       return gematria::LlvmExpectedToStatusOr(
           exegesis_annotator->findAccessedAddrs(
               llvm::ArrayRef(basic_block.begin(), basic_block.end())));
+    case AnnotatorType::kNone:
+      return gematria::AccessedAddrs();
   }
   return absl::InvalidArgumentError("unknown annotator type");
 }
@@ -218,6 +224,8 @@ int main(int argc, char* argv[]) {
   std::ifstream bhive_csv_file(bhive_filename);
   llvm::json::Array processed_snippets;
   const unsigned max_bb_count = absl::GetFlag(FLAGS_max_bb_count);
+  const unsigned report_progress_every =
+      absl::GetFlag(FLAGS_report_progress_every);
   unsigned int file_counter = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
     if (file_counter >= max_bb_count) break;
@@ -240,12 +248,11 @@ int main(int argc, char* argv[]) {
 
     // Check for errors.
     if (!proto.ok()) {
-      std::cerr << "Failed to disassemble block '" << hex << ": "
-                << proto.status() << "\n";
+      std::cerr << "Failed to disassemble block '" << hex
+                << "': " << proto.status() << "\n";
       continue;
     }
 
-    // This will only get the first segfault address.
     auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator.get());
 
     if (!addrs.ok()) {
@@ -324,7 +331,7 @@ int main(int argc, char* argv[]) {
       processed_snippets.push_back(
           llvm::json::Value(std::move(current_snippet)));
 
-      if (file_counter % blocks_per_json_file == 0) {
+      if ((file_counter + 1) % blocks_per_json_file == 0) {
         size_t json_file_number = file_counter / blocks_per_json_file;
         bool write_successfully = WriteJsonFile(
             std::move(processed_snippets), json_file_number, json_output_dir);
@@ -333,10 +340,13 @@ int main(int argc, char* argv[]) {
       }
     }
 
+    if (file_counter != 0 && file_counter % report_progress_every == 0)
+      std::cerr << "Finished annotating block #" << file_counter << ".\n";
+
     file_counter++;
   }
 
-  if (!json_output_dir.empty()) {
+  if (!json_output_dir.empty() && processed_snippets.size() != 0) {
     size_t json_file_number = file_counter / blocks_per_json_file;
     bool write_successfully = WriteJsonFile(std::move(processed_snippets),
                                             json_file_number, json_output_dir);

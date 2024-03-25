@@ -19,6 +19,7 @@
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/testing/matchers.h"
+#include "gematria/utils/string.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -55,6 +56,36 @@ TEST_F(BHiveImporterTest, EmptyBlock) {
                                       source: "bhive: skl"
                                       inverse_throughput_cycles: 0
                                     })pb")));
+}
+
+TEST_F(BHiveImporterTest, SingleInstructionHex) {
+  const auto machine_code_bytes_or_status = ParseHexString("4929d2");
+  ASSERT_TRUE(machine_code_bytes_or_status.has_value());
+
+  std::unique_ptr<llvm::MCInstPrinter> inst_printer =
+      x86_llvm_->CreateMCInstPrinter(0);
+
+  llvm::Expected<std::vector<DisassembledInstruction>> instructions_or_error =
+      DisassembleAllInstructions(
+          x86_llvm_->mc_disassembler(), x86_llvm_->mc_instr_info(),
+          x86_llvm_->mc_register_info(), x86_llvm_->mc_subtarget_info(),
+          *inst_printer, 0, *machine_code_bytes_or_status);
+  ASSERT_TRUE(static_cast<bool>(instructions_or_error));
+  EXPECT_THAT(x86_bhive_importer_->BasicBlockProtoFromInstructions(
+                  *instructions_or_error, 0),
+              EqualsProto(
+                  R"pb(machine_instructions {
+                         assembly: "\tsubq\t%rdx, %r10"
+                         machine_code: "I)\322"
+                       }
+                       canonicalized_instructions {
+                         mnemonic: "SUB"
+                         llvm_mnemonic: "SUB64rr"
+                         output_operands { register_name: "R10" }
+                         input_operands { register_name: "R10" }
+                         input_operands { register_name: "RDX" }
+                         implicit_output_operands { register_name: "EFLAGS" }
+                       })pb"));
 }
 
 TEST_F(BHiveImporterTest, OneInstruction) {

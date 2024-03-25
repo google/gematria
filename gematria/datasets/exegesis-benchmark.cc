@@ -111,7 +111,7 @@ int main(int Argc, char *Argv[]) {
 
   std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
       SnippetRepetitor::Create(Benchmark::RepetitionModeE::MiddleHalfLoop,
-                               State);
+                               State, X86::R8);
 
   if (pfm::pfmInitialize()) ExitWithError("Failed to initialize libpfm");
 

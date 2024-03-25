@@ -1,0 +1,22 @@
+; Test various flag combinations that should result in an error.
+
+; Test that not passing in any flags results in an error.
+; RUN: %not %convert_bhive_to_llvm_exegesis_input 2>&1 | FileCheck %s --check-prefix=NO-ARGS
+
+; NO-ARGS: Error: --bhive_csv is required
+
+; Test that setting a number of blocks per JSON file less than 1 results in
+; an error.
+; RUN: split-file %s %t
+; RUN: mkdir %t.asmdir
+; RUN: %not %convert_bhive_to_llvm_exegesis_input --bhive_csv=%t/test.csv --asm_output_dir=%t.asmdir --blocks_per_json_file=0 2>&1 | FileCheck %s --check-prefix=BAD-BLOCK-COUNT
+
+; BAD-BLOCK-COUNT: Error: --blocks_per_json_file must be greater than 1.
+
+; Test that specifying an unknown annotator type results in an error.
+; RUN: %not %convert_bhive_to_llvm_exegesis_input --bhive_csv=%t/test.csv --asm_output_dir=%t.asmdir --annotator_implementation=doesntexist 2>&1 | FileCheck %s --check-prefix=BAD-ANNOTATOR-TYPE
+
+; BAD-ANNOTATOR-TYPE: ERROR: Illegal value 'doesntexist' specified for flag 'annotator_implementation'; unknown annotator type
+
+;--- test.csv
+3b31,45.000000

@@ -1,0 +1,13 @@
+; Test that we only annotate up to --max_bb_count BBs.
+
+; RUN: split-file %s %t
+; RUN: mkdir %t.asmdir
+; RUN: %convert_bhive_to_llvm_exegesis_input --asm_output_dir=%t.asmdir --bhive_csv=%t/test.csv --max_bb_count=1
+; RUN: ls %t.asmdir | FileCheck %s
+
+; CHECK: 0.test
+; CHECK-NOT: 1.test
+
+;--- test.csv
+3b31,45.000000
+85c044897c2460,98.000000
