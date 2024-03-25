@@ -193,3 +193,16 @@ cc_binary(
         "@llvm-project//llvm:Support",
     ],
 )
+
+gematria_py_test(
+    name = "extract_bbs_from_obj_test",
+    size = "small",
+    srcs = ["extract_bbs_from_obj_test.py"],
+    data = [
+        "extract_bbs_from_obj_tests/lit.cfg.py",
+        "extract_bbs_from_obj_tests/lit.site.cfg.py",
+        ":extract_bbs_from_obj",
+        "@llvm-project//llvm:FileCheck",
+        "@llvm-project//llvm:yaml2obj",
+    ] + glob(["extract_bbs_from_obj_tests/*.test"]),
+)
