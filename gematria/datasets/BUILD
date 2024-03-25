@@ -189,7 +189,7 @@ cc_binary(
     name = "extract_bbs_from_obj",
     srcs = ["extract_bbs_from_obj.cc"],
     deps = [
-	"@llvm-project//llvm:Support",
-	"@llvm-project//llvm:Object",
+        "@llvm-project//llvm:Object",
+        "@llvm-project//llvm:Support",
     ],
 )
