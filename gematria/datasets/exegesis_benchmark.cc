@@ -240,7 +240,8 @@ int main(int Argc, char *Argv[]) {
         Runner->runConfiguration(std::move(RC1), {});
 
     if (std::get<0>(BenchmarkResult1OrErr)) {
-      ExitOnErr(std::move(std::get<0>(BenchmarkResult1OrErr)));
+      outs() << std::get<0>(BenchmarkResult1OrErr) << "\n";
+      continue;
     }
 
     AllResults.push_back(std::move(std::get<1>(BenchmarkResult1OrErr)));
@@ -248,8 +249,10 @@ int main(int Argc, char *Argv[]) {
     std::pair<Error, Benchmark> BenchmarkResult2OrErr =
         Runner->runConfiguration(std::move(RC2), {});
 
-    if (std::get<0>(BenchmarkResult2OrErr))
-      ExitOnErr(std::move(std::get<0>(BenchmarkResult2OrErr)));
+    if (std::get<0>(BenchmarkResult2OrErr)) {
+      outs() << std::get<0>(BenchmarkResult2OrErr) << "\n";
+      continue;
+    }
 
     AllResults.push_back(std::move(std::get<1>(BenchmarkResult2OrErr)));
 
@@ -265,7 +268,7 @@ int main(int Argc, char *Argv[]) {
     unsigned Throughput100 = static_cast<unsigned>(
         round(Result.Measurements[0].PerSnippetValue * 100));
 
-    dbgs() << *HexValue << "," << Throughput100 << "\n";
+    outs() << *HexValue << "," << Throughput100 << "\n";
   }
 
   return 0;
