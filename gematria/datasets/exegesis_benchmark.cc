@@ -105,23 +105,26 @@ int main(int Argc, char *Argv[]) {
           State.getRegInfo()));
 
   // More exegesis setup
-  // TODO(boomanaiden154): Switch to middle-half-loop eventually
   // TODO(boomanaiden154): Enable the usage of validation counters eventually
   const std::unique_ptr<BenchmarkRunner> Runner =
       ExitOnErr(State.getExegesisTarget().createBenchmarkRunner(
           Benchmark::Latency, State, BenchmarkPhaseSelectorE::Measure,
           BenchmarkRunner::ExecutionModeE::SubProcess, 30, {}, Benchmark::Min));
 
-  std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
-      SnippetRepetitor::Create(Benchmark::RepetitionModeE::MiddleHalfLoop,
-                               State, X86::R8);
-
   if (pfm::pfmInitialize()) ExitWithError("Failed to initialize libpfm");
 
-  for (const auto &TestValue : *ParsedAnnotatedBlocks.getAsArray()) {
+  for (const auto &AnnotatedBlock : *ParsedAnnotatedBlocks.getAsArray()) {
     std::optional<StringRef> HexValue =
-        TestValue.getAsObject()->getString("Hex");
+        AnnotatedBlock.getAsObject()->getString("Hex");
     if (!HexValue) ExitWithError("Expected basic block to have hex value");
+
+    std::optional<int64_t> LoopRegister =
+        AnnotatedBlock.getAsObject()->getInteger("LoopRegister");
+    if (!LoopRegister.has_value()) ExitWithError("Malfroemd basic block.");
+
+    std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
+        SnippetRepetitor::Create(Benchmark::RepetitionModeE::MiddleHalfLoop,
+                                 State, *LoopRegister);
 
     std::optional<std::vector<uint8_t>> BytesOr =
         gematria::ParseHexString(HexValue->str());
@@ -144,17 +147,28 @@ int main(int Argc, char *Argv[]) {
 
     const llvm::MCRegisterInfo &MRI = State.getRegInfo();
 
-    for (unsigned I = 0;
-         I < MRI.getRegClass(X86::GR64_NOREX2RegClassID).getNumRegs(); ++I) {
+    const json::Array *RegisterDefinitions =
+        AnnotatedBlock.getAsObject()->getArray("RegisterDefinitions");
+
+    for (const auto &RegisterDefinitionValue : *RegisterDefinitions) {
+      const json::Object *RegisterDefinitionObject =
+          RegisterDefinitionValue.getAsObject();
+
       RegisterValue RegVal;
-      RegVal.Register =
-          MRI.getRegClass(X86::GR64_NOREX2RegClassID).getRegister(I);
-      RegVal.Value = APInt(64, 0x12345600);
+      std::optional<int64_t> RegisterIndex =
+          RegisterDefinitionObject->getInteger("Register");
+      std::optional<int64_t> RegisterValue =
+          RegisterDefinitionObject->getInteger("Value");
+      if (!RegisterIndex.has_value() || !RegisterValue.has_value())
+        ExitWithError("Malformed register definition");
+
+      RegVal.Register = *RegisterIndex;
+      RegVal.Value = APInt(64, *RegisterValue);
       BenchCode.Key.RegisterInitialValues.push_back(RegVal);
     }
 
     const json::Array *MemoryDefinitions =
-        TestValue.getAsObject()->getArray("MemoryDefinitions");
+        AnnotatedBlock.getAsObject()->getArray("MemoryDefinitions");
 
     if (!MemoryDefinitions)
       ExitWithError("Expected field MemoryDefinitions does not exist.");
@@ -182,7 +196,7 @@ int main(int Argc, char *Argv[]) {
         ExitWithError("Malformed memory definition");
 
       MemoryValue MemVal;
-      MemVal.Value = APInt(64, *MemoryDefinitionHexValue);
+      MemVal.Value = APInt(32, *MemoryDefinitionHexValue);
       MemVal.Index = 0;  // Update this to support multiple definitions
       MemVal.SizeBytes = *MemoryDefinitionSize;
 
@@ -190,7 +204,7 @@ int main(int Argc, char *Argv[]) {
     }
 
     const json::Array *MemoryMappings =
-        TestValue.getAsObject()->getArray("MemoryMappings");
+        AnnotatedBlock.getAsObject()->getArray("MemoryMappings");
 
     if (!MemoryMappings) ExitWithError("Malformed memory mapping");
 
@@ -248,11 +262,10 @@ int main(int Argc, char *Argv[]) {
     ResultAgg->AggregateResults(Result,
                                 ArrayRef<Benchmark>(AllResults).drop_front());
 
-    dbgs() << Result.Measurements[0].PerSnippetValue << "\n";
+    unsigned Throughput100 = static_cast<unsigned>(
+        round(Result.Measurements[0].PerSnippetValue * 100));
 
-    dbgs() << *HexValue << "\n";
-
-    break;
+    dbgs() << *HexValue << "," << Throughput100 << "\n";
   }
 
   return 0;
