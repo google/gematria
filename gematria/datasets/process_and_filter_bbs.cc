@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <fstream>
+#include <limits>
 
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
@@ -42,6 +43,11 @@ static cl::opt<bool> FilterMemoryAccessingBlocks(
     "filter-memory-accessing-blocks",
     cl::desc("Whether or not to filter out blocks that access memory"),
     cl::init(false), cl::cat(ProcessFilterCat));
+
+static cl::opt<unsigned> ReportProgressEvery(
+    "report-progress-every",
+    cl::desc("The interval at which to report progress in blocks"),
+    cl::init(std::numeric_limits<unsigned>::max()), cl::cat(ProcessFilterCat));
 
 Expected<std::string> ProcessBasicBlock(
     const std::string &BasicBlock,
@@ -95,6 +101,8 @@ int main(int Argc, char **Argv) {
   std::unique_ptr<MCInstPrinter> MachineInstructionPrinter =
       LLVMSupport->CreateMCInstPrinter(0);
 
+  unsigned LineCount = 0;
+
   std::ifstream InputFileStream(InputFile);
   std::ofstream OutputFileStream(OutputFile);
   for (std::string Line; std::getline(InputFileStream, Line);) {
@@ -103,6 +111,11 @@ int main(int Argc, char **Argv) {
     if (!ProcessedBlockOrErr) ExitOnErr(ProcessedBlockOrErr.takeError());
 
     OutputFileStream << *ProcessedBlockOrErr << "\n";
+
+    if (LineCount != 0 && LineCount % ReportProgressEvery == 0)
+      dbgs() << "Finished block " << LineCount << "\n";
+
+    ++LineCount;
   }
   return 0;
 }
