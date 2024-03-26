@@ -18,9 +18,23 @@
 
 #include "benchmark/benchmark.h"
 #include "gematria/experiments/access_pattern_bm/configuration.h"
+#include "gtest/gtest.h"
 
 namespace gematria {
 namespace {
+
+TEST(LinkedListTest, CreateRandomLinkedList) {
+  constexpr int kSize = 3;
+  auto list = CreateRandomLinkedList(kSize);
+  const auto *head = list.get();
+  for (int i = 0; i < kSize; ++i) {
+    ASSERT_NE(head, nullptr);
+    EXPECT_GE(head->value, 0);
+    EXPECT_LE(head->value, kMaxRandomListValue);
+    head = head->next;
+  }
+  ASSERT_EQ(head, nullptr);
+}
 
 // Times flushing an entire linked list from cache - not sure how Google
 // Benchmark repeating the test changes the results, i.e. what happens when

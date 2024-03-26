@@ -60,14 +60,13 @@ int main(int argc, char **argv) {
       }
     }
 
-    assert(is_sorted(BasicBlocks,
-                     [](auto &LHS, auto &RHS) {
-                       return std::get<0>(LHS) < std::get<0>(RHS);
-                     }) &&
-           "Expected basic blocks to be sorted by address\n");
+    std::sort(BasicBlocks.begin(), BasicBlocks.end(), [](auto &LHS, auto &RHS) {
+      return std::get<0>(LHS) < std::get<1>(RHS);
+    });
 
     if (BasicBlocks.size() == 0) {
       dbgs() << "No basic blocks present in section.\n";
+      continue;
     }
 
     size_t BasicBlockIndex = 0;

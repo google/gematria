@@ -23,10 +23,30 @@
 
 namespace gematria {
 
+struct X64Regs {
+  int64_t rax;
+  int64_t rbx;
+  int64_t rcx;
+  int64_t rdx;
+  int64_t rsi;
+  int64_t rdi;
+  int64_t rsp;
+  int64_t rbp;
+  int64_t r8;
+  int64_t r9;
+  int64_t r10;
+  int64_t r11;
+  int64_t r12;
+  int64_t r13;
+  int64_t r14;
+  int64_t r15;
+};
+
 struct AccessedAddrs {
   uintptr_t code_location;
   size_t block_size;
   std::vector<uintptr_t> accessed_blocks;
+  X64Regs initial_regs;
 };
 
 // Given a basic block of code, attempt to determine what addresses that code
