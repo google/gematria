@@ -24,17 +24,11 @@ namespace gematria {
 std::unique_ptr<Node, NodeDeleter> CreateRandomLinkedList(
     const std::size_t size) {
   std::default_random_engine generator;
-  std::uniform_int_distribution<int> distribution(0, 1023);
-  Node *head = new Node;
-  Node *current = head;
-
-  int i = size;
-  while (i--) {
-    current->next = new Node;
-    current->value = distribution(generator);
-    current = current->next;
+  std::uniform_int_distribution<int> distribution(0, kMaxRandomListValue);
+  Node *head = nullptr;
+  for (int i = 0; i < size; i++) {
+    head = new Node{.next = head, .value = distribution(generator)};
   }
-
   return std::unique_ptr<Node, NodeDeleter>(head);
 }
 
