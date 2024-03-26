@@ -9,7 +9,12 @@
 
 ; Test that --report_progress_every doesn't output anything with the default
 ; value.
-; RUN: %convert_bhive_to_llvm_exegesis_input --asm_output_dir=%t.asmdir --bhive_csv=%t/test.csv 2>&1 | FileCheck %s --check-prefix=DEFAULT-VALUE
+; RUN: %convert_bhive_to_llvm_exegesis_input --asm_output_dir=%t.asmdir --bhive_csv=%t/test.csv 2>&1 | tee %t.out
+; RUN: echo ----------////--------
+; RUN: cat %t.out
+; RUN: cp %t.out /tmp/test.out
+; RUN: echo ----------....--------
+; RUN: cat %t.out | FileCheck %s --check-prefix=DEFAULT-VALUE --allow-empty
 
 ; DEFAULT-VALUE-NOT: Finished annotating block
 

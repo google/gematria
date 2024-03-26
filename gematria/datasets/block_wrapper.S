@@ -16,35 +16,34 @@
 
 .text
 
-// This value is chosen to be one of the lowest addresses that's able to be
-// mapped. We want it to be low so that even if a register is multiplied or
-// added to another register, it will still be likely to be within an
-// accessible region of memory.
-INITIAL_REG_VALUE = 0x10000
-
 .global gematria_before_block
 .type gematria_before_block, %function
-// This code is copied directly after the code we execute, as we no longer have
-// a stack to hold a return address. Its job is initialise the registers to
-// consistent values so that the accessed addresses don't depend on the register
-// state when calling FindAccessedAddrs.
+// This code is copied directly before the code we execute, as we need exact
+// control over the code that is executed, so we can't do it from C++. Its job
+// is to initialise the registers to consistent values so that the accessed
+// addresses don't depend on the register state when calling FindAccessedAddrs.
+//
+// It takes one argument, in rdi: a pointer to a struct containing the initial
+// register values for this execution.
+// TODO(orodley): Update to support r16-r31.
 gematria_before_block:
-  mov rax, INITIAL_REG_VALUE
-  mov rbx, INITIAL_REG_VALUE
-  mov rcx, INITIAL_REG_VALUE
-  mov rdx, INITIAL_REG_VALUE
-  mov rsi, INITIAL_REG_VALUE
-  mov rdi, INITIAL_REG_VALUE
-  mov rsp, INITIAL_REG_VALUE
-  mov rbp, INITIAL_REG_VALUE
-  mov r8, INITIAL_REG_VALUE
-  mov r9, INITIAL_REG_VALUE
-  mov r10, INITIAL_REG_VALUE
-  mov r11, INITIAL_REG_VALUE
-  mov r12, INITIAL_REG_VALUE
-  mov r13, INITIAL_REG_VALUE
-  mov r14, INITIAL_REG_VALUE
-  mov r15, INITIAL_REG_VALUE
+  mov r15, rdi
+  mov rax, [r15 + 0x00]
+  mov rbx, [r15 + 0x08]
+  mov rcx, [r15 + 0x10]
+  mov rdx, [r15 + 0x18]
+  mov rsi, [r15 + 0x20]
+  mov rdi, [r15 + 0x28]
+  mov rsp, [r15 + 0x30]
+  mov rbp, [r15 + 0x38]
+  mov r8,  [r15 + 0x40]
+  mov r9,  [r15 + 0x48]
+  mov r10, [r15 + 0x50]
+  mov r11, [r15 + 0x58]
+  mov r12, [r15 + 0x60]
+  mov r13, [r15 + 0x68]
+  mov r14, [r15 + 0x70]
+  mov r15, [r15 + 0x78]
 
 _gematria_before_block_size = . - gematria_before_block
 .size gematria_before_block, _gematria_before_block_size

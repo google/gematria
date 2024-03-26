@@ -27,7 +27,7 @@ protobuf_deps()
 git_repository(
     name = "com_google_absl",
     remote = "https://github.com/abseil/abseil-cpp.git",
-    tag = "20230125.3",
+    tag = "20230802.2",
 )
 
 git_repository(
@@ -165,9 +165,9 @@ new_git_repository(
 
 # LLVM and its dependencies
 
-LLVM_COMMIT = "e14c6fa31a303312d7561aa0c7219d687f3f2c75"
+LLVM_COMMIT = "718fbbef5f18a2b7e7fc4f842b1452ae9bee581a"
 
-LLVM_SHA256 = "f37c6cc92f0f670c26e1f21386359e74ffa332a39c3adb55a5f0af5a9a87f21e"
+LLVM_SHA256 = "e17b455b320e5c09acecadf2fb0f9ce471d6668382569132d2c7f144ca10bafa"
 
 http_archive(
     name = "llvm-raw",
