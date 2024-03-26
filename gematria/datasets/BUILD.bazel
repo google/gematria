@@ -63,6 +63,7 @@ cc_binary(
     name = "convert_bhive_to_llvm_exegesis_input",
     srcs = ["convert_bhive_to_llvm_exegesis_input.cc"],
     deps = [
+        ":basic_block_utils",
         ":bhive_importer",
         ":find_accessed_addrs",
         ":find_accessed_addrs_exegesis",
