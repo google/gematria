@@ -19,6 +19,8 @@
 
 namespace gematria {
 
+constexpr inline int kMaxRandomListValue = 1023;
+
 // Represents a linked list node
 struct Node {
   Node *next = nullptr;

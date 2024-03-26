@@ -69,7 +69,7 @@ Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::create(
 
   std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
       SnippetRepetitor::Create(Benchmark::RepetitionModeE::Duplicate,
-                               ExegesisState);
+                               ExegesisState, X86::R8);
 
   return std::unique_ptr<ExegesisAnnotator>(new ExegesisAnnotator(
       ExegesisState, std::move(*RunnerOrErr), std::move(SnipRepetitor)));
@@ -124,8 +124,8 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
   }
 
   while (true) {
-    std::unique_ptr<const SnippetRepetitor> SR =
-        SnippetRepetitor::Create(Benchmark::RepetitionModeE::Duplicate, State);
+    std::unique_ptr<const SnippetRepetitor> SR = SnippetRepetitor::Create(
+        Benchmark::RepetitionModeE::Duplicate, State, X86::R8);
     Expected<BenchmarkRunner::RunnableConfiguration> RCOrErr =
         Runner->getRunnableConfiguration(BenchCode, 10000, 0, *SR);
 
@@ -143,16 +143,31 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
     if (!std::get<0>(BenchmarkResultOrErr).isA<SnippetSegmentationFault>())
       return std::move(std::get<0>(BenchmarkResultOrErr));
 
-    handleAllErrors(std::move(std::get<0>(BenchmarkResultOrErr)),
-                    [&](SnippetSegmentationFault &CrashInfo) {
-                      MemoryMapping MemMap;
-                      // Zero out the last twelve bits of the address to align
-                      // the address to a page boundary.
-                      uintptr_t MapAddress = (CrashInfo.getAddress() & ~0xfff);
-                      MemMap.Address = MapAddress;
-                      MemMap.MemoryValueName = "memdef1";
-                      BenchCode.Key.MemoryMappings.push_back(MemMap);
-                    });
+    Error AnnotationError = handleErrors(
+        std::move(std::get<0>(BenchmarkResultOrErr)),
+        [&](SnippetSegmentationFault &CrashInfo) -> Error {
+          MemoryMapping MemMap;
+          // Zero out the last twelve bits of the address to align
+          // the address to a page boundary.
+          uintptr_t MapAddress = (CrashInfo.getAddress() & ~0xfff);
+          if (MapAddress == 0)
+            return make_error<Failure>("Segfault at zero address, cannot map.");
+          // TODO(boomanaiden154): The fault captured below occurs when
+          // exegesis tries to map an address and the mmap fails. When these
+          // errors are handled within exegesis, we should remove this check.
+          for (const auto &MemoryMapping : BenchCode.Key.MemoryMappings) {
+            if (MemoryMapping.Address == MapAddress)
+              return make_error<Failure>(
+                  "Segfault at an address already mapped.");
+          }
+          MemMap.Address = MapAddress;
+          MemMap.MemoryValueName = "memdef1";
+          BenchCode.Key.MemoryMappings.push_back(MemMap);
+
+          return Error::success();
+        });
+
+    if (AnnotationError) return std::move(AnnotationError);
   }
 
   MemAnnotations.accessed_blocks.reserve(BenchCode.Key.MemoryMappings.size());
