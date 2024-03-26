@@ -36,6 +36,7 @@
 #include "gematria/utils/string.h"
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/Path.h"
+#include "llvm/Support/ThreadPool.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 
@@ -99,6 +100,8 @@ ABSL_FLAG(unsigned, report_progress_every, std::numeric_limits<unsigned>::max(),
 ABSL_FLAG(bool, skip_no_loop_register, true,
           "Whether or not to skip basic blocks where a loop counter register "
           "cannot be found.");
+ABSL_FLAG(unsigned, max_threads, llvm::thread::hardware_concurrency(),
+          "The number of threads to use in parallel for annotating snippets");
 
 absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
@@ -353,16 +356,22 @@ int main(int argc, char* argv[]) {
   std::unique_ptr<llvm::MCInstPrinter> inst_printer =
       llvm_support->CreateMCInstPrinter(0);
 
+  // Setup the thread pool
+  const unsigned max_threads = absl::GetFlag(FLAGS_max_threads);
+  llvm::DefaultThreadPool thread_pool(llvm::hardware_concurrency(max_threads));
+  ;
+
   std::ifstream bhive_csv_file(bhive_filename);
-  llvm::json::Array processed_snippets;
   const unsigned max_bb_count = absl::GetFlag(FLAGS_max_bb_count);
   const unsigned report_progress_every =
       absl::GetFlag(FLAGS_report_progress_every);
   const bool skip_no_loop_register = absl::GetFlag(FLAGS_skip_no_loop_register);
-  unsigned int file_counter = 0;
   unsigned int loop_register_failures = 0;
+
+  std::vector<std::string> basic_block_hex_values;
+
   for (std::string line; std::getline(bhive_csv_file, line);) {
-    if (file_counter >= max_bb_count) break;
+    if (basic_block_hex_values.size() >= max_bb_count) break;
 
     auto comma_index = line.find(',');
     if (comma_index == std::string::npos) {
@@ -372,61 +381,103 @@ int main(int argc, char* argv[]) {
 
     std::string_view hex = std::string_view(line).substr(0, comma_index);
 
-    auto annotated_block =
-        AnnotateBasicBlock(hex, bhive_importer, exegesis_annotator.get(),
-                           *llvm_support, *inst_printer);
-
-    if (!annotated_block.ok()) {
-      std::cerr << "Failed to annotate block: " << annotated_block.status()
-                << "\n";
-      return 2;
-    }
-
-    // If we can't find a loop register, skip writing out this basic block
-    // so that downstream tooling doesn't execute the incorrect number of
-    // iterations.
-    if (!annotated_block->loop_register && skip_no_loop_register) {
-      std::cerr
-          << "Skipping block due to not being able to find a loop register\n";
-      ++loop_register_failures;
-      continue;
-    }
-
-    if (!asm_output_dir.empty()) {
-      absl::Status asm_output_error =
-          WriteAsmOutput(*annotated_block, asm_output_dir, file_counter,
-                         reg_info, initial_mem_val_str, initial_reg_val_str);
-      if (!asm_output_error.ok()) {
-        std::cerr << "Failed to write block to file: " << asm_output_error
-                  << "\n";
-        return 2;
-      }
-    }
-
-    if (!json_output_dir.empty()) {
-      processed_snippets.push_back(GetJSONForSnippet(*annotated_block, hex));
-
-      if ((file_counter + 1) % blocks_per_json_file == 0) {
-        size_t json_file_number = file_counter / blocks_per_json_file;
-        bool write_successfully = WriteJsonFile(
-            std::move(processed_snippets), json_file_number, json_output_dir);
-        if (!write_successfully) return 4;
-        processed_snippets.clear();
-      }
-    }
-
-    if (file_counter != 0 && file_counter % report_progress_every == 0)
-      std::cerr << "Finished annotating block #" << file_counter << ".\n";
-
-    file_counter++;
+    basic_block_hex_values.push_back(std::string(hex));
   }
 
-  if (!json_output_dir.empty() && processed_snippets.size() != 0) {
-    size_t json_file_number = file_counter / blocks_per_json_file;
-    bool write_successfully = WriteJsonFile(std::move(processed_snippets),
-                                            json_file_number, json_output_dir);
-    if (!write_successfully) return 4;
+  std::mutex io_mutex;
+  int batch_count = basic_block_hex_values.size() / blocks_per_json_file;
+  if (basic_block_hex_values.size() % blocks_per_json_file != 0) ++batch_count;
+  for (int batch_index = 0; batch_index < batch_count; ++batch_index) {
+    int batch_start_index = batch_index * blocks_per_json_file;
+    int batch_end_index = (batch_index + 1) * blocks_per_json_file;
+    if (batch_end_index > basic_block_hex_values.size())
+      batch_end_index = basic_block_hex_values.size();
+
+    thread_pool.async(
+        [&](const std::vector<std::string>& basic_blocks,
+            int current_batch_index, int current_batch_start_index,
+            int current_batch_end_index) {
+          ThreadPoolTaskGroup current_batch_group(thread_pool);
+          std::vector<std::shared_future<absl::StatusOr<AnnotatedBlock>>>
+              annotated_block_futures;
+
+          for (int snippet_index = current_batch_start_index;
+               snippet_index < current_batch_end_index; ++snippet_index) {
+            std::shared_future<absl::StatusOr<AnnotatedBlock>>
+                current_snippet_future = current_batch_group.async(
+                    [&](const std::string& current_hex_value)
+                        -> absl::StatusOr<AnnotatedBlock> {
+                      return AnnotateBasicBlock(current_hex_value,
+                                                bhive_importer,
+                                                exegesis_annotator.get(),
+                                                *llvm_support, *inst_printer);
+                    },
+                    basic_blocks[snippet_index]);
+            annotated_block_futures.push_back(
+                std::move(current_snippet_future));
+          }
+
+          current_batch_group.wait();
+
+          int file_index = current_batch_start_index;
+          llvm::json::Array processed_snippets;
+
+          io_mutex.lock();
+
+          if (current_batch_index % report_progress_every == 0 &&
+              current_batch_index != 0)
+            std::cerr << "Finished annotating "
+                      << (current_batch_end_index - current_batch_start_index)
+                      << " blocks.\n";
+
+          for (const auto& block_future : annotated_block_futures) {
+            if (!block_future.get().ok()) {
+              std::cerr << "Failed to annotate block: "
+                        << block_future.get().status() << "\n";
+              continue;
+            }
+
+            const AnnotatedBlock& annotated_block = *block_future.get();
+
+            if (!annotated_block.loop_register.has_value() &&
+                skip_no_loop_register) {
+              ++loop_register_failures;
+              continue;
+            }
+
+            if (!asm_output_dir.empty()) {
+              absl::Status asm_output_error = WriteAsmOutput(
+                  annotated_block, asm_output_dir, file_index, reg_info,
+                  initial_mem_val_str, initial_reg_val_str);
+              if (!asm_output_error.ok()) {
+                std::cerr << "Failed to write block to file:"
+                          << asm_output_error << "\n";
+              }
+            }
+
+            if (!json_output_dir.empty()) {
+              std::string_view block_hex = basic_blocks[file_index];
+              processed_snippets.push_back(llvm::json::Value(
+                  GetJSONForSnippet(annotated_block, block_hex)));
+            }
+            ++file_index;
+          }
+          io_mutex.unlock();
+
+          if (!json_output_dir.empty()) {
+            bool write_successful =
+                WriteJsonFile(std::move(processed_snippets),
+                              current_batch_index, json_output_dir);
+            if (!write_successful) {
+              std::cerr << "Failed to write JSON file\n";
+            }
+          }
+        },
+        basic_block_hex_values, batch_index, batch_start_index,
+        batch_end_index);
   }
+
+  thread_pool.wait();
 
   std::cerr << "Failed to find a loop register for " << loop_register_failures
             << " blocks\n";
