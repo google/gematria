@@ -1,0 +1,55 @@
+# Test that we can extract multiple basic blocks from a single
+# relocatable object file.
+
+# RUN: %yaml2obj %s -o %t.o
+# RUN: %extract_bbs_from_obj %t.o | FileCheck %s
+
+# CHECK: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+# CHECK: BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS64
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_X86_64
+Sections:
+  - Name:    .text
+    Type:    SHT_PROGBITS
+    Flags:   [ SHF_ALLOC, SHF_EXECINSTR ]
+    Content: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+  - Name:    .llvm_bb_addr_map
+    Type:    SHT_LLVM_BB_ADDR_MAP
+    Link:    .text
+    Entries:
+      - Version: 2
+        BBRanges:
+          - BBEntries:
+            - ID:              0
+              AddressOffset:   0x0
+              Size:            0xF
+              Metadata:        0x1
+      - Version: 2
+        BBRanges:
+          - BBEntries:
+             - ID:              0
+               AddressOffset:   0x0
+               Size:            0x11
+               Metadata:        0x8
+  - Name:  .rela.llvm_bb_addr_map
+    Type:  SHT_RELA
+    Flags: [ SHF_INFO_LINK ]
+    Link:  .symtab
+    Info:  .llvm_bb_addr_map
+    Relocations:
+      - Offset: 0x2
+        Symbol: .text
+        Type:   R_X86_64_64
+      - Offset: 0x11
+        Symbol: .text
+        Type:   R_X86_64_64
+        Addend: 15
+Symbols:
+  - Name:    .text
+    Type:    STT_SECTION
+    Section: .text
