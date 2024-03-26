@@ -318,6 +318,28 @@ TEST(InstructionOperandTest, AsTokenList) {
   }
 }
 
+// TODO(virajbshah): Add tests for Annotation.
+TEST(AnnotationTest, Constructor) {
+  constexpr char kName[] = "cache_miss_freq";
+  constexpr double kValue = 0.875;
+
+  const Annotation annotation(
+      /* name = */ kName,
+      /* value = */ kValue);
+  EXPECT_EQ(annotation.name, kName);
+  EXPECT_EQ(annotation.value, kValue);
+}
+
+TEST(AnnotationTest, ToString) {
+  const Annotation annotation(
+      /* name = */ "cache_miss_freq",
+      /* value = */ 0.875);
+
+  constexpr char kExpectedString[] =
+      "Annotation(name='cache_miss_freq', value=0.875)";
+  EXPECT_EQ(annotation.ToString(), kExpectedString);
+}
+
 TEST(InstructionTest, Constructor) {
   constexpr char kMnemonic[] = "MOV";
   constexpr char kLlvmMnemonic[] = "MOV32rr";
@@ -330,6 +352,8 @@ TEST(InstructionTest, Constructor) {
       InstructionOperand::MemoryLocation(3)};
   const std::vector<InstructionOperand> kImplicitOutputOperands = {
       InstructionOperand::Register("EFLAGS")};
+  const std::vector<Annotation> kInstructionAnnotations = {
+      Annotation("cache_miss_freq", 0.875)};
 
   const Instruction instruction(
       /* mnemonic = */ kMnemonic,
@@ -338,7 +362,8 @@ TEST(InstructionTest, Constructor) {
       /* input_operands = */ kInputOperands,
       /* implicit_input_operands = */ kImplicitInputOperands,
       /* output_operands = */ kOutputOperands,
-      /* implicit_output_operands = */ kImplicitOutputOperands);
+      /* implicit_output_operands = */ kImplicitOutputOperands,
+      /* instruction_annotations = */ kInstructionAnnotations);
   EXPECT_EQ(instruction.mnemonic, kMnemonic);
   EXPECT_EQ(instruction.llvm_mnemonic, kLlvmMnemonic);
   EXPECT_EQ(instruction.prefixes, kPrefixes);
@@ -346,6 +371,7 @@ TEST(InstructionTest, Constructor) {
   EXPECT_EQ(instruction.implicit_input_operands, kImplicitInputOperands);
   EXPECT_EQ(instruction.output_operands, kOutputOperands);
   EXPECT_EQ(instruction.implicit_output_operands, kImplicitOutputOperands);
+  EXPECT_EQ(instruction.instruction_annotations, kInstructionAnnotations);
 }
 
 TEST(InstructionTest, AsTokenList) {
@@ -360,6 +386,8 @@ TEST(InstructionTest, AsTokenList) {
       InstructionOperand::MemoryLocation(3)};
   const std::vector<InstructionOperand> kImplicitOutputOperands = {
       InstructionOperand::Register("EFLAGS")};
+  const std::vector<Annotation> kInstructionAnnotations = {
+      Annotation("cache_miss_freq", 0.875)};
 
   const Instruction instruction(
       /* mnemonic = */ kMnemonic,
@@ -368,7 +396,8 @@ TEST(InstructionTest, AsTokenList) {
       /* input_operands = */ kInputOperands,
       /* implicit_input_operands = */ kImplicitInputOperands,
       /* output_operands = */ kOutputOperands,
-      /* implicit_output_operands = */ kImplicitOutputOperands);
+      /* implicit_output_operands = */ kImplicitOutputOperands,
+      /* instruction_annotations = */ kInstructionAnnotations);
 
   EXPECT_THAT(instruction.AsTokenList(),
               ElementsAre(kPrefixes[0], kPrefixes[1], kMnemonic,
@@ -387,7 +416,9 @@ TEST(InstructionTest, ToString) {
       /* implicit_input_operands = */ {InstructionOperand::Register("EFLAGS")},
       /* output_operands = */ {InstructionOperand::Register("RAX")},
       /* implicit_output_operands = */
-      {InstructionOperand::Register("EFLAGS")});
+      {InstructionOperand::Register("EFLAGS")},
+      /* instruction_annotations = */
+      {Annotation("MEM_LOAD_RETIRED:L3_MISS", 0.875)});
   constexpr char kExpectedString[] =
       "Instruction(mnemonic='ADC', llvm_mnemonic='ADC32rr', "
       "prefixes=('LOCK',), "
@@ -395,7 +426,9 @@ TEST(InstructionTest, ToString) {
       "InstructionOperand.from_register('RBX'),), "
       "implicit_input_operands=(InstructionOperand.from_register('EFLAGS'),), "
       "output_operands=(InstructionOperand.from_register('RAX'),), "
-      "implicit_output_operands=(InstructionOperand.from_register('EFLAGS'),))";
+      "implicit_output_operands=(InstructionOperand.from_register('EFLAGS'),), "
+      "instruction_annotations=(Annotation(name='MEM_LOAD_RETIRED:L3_MISS', "
+      "value=0.875),))";
   EXPECT_EQ(instruction.ToString(), kExpectedString);
 }
 
@@ -492,7 +525,10 @@ TEST(BasicBlockTest, Constructor) {
       /* implicit_input_operands = */ {InstructionOperand::Register("EFLAGS")},
       /* output_operands = */ {InstructionOperand::Register("RAX")},
       /* implicit_output_operands = */
-      {InstructionOperand::Register("EFLAGS")});
+      {InstructionOperand::Register("EFLAGS")},
+      /* instruction_annotations = */
+      {Annotation("MEM_LOAD_RETIRED:L3_MISS", 0.875)});
+
   const BasicBlock block({instruction});
   EXPECT_THAT(block.instructions, ElementsAre(instruction));
 }
@@ -515,7 +551,10 @@ TEST(BasicBlockTest, Equality) {
       /* implicit_input_operands = */ {InstructionOperand::Register("EFLAGS")},
       /* output_operands = */ {InstructionOperand::Register("RAX")},
       /* implicit_output_operands = */
-      {InstructionOperand::Register("EFLAGS")}));
+      {InstructionOperand::Register("EFLAGS")},
+      /* instruction_annotations = */
+      {Annotation("MEM_LOAD_RETIRED:L3_MISS", 0.875)}));
+
   EXPECT_NE(block_1, block_2);
   EXPECT_FALSE(block_1 == block_2);
 
@@ -530,7 +569,10 @@ TEST(BasicBlockTest, Equality) {
       /* implicit_input_operands = */ {InstructionOperand::Register("EFLAGS")},
       /* output_operands = */ {InstructionOperand::Register("RAX")},
       /* implicit_output_operands = */
-      {InstructionOperand::Register("EFLAGS")}));
+      {InstructionOperand::Register("EFLAGS")},
+      /* instruction_annotations = */
+      {Annotation("MEM_LOAD_RETIRED:L3_MISS", 0.875)}));
+
   EXPECT_EQ(block_1, block_2);
   EXPECT_FALSE(block_1 != block_2);
 
@@ -551,7 +593,10 @@ TEST(BasicBlockTest, ToString) {
       /* implicit_input_operands = */ {InstructionOperand::Register("EFLAGS")},
       /* output_operands = */ {InstructionOperand::Register("RAX")},
       /* implicit_output_operands = */
-      {InstructionOperand::Register("EFLAGS")});
+      {InstructionOperand::Register("EFLAGS")},
+      /* instruction_annotations = */
+      {Annotation("MEM_LOAD_RETIRED:L3_MISS", 0.875)});
+
   BasicBlock block({instruction});
   constexpr char kExpectedString[] =
       "BasicBlock(instructions=InstructionList((Instruction(mnemonic='ADC', "
@@ -560,7 +605,9 @@ TEST(BasicBlockTest, ToString) {
       "InstructionOperand.from_register('RBX'),), "
       "implicit_input_operands=(InstructionOperand.from_register('EFLAGS'),), "
       "output_operands=(InstructionOperand.from_register('RAX'),), "
-      "implicit_output_operands=(InstructionOperand.from_register('EFLAGS'),)),"
+      "implicit_output_operands=(InstructionOperand.from_register('EFLAGS'),), "
+      "instruction_annotations=(Annotation(name='MEM_LOAD_RETIRED:L3_MISS', "
+      "value=0.875),)),"
       ")))";
   EXPECT_EQ(block.ToString(), kExpectedString);
 }
