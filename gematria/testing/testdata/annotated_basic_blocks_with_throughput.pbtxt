@@ -1,0 +1,2885 @@
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64r"
+      output_operands {
+        register_name: "RDI"
+      }
+      input_operands {
+        address {
+          base_register: "RBX"
+          displacement: 8
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.00019453088914334713
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+  inverse_throughputs {
+    source: "test: made up values"
+    inverse_throughput_cycles: [5.0, 4.0, 3.0, 2.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+  inverse_throughputs {
+    source: "test: predicted value for tests"
+    inverse_throughput_cycles: [1.0, 
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "R14"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "R15"
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.012704311008177902
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "R14"
+          displacement: 112
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.0005105588609453578
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands {
+        register_name: "RCX"
+      }
+      input_operands {
+        register_name: "RAX"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 2.5911441159488642e-08
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "NOT"
+      llvm_mnemonic: "NOT64r"
+      output_operands {
+        register_name: "RCX"
+      }
+      input_operands {
+        register_name: "RCX"
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "CMP"
+      llvm_mnemonic: "CMP64mr"
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "R14"
+          displacement: 96
+          scaling: 1
+        }
+      }
+      input_operands {
+        register_name: "RCX"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 2.219935093995547e-07
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 2.0, 1.0, 1.0, 2.0, 1.0, 1.0, 2.0, 1.0, 1.0, 2.0, 1.0, 1.0, 2.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+  }
+  inverse_throughputs {
+    source: "test: predicted value for tests"
+    inverse_throughput_cycles: [3.0, 
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "CMP"
+      llvm_mnemonic: "CMP64ri32"
+      input_operands {
+        register_name: "R13"
+      }
+      input_operands {
+        immediate_value: 2147483647
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.08856515592299675
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+  inverse_throughputs {
+    source: "test: made up values"
+    inverse_throughput_cycles: [5.0, 4.0, 3.0, 2.0, 1.0]
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64_32r"
+      output_operands {
+        register_name: "R14D"
+      }
+      input_operands {
+        address {
+          base_register: "R9"
+          displacement: -1
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.676266872799222
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOVZX"
+      llvm_mnemonic: "MOVZX32rm8"
+      output_operands {
+        register_name: "ESI"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "R8"
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.08995457551139287
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV32rr"
+      output_operands {
+        register_name: "ECX"
+      }
+      input_operands {
+        register_name: "EAX"
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "SHL"
+      llvm_mnemonic: "SHL64rCL"
+      output_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        register_name: "RSI"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      implicit_input_operands {
+        register_name: "CL"
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64r"
+      output_operands {
+        register_name: "RCX"
+      }
+      input_operands {
+        address {
+          base_register: "R8"
+          displacement: 1
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.6329526523401302
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "ADD"
+      llvm_mnemonic: "ADD64rr"
+      output_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        register_name: "RBX"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.1067399321889447
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64r"
+      output_operands {
+        register_name: "R10"
+      }
+      input_operands {
+        address {
+          base_register: "RAX"
+          displacement: 8
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.030603975014783878
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "CMP"
+      llvm_mnemonic: "CMP64ri8"
+      input_operands {
+        register_name: "R10"
+      }
+      input_operands {
+        immediate_value: 32
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 4.392209405010691e-08
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [3.0, 4.0, 3.0, 3.0, 4.0, 3.0, 3.0, 4.0, 3.0, 3.0, 4.0, 3.0, 3.0, 4.0, 3.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 3.0, 3.0, 2.0, 3.0, 3.0, 2.0, 3.0, 3.0, 2.0, 3.0, 3.0, 2.0, 3.0, 3.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [3.0, 4.0, 3.0, 3.0, 4.0, 3.0, 3.0, 4.0, 3.0, 3.0, 4.0, 3.0, 3.0, 4.0, 3.0]
+    }
+  }
+  inverse_throughputs {
+    source: "test: made up values"
+    inverse_throughput_cycles: [5.0, 4.0, 3.0, 2.0, 1.0]
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -136
+          scaling: 1
+        }
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64r"
+      output_operands {
+        register_name: "RDI"
+      }
+      input_operands {
+        address {
+          base_register: "RAX"
+          displacement: -24
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.153170356177675
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "CMP"
+      llvm_mnemonic: "CMP64rr"
+      input_operands {
+        register_name: "RDI"
+      }
+      input_operands {
+        register_name: "R15"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.3687894742157475
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+  inverse_throughputs {
+    source: "test: made up values"
+    inverse_throughput_cycles: [5.0, 4.0, 3.0, 2.0, 1.0]
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOVAPS"
+      llvm_mnemonic: "MOVAPSrm"
+      output_operands {
+        register_name: "XMM0"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -272
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.3163695139691369
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOVAPS"
+      llvm_mnemonic: "MOVAPSrm"
+      output_operands {
+        register_name: "XMM1"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -256
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.34556219353330786
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOVUPS"
+      llvm_mnemonic: "MOVUPSmr"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RSP"
+          displacement: 16
+          scaling: 1
+        }
+      }
+      input_operands {
+        register_name: "XMM1"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.6091376013355243
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOVUPS"
+      llvm_mnemonic: "MOVUPSmr"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RSP"
+          scaling: 1
+        }
+      }
+      input_operands {
+        register_name: "XMM0"
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+  }
+  inverse_throughputs {
+    source: "test: predicted value for tests"
+    inverse_throughput_cycles: [5.0, 
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "TEST"
+      llvm_mnemonic: "TEST8rr"
+      input_operands {
+        register_name: "AL"
+      }
+      input_operands {
+        register_name: "AL"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+  inverse_throughputs {
+    source: "test: made up values"
+    inverse_throughput_cycles: [5.0, 4.0, 3.0, 2.0, 1.0]
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV8ri"
+      output_operands {
+        register_name: "CL"
+      }
+      input_operands {
+        immediate_value: 1
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.04197646385609706
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "XOR"
+      llvm_mnemonic: "XOR32rr"
+      output_operands {
+        register_name: "EAX"
+      }
+      input_operands {
+        register_name: "EAX"
+      }
+      input_operands {
+        register_name: "EAX"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.2424223600644142
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+  inverse_throughputs {
+    source: "test: made up values"
+    inverse_throughput_cycles: [5.0, 4.0, 3.0, 2.0, 1.0]
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "PUSH"
+      llvm_mnemonic: "PUSH64r"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        register_name: "RBP"
+      }
+      implicit_output_operands {
+        register_name: "RSP"
+      }
+      implicit_input_operands {
+        register_name: "RSP"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.04422653396390575
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands {
+        register_name: "RBP"
+      }
+      input_operands {
+        register_name: "RSP"
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "PUSH"
+      llvm_mnemonic: "PUSH64r"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        register_name: "R14"
+      }
+      implicit_output_operands {
+        register_name: "RSP"
+      }
+      implicit_input_operands {
+        register_name: "RSP"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.0026258011900289775
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "PUSH"
+      llvm_mnemonic: "PUSH64r"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        register_name: "RBX"
+      }
+      implicit_output_operands {
+        register_name: "RSP"
+      }
+      implicit_input_operands {
+        register_name: "RSP"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.13552082231015097
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands {
+        register_name: "R14"
+      }
+      input_operands {
+        register_name: "RSI"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.0006044977379662031
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands {
+        register_name: "RBX"
+      }
+      input_operands {
+        register_name: "RDI"
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RDI"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RDI"
+          displacement: 224
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.4959261892107195
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBX"
+          displacement: 248
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.02060922478365192
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "ADD"
+      llvm_mnemonic: "ADD64rr"
+      output_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        register_name: "R14"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.0008728238486038065
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+    }
+  }
+  inverse_throughputs {
+    source: "test: made up values"
+    inverse_throughput_cycles: [5.0, 4.0, 3.0, 2.0, 1.0]
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV32ri"
+      output_operands {
+        register_name: "EDI"
+      }
+      input_operands {
+        immediate_value: 384
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.2392201354412702
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "ADD"
+      llvm_mnemonic: "ADD64rm"
+      output_operands {
+        register_name: "RDI"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        register_name: "RDI"
+      }
+      input_operands {
+        address {
+          base_register: "RBX"
+          displacement: 224
+          scaling: 1
+        }
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 2.3295145869218423e-07
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBX"
+          displacement: 312
+          scaling: 1
+        }
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "ADD"
+      llvm_mnemonic: "ADD64rr"
+      output_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        register_name: "R14"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 1.3456678391915266e-05
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+  }
+  inverse_throughputs {
+    source: "test: made up values"
+    inverse_throughput_cycles: [5.0, 4.0, 3.0, 2.0, 1.0]
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "R15"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "R12"
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.25481618312856985
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV32rm"
+      output_operands {
+        register_name: "EAX"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RIP"
+          displacement: 34240702
+          scaling: 1
+        }
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "CMP"
+      llvm_mnemonic: "CMP32i32"
+      input_operands {
+        immediate_value: 221
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      implicit_input_operands {
+        register_name: "EAX"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 4.499097437876186e-06
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+  inverse_throughputs {
+    source: "test: made up values"
+    inverse_throughput_cycles: [5.0, 4.0, 3.0, 2.0, 1.0]
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "PUSH"
+      llvm_mnemonic: "PUSH64r"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        register_name: "RBP"
+      }
+      implicit_output_operands {
+        register_name: "RSP"
+      }
+      implicit_input_operands {
+        register_name: "RSP"
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands {
+        register_name: "RBP"
+      }
+      input_operands {
+        register_name: "RSP"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 1.6936645856405612e-06
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "PUSH"
+      llvm_mnemonic: "PUSH64r"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        register_name: "R14"
+      }
+      implicit_output_operands {
+        register_name: "RSP"
+      }
+      implicit_input_operands {
+        register_name: "RSP"
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "PUSH"
+      llvm_mnemonic: "PUSH64r"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        register_name: "RBX"
+      }
+      implicit_output_operands {
+        register_name: "RSP"
+      }
+      implicit_input_operands {
+        register_name: "RSP"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.022073570220742356
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands {
+        register_name: "R14"
+      }
+      input_operands {
+        register_name: "RSI"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.16790297628041298
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands {
+        register_name: "RBX"
+      }
+      input_operands {
+        register_name: "RDI"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 8.509574418873669e-05
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RDI"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RDI"
+          displacement: 224
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 1.4923410538361212e-07
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBX"
+          displacement: 248
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 4.8647025671466754e-11
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "ADD"
+      llvm_mnemonic: "ADD64rr"
+      output_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        register_name: "R14"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.7949250996190292
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64ri32"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        immediate_value: 18446744073709551584
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.4352973544990387
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RAX"
+          scaling: 1
+          segment: "FS"
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 1.0537715398332557e-07
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "ADD"
+      llvm_mnemonic: "ADD32mi8"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RAX"
+          displacement: 92
+          scaling: 1
+        }
+      }
+      input_operands {
+        immediate_value: 18446744073709551615
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.6114887933466655
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands {
+        register_name: "R15"
+      }
+      input_operands {
+        register_name: "RAX"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.034264278496032904
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RDI"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBX"
+          scaling: 1
+        }
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "CMP"
+      llvm_mnemonic: "CMP64rr"
+      input_operands {
+        register_name: "RDI"
+      }
+      input_operands {
+        register_name: "R12"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.9693925326924666
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RCX"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -72
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.6406251993895611
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64mr"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -64
+          scaling: 1
+        }
+      }
+      input_operands {
+        register_name: "R13"
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV8mi"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RCX"
+          index_register: "R13"
+          scaling: 1
+        }
+      }
+      input_operands {
+        immediate_value: 0
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.8186285999834582
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "CMP"
+      llvm_mnemonic: "CMP64ri32"
+      input_operands {
+        register_name: "R14"
+      }
+      input_operands {
+        immediate_value: 65535
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 4.985853650295103e-05
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands {
+        register_name: "R12"
+      }
+      input_operands {
+        register_name: "RAX"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 3.258190613156419e-09
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64mr"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "R13"
+          displacement: 96
+          scaling: 1
+        }
+      }
+      input_operands {
+        register_name: "RAX"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.009027968344613528
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64mr"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RDX"
+          scaling: 1
+        }
+      }
+      input_operands {
+        register_name: "R14"
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "R13"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "R15"
+          displacement: 8
+          scaling: 1
+        }
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RBX"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "R15"
+          displacement: 16
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.570781047181817
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "ADD"
+      llvm_mnemonic: "ADD64ri8"
+      output_operands {
+        register_name: "RBX"
+      }
+      input_operands {
+        register_name: "RBX"
+      }
+      input_operands {
+        immediate_value: 8
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.0002692327675792349
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64mr"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "R15"
+          displacement: 16
+          scaling: 1
+        }
+      }
+      input_operands {
+        register_name: "RBX"
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 2.0, 1.0, 1.0, 2.0, 1.0, 1.0, 2.0, 1.0, 1.0, 2.0, 1.0, 1.0, 2.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands {
+        register_name: "R13"
+      }
+      input_operands {
+        register_name: "R14"
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "CMP"
+      llvm_mnemonic: "CMP64rr"
+      input_operands {
+        register_name: "RBX"
+      }
+      input_operands {
+        register_name: "R8"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "CMOVA"
+      llvm_mnemonic: "CMOVA64rr"
+      output_operands {
+        register_name: "RBX"
+      }
+      input_operands {
+        register_name: "RBX"
+      }
+      input_operands {
+        register_name: "R8"
+      }
+      implicit_input_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 1.004534464077555e-10
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands {
+        register_name: "RCX"
+      }
+      input_operands {
+        register_name: "RDX"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.2615764196945612
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "CMP"
+      llvm_mnemonic: "CMP64rm"
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -48
+          scaling: 1
+        }
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.009632565455772284
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "XOR"
+      llvm_mnemonic: "XOR32rr"
+      output_operands {
+        register_name: "R9D"
+      }
+      input_operands {
+        register_name: "R9D"
+      }
+      input_operands {
+        register_name: "R9D"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.07829650719709236
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "CMP"
+      llvm_mnemonic: "CMP64ri8"
+      input_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        immediate_value: 65
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.32400087758943596
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV32rr"
+      output_operands {
+        register_name: "ECX"
+      }
+      input_operands {
+        register_name: "R8D"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.9228217005476388
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "CMOVAE"
+      llvm_mnemonic: "CMOVAE32rr"
+      output_operands {
+        register_name: "ECX"
+      }
+      input_operands {
+        register_name: "ECX"
+      }
+      input_operands {
+        register_name: "R9D"
+      }
+      implicit_input_operands {
+        register_name: "EFLAGS"
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [2.0, 1.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 2.0, 2.0, 1.0, 2.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 2.0, 1.0, 1.0, 2.0, 1.0, 1.0, 2.0, 1.0, 1.0, 2.0, 1.0, 1.0, 2.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "XOR"
+      llvm_mnemonic: "XOR32rr"
+      output_operands {
+        register_name: "EAX"
+      }
+      input_operands {
+        register_name: "EAX"
+      }
+      input_operands {
+        register_name: "EAX"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.2307432505081001
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "SUB"
+      llvm_mnemonic: "SUB32rm"
+      output_operands {
+        register_name: "R14D"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        register_name: "R14D"
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -56
+          scaling: 1
+        }
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 6.122702307064053e-07
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV32mr"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RAX"
+          displacement: 12
+          scaling: 1
+        }
+      }
+      input_operands {
+        register_name: "R14D"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.0911007786558762
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64r"
+      output_operands {
+        register_name: "RBX"
+      }
+      input_operands {
+        address {
+          base_register: "R14"
+          displacement: 24
+          scaling: 1
+        }
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64r"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        address {
+          base_register: "RIP"
+          displacement: 188242
+          scaling: 1
+        }
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64mr"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -440
+          scaling: 1
+        }
+      }
+      input_operands {
+        register_name: "RAX"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.6124991016714926
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64mi32"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -432
+          scaling: 1
+        }
+      }
+      input_operands {
+        immediate_value: 15
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.43364706493663463
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64r"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        address {
+          base_register: "RIP"
+          displacement: 18824287
+          scaling: 1
+        }
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64mr"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -256
+          scaling: 1
+        }
+      }
+      input_operands {
+        register_name: "RAX"
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64mi32"
+      output_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -248
+          scaling: 1
+        }
+      }
+      input_operands {
+        immediate_value: 12
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64r"
+      output_operands {
+        register_name: "R15"
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -192
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.4633836508483148
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64r"
+      output_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -440
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.0151497295112198
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64r"
+      output_operands {
+        register_name: "RDX"
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -256
+          scaling: 1
+        }
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands {
+        register_name: "RDI"
+      }
+      input_operands {
+        register_name: "R15"
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "ADD"
+      llvm_mnemonic: "ADD64ri8"
+      output_operands {
+        register_name: "R12"
+      }
+      input_operands {
+        register_name: "R12"
+      }
+      input_operands {
+        immediate_value: 16
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.16659364549037173
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "ADD"
+      llvm_mnemonic: "ADD64ri8"
+      output_operands {
+        register_name: "R14"
+      }
+      input_operands {
+        register_name: "R14"
+      }
+      input_operands {
+        immediate_value: 18446744073709551615
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.44227406421225335
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "TEST"
+      llvm_mnemonic: "TEST64rr"
+      input_operands {
+        register_name: "RBX"
+      }
+      input_operands {
+        register_name: "RBX"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.43252345633014544
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOVSXD"
+      llvm_mnemonic: "MOVSX64rm32"
+      output_operands {
+        register_name: "R13"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -260
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 6.546666832639016e-06
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBP"
+          displacement: -592
+          scaling: 1
+        }
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "ADD"
+      llvm_mnemonic: "ADD64ri8"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        immediate_value: 100
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "CMP"
+      llvm_mnemonic: "CMP64rr"
+      input_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        register_name: "R13"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 1.2297621074482827e-05
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV32ri"
+      output_operands {
+        register_name: "EDI"
+      }
+      input_operands {
+        immediate_value: 32
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.006461389254988144
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands {
+        register_name: "RSI"
+      }
+      input_operands {
+        register_name: "R14"
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "CMP"
+      llvm_mnemonic: "CMP32ri8"
+      input_operands {
+        register_name: "EAX"
+      }
+      input_operands {
+        immediate_value: 2
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBX"
+          displacement: 200
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.00666909107917967
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "TEST"
+      llvm_mnemonic: "TEST64rr"
+      input_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        register_name: "RAX"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.00013907550711126575
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RDI"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RSI"
+          displacement: 8
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.40697992958848245
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64r"
+      output_operands {
+        register_name: "RDX"
+      }
+      input_operands {
+        address {
+          base_register: "RSI"
+          displacement: 24
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 6.855742544718817e-05
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "CMP"
+      llvm_mnemonic: "CMP64rr"
+      input_operands {
+        register_name: "RDI"
+      }
+      input_operands {
+        register_name: "RDX"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.5992606499098995
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64r"
+      output_operands {
+        register_name: "RCX"
+      }
+      input_operands {
+        address {
+          base_register: "RCX"
+          index_register: "RCX"
+          scaling: 2
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.000865758708685687
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64r"
+      output_operands {
+        register_name: "RCX"
+      }
+      input_operands {
+        address {
+          base_register: "RAX"
+          index_register: "RCX"
+          scaling: 8
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.20847317025474926
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "NOP"
+      llvm_mnemonic: "NOOP"
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.07948726787738081
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RDI"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RBX"
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.00705160668481015
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "TEST"
+      llvm_mnemonic: "TEST64rr"
+      input_operands {
+        register_name: "RDI"
+      }
+      input_operands {
+        register_name: "RDI"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.3856805106736741
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOVSXD"
+      llvm_mnemonic: "MOVSX64rr32"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        register_name: "EBX"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.007110791572566235
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "SHL"
+      llvm_mnemonic: "SHL64ri"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        immediate_value: 5
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.7507841292313998
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RCX"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RSI"
+          displacement: 40
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.005883777684325128
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RDX"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RSI"
+          displacement: 48
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.13010729710840396
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "ADD"
+      llvm_mnemonic: "ADD64rr"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        register_name: "RCX"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.00016215482184916448
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "ADD"
+      llvm_mnemonic: "ADD64ri8"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        immediate_value: 32
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.4985553075853631
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "CMP"
+      llvm_mnemonic: "CMP64rr"
+      input_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        register_name: "RDX"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.09702170053203298
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 2.0, 1.0, 1.0, 2.0, 1.0, 1.0, 2.0, 1.0, 1.0, 2.0, 1.0, 1.0, 2.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0, 2.0, 2.0, 3.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block {
+    canonicalized_instructions {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rm"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        memory {
+          alias_group_id: 1
+        }
+      }
+      input_operands {
+        address {
+          base_register: "RDI"
+          displacement: 16
+          scaling: 1
+        }
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.1918767621911817
+      }
+    }
+    canonicalized_instructions {
+      mnemonic: "SUB"
+      llvm_mnemonic: "SUB64rr"
+      output_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        register_name: "RAX"
+      }
+      input_operands {
+        register_name: "RSI"
+      }
+      implicit_output_operands {
+        register_name: "EFLAGS"
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.0168563613983057
+      }
+    }
+  }
+  inverse_throughputs {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+    prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}

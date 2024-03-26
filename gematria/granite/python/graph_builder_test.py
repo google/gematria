@@ -123,6 +123,24 @@ class BasicBlockGraphBuilderTest(
 
     self.assertBuilderIsSelfConsistent(builder, 2)
 
+  def test_multiple_annotated_basic_blocks(self):
+    builder = graph_builder.BasicBlockGraphBuilder(
+        node_tokens=self.tokens,
+        immediate_token=tokens.IMMEDIATE,
+        fp_immediate_token=tokens.IMMEDIATE,
+        address_token=tokens.ADDRESS,
+        memory_token=tokens.MEMORY,
+        annotation_names=self.annotation_names,
+        out_of_vocabulary_behavior=_OutOfVocabularyTokenBehavior.return_error(),
+    )
+
+    self.assertTrue(builder.add_basic_block(self.annotated_blocks[0]))
+    self.assertTrue(builder.add_basic_block(self.annotated_blocks[1]))
+    self.assertTrue(builder.add_basic_block(self.annotated_blocks[2]))
+    self.assertTrue(builder.add_basic_block(self.annotated_blocks[3]))
+
+    self.assertBuilderIsSelfConsistent(builder, 4)
+
   def test_many_blocks(self):
     builder = graph_builder.BasicBlockGraphBuilder(
         node_tokens=self.tokens,
