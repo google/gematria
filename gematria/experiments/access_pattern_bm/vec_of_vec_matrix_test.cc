@@ -14,6 +14,8 @@
 
 #include "gematria/experiments/access_pattern_bm/vec_of_vec_matrix.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -47,7 +49,7 @@ void BM_VecOfVecMatrix_NoFlush(benchmark::State &state) {
   }
 
   for (auto _ : state) {
-    int sum = 0;
+    int64_t sum = 0;
     if (kBalanceFlushingTime) {
       state.PauseTiming();
       FlushVecOfVecMatrixFromCache(mock.get());
@@ -75,7 +77,7 @@ void BM_VecOfVecMatrix_Flush(benchmark::State &state) {
   auto matrix = CreateRandomVecOfVecMatrix(size);
 
   for (auto _ : state) {
-    int sum = 0;
+    int64_t sum = 0;
     state.PauseTiming();
     FlushVecOfVecMatrixFromCache(matrix.get());
     state.ResumeTiming();

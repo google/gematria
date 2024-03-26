@@ -18,7 +18,7 @@
 ; CHECK:     ],
 ; CHECK:     "MemoryMappings": [
 ; CHECK:       {
-; CHECK:         "Address": 65536,
+; CHECK:         "Address": 86016,
 ; CHECK:         "Value": "MEM"
 ; CHECK:       }
 ; CHECK:     ],
