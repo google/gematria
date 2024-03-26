@@ -22,9 +22,11 @@ from gematria.granite.python import gnn_model_base
 from gematria.granite.python import graph_builder
 from gematria.granite.python import graph_builder_model_base
 from gematria.model.python import model_blocks
+from gematria.model.python import model_base
 from gematria.model.python import options
 import graph_nets
 import sonnet as snt
+import numpy as np
 import tensorflow.compat.v1 as tf
 
 
@@ -49,6 +51,20 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
 
   READOUT_VARIABLES = 'TokenGraphBuilderModel.readout'
   TASK_READOUT_VARIABLES = 'TokenGraphBuilderModel.task_readout'
+
+  INSTRUCTION_ANNOTATIONS_TENSOR_NAME = (
+      'TokenGraphBuilderModel.instruction_annotations'
+  )
+  ANNOTATION_NAMES_TENSOR_NAME = 'TokenGraphBuilderModel.annotation_names'
+
+  # A 1D byte tensor that contains the list of annotation names in the order of
+  # their indices in the graph builder.
+  _annotation_name_tensor: tf.Tensor
+
+  # The list of annotation names, in the order of their indices in the model.
+  _annotation_name_list: Sequence[str]
+
+  _instruction_annotations: tf.Tensor
 
   def __init__(
       self,
@@ -155,6 +171,22 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     self._readout_activation = readout_activation or leaky_relu
     self._update_activation = update_activation or leaky_relu
 
+    _GraphBuilderModelBase = graph_builder_model_base.GraphBuilderModelBase
+    self._instruction_node_mask = tf.placeholder(
+        dtype=tf.dtypes.bool,
+        shape=(None,),
+        name=_GraphBuilderModelBase.INSTRUCTION_NODE_MASK_TENSOR_NAME,
+    )
+
+    self._annotation_name_list = tuple(
+        self._batch_graph_builder.annotation_names
+    )
+    self._instruction_annotations = tf.placeholder(
+        dtype=self.dtype,
+        shape=(None, len(self._annotation_name_list)),
+        name=TokenGraphBuilderModel.INSTRUCTION_ANNOTATIONS_TENSOR_NAME,
+    )
+
   # @Override
   def _make_model_name(self) -> str:
     # TODO(ondrasej): Use a string provided by the token feature factory as the
@@ -175,6 +207,30 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
         f'readout_input_layer_norm={self._readout_input_layer_normalization}, '
         'task_readout_input_layer_norm='
         f'{self._task_readout_input_layer_normalization}'
+    )
+
+  @property
+  def annotation_name_tensor(self) -> tf.Tensor:
+    return self._annotation_name_tensor
+
+  @property
+  def output_tensor_names(self) -> Sequence[str]:
+    return (
+        *super().output_tensor_names,
+        TokenGraphBuilderModel.ANNOTATION_NAMES_TENSOR_NAME,
+    )
+
+  # @Override
+  def _create_tf_graph(self) -> None:
+    super()._create_tf_graph()
+
+    annotation_names_array = np.frombuffer(
+        b'\0'.join(name.encode('utf-8') for name in self._annotation_name_list),
+        dtype=np.uint8,
+    )
+    self._annotation_name_tensor = tf.constant(
+        annotation_names_array,
+        name=TokenGraphBuilderModel.ANNOTATION_NAMES_TENSOR_NAME,
     )
 
   def _create_dense_readout_network(self, data: tf.Tensor) -> tf.Tensor:
@@ -288,10 +344,12 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
                     initializers=embedding_initializers,
                 ),
                 node_model_fn=functools.partial(
-                    snt.Embed,
+                    TokenGraphBuilderModelNodeEmbed,
                     vocab_size=len(self._token_list),
                     embed_dim=self._node_embedding_size,
                     initializers=embedding_initializers,
+                    instruction_annotations=self._instruction_annotations,
+                    instruction_node_mask=self._instruction_node_mask,
                 ),
                 global_model_fn=functools.partial(
                     snt.Sequential,
@@ -340,3 +398,72 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
             residual_connection=options.EnableFeature.BY_FLAG,
         ),
     )
+
+  def _make_batch_feed_dict(self) -> model_base.FeedDict:
+    feed_dict = super()._make_batch_feed_dict()
+
+    feed_dict[self._instruction_annotations] = (
+        self._batch_graph_builder.instruction_annotations
+    )
+    return feed_dict
+
+
+class TokenGraphBuilderModelNodeEmbed(snt.Embed):
+  """Extends `snt.Embed` to include instruction annotations in node embeddings.
+
+  Generates node embeddings normally, then replaces the last `num_annotation`
+  values of the embeddings corresponding to instructions with the annotation
+  values. The embeddings for other node types remain unchanged.
+  """
+
+  def __init__(
+      self,
+      instruction_annotations,
+      instruction_node_mask,
+      **kwargs,
+  ) -> None:
+    """Initializes node embeddings.
+
+    Args:
+      instruction_annotations: Tensor holding instruction level runtime
+        annotations as in `BasicBlockGraphBuilder`.
+      instruction_node_mask: As in `BasicBlockGraphBuilder`.
+      **kwargs: Additional arguments to be passed to the internal `snt.Embed`.
+    """
+    super().__init__(**kwargs)
+
+    # The number of annotations per instruction.
+    self.num_annotations = int(instruction_annotations.shape[1])
+
+    if self.num_annotations > self.embed_dim:
+      raise ValueError('num_annotations cannot be greater than embed_dim.')
+
+    self.instruction_annotations = instruction_annotations
+    self.instruction_node_mask = instruction_node_mask
+
+  def __call__(self, inputs):
+    embeddings = super().__call__(inputs)
+
+    if self.num_annotations == 0:
+      return embeddings
+
+    out = tf.concat(
+        [
+            tf.slice(
+                embeddings,
+                begin=[0, 0],
+                size=[-1, self.embed_dim - self.num_annotations],
+            ),
+            tf.tensor_scatter_nd_update(
+                tf.slice(
+                    embeddings,
+                    begin=[0, self.embed_dim - self.num_annotations],
+                    size=[-1, self.num_annotations],
+                ),
+                indices=tf.where(self.instruction_node_mask),
+                updates=self.instruction_annotations,
+            ),
+        ],
+        axis=1,
+    )
+    return out
