@@ -139,6 +139,53 @@ bool WriteJsonFile(llvm::json::Array to_write, size_t json_file_number,
   return true;
 }
 
+struct AnnotatedBlock {
+  gematria::AccessedAddrs accessed_addrs;
+  gematria::BasicBlockProto basic_block_proto;
+  std::vector<unsigned> used_registers;
+  std::optional<unsigned> loop_register;
+};
+
+absl::StatusOr<AnnotatedBlock> AnnotateBasicBlock(
+    std::string_view basic_block_hex, gematria::BHiveImporter& bhive_importer,
+    gematria::ExegesisAnnotator* exegesis_annotator,
+    gematria::LlvmArchitectureSupport& llvm_support,
+    llvm::MCInstPrinter& inst_printer) {
+  auto bytes = gematria::ParseHexString(basic_block_hex);
+  if (!bytes.has_value())
+    return absl::InvalidArgumentError(
+        Twine("Could not parse ").concat(basic_block_hex).str());
+
+  llvm::Expected<std::vector<gematria::DisassembledInstruction>> instructions =
+      gematria::DisassembleAllInstructions(
+          llvm_support.mc_disassembler(), llvm_support.mc_instr_info(),
+          llvm_support.mc_register_info(), llvm_support.mc_subtarget_info(),
+          inst_printer, 0, *bytes);
+
+  if (!instructions) {
+    return absl::InvalidArgumentError(
+        Twine("Failed to disassemble block ").concat(basic_block_hex).str());
+  }
+
+  auto proto = bhive_importer.BasicBlockProtoFromInstructions(*instructions);
+
+  auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator);
+
+  if (!addrs.ok()) return addrs.status();
+
+  AnnotatedBlock annotated_block;
+  annotated_block.accessed_addrs = std::move(*addrs);
+  annotated_block.basic_block_proto = std::move(proto);
+  annotated_block.used_registers =
+      gematria::getUsedRegisters(*instructions, llvm_support.mc_register_info(),
+                                 llvm_support.mc_instr_info());
+  annotated_block.loop_register =
+      gematria::getLoopRegister(*instructions, llvm_support.mc_register_info(),
+                                llvm_support.mc_instr_info());
+
+  return std::move(annotated_block);
+}
+
 int main(int argc, char* argv[]) {
   absl::ParseCommandLine(argc, argv);
 
@@ -220,50 +267,21 @@ int main(int argc, char* argv[]) {
     }
 
     std::string_view hex = std::string_view(line).substr(0, comma_index);
-    // For each line, find the accessed addresses & disassemble instructions.
-    auto bytes = gematria::ParseHexString(hex);
-    if (!bytes.has_value()) {
-      std::cerr << "could not parse: " << hex << "\n";
-      return 3;
+
+    auto annotated_block =
+        AnnotateBasicBlock(hex, bhive_importer, exegesis_annotator.get(),
+                           *llvm_support, *inst_printer);
+
+    if (!annotated_block.ok()) {
+      std::cerr << "Failed to annotate block: " << annotated_block.status()
+                << "\n";
+      return 2;
     }
-
-    llvm::Expected<std::vector<gematria::DisassembledInstruction>>
-        instructions = gematria::DisassembleAllInstructions(
-            llvm_support->mc_disassembler(), llvm_support->mc_instr_info(),
-            llvm_support->mc_register_info(), llvm_support->mc_subtarget_info(),
-            *inst_printer, 0, *bytes);
-
-    if (!instructions) {
-      std::cerr << "Failed to disassemble block '" << hex << "\n";
-      continue;
-    }
-
-    // Get used registers
-    std::vector<unsigned> used_registers = gematria::getUsedRegisters(
-        *instructions, reg_info, llvm_support->mc_instr_info());
-
-    auto proto = bhive_importer.BasicBlockProtoFromInstructions(*instructions);
-
-    auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator.get());
-
-    if (!addrs.ok()) {
-      std::cerr << "Failed to find addresses for block '" << hex
-                << "': " << addrs.status() << "\n";
-      std::cerr << "Block disassembly:\n";
-      for (const auto& instr : proto.machine_instructions()) {
-        std::cerr << "\t" << instr.assembly() << "\n";
-      }
-      continue;
-    }
-
-    // Get a register that we can use as the loop register.
-    std::optional<unsigned> loop_register = gematria::getLoopRegister(
-        *instructions, reg_info, llvm_support->mc_instr_info());
 
     // If we can't find a loop register, skip writing out this basic block
     // so that downstream tooling doesn't execute the incorrect number of
     // iterations.
-    if (!loop_register && skip_no_loop_register) {
+    if (!annotated_block->loop_register && skip_no_loop_register) {
       std::cerr
           << "Skipping block due to not being able to find a loop register\n";
       ++loop_register_failures;
@@ -286,28 +304,31 @@ int main(int argc, char* argv[]) {
       }
 
       // Write registers to the output file.
-      for (const auto register_id : used_registers) {
+      for (const auto register_id : annotated_block->used_registers) {
         output_file << kRegDefPrefix << reg_info.getName(register_id) << " "
                     << initial_reg_val_str << "\n";
       }
 
       // Multiple mappings can point to the same definition.
-      if (addrs->accessed_blocks.size() > 0) {
+      if (annotated_block->accessed_addrs.accessed_blocks.size() > 0) {
         output_file << kMemDefPrefix << kMemNamePrefix << " "
-                    << addrs->block_size << " " << initial_mem_val_str << "\n";
+                    << annotated_block->accessed_addrs.block_size << " "
+                    << initial_mem_val_str << "\n";
       }
-      for (const auto& addr : addrs->accessed_blocks) {
+      for (const auto& addr : annotated_block->accessed_addrs.accessed_blocks) {
         output_file << kMemMapPrefix << kMemNamePrefix << " " << std::dec
                     << addr << "\n";
       }
 
       // Write the loop register annotation, assuming we were able to find one.
-      if (loop_register)
-        output_file << kLoopRegisterPrefix << reg_info.getName(*loop_register)
+      if (annotated_block->loop_register)
+        output_file << kLoopRegisterPrefix
+                    << reg_info.getName(*annotated_block->loop_register)
                     << "\n";
 
       // Append disassembled instructions.
-      for (const auto& instr : proto.machine_instructions()) {
+      for (const auto& instr :
+           annotated_block->basic_block_proto.machine_instructions()) {
         output_file << instr.assembly() << "\n";
       }
     }
@@ -316,7 +337,7 @@ int main(int argc, char* argv[]) {
       llvm::json::Object current_snippet;
 
       llvm::json::Array register_definitions;
-      for (const auto register_id : used_registers) {
+      for (const auto register_id : annotated_block->used_registers) {
         llvm::json::Object current_register_definition;
         current_register_definition["Register"] = register_id;
         current_register_definition["Value"] = kInitialRegVal;
@@ -326,23 +347,25 @@ int main(int argc, char* argv[]) {
           llvm::json::Value(std::move(register_definitions));
 
       // Output the loop register.
-      if (loop_register)
-        current_snippet["LoopRegister"] = *loop_register;
+      if (annotated_block->loop_register)
+        current_snippet["LoopRegister"] = *annotated_block->loop_register;
       else
         current_snippet["LoopRegister"] = llvm::json::Value(nullptr);
 
-      if (addrs->accessed_blocks.size() > 0) {
+      if (annotated_block->accessed_addrs.accessed_blocks.size() > 0) {
         llvm::json::Array memory_definitions;
         llvm::json::Object current_memory_definition;
         current_memory_definition["Name"] = llvm::json::Value(kMemNamePrefix);
-        current_memory_definition["Size"] = addrs->block_size;
+        current_memory_definition["Size"] =
+            annotated_block->accessed_addrs.block_size;
         current_memory_definition["Value"] = llvm::json::Value(kInitialMemVal);
         memory_definitions.push_back(std::move(current_memory_definition));
         current_snippet["MemoryDefinitions"] =
             llvm::json::Value(std::move(memory_definitions));
 
         llvm::json::Array memory_mappings;
-        for (const uintptr_t addr : addrs->accessed_blocks) {
+        for (const uintptr_t addr :
+             annotated_block->accessed_addrs.accessed_blocks) {
           llvm::json::Object current_memory_mapping;
           current_memory_mapping["Value"] = llvm::json::Value(kMemNamePrefix);
           current_memory_mapping["Address"] = addr;
