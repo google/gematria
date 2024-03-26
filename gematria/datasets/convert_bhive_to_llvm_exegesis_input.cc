@@ -85,7 +85,7 @@ ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
 ABSL_FLAG(
     std::string, asm_output_dir, "",
     "Directory containing output files that can be executed by llvm-exegesis");
-ABSL_FLAG(AnnotatorType, annotator_implementation, AnnotatorType::kFast,
+ABSL_FLAG(AnnotatorType, annotator_implementation, AnnotatorType::kExegesis,
           "The annotator implementation to use.");
 ABSL_FLAG(std::string, json_output_dir, "",
           "Directory containing JSON output files");
