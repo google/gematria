@@ -56,6 +56,17 @@ class FindAccessedAddrsTest : public testing::Test {
   inline static std::unique_ptr<LlvmArchitectureSupport> llvm_arch_support_;
 
  protected:
+  void SetUp() override {
+    // Disable all find accessed addresses tests under sanitizers. The technique
+    // used to detect memory accesses relies on low-level system hacks and it is
+    // generally incompatible with sanitizers that expect nicely-behaving C++
+    // code.
+#if defined(__has_feature) && \
+    (__has_feature(address_sanitizer) || __has_feature(memory_sanitizer))
+    GTEST_SKIP() << "Not supported under sanitizers";
+#endif
+  }
+
   static void SetUpTestSuite() {
     llvm_arch_support_ = LlvmArchitectureSupport::X86_64();
   }
@@ -96,9 +107,9 @@ class FindAccessedAddrsTest : public testing::Test {
 };
 
 TEST_F(FindAccessedAddrsTest, BasicMov) {
-  EXPECT_THAT(
-      FindAccessedAddrsAsm("mov [0], eax"),
-      IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks, ElementsAre(0))));
+  EXPECT_THAT(FindAccessedAddrsAsm("mov [0x10000], eax"),
+              IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
+                                 ElementsAre(0x10000))));
 }
 
 TEST_F(FindAccessedAddrsTest, DISABLED_SingleAddressRandomTests) {
@@ -158,7 +169,29 @@ TEST_F(FindAccessedAddrsTest, AccessFromRegister) {
     mov [r11+r12], eax
   )asm"),
               IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
-                                 ElementsAre(0x10000, 0x20000))));
+                                 ElementsAre(0x15000, 0x2a000))));
+}
+
+TEST_F(FindAccessedAddrsTest, DoubleIndirection) {
+  EXPECT_THAT(FindAccessedAddrsAsm(R"asm(
+    mov rax, [0x10000]
+    mov rbx, [rax]
+  )asm"),
+              IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
+                                 ElementsAre(0x10000, 0x0000000800000000))));
+}
+
+TEST_F(FindAccessedAddrsTest, DivideByPointee) {
+  EXPECT_THAT(FindAccessedAddrsAsm(R"asm(
+    mov rbx, [rax]
+    mov rdx, 0
+    idiv rbx
+    mov edx, 0
+    mov ebx, [rcx]
+    idiv ebx
+  )asm"),
+              IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
+                                 ElementsAre(0x15000))));
 }
 
 }  // namespace

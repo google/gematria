@@ -14,7 +14,9 @@
 
 #include "gematria/experiments/access_pattern_bm/contiguous_matrix.h"
 
-#include <iostream>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 
 #include "benchmark/benchmark.h"
 #include "gematria/experiments/access_pattern_bm/configuration.h"
@@ -46,7 +48,7 @@ void BM_ContiguousMatrix_NoFlush(benchmark::State &state) {
   }
 
   for (auto _ : state) {
-    int sum = 0;
+    int64_t sum = 0;
     if (kBalanceFlushingTime) {
       state.PauseTiming();
       FlushContiguousMatrixFromCache(mock.get(), size);
@@ -73,7 +75,7 @@ void BM_ContiguousMatrix_Flush(benchmark::State &state) {
   auto matrix = CreateRandomContiguousMatrix(size);
 
   for (auto _ : state) {
-    int sum = 0;
+    int64_t sum = 0;
     state.PauseTiming();
     FlushContiguousMatrixFromCache(matrix.get(), size);
     state.ResumeTiming();
