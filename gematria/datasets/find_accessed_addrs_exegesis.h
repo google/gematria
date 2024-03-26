@@ -49,7 +49,8 @@ class ExegesisAnnotator {
  public:
   static Expected<std::unique_ptr<ExegesisAnnotator>> create(
       LLVMState &ExegesisState);
-  Expected<AccessedAddrs> findAccessedAddrs(ArrayRef<uint8_t> BasicBlock);
+  Expected<AccessedAddrs> findAccessedAddrs(ArrayRef<uint8_t> BasicBlock,
+                                            unsigned MaxAnnotationAttempts);
 };
 
 }  // namespace gematria
