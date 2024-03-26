@@ -110,9 +110,12 @@ cc_library(
     ],
     deps = [
         ":block_wrapper",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/random:distributions",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
     ],
 )
@@ -136,6 +139,7 @@ cc_test(
     # We're testing FindAccessedAddrs, which executes code passed to it. In this test we hardcode
     # some assembled x86 code to execute.
     tags = [
+        "noasan",
         "not_build:arm",
     ],
     target_compatible_with = [
