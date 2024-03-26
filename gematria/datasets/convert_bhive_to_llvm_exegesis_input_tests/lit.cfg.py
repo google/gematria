@@ -1,6 +1,6 @@
 import lit.formats
 
-config.name = 'gematria'
+config.name = 'convert_bhive_to_llvm_exegesis_input_tests'
 config.test_format = lit.formats.ShTest(True)
 
 config.suffixes = ['.test']

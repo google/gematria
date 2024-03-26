@@ -79,13 +79,13 @@ gematria_py_test(
     size = "small",
     srcs = ["convert_bhive_to_llvm_exegesis_input_test.py"],
     data = [
-        "tests/lit.cfg.py",
-        "tests/lit.site.cfg.py",
+        "convert_bhive_to_llvm_exegesis_input_tests/lit.cfg.py",
+        "convert_bhive_to_llvm_exegesis_input_tests/lit.site.cfg.py",
         ":convert_bhive_to_llvm_exegesis_input",
         "@llvm-project//llvm:FileCheck",
         "@llvm-project//llvm:not",
         "@llvm-project//llvm:split-file",
-    ] + glob(["tests/*.test"]),
+    ] + glob(["convert_bhive_to_llvm_exegesis_input_tests/*.test"]),
 )
 
 cc_library(
