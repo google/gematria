@@ -24,8 +24,8 @@
 #include "gematria/utils/string.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Error.h"
 #include "llvm/Support/Errc.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/TargetSelect.h"
@@ -49,11 +49,14 @@ int main(int Argc, char *Argv[]) {
 
   ExitOnError ExitOnErr("exegesis-benchmark error: ");
   if (AnnotatedBlocksJson.empty())
-    ExitOnErr(llvm::make_error<StringError>(errc::invalid_argument, "--annotated_blocks_json is required"));
+    ExitOnErr(llvm::make_error<StringError>(
+        errc::invalid_argument, "--annotated_blocks_json is required"));
 
-  auto JsonMemoryBuffer = ExitOnErrerrorOrToExpected(MemoryBuffer::getFile(AnnotatedBlocksJson, true));
+  auto JsonMemoryBuffer = ExitOnErr(
+      errorOrToExpected(MemoryBuffer::getFile(AnnotatedBlocksJson, true)));
 
-  auto ParsedAnnotatedBlocks = ExitOnErr(json::parse(JsonMemoryBuffer->getBuffer()));
+  auto ParsedAnnotatedBlocks =
+      ExitOnErr(json::parse(JsonMemoryBuffer->getBuffer()));
 
   // LLVM Setup
   LLVMInitializeX86TargetInfo();
@@ -84,7 +87,6 @@ int main(int Argc, char *Argv[]) {
           *State.getTargetMachine().getMCAsmInfo(), State.getInstrInfo(),
           State.getRegInfo()));
 
-  // More exegesis setup
   // TODO(boomanaiden154): Enable the usage of validation counters eventually
   const std::unique_ptr<BenchmarkRunner> Runner =
       ExitOnErr(State.getExegesisTarget().createBenchmarkRunner(
@@ -92,28 +94,34 @@ int main(int Argc, char *Argv[]) {
           BenchmarkRunner::ExecutionModeE::SubProcess, 30, {}, Benchmark::Min));
 
   if (pfm::pfmInitialize())
-   ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Failed to initialize libpfm")); 
+    ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(),
+                                            "Failed to initialize libpfm"));
 
   for (const auto &AnnotatedBlock : *ParsedAnnotatedBlocks.getAsArray()) {
     std::optional<StringRef> HexValue =
         AnnotatedBlock.getAsObject()->getString("Hex");
-    if (!HexValue) ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Expected basic block to have hex value"));
+    if (!HexValue)
+      ExitOnErr(llvm::make_error<StringError>(
+          errc::invalid_argument, "Expected basic block to have hex value"));
 
     std::optional<int64_t> LoopRegister =
         AnnotatedBlock.getAsObject()->getInteger("LoopRegister");
     if (!LoopRegister.has_value())
-      ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Malformed basic block"));
+      ExitOnErr(llvm::make_error<StringError>(
+          errc::invalid_argument, "Malformed basic block: no loop register"));
 
     std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
         SnippetRepetitor::Create(Benchmark::RepetitionModeE::MiddleHalfLoop,
                                  State, *LoopRegister);
 
-    // TODO(ondrasej): Update this after converting gematria::ParseHexString to return llvm::Expected rather than an optional.
+    // TODO(ondrasej): Update this after converting gematria::ParseHexString to
+    // return llvm::Expected rather than an optional.
     std::optional<std::vector<uint8_t>> BytesOr =
         gematria::ParseHexString(HexValue->str());
 
     if (!BytesOr.has_value())
-      ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Failed to parse hex value"));
+      ExitOnErr(llvm::make_error<StringError>(
+          errc::invalid_argument, "Malformed basic block: invalid hex value"));
 
     std::vector<gematria::DisassembledInstruction> DisInstructions =
         ExitOnErr(gematria::DisassembleAllInstructions(
@@ -129,13 +137,11 @@ int main(int Argc, char *Argv[]) {
     BenchmarkCode BenchCode;
     BenchCode.Key.Instructions = std::move(Instructions);
 
-    const llvm::MCRegisterInfo &MRI = State.getRegInfo();
-
-    // TODO(boomanaiden154): Refactor this JSON parsing out into a separate function.
+    // TODO(boomanaiden154): Refactor this JSON parsing out into a separate
+    // function.
     const json::Array *RegisterDefinitions =
         AnnotatedBlock.getAsObject()->getArray("RegisterDefinitions");
 
-    // TODO(boomanaiden154): Pull these from the JSON file.
     for (const auto &RegisterDefinitionValue : *RegisterDefinitions) {
       const json::Object *RegisterDefinitionObject =
           RegisterDefinitionValue.getAsObject();
@@ -146,7 +152,9 @@ int main(int Argc, char *Argv[]) {
       std::optional<int64_t> RegisterValue =
           RegisterDefinitionObject->getInteger("Value");
       if (!RegisterIndex.has_value() || !RegisterValue.has_value())
-        ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Malformed register definition"));
+        ExitOnErr(llvm::make_error<StringError>(
+            errc::invalid_argument,
+            "Malformed register definition: invalid register number or value"));
 
       RegVal.Register = *RegisterIndex;
       RegVal.Value = APInt(64, *RegisterValue);
@@ -157,14 +165,19 @@ int main(int Argc, char *Argv[]) {
         AnnotatedBlock.getAsObject()->getArray("MemoryDefinitions");
 
     if (!MemoryDefinitions)
-      ExitOnErr(llvm::make_error<StringError>("Expected field MemoryDefinitions does not exist."));
+      ExitOnErr(llvm::make_error<StringError>(
+          errc::invalid_argument,
+          "Malformed basic block: no memory definitions"));
 
     for (const auto &MemoryDefinitionValue : *MemoryDefinitions) {
       const json::Object *MemoryDefinitionObject =
           MemoryDefinitionValue.getAsObject();
 
       if (!MemoryDefinitionObject)
-        ExitOnErr(llvm::make_error<StringError>("Malformed memory definition"));
+        ExitOnErr(
+            llvm::make_error<StringError>(errc::invalid_argument,
+                                          "Malformed memory definition: memory "
+                                          "definition is not a JSON object"));
 
       std::optional<StringRef> MemoryDefinitionName =
           MemoryDefinitionObject->getString("Name");
@@ -177,11 +190,14 @@ int main(int Argc, char *Argv[]) {
       if (!MemoryDefinitionName.has_value() ||
           !MemoryDefinitionSize.has_value() ||
           !MemoryDefinitionHexValue.has_value())
-        ExitOnErr(llvm::make_error<StringError>("Malformed memory definition"));
+        ExitOnErr(llvm::make_error<StringError>(
+            errc::invalid_argument,
+            "Malformed memory definition: no size, name, or value"));
 
       MemoryValue MemVal;
       MemVal.Value = APInt(32, *MemoryDefinitionHexValue);
-      // TODO(boomanaiden154): Update this to support multiple memory definitions.
+      // TODO(boomanaiden154): Update this to support multiple memory
+      // definitions.
       MemVal.Index = 0;
       MemVal.SizeBytes = *MemoryDefinitionSize;
 
@@ -192,14 +208,17 @@ int main(int Argc, char *Argv[]) {
         AnnotatedBlock.getAsObject()->getArray("MemoryMappings");
 
     if (!MemoryMappings)
-      ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Malformed memory mapping"));
+      ExitOnErr(llvm::make_error<StringError>(
+          errc::invalid_argument, "Malformed basic block: no memory mappings"));
 
     for (const auto &MemoryMappingValue : *MemoryMappings) {
       const json::Object *MemoryMappingObject =
           MemoryMappingValue.getAsObject();
 
       if (!MemoryMappingObject)
-        ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Malformed memory mapping"));
+        ExitOnErr(llvm::make_error<StringError>(
+            errc::invalid_argument,
+            "Malformed memory mapping: memory mapping is not a JSON object"));
 
       std::optional<StringRef> MemoryMappingDefinitionName =
           MemoryMappingObject->getString("Value");
@@ -208,7 +227,9 @@ int main(int Argc, char *Argv[]) {
 
       if (!MemoryMappingDefinitionName.has_value() ||
           !MemoryMappingAddress.has_value())
-        ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Malformed memory mapping"));
+        ExitOnErr(llvm::make_error<StringError>(
+            errc::invalid_argument,
+            "Malformed memory mapping: no name or address"));
 
       MemoryMapping MemMap;
       MemMap.Address = *MemoryMappingAddress;
@@ -228,7 +249,8 @@ int main(int Argc, char *Argv[]) {
         Runner->runConfiguration(std::move(RC1), {});
 
     if (std::get<0>(BenchmarkResult1OrErr)) {
-      dbgs() << "Encountered an error while benchmarking: " << std::get<0>(BenchmarkResult1OrErr) << "\n";
+      dbgs() << "Encountered an error while benchmarking: "
+             << std::get<0>(BenchmarkResult1OrErr) << "\n";
       continue;
     }
 
@@ -238,7 +260,8 @@ int main(int Argc, char *Argv[]) {
         Runner->runConfiguration(std::move(RC2), {});
 
     if (std::get<0>(BenchmarkResult2OrErr)) {
-      dbgs() << "Encountered an error while benchmarking: " << std::get<0>(BenchmarkResult2OrErr) << "\n";
+      dbgs() << "Encountered an error while benchmarking: "
+             << std::get<0>(BenchmarkResult2OrErr) << "\n";
       continue;
     }
 
