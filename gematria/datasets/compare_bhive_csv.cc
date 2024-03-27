@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO(boomanaiden154): Refactor this to use LLVM file utilities.
 #include <cmath>
 #include <fstream>
 #include <string>
@@ -27,10 +26,10 @@
 using namespace llvm;
 
 static cl::opt<std::string> InputFilePath1(
-    "input-file-1", cl::desc("Path to the first input CSV."), cl::init(""));
+    "input-file-a", cl::desc("Path to the first input CSV."), cl::init(""));
 
 static cl::opt<std::string> InputFilePath2(
-    "input-file-2", cl::desc("Path to the second input CSV."), cl::init(""));
+    "input-file-b", cl::desc("Path to the second input CSV."), cl::init(""));
 
 int main(int Argc, char **Argv) {
   cl::ParseCommandLineOptions(Argc, Argv, "compare_bhive_csv");
@@ -82,7 +81,7 @@ int main(int Argc, char **Argv) {
     ++FileCount;
   }
 
-  dbgs() << DeviationSum / (double)FileCount << "\n";
+  outs() << "Average deviation: " << DeviationSum / (double)FileCount << "\n";
 
   return 0;
 }
