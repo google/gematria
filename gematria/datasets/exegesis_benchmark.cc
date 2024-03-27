@@ -192,6 +192,53 @@ Expected<BenchmarkCode> parseJSONBlock(
   return BenchCode;
 }
 
+Expected<unsigned> benchmarkBasicBlock(const BenchmarkCode &BenchCode,
+                                       const BenchmarkRunner &BenchRunner,
+                                       const LLVMState &State) {
+  std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
+      SnippetRepetitor::Create(Benchmark::RepetitionModeE::MiddleHalfLoop,
+                               State, BenchCode.Key.LoopRegister);
+
+  SmallVector<Benchmark, 2> AllResults;
+
+  auto RC1 =
+      BenchRunner.getRunnableConfiguration(BenchCode, 5000, 0, *SnipRepetitor);
+  if (!RC1) return RC1.takeError();
+  auto RC2 =
+      BenchRunner.getRunnableConfiguration(BenchCode, 10000, 0, *SnipRepetitor);
+  if (!RC2) return RC2.takeError();
+
+  std::pair<Error, Benchmark> BenchmarkResult1OrErr =
+      BenchRunner.runConfiguration(std::move(*RC1), {});
+
+  if (std::get<0>(BenchmarkResult1OrErr))
+    return std::move(std::get<0>(BenchmarkResult1OrErr));
+
+  AllResults.push_back(std::move(std::get<1>(BenchmarkResult1OrErr)));
+
+  std::pair<Error, Benchmark> BenchmarkResult2OrErr =
+      BenchRunner.runConfiguration(std::move(*RC2), {});
+
+  if (std::get<0>(BenchmarkResult2OrErr))
+    return std::move(std::get<0>(BenchmarkResult2OrErr));
+
+  AllResults.push_back(std::move(std::get<1>(BenchmarkResult2OrErr)));
+
+  std::unique_ptr<ResultAggregator> ResultAgg =
+      ResultAggregator::CreateAggregator(
+          Benchmark::RepetitionModeE::MiddleHalfLoop);
+
+  Benchmark Result = std::move(AllResults[0]);
+
+  ResultAgg->AggregateResults(Result,
+                              ArrayRef<Benchmark>(AllResults).drop_front());
+
+  unsigned Throughput100 = static_cast<unsigned>(
+      round(Result.Measurements[0].PerSnippetValue * 100));
+
+  return Throughput100;
+}
+
 int main(int Argc, char *Argv[]) {
   cl::ParseCommandLineOptions(
       Argc, Argv, "Tool for benchmarking sets of annotated basic blocks");
@@ -263,47 +310,8 @@ int main(int Argc, char *Argv[]) {
         SnippetRepetitor::Create(Benchmark::RepetitionModeE::MiddleHalfLoop,
                                  State, BenchCode.Key.LoopRegister);
 
-    // TODO(boomanaiden154): Refactor benchmark into a separate function?
-    SmallVector<Benchmark, 2> AllResults;
-
-    BenchmarkRunner::RunnableConfiguration RC1 = ExitOnErr(
-        Runner->getRunnableConfiguration(BenchCode, 5000, 0, *SnipRepetitor));
-    BenchmarkRunner::RunnableConfiguration RC2 = ExitOnErr(
-        Runner->getRunnableConfiguration(BenchCode, 10000, 0, *SnipRepetitor));
-
-    std::pair<Error, Benchmark> BenchmarkResult1OrErr =
-        Runner->runConfiguration(std::move(RC1), {});
-
-    if (std::get<0>(BenchmarkResult1OrErr)) {
-      dbgs() << "Encountered an error while benchmarking: "
-             << std::get<0>(BenchmarkResult1OrErr) << "\n";
-      continue;
-    }
-
-    AllResults.push_back(std::move(std::get<1>(BenchmarkResult1OrErr)));
-
-    std::pair<Error, Benchmark> BenchmarkResult2OrErr =
-        Runner->runConfiguration(std::move(RC2), {});
-
-    if (std::get<0>(BenchmarkResult2OrErr)) {
-      dbgs() << "Encountered an error while benchmarking: "
-             << std::get<0>(BenchmarkResult2OrErr) << "\n";
-      continue;
-    }
-
-    AllResults.push_back(std::move(std::get<1>(BenchmarkResult2OrErr)));
-
-    std::unique_ptr<ResultAggregator> ResultAgg =
-        ResultAggregator::CreateAggregator(
-            Benchmark::RepetitionModeE::MiddleHalfLoop);
-
-    Benchmark Result = std::move(AllResults[0]);
-
-    ResultAgg->AggregateResults(Result,
-                                ArrayRef<Benchmark>(AllResults).drop_front());
-
-    unsigned Throughput100 = static_cast<unsigned>(
-        round(Result.Measurements[0].PerSnippetValue * 100));
+    unsigned Throughput100 =
+        ExitOnErr(benchmarkBasicBlock(BenchCode, *Runner, State));
 
     std::optional<StringRef> HexValue = AnnotatedBlockObject->getString("Hex");
     if (!HexValue)
