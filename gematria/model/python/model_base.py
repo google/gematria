@@ -355,7 +355,9 @@ class ModelBase(metaclass=abc.ABCMeta):
     # the order in which they were added to the batch. Converted to a NumPy
     # array, the final version can be used as a value for
     # self._expected_outputs.
-    self._batch_expected_outputs: Optional[MutableSequence[float]] = None
+    self._batch_expected_outputs: Optional[
+        MutableSequence[MutableSequence[int | float]]
+    ] = None
     # The list of expected values for basic block prefixes (deltas). The values
     # are stored in a single list, in the order in which the basic blocks were
     # added to the batch. Within each basic block, the predictions for the
@@ -477,16 +479,28 @@ class ModelBase(metaclass=abc.ABCMeta):
   @property
   def absolute_mse_tensor(self) -> tf.Tensor:
     """Returns the absolute loss tensor."""
+    if self._loss is None:
+      raise ValueError(
+          'self._loss is None while returning absolute mse loss tensor'
+      )
     return self._loss.mean_squared_error
 
   @property
   def relative_mae_tensor(self) -> tf.Tensor:
     """Returns the relative MAE (L1 loss) tensor."""
+    if self._loss is None:
+      raise ValueError(
+          'self._loss is None while returning relative mae (L1 loss) tensor'
+      )
     return self._loss.mean_absolute_percentage_error
 
   @property
   def relative_mse_tensor(self) -> tf.Tensor:
     """Returns the relative loss tensor."""
+    if self._loss is None:
+      raise ValueError(
+          'self._loss is None while returning relative mse loss tensor'
+      )
     return self._loss.mean_squared_percentage_error
 
   @property
@@ -621,6 +635,11 @@ class ModelBase(metaclass=abc.ABCMeta):
       # output of the op. Most ops have just a single output (and terminate with
       # ":0"), so we add an additional warning to the log in case the index is
       # not "0" as this might cause errors from omission.
+      if self._output_tensor_deltas is None:
+        raise ValueError(
+            'ModelBase._output_tensor_deltas is None while creating output,'
+            ' expected output and loss tensors.'
+        )
       output_deltas_name, output_deltas_index = (
           self._output_tensor_deltas.name.split(':')
       )
@@ -653,6 +672,11 @@ class ModelBase(metaclass=abc.ABCMeta):
           name=ModelBase.OUTPUT_TENSOR_NAME,
       )
     else:
+      if self._output_tensor is None:
+        raise ValueError(
+            'ModelBase._output_tensor is None while creating output,'
+            ' expected output and loss tensors.'
+        )
       output_name, output_index = self._output_tensor.name.split(':')
       if output_name != ModelBase.OUTPUT_TENSOR_NAME:
         logging.warning(
@@ -1079,6 +1103,11 @@ class ModelBase(metaclass=abc.ABCMeta):
       # Compute deltas from prefix throughputs by subtracting the previous
       # element for all elements apart from the first one.
       expected_prefix_throughputs[1:] -= expected_prefix_throughputs[:-1]
+      if self._batch_expected_outputs_deltas is None:
+        raise ValueError(
+            'ModelBase._batch_expected_outputs_deltas is None when using deltas'
+            ' to add expected outputs for a basic block in a batch'
+        )
       self._batch_expected_outputs_deltas.extend(expected_prefix_throughputs)
 
     for i in range(self.num_tasks):
@@ -1094,7 +1123,17 @@ class ModelBase(metaclass=abc.ABCMeta):
       else:
         expected_throughput = INVALID_THROUGHPUT_VALUE
       block_expected_outputs.append(expected_throughput)
+    if self._batch_expected_outputs is None:
+      raise ValueError(
+          'ModelBase._batch_expected_outputs is None when adding expected'
+          ' outputs for a basic block in a batch'
+      )
     self._batch_expected_outputs.append(block_expected_outputs)
+    if self._batch_mask is None:
+      raise ValueError(
+          'ModelBase._batch_mask is None when adding expected outputs for a'
+          ' basic block in a batch'
+      )
     self._batch_mask.append(block_mask)
 
   def schedule_batch(
@@ -1235,6 +1274,11 @@ class ModelBase(metaclass=abc.ABCMeta):
           )
         if self._create_delta_block_index:
           assert num_prefixes == num_instructions_in_block
+          if self._batch_delta_block_index is None:
+            raise ValueError(
+                'ModelBase._batch_delta_block_index is None when creating delta'
+                ' block index while creating a feed_dict.'
+            )
           self._batch_delta_block_index.extend(
               [num_blocks_in_batch] * num_prefixes
           )
@@ -1295,6 +1339,10 @@ class ModelBase(metaclass=abc.ABCMeta):
         randomize_expected_outputs=False,
     )
 
+    if self._loss is None:
+      raise ValueError(
+          'ModelBase._loss is None while running continuous evaluation.'
+      )
     hooks = [
         tf.contrib.training.StopAfterNEvalsHook(1),
         tf.contrib.training.SummaryAtEndHook(summary_dir, feed_dict=schedule),
@@ -1517,6 +1565,8 @@ class ModelBase(metaclass=abc.ABCMeta):
       stats_ops = {}
       stats_ops['epoch'] = self.global_step
       stats_ops['loss'] = self._loss_tensor
+      if self._loss is None:
+        raise ValueError('ModelBase._loss is None inside train_batch function')
       stats_ops['absolute_mse'] = self._loss.mean_squared_error
       stats_ops['relative_mae'] = self._loss.mean_absolute_percentage_error
       stats_ops['relative_mse'] = self._loss.mean_squared_percentage_error
@@ -1527,6 +1577,11 @@ class ModelBase(metaclass=abc.ABCMeta):
           self._loss.absolute_percentage_error_percentiles
       )
       if self._use_deltas:
+        if self._delta_loss is None:
+          raise ValueError(
+              'ModelBase._delta_loss is None inside train_batch function while'
+              ' using deltas'
+          )
         stats_ops['absolute_delta_mse'] = self._delta_loss.mean_squared_error
         stats_ops['absolute_delta_mae'] = self._delta_loss.mean_absolute_error
         stats_ops['absolute_delta_error_percentiles'] = (
