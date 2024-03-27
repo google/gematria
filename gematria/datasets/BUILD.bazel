@@ -188,3 +188,11 @@ cc_library(
     ],
     deps = ["@com_google_absl//absl/types:span"],
 )
+
+cc_binary(
+    name = "compare_bhive_csv",
+    srcs = ["compare_bhive_csv.cc"],
+    deps = [
+        "@llvm-project//llvm:Support",
+    ],
+)
