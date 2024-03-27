@@ -25,6 +25,7 @@
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/Errc.h"
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/TargetSelect.h"
@@ -42,38 +43,17 @@ static cl::opt<std::string> AnnotatedBlocksJson(
     cl::desc("Filename of the JSON file containing annotated basic blocks"),
     cl::init(""));
 
-static ExitOnError ExitOnErr("exegesis-benchmark error: ");
-
-static void ExitWithError(StringRef ErrorMessage) {
-  ExitOnErr(make_error<StringError>(ErrorMessage, inconvertibleErrorCode()));
-}
-
-static void ExitOnFileError(const Twine &FileName, Error Err) {
-  if (Err) {
-    ExitOnErr(createFileError(FileName, std::move(Err)));
-  }
-}
-
-template <typename T>
-T ExitOnFileError(const Twine &FileName, Expected<T> &&E) {
-  ExitOnFileError(FileName, E.takeError());
-  return std::move(*E);
-}
-
 int main(int Argc, char *Argv[]) {
   cl::ParseCommandLineOptions(
       Argc, Argv, "Tool for benchmarking sets of annotated basic blocks");
-  if (AnnotatedBlocksJson.empty()) {
-    ExitWithError("--annotated_blocks_json is required");
-    return 1;
-  }
 
-  auto JsonMemoryBuffer = ExitOnFileError(
-      AnnotatedBlocksJson,
-      errorOrToExpected(MemoryBuffer::getFile(AnnotatedBlocksJson, true)));
+  ExitOnError ExitOnErr("exegesis-benchmark error: ");
+  if (AnnotatedBlocksJson.empty())
+    ExitOnErr(llvm::make_error<StringError>(errc::invalid_argument, "--annotated_blocks_json is required"));
 
-  auto ParsedAnnotatedBlocks =
-      ExitOnErr(json::parse(JsonMemoryBuffer->getBuffer()));
+  auto JsonMemoryBuffer = ExitOnErrerrorOrToExpected(MemoryBuffer::getFile(AnnotatedBlocksJson, true));
+
+  auto ParsedAnnotatedBlocks = ExitOnErr(json::parse(JsonMemoryBuffer->getBuffer()));
 
   // LLVM Setup
   LLVMInitializeX86TargetInfo();
@@ -111,25 +91,29 @@ int main(int Argc, char *Argv[]) {
           Benchmark::Latency, State, BenchmarkPhaseSelectorE::Measure,
           BenchmarkRunner::ExecutionModeE::SubProcess, 30, {}, Benchmark::Min));
 
-  if (pfm::pfmInitialize()) ExitWithError("Failed to initialize libpfm");
+  if (pfm::pfmInitialize())
+   ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Failed to initialize libpfm")); 
 
   for (const auto &AnnotatedBlock : *ParsedAnnotatedBlocks.getAsArray()) {
     std::optional<StringRef> HexValue =
         AnnotatedBlock.getAsObject()->getString("Hex");
-    if (!HexValue) ExitWithError("Expected basic block to have hex value");
+    if (!HexValue) ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Expected basic block to have hex value"));
 
     std::optional<int64_t> LoopRegister =
         AnnotatedBlock.getAsObject()->getInteger("LoopRegister");
-    if (!LoopRegister.has_value()) ExitWithError("Malfroemd basic block.");
+    if (!LoopRegister.has_value())
+      ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Malformed basic block"));
 
     std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
         SnippetRepetitor::Create(Benchmark::RepetitionModeE::MiddleHalfLoop,
                                  State, *LoopRegister);
 
+    // TODO(ondrasej): Update this after converting gematria::ParseHexString to return llvm::Expected rather than an optional.
     std::optional<std::vector<uint8_t>> BytesOr =
         gematria::ParseHexString(HexValue->str());
 
-    if (!BytesOr.has_value()) ExitWithError("Failed to parse hex value");
+    if (!BytesOr.has_value())
+      ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Failed to parse hex value"));
 
     std::vector<gematria::DisassembledInstruction> DisInstructions =
         ExitOnErr(gematria::DisassembleAllInstructions(
@@ -147,9 +131,11 @@ int main(int Argc, char *Argv[]) {
 
     const llvm::MCRegisterInfo &MRI = State.getRegInfo();
 
+    // TODO(boomanaiden154): Refactor this JSON parsing out into a separate function.
     const json::Array *RegisterDefinitions =
         AnnotatedBlock.getAsObject()->getArray("RegisterDefinitions");
 
+    // TODO(boomanaiden154): Pull these from the JSON file.
     for (const auto &RegisterDefinitionValue : *RegisterDefinitions) {
       const json::Object *RegisterDefinitionObject =
           RegisterDefinitionValue.getAsObject();
@@ -160,7 +146,7 @@ int main(int Argc, char *Argv[]) {
       std::optional<int64_t> RegisterValue =
           RegisterDefinitionObject->getInteger("Value");
       if (!RegisterIndex.has_value() || !RegisterValue.has_value())
-        ExitWithError("Malformed register definition");
+        ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Malformed register definition"));
 
       RegVal.Register = *RegisterIndex;
       RegVal.Value = APInt(64, *RegisterValue);
@@ -171,33 +157,32 @@ int main(int Argc, char *Argv[]) {
         AnnotatedBlock.getAsObject()->getArray("MemoryDefinitions");
 
     if (!MemoryDefinitions)
-      ExitWithError("Expected field MemoryDefinitions does not exist.");
+      ExitOnErr(llvm::make_error<StringError>("Expected field MemoryDefinitions does not exist."));
 
     for (const auto &MemoryDefinitionValue : *MemoryDefinitions) {
       const json::Object *MemoryDefinitionObject =
           MemoryDefinitionValue.getAsObject();
 
-      if (!MemoryDefinitionObject) {
-        ExitWithError("Malformed memory definition");
-      }
+      if (!MemoryDefinitionObject)
+        ExitOnErr(llvm::make_error<StringError>("Malformed memory definition"));
 
       std::optional<StringRef> MemoryDefinitionName =
           MemoryDefinitionObject->getString("Name");
       std::optional<int64_t> MemoryDefinitionSize =
           MemoryDefinitionObject->getInteger("Size");
-      // Might need to figure out something better for this as the value should
-      // be an arbitrarily big integer.
+
       std::optional<int64_t> MemoryDefinitionHexValue =
           MemoryDefinitionObject->getInteger("Value");
 
       if (!MemoryDefinitionName.has_value() ||
           !MemoryDefinitionSize.has_value() ||
           !MemoryDefinitionHexValue.has_value())
-        ExitWithError("Malformed memory definition");
+        ExitOnErr(llvm::make_error<StringError>("Malformed memory definition"));
 
       MemoryValue MemVal;
       MemVal.Value = APInt(32, *MemoryDefinitionHexValue);
-      MemVal.Index = 0;  // Update this to support multiple definitions
+      // TODO(boomanaiden154): Update this to support multiple memory definitions.
+      MemVal.Index = 0;
       MemVal.SizeBytes = *MemoryDefinitionSize;
 
       BenchCode.Key.MemoryValues[MemoryDefinitionName->str()] = MemVal;
@@ -206,13 +191,15 @@ int main(int Argc, char *Argv[]) {
     const json::Array *MemoryMappings =
         AnnotatedBlock.getAsObject()->getArray("MemoryMappings");
 
-    if (!MemoryMappings) ExitWithError("Malformed memory mapping");
+    if (!MemoryMappings)
+      ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Malformed memory mapping"));
 
     for (const auto &MemoryMappingValue : *MemoryMappings) {
       const json::Object *MemoryMappingObject =
           MemoryMappingValue.getAsObject();
 
-      if (!MemoryMappingObject) ExitWithError("Malformed memory mapping");
+      if (!MemoryMappingObject)
+        ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Malformed memory mapping"));
 
       std::optional<StringRef> MemoryMappingDefinitionName =
           MemoryMappingObject->getString("Value");
@@ -221,7 +208,7 @@ int main(int Argc, char *Argv[]) {
 
       if (!MemoryMappingDefinitionName.has_value() ||
           !MemoryMappingAddress.has_value())
-        ExitWithError("Malformed memory mapping");
+        ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(), "Malformed memory mapping"));
 
       MemoryMapping MemMap;
       MemMap.Address = *MemoryMappingAddress;
@@ -229,6 +216,7 @@ int main(int Argc, char *Argv[]) {
       BenchCode.Key.MemoryMappings.push_back(MemMap);
     }
 
+    // TODO(boomanaiden154): Refactor benchmark into a separate function?
     SmallVector<Benchmark, 2> AllResults;
 
     BenchmarkRunner::RunnableConfiguration RC1 = ExitOnErr(
@@ -240,7 +228,7 @@ int main(int Argc, char *Argv[]) {
         Runner->runConfiguration(std::move(RC1), {});
 
     if (std::get<0>(BenchmarkResult1OrErr)) {
-      outs() << std::get<0>(BenchmarkResult1OrErr) << "\n";
+      dbgs() << "Encountered an error while benchmarking: " << std::get<0>(BenchmarkResult1OrErr) << "\n";
       continue;
     }
 
@@ -250,7 +238,7 @@ int main(int Argc, char *Argv[]) {
         Runner->runConfiguration(std::move(RC2), {});
 
     if (std::get<0>(BenchmarkResult2OrErr)) {
-      outs() << std::get<0>(BenchmarkResult2OrErr) << "\n";
+      dbgs() << "Encountered an error while benchmarking: " << std::get<0>(BenchmarkResult2OrErr) << "\n";
       continue;
     }
 
