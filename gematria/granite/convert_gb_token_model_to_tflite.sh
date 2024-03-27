@@ -37,6 +37,8 @@ function print_error_and_exit() {
 # Parse command-line flags.
 # TODO(ondrasej): Consider using getopt instead of parsing the flags manually.
 gematria_export_as_seq2seq=0
+gematria_export_with_deltas=0
+gematria_export_with_annotations=0
 gematria_input_graphdef=""
 gematria_output_tflite=""
 while [[ "$#" -gt 0 ]]; do
@@ -58,6 +60,12 @@ while [[ "$#" -gt 0 ]]; do
     --gematria_export_as_seq2seq)
       gematria_export_as_seq2seq=1
       ;;
+    --gematria_export_with_deltas)
+      gematria_export_with_deltas=1
+      ;;
+    --gematria_export_with_annotations)
+      gematria_export_with_annotations=1
+      ;;
     *)
       print_error_and_exit "Unexpected command-line argument: $1"
   esac
@@ -78,11 +86,11 @@ function str_join() {
 }
 
 # The list of inputs of the model. This must contain an entry for each
-# tf.placeholder tensor used in the Python code. The order of the tensors used
-# here must correspond to the input tensor indices defined in
-# gematria/granite/graph_builder_model_inference.cc.
+# tf.placeholder tensor used in the Python code.
 readonly INPUT_TENSORS_LIST=(
-  ModelBase.delta_block_index_tensor
+  $([[ "${gematria_export_as_seq2seq}" -eq 1 || \
+       "${gematria_export_with_deltas}" -eq 1 ]] && \
+    echo 'ModelBase.delta_block_index_tensor')
   GnnModelBase.node_features
   GnnModelBase.edge_features
   GnnModelBase.global_features
@@ -90,7 +98,11 @@ readonly INPUT_TENSORS_LIST=(
   GnnModelBase.senders
   GnnModelBase.num_edges
   GnnModelBase.num_nodes
-  GraphBuilderModelBase.instruction_node_mask
+  $([[ "${gematria_export_with_annotations}" -eq 1 ]] && \
+    echo 'GraphBuilderModelBase.instruction_node_mask')
+  $([[ "${gematria_export_with_deltas}" -eq 1 || \
+       "${gematria_export_with_annotations}" -eq 1 ]] && \
+    echo 'TokenGraphBuilderModel.instruction_annotations')
 )
 INPUT_TENSORS=$(str_join "${INPUT_TENSORS_LIST[@]}")
 readonly INPUT_TENSORS
@@ -103,20 +115,16 @@ readonly TARGET_OPS_LIST=(
 TARGET_OPS=$(str_join "${TARGET_OPS_LIST[@]}")
 readonly TARGET_OPS
 
-if (( FLAGS_gematria_export_as_seq2seq )); then
-  readonly OUTPUT_TENSOR_LIST=(
-    ModelBase.output_tensor
-    ModelBase.output_tensor_deltas
-    TokenModel.token_list
-    GraphBuilderModelBase.special_tokens
-  )
-else
-  readonly OUTPUT_TENSOR_LIST=(
-    ModelBase.output_tensor
-    TokenModel.token_list
-    GraphBuilderModelBase.special_tokens
-  )
-fi
+readonly OUTPUT_TENSOR_LIST=(
+  ModelBase.output_tensor
+  $([[ "${gematria_export_as_seq2seq}" -eq 1 || \
+       "${gematria_export_with_deltas}" -eq 1 ]] && \
+    echo 'ModelBase.output_tensor_deltas')
+  TokenModel.token_list
+  GraphBuilderModelBase.special_tokens
+  $([[ "${gematria_export_with_annotations}" -eq 1 ]] && \
+    echo 'TokenGraphBuilderModel.annotation_names')
+)
 OUTPUT_TENSORS=$(str_join "${OUTPUT_TENSOR_LIST[@]}")
 readonly OUTPUT_TENSORS
 
