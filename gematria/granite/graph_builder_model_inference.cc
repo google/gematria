@@ -15,12 +15,16 @@
 #include "gematria/granite/graph_builder_model_inference.h"
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <set>
+#include <sstream>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -46,20 +50,95 @@ namespace {
 
 using ::tflite::FlatBufferModel;
 
-// The indices of the input tensors in the compiled TensorFlow Lite model. This
-// order of the input tensors must be preserved during the conversion of the
-// model to the .tflite format.
-constexpr int kDeltaBlockIndexTensor = 0;
-constexpr int kGraphNodesTensor = 1;
-constexpr int kGraphEdgesTensor = 2;
-constexpr int kGraphGlobalsTensor = 3;
-constexpr int kGraphReceiversTensor = 4;
-constexpr int kGraphSendersTensor = 5;
-constexpr int kGraphNEdgeTensor = 6;
-constexpr int kGraphNNodeTensor = 7;
-constexpr int kInstructionNodeMaskTensor = 8;
+// Graph builder models can have up to 10 different input tensors depending on
+// their configuration, as enumerated by `InputTensor`.
+constexpr int kNumPossibleInputTensors = 10;
 
-constexpr int kNumInputTensors = 9;
+enum class InputTensor {
+  kDeltaBlockIndexTensor = 0,
+  kGraphNodesTensor,
+  kGraphEdgesTensor,
+  kGraphGlobalsTensor,
+  kGraphReceiversTensor,
+  kGraphSendersTensor,
+  kGraphNEdgeTensor,
+  kGraphNNodeTensor,
+  kInstructionNodeMaskTensor,
+  kInstructionAnnotationsTensor,
+};
+
+// The names of the valid input tensors in the compiled TensorFlow Lite model.
+// Not all tensors are present in all models.
+constexpr std::string_view kDeltaBlockIndexTensorName =
+    "ModelBase.delta_block_index_tensor";
+constexpr std::string_view kGraphNodesTensorName = "GnnModelBase.node_features";
+constexpr std::string_view kGraphEdgesTensorName = "GnnModelBase.edge_features";
+constexpr std::string_view kGraphGlobalsTensorName =
+    "GnnModelBase.global_features";
+constexpr std::string_view kGraphReceiversTensorName = "GnnModelBase.receivers";
+constexpr std::string_view kGraphSendersTensorName = "GnnModelBase.senders";
+constexpr std::string_view kGraphNEdgeTensorName = "GnnModelBase.num_edges";
+constexpr std::string_view kGraphNNodeTensorName = "GnnModelBase.num_nodes";
+constexpr std::string_view kInstructionNodeMaskTensorName =
+    "GraphBuilderModelBase.instruction_node_mask";
+constexpr std::string_view kInstructionAnnotationsTensorName =
+    "TokenGraphBuilderModel.instruction_annotations";
+
+// Look-up table between `InputTensor` and input tensor names. Used by
+// `GetInputTensorName` and `GetInputTensorFromName` to create an efficient
+// mapping between tensor and their names at compile time.
+static constexpr std::array<std::pair<InputTensor, std::string_view>,
+                            kNumPossibleInputTensors>
+    kPossibleInputTensors{{
+        {InputTensor::kDeltaBlockIndexTensor, kDeltaBlockIndexTensorName},
+        {InputTensor::kGraphNodesTensor, kGraphNodesTensorName},
+        {InputTensor::kGraphEdgesTensor, kGraphEdgesTensorName},
+        {InputTensor::kGraphGlobalsTensor, kGraphGlobalsTensorName},
+        {InputTensor::kGraphReceiversTensor, kGraphReceiversTensorName},
+        {InputTensor::kGraphSendersTensor, kGraphSendersTensorName},
+        {InputTensor::kGraphNEdgeTensor, kGraphNEdgeTensorName},
+        {InputTensor::kGraphNNodeTensor, kGraphNNodeTensorName},
+        {InputTensor::kInstructionNodeMaskTensor,
+         kInstructionNodeMaskTensorName},
+        {InputTensor::kInstructionAnnotationsTensor,
+         kInstructionAnnotationsTensorName},
+    }};
+
+// Get the name associated with an input tensor.
+constexpr std::string_view GetInputTensorName(const InputTensor tensor) {
+  for (auto it = kPossibleInputTensors.begin();
+       it != kPossibleInputTensors.end(); ++it) {
+    if (it->first == tensor) {
+      return it->second;
+    }
+  }
+}
+
+// Get the input tensor associated with a name. `name` must be one of the
+// input tensor names defined above.
+constexpr InputTensor GetInputTensorFromName(const std::string_view name) {
+  for (auto it = kPossibleInputTensors.begin();
+       it != kPossibleInputTensors.end(); ++it) {
+    if (it->second == name) {
+      return it->first;
+    }
+  }
+}
+
+// The model must have at least 7 input tensors - it may not include some
+// tensors such as the delta block index tensor and the instruction annotations
+// tensor depending on the model configuration.
+constexpr int kNumRequiredInputTensors = 7;
+
+// The list of all input tensors that every graph builder model must have,
+// to be valid. Other tensors may be present based on the configuration.
+static constexpr std::array<InputTensor, kNumRequiredInputTensors>
+    kRequiredInputTensors{
+        InputTensor::kGraphNodesTensor,   InputTensor::kGraphEdgesTensor,
+        InputTensor::kGraphGlobalsTensor, InputTensor::kGraphReceiversTensor,
+        InputTensor::kGraphSendersTensor, InputTensor::kGraphNEdgeTensor,
+        InputTensor::kGraphNNodeTensor,
+    };
 
 // The indices of special node token indices in the tensor
 // `GraphBuilderModelBase.special_tokens`. For example the token used for
@@ -83,16 +162,19 @@ constexpr int kNumSpecialNodeTokens = 5;
 constexpr std::string_view kNodeTokensTensorName = "TokenModel.token_list";
 constexpr std::string_view kSpecialTokensTensorName =
     "GraphBuilderModelBase.special_tokens";
+constexpr std::string_view kAnnotationNamesTensorName =
+    "TokenGraphBuilderModel.annotation_names";
 
 // Checks that:
 // 1. `tensor` != nullptr,
 // 2. `tensor` has type `tensor_type`.
 // 3. `tensor` has the number of dimensions corresponding to the number of
-// elements of `sizes`, and the sizes in those dimensions are equal to `sizes`.
-// Returns `llvm::Error::success()` when all checks pass, an error otherwise.
+// elements of `sizes`, and the sizes in those dimensions are equal to
+// `sizes`. Returns `llvm::Error::success()` when all checks pass, an error
+// otherwise.
 //
-// TODO(ondrasej): See if we can replace this function and the one below with
-// TFModelEvaluatorImpl::checkReportAndInvalidate.
+// TODO(ondrasej): See if we can replace this function and the one below
+// with TFModelEvaluatorImpl::checkReportAndInvalidate.
 template <typename... Args>
 llvm::Error CheckTensorTypeAndDimensions(int tensor_index,
                                          const TfLiteTensor* tensor,
@@ -335,6 +417,39 @@ llvm::Expected<std::string> GetNodeTokenAtIndex(
   return node_token_list[token_index];
 }
 
+// Extracts the set of annotation names from the model. This should be a Const
+// tensor, and as such, it should be readable without providing any inputs.
+// Returns an error when the annotation names tensor is not found or it is not
+// readable.
+llvm::Expected<std::set<std::string>> GetAnnotationNames(
+    const tflite::Interpreter& interpreter) {
+  llvm::Expected<int> annotation_names_tensor_index = TensorIndexByName(
+      interpreter, interpreter.outputs(), kAnnotationNamesTensorName);
+  if (llvm::Error error = annotation_names_tensor_index.takeError()) {
+    return error;
+  }
+  const TfLiteTensor* const annotation_names_tensor =
+      interpreter.tensor(*annotation_names_tensor_index);
+  assert(annotation_names_tensor != nullptr);
+
+  const size_t annotation_names_size_bytes = annotation_names_tensor->bytes;
+  // The token list tensor is a Const operation, so it should be readable before
+  // running the inference or providing any inputs.
+  const char* const annotation_names_raw_data = reinterpret_cast<const char*>(
+      interpreter.typed_tensor<uint8_t>(*annotation_names_tensor_index));
+  if (annotation_names_raw_data == nullptr) {
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "The annotation names could not be read");
+  }
+  const std::string_view annotation_names_data(annotation_names_raw_data,
+                                               annotation_names_size_bytes);
+  std::vector<std::string> annotation_names =
+      StrSplitAsCopy(annotation_names_data, '\0');
+  return std::set<std::string>(
+      std::make_move_iterator(annotation_names.begin()),
+      std::make_move_iterator(annotation_names.end()));
+}
+
 }  // namespace
 
 llvm::Expected<std::unique_ptr<GraphBuilderModelInference>>
@@ -346,7 +461,69 @@ GraphBuilderModelInference::FromTfLiteModel(
   }
   llvm::Expected<std::unique_ptr<tflite::Interpreter>> interpreter =
       CreateInterpreter(*tflite_model);
-  if (auto error = interpreter.takeError()) return error;
+  if (llvm::Error error = interpreter.takeError()) return error;
+
+  // Get a mapping between the input tensors used in the model and their
+  // corresponding indices.
+  auto input_tensor_to_idx =
+      std::make_unique<std::vector<int>>(kNumPossibleInputTensors, -1);
+  for (int idx : (*interpreter)->inputs()) {
+    const std::string_view name = (*interpreter)->GetInputName(idx);
+    input_tensor_to_idx->at(static_cast<int>(GetInputTensorFromName(name))) =
+        idx;
+  }
+
+  // Checks whether the model has all input tensors required to have for all
+  // graph builder models.
+  std::vector<InputTensor> missing_inputs;
+  for (const InputTensor input : kRequiredInputTensors) {
+    if (input_tensor_to_idx->at(static_cast<int>(input)) == -1)
+      missing_inputs.push_back(input);
+  }
+  if (!missing_inputs.empty()) {
+    std::stringstream buffer;
+    buffer << "Model is missing input tensors. ";
+    for (InputTensor missing_input : missing_inputs) {
+      buffer << GetInputTensorName(missing_input) << ", ";
+    }
+    buffer.seekp(-2, std::ios_base::end);
+    buffer << " were expected but not found";
+    return llvm::createStringError(llvm::errc::invalid_argument, buffer.str());
+  }
+
+  // Ensures no unexpected input tensors are present.
+  const int num_input_tensors = (*interpreter)->inputs().size();
+  const bool uses_deltas = input_tensor_to_idx->at(static_cast<int>(
+                               InputTensor::kDeltaBlockIndexTensor)) != -1;
+  const bool uses_annotations =
+      input_tensor_to_idx->at(
+          static_cast<int>(InputTensor::kInstructionAnnotationsTensor)) != -1;
+  if (uses_deltas && input_tensor_to_idx->at(static_cast<int>(
+                         InputTensor::kInstructionNodeMaskTensor)) == -1) {
+    return llvm::createStringError(
+        llvm::errc::invalid_argument,
+        "Missing input tensor. Models having " +
+            llvm::Twine(kDeltaBlockIndexTensorName) + " must also have " +
+            llvm::Twine(kInstructionNodeMaskTensorName) + ".");
+  }
+  if (uses_annotations && input_tensor_to_idx->at(static_cast<int>(
+                              InputTensor::kInstructionNodeMaskTensor)) == -1) {
+    return llvm::createStringError(
+        llvm::errc::invalid_argument,
+        "Missing input tensor. Models having " +
+            llvm::Twine(kInstructionAnnotationsTensorName) +
+            " must also have " + llvm::Twine(kInstructionNodeMaskTensorName) +
+            ".");
+  }
+  const int num_expected_input_tensors =
+      kNumRequiredInputTensors + int(uses_deltas) + int(uses_annotations) +
+      int(uses_deltas || uses_annotations);
+  if (num_input_tensors != num_expected_input_tensors) {
+    return llvm::createStringError(
+        llvm::errc::invalid_argument,
+        "Unexpected number of input tensors. Expected %d, found %d.",
+        num_expected_input_tensors, num_input_tensors);
+  }
 
   // Get the list of node tokens used in the model.
   llvm::Expected<std::vector<std::string>> node_token_list =
@@ -373,6 +550,16 @@ GraphBuilderModelInference::FromTfLiteModel(
         llvm::errc::invalid_argument,
         "The special token index tensor could not be read");
   }
+
+  // Get the set of annotation names used by the model, if any.
+  std::set<std::string> annotation_names;
+  if (uses_annotations) {
+    llvm::Expected<std::set<std::string>> expected_annotation_names =
+        GetAnnotationNames(**interpreter);
+    if (llvm::Error error = expected_annotation_names.takeError()) return error;
+    annotation_names = std::move(*expected_annotation_names);
+  }
+
   // We'll be std::move()-ing the node list vector in the same function call
   // where we use the token names. To be safe from any move effects, we make a
   // copy of all the tokens instead of taking a const reference.
@@ -412,19 +599,32 @@ GraphBuilderModelInference::FromTfLiteModel(
       *std::move(node_token_list), /* immediate_token = */ *immediate_token,
       /* fp_immediate_token = */ *fp_immediate_token,
       /* address_token = */ *address_token, /* memory_token = */ *memory_token,
+      /* annotation_names = */ std::move(annotation_names),
       /* out_of_vocabulary_behavior = */ out_of_vocabulary_behavior);
 
   // We can't use std::make_unique<GraphBuilderModelInference>(), because
   // std::make_unique<>() requires a public constructor.
   return std::unique_ptr<GraphBuilderModelInference>(
-      new GraphBuilderModelInference(std::move(graph_builder), tflite_model));
+      new GraphBuilderModelInference(
+          std::move(graph_builder), tflite_model, std::move(*interpreter),
+          std::move(input_tensor_to_idx), uses_deltas, uses_annotations));
 }
 
 GraphBuilderModelInference::GraphBuilderModelInference(
     std::unique_ptr<BasicBlockGraphBuilder> graph_builder,
-    const FlatBufferModel* tflite_model)
-    : graph_builder_(std::move(graph_builder)), tflite_model_(*tflite_model) {
+    const FlatBufferModel* tflite_model,
+    std::unique_ptr<tflite::Interpreter> interpreter,
+    std::unique_ptr<std::vector<int>> input_tensor_to_idx, bool uses_deltas,
+    bool uses_annotations)
+    : graph_builder_(std::move(graph_builder)),
+      tflite_model_(*tflite_model),
+      interpreter_(std::move(interpreter)),
+      input_tensor_to_idx_(std::move(input_tensor_to_idx)),
+      uses_deltas_(uses_deltas),
+      uses_annotations_(uses_annotations) {
   assert(tflite_model != nullptr);
+  assert(interpreter_ != nullptr);
+  assert(input_tensor_to_idx_ != nullptr);
   assert(graph_builder_ != nullptr);
 }
 
@@ -443,99 +643,136 @@ GraphBuilderModelInference::RunInference() {
     return std::vector<GraphBuilderModelInference::OutputType>();
   }
 
-  // TODO(ondrasej): Reuse the interpreter across RunInference() calls. The
-  // graph builder class is already stateful, so this should not be an issue
-  // and it could save us some loading time.
-  llvm::Expected<std::unique_ptr<tflite::Interpreter>> interpreter =
-      CreateInterpreter(tflite_model_);
-  if (llvm::Error error = interpreter.takeError()) return error;
-
-  // TODO(ondrasej): Move all the checks of the model format to the
-  // initialization of the class.
-  if ((*interpreter)->inputs().size() != kNumInputTensors) {
-    return llvm::createStringError(
-        llvm::errc::invalid_argument,
-        "Unexpected number of input tensors. Expected %d, found %d.",
-        kNumInputTensors, (*interpreter)->inputs().size());
-  }
-
   const std::vector<bool> instruction_node_mask =
       graph_builder_->InstructionNodeMask();
+  const std::vector<std::vector<float>> instruction_annotations =
+      graph_builder_->instruction_annotations();
   const std::vector<int> delta_block_index = graph_builder_->DeltaBlockIndex();
 
   // Resize the input tensors according to the size of the input data.
-  // TODO(ondrasej): Replace the index-based lookups with name-based lookups.
-
   GEMATRIA_RETURN_IF_ERROR(
-      Resize1DTensor(interpreter->get(), kDeltaBlockIndexTensor,
-                     static_cast<int>(delta_block_index.size())));
-  GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(interpreter->get(), kGraphNodesTensor,
-                                          graph_builder_->num_nodes()));
-  GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(interpreter->get(), kGraphEdgesTensor,
-                                          graph_builder_->num_edges()));
+      Resize1DTensor(interpreter_.get(),
+                     input_tensor_to_idx_->at(
+                         static_cast<int>(InputTensor::kGraphNodesTensor)),
+                     graph_builder_->num_nodes()));
+  GEMATRIA_RETURN_IF_ERROR(
+      Resize1DTensor(interpreter_.get(),
+                     input_tensor_to_idx_->at(
+                         static_cast<int>(InputTensor::kGraphEdgesTensor)),
+                     graph_builder_->num_edges()));
   GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(
-      interpreter->get(), kGraphReceiversTensor,
+      interpreter_.get(),
+      input_tensor_to_idx_->at(
+          static_cast<int>(InputTensor::kGraphReceiversTensor)),
       static_cast<int>(graph_builder_->edge_receivers().size())));
   GEMATRIA_RETURN_IF_ERROR(
-      Resize1DTensor(interpreter->get(), kGraphSendersTensor,
+      Resize1DTensor(interpreter_.get(),
+                     input_tensor_to_idx_->at(
+                         static_cast<int>(InputTensor::kGraphSendersTensor)),
                      static_cast<int>(graph_builder_->edge_senders().size())));
   GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(
-      interpreter->get(), kGraphNEdgeTensor,
+      interpreter_.get(),
+      input_tensor_to_idx_->at(
+          static_cast<int>(InputTensor::kGraphNEdgeTensor)),
       static_cast<int>(graph_builder_->num_nodes_per_block().size())));
   GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(
-      interpreter->get(), kGraphNNodeTensor,
+      interpreter_.get(),
+      input_tensor_to_idx_->at(
+          static_cast<int>(InputTensor::kGraphNNodeTensor)),
       static_cast<int>(graph_builder_->num_edges_per_block().size())));
-  GEMATRIA_RETURN_IF_ERROR(
-      Resize1DTensor(interpreter->get(), kInstructionNodeMaskTensor,
-                     static_cast<int>(instruction_node_mask.size())));
   GEMATRIA_RETURN_IF_ERROR(Resize2DTensor(
-      interpreter->get(), kGraphGlobalsTensor,
+      interpreter_.get(),
+      input_tensor_to_idx_->at(
+          static_cast<int>(InputTensor::kGraphGlobalsTensor)),
       /* desired_first_dimension_size = */ graph_builder_->num_graphs(),
       /* expected_second_dimension_size = */
       graph_builder_->num_node_tokens()));
+  if (uses_deltas_) {
+    GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(
+        interpreter_.get(),
+        input_tensor_to_idx_->at(
+            static_cast<int>(InputTensor::kDeltaBlockIndexTensor)),
+        static_cast<int>(delta_block_index.size())));
+  }
+  if (uses_annotations_) {
+    GEMATRIA_RETURN_IF_ERROR(Resize2DTensor(
+        interpreter_.get(),
+        input_tensor_to_idx_->at(
+            static_cast<int>(InputTensor::kInstructionAnnotationsTensor)),
+        /* desired_first_dimension_size = */
+        static_cast<int>(instruction_annotations.size()),
+        /* expected_second_dimension_size = */
+        static_cast<int>(graph_builder_->annotation_names().size())));
+  }
+  if (uses_deltas_ || uses_annotations_) {
+    GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(
+        interpreter_.get(),
+        input_tensor_to_idx_->at(
+            static_cast<int>(InputTensor::kInstructionNodeMaskTensor)),
+        static_cast<int>(instruction_node_mask.size())));
+  }
 
-  if (const TfLiteStatus status = (*interpreter)->AllocateTensors();
+  if (const TfLiteStatus status = interpreter_->AllocateTensors();
       status != kTfLiteOk) {
     return llvm::make_error<llvm::StringError>(
         "Could not allocate memory for tensors", llvm::errc::not_enough_memory);
   }
 
   // Fill in the input tensors.
-  if (llvm::Error error = FillTensorFromStdVector<int32_t>(
-          interpreter->get(), delta_block_index, kDeltaBlockIndexTensor)) {
-    return error;
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
+      interpreter_.get(), graph_builder_->node_features(),
+      input_tensor_to_idx_->at(
+          static_cast<int>(InputTensor::kGraphNodesTensor))));
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
+      interpreter_.get(), graph_builder_->EdgeFeatures(),
+      input_tensor_to_idx_->at(
+          static_cast<int>(InputTensor::kGraphEdgesTensor))));
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
+      interpreter_.get(), graph_builder_->edge_receivers(),
+      input_tensor_to_idx_->at(
+          static_cast<int>(InputTensor::kGraphReceiversTensor))));
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
+      interpreter_.get(), graph_builder_->edge_senders(),
+      input_tensor_to_idx_->at(
+          static_cast<int>(InputTensor::kGraphSendersTensor))));
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
+      interpreter_.get(), graph_builder_->num_nodes_per_block(),
+      input_tensor_to_idx_->at(
+          static_cast<int>(InputTensor::kGraphNNodeTensor))));
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
+      interpreter_.get(), graph_builder_->num_edges_per_block(),
+      input_tensor_to_idx_->at(
+          static_cast<int>(InputTensor::kGraphNEdgeTensor))));
+  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVectorMatrix<int32_t>(
+      interpreter_.get(), graph_builder_->global_features(),
+      input_tensor_to_idx_->at(
+          static_cast<int>(InputTensor::kGraphGlobalsTensor))));
+  if (uses_deltas_) {
+    GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
+        interpreter_.get(), delta_block_index,
+        input_tensor_to_idx_->at(
+            static_cast<int>(InputTensor::kDeltaBlockIndexTensor))));
   }
-  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
-      interpreter->get(), graph_builder_->node_features(), kGraphNodesTensor));
-  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
-      interpreter->get(), graph_builder_->EdgeFeatures(), kGraphEdgesTensor));
-  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
-      interpreter->get(), graph_builder_->edge_receivers(),
-      kGraphReceiversTensor));
-  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
-      interpreter->get(), graph_builder_->edge_senders(), kGraphSendersTensor));
-  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
-      interpreter->get(), graph_builder_->num_nodes_per_block(),
-      kGraphNNodeTensor));
-  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
-      interpreter->get(), graph_builder_->num_edges_per_block(),
-      kGraphNEdgeTensor));
-  GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<bool>(
-      interpreter->get(), instruction_node_mask, kInstructionNodeMaskTensor));
-  if (auto error = FillTensorFromStdVectorMatrix<int32_t>(
-          interpreter->get(), graph_builder_->global_features(),
-          kGraphGlobalsTensor)) {
-    return error;
+  if (uses_annotations_) {
+    GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVectorMatrix<float>(
+        interpreter_.get(), instruction_annotations,
+        input_tensor_to_idx_->at(
+            static_cast<int>(InputTensor::kInstructionAnnotationsTensor))));
+  }
+  if (uses_deltas_ || uses_annotations_) {
+    GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<bool>(
+        interpreter_.get(), instruction_node_mask,
+        input_tensor_to_idx_->at(
+            static_cast<int>(InputTensor::kInstructionNodeMaskTensor))));
   }
 
-  if (const TfLiteStatus status = (*interpreter)->Invoke();
-      status != kTfLiteOk) {
+  if (const TfLiteStatus status = interpreter_->Invoke(); status != kTfLiteOk) {
     return llvm::make_error<llvm::StringError>(
         "Invoking the TensorFlow Lite interpreter failed",
         llvm::errc::io_error);
   }
 
-  const TfLiteTensor* const output_tensor = (*interpreter)->output_tensor(0);
+  const TfLiteTensor* const output_tensor = interpreter_->output_tensor(0);
   if (output_tensor == nullptr) {
     return llvm::createStringError(llvm::errc::invalid_argument,
                                    "No output tensor at index 0.");
@@ -554,8 +791,7 @@ GraphBuilderModelInference::RunInference() {
                                    output_tensor->dims->data[0]);
   }
   const int num_tasks = output_tensor->dims->data[1];
-  auto* const output_tensor_data =
-      (*interpreter)->typed_output_tensor<float>(0);
+  auto* const output_tensor_data = interpreter_->typed_output_tensor<float>(0);
   assert(output_tensor_data != nullptr);
 
   std::vector<OutputType> output;
