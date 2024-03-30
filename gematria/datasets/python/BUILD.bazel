@@ -53,3 +53,14 @@ gematria_py_binary(
         "//gematria/utils/python:pybind11_abseil_status",
     ],
 )
+
+gematria_py_binary(
+    name = "generate_vocab",
+    srcs = ["generate_vocab.py"],
+    deps = [
+        "//gematria/basic_block/python:basic_block",
+        "//gematria/basic_block/python:basic_block_protos",
+        "//gematria/io/python:tfrecord",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+)
