@@ -15,6 +15,9 @@
 #include <fstream>
 #include <limits>
 
+#include "X86.h"
+#include "X86InstrInfo.h"
+#include "X86RegisterInfo.h"
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
@@ -79,6 +82,7 @@ Expected<std::string> ProcessBasicBlock(
        *DisassembledInstructionsOrErr) {
     MCInstrDesc InstDesc =
         LLVMSupport.mc_instr_info().get(Instruction.mc_inst.getOpcode());
+    if (Instruction.mc_inst.getOpcode() == X86::SYSCALL) continue;
     if (InstDesc.isReturn() || InstDesc.isCall() || InstDesc.isBranch())
       continue;
     if (FilterMemoryAccessingBlocks &&
