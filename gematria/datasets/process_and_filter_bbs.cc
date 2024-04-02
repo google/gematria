@@ -14,6 +14,7 @@
 
 #include <fstream>
 #include <limits>
+#include <mutex>
 
 #include "X86.h"
 #include "X86InstrInfo.h"
@@ -24,6 +25,7 @@
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/ThreadPool.h"
 
 using namespace llvm;
 
@@ -51,6 +53,17 @@ static cl::opt<unsigned> ReportProgressEvery(
     "report-progress-every",
     cl::desc("The interval at which to report progress in blocks"),
     cl::init(std::numeric_limits<unsigned>::max()), cl::cat(ProcessFilterCat));
+
+static cl::opt<unsigned> MaxThreadCount(
+    "thread-count",
+    cl::desc("The maximum number of threads to use to process BBs"),
+    cl::init(llvm::thread::hardware_concurrency()), cl::cat(ProcessFilterCat));
+
+static cl::opt<unsigned> BatchSize(
+    "batch-size",
+    cl::desc("The number of blocks to include in a batch to be processed by a "
+             "single thread"),
+    cl::init(1000), cl::cat(ProcessFilterCat));
 
 Expected<std::string> ProcessBasicBlock(
     const std::string &BasicBlock,
@@ -105,21 +118,49 @@ int main(int Argc, char **Argv) {
   std::unique_ptr<MCInstPrinter> MachineInstructionPrinter =
       LLVMSupport->CreateMCInstPrinter(0);
 
-  unsigned LineCount = 0;
+  std::vector<std::string> Batch;
+  DefaultThreadPool ThreadPool(hardware_concurrency(MaxThreadCount));
+  std::mutex OutputMutex;
 
+  unsigned LineCount = 0;
   std::ifstream InputFileStream(InputFile);
   std::ofstream OutputFileStream(OutputFile);
   for (std::string Line; std::getline(InputFileStream, Line);) {
-    Expected<std::string> ProcessedBlockOrErr = ProcessBasicBlock(
-        Line, *LLVMSupport, *MachineInstructionPrinter, InputFile);
-    if (!ProcessedBlockOrErr) ExitOnErr(ProcessedBlockOrErr.takeError());
+    Batch.push_back(Line);
 
-    OutputFileStream << *ProcessedBlockOrErr << "\n";
+    if (Batch.size() >= BatchSize) {
+      ThreadPool.async(
+          [&](std::vector<std::string> CurrentBatch) {
+            std::vector<std::string> ProcessedBlocks;
 
-    if (LineCount != 0 && LineCount % ReportProgressEvery == 0)
-      dbgs() << "Finished block " << LineCount << "\n";
+            for (const std::string &BasicBlock : CurrentBatch) {
+              Expected<std::string> ProcessedBlockOrErr =
+                  ProcessBasicBlock(BasicBlock, *LLVMSupport,
+                                    *MachineInstructionPrinter, InputFile);
+              if (!ProcessedBlockOrErr)
+                ExitOnErr(ProcessedBlockOrErr.takeError());
 
-    ++LineCount;
+              ProcessedBlocks.push_back(*ProcessedBlockOrErr);
+            }
+
+            OutputMutex.lock();
+
+            for (const std::string &ProcessedBlock : CurrentBatch) {
+              OutputFileStream << ProcessedBlock << "\n";
+
+              if (LineCount != 0 && LineCount % ReportProgressEvery == 0)
+                dbgs() << "Finished block " << LineCount << "\n";
+
+              ++LineCount;
+            }
+
+            OutputMutex.unlock();
+          },
+          std::move(Batch));
+      Batch.clear();
+    }
   }
+
+  ThreadPool.wait();
   return 0;
 }
