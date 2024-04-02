@@ -145,7 +145,7 @@ int main(int Argc, char **Argv) {
 
             OutputMutex.lock();
 
-            for (const std::string &ProcessedBlock : CurrentBatch) {
+            for (const std::string &ProcessedBlock : ProcessedBlocks) {
               OutputFileStream << ProcessedBlock << "\n";
 
               if (LineCount != 0 && LineCount % ReportProgressEvery == 0)
