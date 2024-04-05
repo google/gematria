@@ -14,9 +14,14 @@
 
 r"""Creates a token list from a Gematria dataset.
 
-More explanation.
+Reads basic blocks from a TFRecord, gets the tokens for each basic block,
+and produces a text file containing a new-line separated list of all
+the unique tokens that compose the dataset vocab.
 
 Usage:
+  generate_vocab \
+      --input_tfrecord=/tmp/dataset.tfrecord \
+      --output_vocab=/tmp/vocab.txt
 """
 
 from absl import app
