@@ -379,7 +379,7 @@ int main(int argc, char* argv[]) {
     if (!annotated_block.ok()) {
       std::cerr << "Failed to annotate block: " << annotated_block.status()
                 << "\n";
-      return 2;
+      continue;
     }
 
     // If we can't find a loop register, skip writing out this basic block
