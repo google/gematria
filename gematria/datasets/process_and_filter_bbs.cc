@@ -65,6 +65,11 @@ static cl::opt<unsigned> BatchSize(
              "single thread"),
     cl::init(1000), cl::cat(ProcessFilterCat));
 
+static cl::opt<bool> FilterImplicitOutputEflags(
+    "filter-eflags-output",
+    cl::desc("Whether or not to filter instructions that have an eflags implicit output"),
+    cl::init(false), cl::cat(ProcessFilterCat));
+
 Expected<std::string> ProcessBasicBlock(
     const std::string &BasicBlock,
     const gematria::LlvmArchitectureSupport &LLVMSupport,
@@ -101,6 +106,24 @@ Expected<std::string> ProcessBasicBlock(
     if (FilterMemoryAccessingBlocks &&
         (InstDesc.mayLoad() || InstDesc.mayStore()))
       continue;
+    if (FilterImplicitOutputEflags) {
+      bool UsesEflags = false;
+      for (unsigned OperandIndex = 0; OperandIndex < Instruction.mc_inst.getNumOperands(); ++OperandIndex) {
+        const MCOperand &Operand = Instruction.mc_inst.getOperand(OperandIndex);
+        if (Operand.isReg() && Operand.getReg() == X86::EFLAGS) {
+          UsesEflags = true;
+          break;
+        }
+      }
+      for (unsigned ImplicitlyUsedRegister : LLVMSupport.mc_instr_info().get(Instruction.mc_inst.getOpcode()).implicit_defs()) {
+        if (ImplicitlyUsedRegister == X86::EFLAGS) {
+	  UsesEflags = true;
+	  break;
+	}
+      }
+      if (UsesEflags)
+        continue;
+    }
     OutputBlock += toHex(Instruction.machine_code);
   }
 
