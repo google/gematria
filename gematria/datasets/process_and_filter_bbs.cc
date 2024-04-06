@@ -70,6 +70,11 @@ static cl::opt<bool> FilterImplicitOutputEflags(
     cl::desc("Whether or not to filter instructions that have an eflags implicit output"),
     cl::init(false), cl::cat(ProcessFilterCat));
 
+static cl::opt<bool> FilterVariableLatencyInstructions(
+    "filter-variable-latency-instructions",
+    cl::desc("Whether or not to filter variable latency instructions"),
+    cl::init(false), cl::cat(ProcessFilterCat));
+
 Expected<std::string> ProcessBasicBlock(
     const std::string &BasicBlock,
     const gematria::LlvmArchitectureSupport &LLVMSupport,
@@ -122,6 +127,13 @@ Expected<std::string> ProcessBasicBlock(
 	}
       }
       if (UsesEflags)
+        continue;
+    }
+    if (FilterVariableLatencyInstructions) {
+      // Kind of a hacky solution, but can't figure out a better way to get a
+      // list of all the variable latency instructions, and div seems like the
+      // main one currently.
+      if (Instruction.assembly.find("DIV") != std::string::npos)
         continue;
     }
     OutputBlock += toHex(Instruction.machine_code);
