@@ -283,7 +283,7 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
                     # implement the full Python enum interface. Replace this
                     # with len(graph_builder.EdgeType) when
                     # https://github.com/pybind/pybind11/issues/2332 is fixed.
-                    vocab_size=len(graph_builder.EdgeType.__members__),
+                    vocab_size=len(graph_builder.EdgeType.__members__) + 1,
                     embed_dim=self._edge_embedding_size,
                     initializers=embedding_initializers,
                 ),
