@@ -182,5 +182,22 @@ TEST_F(X86BasicBlockExtractorTest, LonePrefix) {
                 /* implicit_output_operands= */ {}));
 }
 
+TEST_F(X86BasicBlockExtractorTest, RepMov) {
+  const std::vector<llvm::MCInst> mcinsts = ParseAssemblyCode(R"(
+    rep mov eax, 1
+  )");
+  ASSERT_THAT(mcinsts, Not(IsEmpty()));
+
+  EXPECT_EQ(extractor_->InstructionFromMCInst(mcinsts[0]),
+      Instruction(
+        "MOV", "MOV32ri",
+        {"REP"},
+        {InstructionOperand::ImmediateValue(1)},
+        {},
+        {InstructionOperand::Register("EAX")},
+        {}));
+
+}
+
 }  // namespace
 }  // namespace gematria
