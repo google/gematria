@@ -7,4 +7,5 @@ build \
   --strict_proto_deps=off \
   --cxxopt=-std=c++17 \
   --host_cxxopt=-std=c++17 \
-  --repo_env=CC=clang
+  --repo_env=CC=clang \
+  --define=use_fast_cpp_protos=true
