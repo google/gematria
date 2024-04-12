@@ -189,14 +189,9 @@ TEST_F(X86BasicBlockExtractorTest, RepMov) {
   ASSERT_THAT(mcinsts, Not(IsEmpty()));
 
   EXPECT_EQ(extractor_->InstructionFromMCInst(mcinsts[0]),
-      Instruction(
-        "MOV", "MOV32ri",
-        {"REP"},
-        {InstructionOperand::ImmediateValue(1)},
-        {},
-        {InstructionOperand::Register("EAX")},
-        {}));
-
+            Instruction("MOV", "MOV32ri", {"REP"},
+                        {InstructionOperand::ImmediateValue(1)}, {},
+                        {InstructionOperand::Register("EAX")}, {}));
 }
 
 }  // namespace
