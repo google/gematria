@@ -48,7 +48,7 @@ grpcio==1.62.1
     #   tensorflow-serving-api
 h5py==3.10.0
     # via tensorflow
-idna==3.6
+idna==3.7
     # via requests
 keras==2.13.1
     # via tensorflow
