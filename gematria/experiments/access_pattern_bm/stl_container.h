@@ -17,6 +17,7 @@
 
 #include <immintrin.h>
 
+#include <iterator>
 #include <memory>
 #include <random>
 #include <vector>
