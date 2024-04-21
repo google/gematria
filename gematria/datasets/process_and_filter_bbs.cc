@@ -15,6 +15,9 @@
 #include <fstream>
 #include <limits>
 
+#include "X86.h"
+#include "X86InstrInfo.h"
+#include "X86RegisterInfo.h"
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
@@ -79,6 +82,10 @@ Expected<std::string> processBasicBlock(
        *DisassembledInstructionsOrErr) {
     MCInstrDesc InstDesc =
         LLVMSupport.mc_instr_info().get(Instruction.mc_inst.getOpcode());
+    // TODO(boomanaiden154): This filtering is a bit simplistic currently. We
+    // should probably be using MCInsrtDesc::hasUnmodeledSideEffects, but this
+    // needs to be evaluated at scale.
+    if (Instruction.mc_inst.getOpcode() == X86::SYSCALL) continue;
     if (InstDesc.isReturn() || InstDesc.isCall() || InstDesc.isBranch())
       continue;
     if (FilterMemoryAccessingBlocks &&
