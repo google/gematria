@@ -34,6 +34,11 @@ static cl::opt<std::string> OutputFile(
         "Path to the output CSV file with processed/filtered basic blocks"),
     cl::init(""));
 
+static cl::opt<bool> FilterMemoryAccessingBlocks(
+    "filter-memory-accessing-blocks",
+    cl::desc("Whether or not to filter out blocks that access memory"),
+    cl::init(false));
+
 Expected<std::string> processBasicBlock(
     const std::string &BasicBlock,
     const gematria::LlvmArchitectureSupport &LLVMSupport,
@@ -65,6 +70,9 @@ Expected<std::string> processBasicBlock(
     MCInstrDesc InstDesc =
         LLVMSupport.mc_instr_info().get(Instruction.mc_inst.getOpcode());
     if (InstDesc.isReturn() || InstDesc.isCall() || InstDesc.isBranch())
+      continue;
+    if (FilterMemoryAccessingBlocks &&
+        (InstDesc.mayLoad() || InstDesc.mayStore()))
       continue;
     OutputBlock += toHex(Instruction.machine_code);
   }
