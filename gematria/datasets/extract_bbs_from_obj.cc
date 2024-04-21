@@ -27,7 +27,7 @@ static cl::opt<std::string> InputFilename(cl::Positional,
                                           cl::init("-"));
 
 int main(int argc, char **argv) {
-  cl::ParseCommandLineOptions(argc, argv, "llvm-tokenizer\n");
+  cl::ParseCommandLineOptions(argc, argv, "extract_bbs_from_obj\n");
 
   ExitOnError ExitOnErr("extract_bbs_from_obj error: ");
 
