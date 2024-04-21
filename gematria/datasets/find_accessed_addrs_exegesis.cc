@@ -78,7 +78,7 @@ Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::create(
 }
 
 Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
-    ArrayRef<uint8_t> BasicBlock) {
+    ArrayRef<uint8_t> BasicBlock, unsigned MaxAnnotationAttempts) {
   Expected<std::vector<DisassembledInstruction>> DisInstructions =
       DisassembleAllInstructions(*MachineDisassembler, State.getInstrInfo(),
                                  State.getRegInfo(), State.getSubtargetInfo(),
@@ -148,6 +148,10 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
     Error AnnotationError = handleErrors(
         std::move(std::get<0>(BenchmarkResultOrErr)),
         [&](SnippetSegmentationFault &CrashInfo) -> Error {
+          if (BenchCode.Key.MemoryMappings.size() > MaxAnnotationAttempts)
+            return make_error<Failure>(
+                "Hit the maximum number of annotation attempts.");
+
           MemoryMapping MemMap;
           // Zero out the last twelve bits of the address to align
           // the address to a page boundary.
