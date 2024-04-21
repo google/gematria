@@ -92,10 +92,14 @@ ABSL_FLAG(unsigned, max_bb_count, std::numeric_limits<unsigned>::max(),
           "The maximum number of basic blocks to process");
 ABSL_FLAG(unsigned, report_progress_every, std::numeric_limits<unsigned>::max(),
           "The number of blocks after which to report progress.");
+ABSL_FLAG(unsigned, max_annotation_attempts, 50,
+          "The maximum number of times to attempt to annotate a block before "
+          "giving up.");
 
 absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
-    gematria::ExegesisAnnotator* exegesis_annotator) {
+    gematria::ExegesisAnnotator* exegesis_annotator,
+    const unsigned max_annotation_attempts) {
   const AnnotatorType annotator_implementation =
       absl::GetFlag(FLAGS_annotator_implementation);
   switch (annotator_implementation) {
@@ -105,7 +109,8 @@ absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
     case AnnotatorType::kExegesis:
       return gematria::LlvmExpectedToStatusOr(
           exegesis_annotator->findAccessedAddrs(
-              llvm::ArrayRef(basic_block.begin(), basic_block.end())));
+              llvm::ArrayRef(basic_block.begin(), basic_block.end()),
+              max_annotation_attempts));
     case AnnotatorType::kNone:
       return gematria::AccessedAddrs();
   }
@@ -226,6 +231,8 @@ int main(int argc, char* argv[]) {
   const unsigned max_bb_count = absl::GetFlag(FLAGS_max_bb_count);
   const unsigned report_progress_every =
       absl::GetFlag(FLAGS_report_progress_every);
+  const unsigned max_annotation_attempts =
+      absl::GetFlag(FLAGS_max_annotation_attempts);
   unsigned int file_counter = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
     if (file_counter >= max_bb_count) break;
@@ -253,7 +260,8 @@ int main(int argc, char* argv[]) {
       continue;
     }
 
-    auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator.get());
+    auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator.get(),
+                                  max_annotation_attempts);
 
     if (!addrs.ok()) {
       std::cerr << "Failed to find addresses for block '" << hex
