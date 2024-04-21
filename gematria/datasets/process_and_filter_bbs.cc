@@ -34,7 +34,7 @@ static cl::opt<std::string> OutputFile(
         "Path to the output CSV file with processed/filtered basic blocks"),
     cl::init(""));
 
-Expected<std::string> ProcessBasicBlock(
+Expected<std::string> processBasicBlock(
     const std::string &BasicBlock,
     const gematria::LlvmArchitectureSupport &LLVMSupport,
     MCInstPrinter &MachineInstructionPrinter, const StringRef FileName) {
@@ -86,7 +86,7 @@ int main(int Argc, char **Argv) {
   std::ifstream InputFileStream(InputFile);
   std::ofstream OutputFileStream(OutputFile);
   for (std::string Line; std::getline(InputFileStream, Line);) {
-    Expected<std::string> ProcessedBlockOrErr = ProcessBasicBlock(
+    Expected<std::string> ProcessedBlockOrErr = processBasicBlock(
         Line, *LLVMSupport, *MachineInstructionPrinter, InputFile);
     if (!ProcessedBlockOrErr) ExitOnErr(ProcessedBlockOrErr.takeError());
 
