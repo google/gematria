@@ -52,7 +52,7 @@ static cl::opt<unsigned> ReportProgressEvery(
     cl::desc("The interval at which to report progress in blocks"),
     cl::init(std::numeric_limits<unsigned>::max()), cl::cat(ProcessFilterCat));
 
-Expected<std::string> ProcessBasicBlock(
+Expected<std::string> processBasicBlock(
     const std::string &BasicBlock,
     const gematria::LlvmArchitectureSupport &LLVMSupport,
     MCInstPrinter &MachineInstructionPrinter, const StringRef FileName) {
@@ -82,6 +82,9 @@ Expected<std::string> ProcessBasicBlock(
        *DisassembledInstructionsOrErr) {
     MCInstrDesc InstDesc =
         LLVMSupport.mc_instr_info().get(Instruction.mc_inst.getOpcode());
+    // TODO(boomanaiden154): This filtering is a bit simplistic currently. We
+    // should probably be using MCInsrtDesc::hasUnmodeledSideEffects, but this
+    // needs to be evaluated at scale.
     if (Instruction.mc_inst.getOpcode() == X86::SYSCALL) continue;
     if (InstDesc.isReturn() || InstDesc.isCall() || InstDesc.isBranch())
       continue;
@@ -110,7 +113,7 @@ int main(int Argc, char **Argv) {
   std::ifstream InputFileStream(InputFile);
   std::ofstream OutputFileStream(OutputFile);
   for (std::string Line; std::getline(InputFileStream, Line);) {
-    Expected<std::string> ProcessedBlockOrErr = ProcessBasicBlock(
+    Expected<std::string> ProcessedBlockOrErr = processBasicBlock(
         Line, *LLVMSupport, *MachineInstructionPrinter, InputFile);
     if (!ProcessedBlockOrErr) ExitOnErr(ProcessedBlockOrErr.takeError());
 
