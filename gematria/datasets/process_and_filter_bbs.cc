@@ -39,7 +39,7 @@ static cl::opt<bool> FilterMemoryAccessingBlocks(
     cl::desc("Whether or not to filter out blocks that access memory"),
     cl::init(false));
 
-Expected<std::string> ProcessBasicBlock(
+Expected<std::string> processBasicBlock(
     const std::string &BasicBlock,
     const gematria::LlvmArchitectureSupport &LLVMSupport,
     MCInstPrinter &MachineInstructionPrinter, const StringRef FileName) {
@@ -94,7 +94,7 @@ int main(int Argc, char **Argv) {
   std::ifstream InputFileStream(InputFile);
   std::ofstream OutputFileStream(OutputFile);
   for (std::string Line; std::getline(InputFileStream, Line);) {
-    Expected<std::string> ProcessedBlockOrErr = ProcessBasicBlock(
+    Expected<std::string> ProcessedBlockOrErr = processBasicBlock(
         Line, *LLVMSupport, *MachineInstructionPrinter, InputFile);
     if (!ProcessedBlockOrErr) ExitOnErr(ProcessedBlockOrErr.takeError());
 
