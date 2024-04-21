@@ -23,21 +23,25 @@
 
 using namespace llvm;
 
+cl::OptionCategory ProcessFilterCat("process_and_filter_bbs options",
+                                    "The options specifically for controlling "
+                                    "the behavior of process_and_filter_bbs.");
+
 static cl::opt<std::string> InputFile(
     "input-file",
     cl::desc("Path to the input CSV file containing hex basic blocks"),
-    cl::init(""));
+    cl::init(""), cl::cat(ProcessFilterCat));
 
 static cl::opt<std::string> OutputFile(
     "output-file",
     cl::desc(
         "Path to the output CSV file with processed/filtered basic blocks"),
-    cl::init(""));
+    cl::init(""), cl::cat(ProcessFilterCat));
 
 static cl::opt<bool> FilterMemoryAccessingBlocks(
     "filter-memory-accessing-blocks",
     cl::desc("Whether or not to filter out blocks that access memory"),
-    cl::init(false));
+    cl::init(false), cl::cat(ProcessFilterCat));
 
 Expected<std::string> processBasicBlock(
     const std::string &BasicBlock,
