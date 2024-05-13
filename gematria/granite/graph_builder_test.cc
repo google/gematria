@@ -53,7 +53,8 @@ constexpr absl::string_view kTokens[] = {
     "RBX", "RCX", "RDI", kUnknownToken, "NOP", "LOCK"};
 
 // Names of Instruction annotations used in tests.
-const std::set<std::string> kAnnotationNames{"cache_miss_freq"};
+const std::vector<std::string> kAnnotationNames{"cache_miss_freq",
+                                                "other_annotation"};
 
 int TokenIndex(absl::string_view token) {
   const auto it = std::find(std::begin(kTokens), std::end(kTokens), token);
@@ -199,9 +200,10 @@ TEST_F(BasicBlockGraphBuilderTest, SingleInstructionWithAnnotation) {
       builder_->global_features(),
       ElementsAre(ElementsAre(0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0)));
 
-  EXPECT_THAT(builder_->annotation_names(), ElementsAre("cache_miss_freq"));
+  EXPECT_THAT(builder_->annotation_names(),
+              ElementsAre("cache_miss_freq", "other_annotation"));
   EXPECT_THAT(builder_->instruction_annotations(),
-              ElementsAre(ElementsAre(0.875)));
+              ElementsAre(ElementsAre(0.875, -1)));
 }
 
 TEST_F(BasicBlockGraphBuilderTest, InvalidMnemonic_ReturnError) {
@@ -422,6 +424,7 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
       input_operands: {
         address: { base_register: "R14" displacement: 112 scaling: 1 }
       }
+      instruction_annotations: { name: "unused_annotation", value: 1 }
     }
     canonicalized_instructions: {
       mnemonic: "MOV"
@@ -429,6 +432,7 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
       output_operands: { register_name: "RCX" }
       input_operands: { register_name: "RAX" }
       instruction_annotations: { name: "cache_miss_freq" value: 0.01 }
+      instruction_annotations: { name: "other_annotation", value: 0.5 }
     }
     canonicalized_instructions: {
       mnemonic: "NOT"
@@ -504,8 +508,8 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
               ElementsAre(0, 2, 0, 4, 5, 5, 6, 6, 5, 8, 9, 9, 10, 11, 11, 12));
 
   EXPECT_THAT(builder_->instruction_annotations(),
-              ElementsAre(ElementsAre(0.9), ElementsAre(-1), ElementsAre(0.01),
-                          ElementsAre(-1)));
+              ElementsAre(ElementsAre(0.9, -1), ElementsAre(-1, -1),
+                          ElementsAre(0.01, 0.5), ElementsAre(-1, -1)));
 }
 
 // Tests that nodes in basic blocks added through different AddBasicBlock()

@@ -161,7 +161,7 @@ class TestCase(unittest.TestCase):
       before calling `super().setUp()` in their setUp() method.
     tokens: The list of all tokens appearing in self.blocks. The tokens are
       sorted, and each token appears in the list only once.
-    annotation_names: The set of annotation names to be used.
+    annotation_names: The list of annotation names to be used.
   """
 
   num_blocks: int = 1
@@ -174,7 +174,7 @@ class TestCase(unittest.TestCase):
   annotated_blocks_with_throughput: list[throughput.BasicBlockWithThroughput]
 
   tokens: Sequence[str]
-  annotation_names: set[str]
+  annotation_names: Sequence[str]
 
   def setUp(self):
     super().setUp()
@@ -200,4 +200,6 @@ class TestCase(unittest.TestCase):
         for block_with_throughput in self.annotated_blocks_with_throughput
     ]
     self.tokens = _get_block_tokens(self.blocks)
-    self.annotation_names = set(('made_up_cache_miss_freq',))
+    self.annotation_names = [
+        'made_up_cache_miss_freq',
+    ]

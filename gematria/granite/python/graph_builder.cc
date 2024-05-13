@@ -14,7 +14,6 @@
 
 #include "gematria/granite/graph_builder.h"
 
-#include <set>
 #include <string>
 #include <vector>
 
@@ -71,12 +70,13 @@ PYBIND11_MODULE(graph_builder, m) {
                    absl::string_view /* fp_immediate_token */,
                    absl::string_view /* address_token */,
                    absl::string_view /* memory_token */,
-                   std::set<std::string> /* annotation_names */,
+                   std::vector<std::string> /* annotation_names */,
                    OutOfVocabularyTokenBehavior /* out_of_vocabulary_behavior */
                    >(),
           py::arg("node_tokens"), py::arg("immediate_token"),
           py::arg("fp_immediate_token"), py::arg("address_token"),
-          py::arg("memory_token"), py::arg("annotation_names"),
+          py::arg("memory_token"),
+          py::arg("annotation_names") = std::vector<std::string>(),
           py::arg("out_of_vocabulary_behavior"))
       .def("add_basic_block", &BasicBlockGraphBuilder::AddBasicBlock,
            py::arg("block"))
