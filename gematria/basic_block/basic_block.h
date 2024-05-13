@@ -218,6 +218,31 @@ class InstructionOperand {
 
 std::ostream& operator<<(std::ostream& os, const InstructionOperand& operand);
 
+// Represents an annotation holding a value such as some measure/statistic
+// paired with the instruction.
+struct Annotation {
+  Annotation() : value(-1){};
+
+  // Initializes all fields of the annotation.
+  Annotation(std::string name, double value);
+
+  Annotation(const Annotation&) = default;
+  Annotation(Annotation&&) = default;
+
+  Annotation& operator=(const Annotation&) = default;
+  Annotation& operator=(Annotation&&) = default;
+
+  bool operator==(const Annotation& other) const;
+  bool operator!=(const Annotation& other) const { return !(*this == other); }
+
+  std::string ToString() const;
+
+  std::string name;
+  double value;
+};
+
+std::ostream& operator<<(std::ostream& os, const Annotation& annotation);
+
 // Represents a single instruction.
 struct Instruction {
   Instruction() {}
@@ -229,7 +254,9 @@ struct Instruction {
               std::vector<InstructionOperand> input_operands,
               std::vector<InstructionOperand> implicit_input_operands,
               std::vector<InstructionOperand> output_operands,
-              std::vector<InstructionOperand> implicit_output_operands);
+              std::vector<InstructionOperand> implicit_output_operands,
+              std::vector<Annotation> instruction_annotations =
+                  std::vector<Annotation>{});
 
   Instruction(const Instruction&) = default;
   Instruction(Instruction&&) = default;
@@ -279,6 +306,11 @@ struct Instruction {
   // machine learning task easier, we present also the explicit output operands
   // to the ML models explicitly.
   std::vector<InstructionOperand> implicit_output_operands;
+
+  // The list of instruction level annotations used to supply additional
+  // information to the model. Currently includes the cache miss frequency of
+  // the instruction. Used to better model the overhead coming from LLC misses.
+  std::vector<Annotation> instruction_annotations;
 
   // The address of the instruction.
   uint64_t address = 0;

@@ -20,10 +20,36 @@
 #include <vector>
 
 #include "gematria/basic_block/basic_block.h"
+#include "gematria/proto/annotation.pb.h"
 #include "gematria/proto/canonicalized_instruction.pb.h"
 #include "google/protobuf/repeated_ptr_field.h"
 
 namespace gematria {
+
+namespace {
+
+template <typename Object, typename Proto, typename Convertor>
+std::vector<Object> ToVector(
+    const google::protobuf::RepeatedPtrField<Proto>& protos,
+    Convertor object_from_proto) {
+  std::vector<Object> result(std::size(protos));
+  std::transform(std::begin(protos), std::end(protos), std::begin(result),
+                 object_from_proto);
+  return result;
+}
+
+template <typename Object, typename Proto, typename Convertor>
+void ToRepeatedPtrField(
+    const std::vector<Object>& objects,
+    google::protobuf::RepeatedPtrField<Proto>* repeated_field,
+    Convertor proto_from_object) {
+  repeated_field->Reserve(std::size(objects));
+  std::transform(std::begin(objects), std::end(objects),
+                 google::protobuf::RepeatedFieldBackInserter(repeated_field),
+                 proto_from_object);
+}
+
+}  // namespace
 
 AddressTuple AddressTupleFromProto(
     const CanonicalizedOperandProto::AddressTuple& proto) {
@@ -91,28 +117,18 @@ CanonicalizedOperandProto ProtoFromInstructionOperand(
   return proto;
 }
 
-namespace {
-
-std::vector<InstructionOperand> ToVector(
-    const google::protobuf::RepeatedPtrField<CanonicalizedOperandProto>&
-        protos) {
-  std::vector<InstructionOperand> result(protos.size());
-  std::transform(protos.begin(), protos.end(), result.begin(),
-                 InstructionOperandFromProto);
-  return result;
+Annotation AnnotationFromProto(const AnnotationProto& proto) {
+  return Annotation(
+      /* name = */ proto.name(),
+      /* value = */ proto.value());
 }
 
-void ToRepeatedPtrField(
-    const std::vector<InstructionOperand>& operands,
-    google::protobuf::RepeatedPtrField<CanonicalizedOperandProto>*
-        repeated_field) {
-  repeated_field->Reserve(operands.size());
-  std::transform(operands.begin(), operands.end(),
-                 google::protobuf::RepeatedFieldBackInserter(repeated_field),
-                 ProtoFromInstructionOperand);
+AnnotationProto ProtoFromAnnotation(const Annotation& annotation) {
+  AnnotationProto proto;
+  proto.set_name(annotation.name);
+  proto.set_value(annotation.value);
+  return proto;
 }
-
-}  // namespace
 
 Instruction InstructionFromProto(const CanonicalizedInstructionProto& proto) {
   return Instruction(
@@ -121,11 +137,21 @@ Instruction InstructionFromProto(const CanonicalizedInstructionProto& proto) {
       /* prefixes = */
       std::vector<std::string>(proto.prefixes().begin(),
                                proto.prefixes().end()),
-      /* input_operands = */ ToVector(proto.input_operands()),
-      /* implicit_input_operands = */ ToVector(proto.implicit_input_operands()),
-      /* output_operands = */ ToVector(proto.output_operands()),
+      /* input_operands = */
+      ToVector<InstructionOperand>(proto.input_operands(),
+                                   InstructionOperandFromProto),
+      /* implicit_input_operands = */
+      ToVector<InstructionOperand>(proto.implicit_input_operands(),
+                                   InstructionOperandFromProto),
+      /* output_operands = */
+      ToVector<InstructionOperand>(proto.output_operands(),
+                                   InstructionOperandFromProto),
       /* implicit_output_operands = */
-      ToVector(proto.implicit_output_operands()));
+      ToVector<InstructionOperand>(proto.implicit_output_operands(),
+                                   InstructionOperandFromProto),
+      /* instruction_annotations = */
+      ToVector<Annotation>(proto.instruction_annotations(),
+                           AnnotationFromProto));
 }
 
 CanonicalizedInstructionProto ProtoFromInstruction(
@@ -135,33 +161,27 @@ CanonicalizedInstructionProto ProtoFromInstruction(
   proto.set_llvm_mnemonic(instruction.llvm_mnemonic);
   proto.mutable_prefixes()->Assign(instruction.prefixes.begin(),
                                    instruction.prefixes.end());
-  ToRepeatedPtrField(instruction.input_operands,
-                     proto.mutable_input_operands());
+  ToRepeatedPtrField(instruction.input_operands, proto.mutable_input_operands(),
+                     ProtoFromInstructionOperand);
   ToRepeatedPtrField(instruction.implicit_input_operands,
-                     proto.mutable_implicit_input_operands());
+                     proto.mutable_implicit_input_operands(),
+                     ProtoFromInstructionOperand);
   ToRepeatedPtrField(instruction.output_operands,
-                     proto.mutable_output_operands());
+                     proto.mutable_output_operands(),
+                     ProtoFromInstructionOperand);
   ToRepeatedPtrField(instruction.implicit_output_operands,
-                     proto.mutable_implicit_output_operands());
+                     proto.mutable_implicit_output_operands(),
+                     ProtoFromInstructionOperand);
+  ToRepeatedPtrField(instruction.instruction_annotations,
+                     proto.mutable_instruction_annotations(),
+                     ProtoFromAnnotation);
   return proto;
 }
 
-namespace {
-
-std::vector<Instruction> ToVector(
-    const google::protobuf::RepeatedPtrField<CanonicalizedInstructionProto>&
-        protos) {
-  std::vector<Instruction> result(protos.size());
-  std::transform(protos.begin(), protos.end(), result.begin(),
-                 InstructionFromProto);
-  return result;
-}
-
-}  // namespace
-
 BasicBlock BasicBlockFromProto(const BasicBlockProto& proto) {
   return BasicBlock(
-      /* instructions = */ ToVector(proto.canonicalized_instructions()));
+      /* instructions = */ ToVector<Instruction>(
+          proto.canonicalized_instructions(), InstructionFromProto));
 }
 
 }  // namespace gematria
