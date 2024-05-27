@@ -281,6 +281,11 @@ void repmovsb(void* dst, const void* src, size_t count) {
   abort();
 }
 
+// Keep this in sync with the code below that initialises mapped blocks. This
+// value, when repeated over 8-byte chunks, should produce the same block as
+// the code below.
+constexpr uint64_t kBlockContents = 0x800000008;
+
 [[noreturn]] void ChildProcess(absl::Span<const uint8_t> basic_block,
                                int pipe_write_fd,
                                const AccessedAddrs& accessed_addrs) {
@@ -466,6 +471,7 @@ absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
   AccessedAddrs accessed_addrs = {
       .code_location = 0,
       .block_size = static_cast<size_t>(getpagesize()),
+      .block_contents = kBlockContents,
       .accessed_blocks = {},
       .initial_regs =
           {
