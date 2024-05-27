@@ -45,6 +45,7 @@ struct X64Regs {
 struct AccessedAddrs {
   uintptr_t code_location;
   size_t block_size;
+  uint64_t block_contents;
   std::vector<uintptr_t> accessed_blocks;
   X64Regs initial_regs;
 };
