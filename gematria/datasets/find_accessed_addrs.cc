@@ -142,6 +142,55 @@ absl::StatusOr<PipedData> ReadAll(int fd) {
 
 uintptr_t AlignDown(uintptr_t x, size_t align) { return x - (x % align); }
 
+void RandomiseRegs(absl::BitGen& gen, X64Regs& regs) {
+  // Pick between three values: 0, a low address, and a high address. These are
+  // picked to try to maximise the chance that some combination will produce a
+  // valid address when run through a wide range of functions. This is just a
+  // first stab, there are likely better sets of values we could use here.
+  constexpr int64_t kValues[] = {0, 0x15000, 0x1000000};
+  absl::uniform_int_distribution<int> dist(0, std::size(kValues) - 1);
+  auto random_reg = [&gen, &dist]() { return kValues[dist(gen)]; };
+
+  regs.rax = random_reg();
+  regs.rbx = random_reg();
+  regs.rcx = random_reg();
+  regs.rdx = random_reg();
+  regs.rsi = random_reg();
+  regs.rdi = random_reg();
+  regs.rsp = random_reg();
+  regs.rbp = random_reg();
+  regs.r8 = random_reg();
+  regs.r9 = random_reg();
+  regs.r10 = random_reg();
+  regs.r11 = random_reg();
+  regs.r12 = random_reg();
+  regs.r13 = random_reg();
+  regs.r14 = random_reg();
+  regs.r15 = random_reg();
+}
+
+RawX64Regs ToRawRegs(const X64Regs& regs) {
+  RawX64Regs raw_regs;
+  raw_regs.rax = regs.rax.value_or(0);
+  raw_regs.rbx = regs.rbx.value_or(0);
+  raw_regs.rcx = regs.rcx.value_or(0);
+  raw_regs.rdx = regs.rdx.value_or(0);
+  raw_regs.rsi = regs.rsi.value_or(0);
+  raw_regs.rdi = regs.rdi.value_or(0);
+  raw_regs.rsp = regs.rsp.value_or(0);
+  raw_regs.rbp = regs.rbp.value_or(0);
+  raw_regs.r8 = regs.r8.value_or(0);
+  raw_regs.r9 = regs.r9.value_or(0);
+  raw_regs.r10 = regs.r10.value_or(0);
+  raw_regs.r11 = regs.r11.value_or(0);
+  raw_regs.r12 = regs.r12.value_or(0);
+  raw_regs.r13 = regs.r13.value_or(0);
+  raw_regs.r14 = regs.r14.value_or(0);
+  raw_regs.r15 = regs.r15.value_or(0);
+
+  return raw_regs;
+}
+
 std::string DumpRegs(const struct user_regs_struct& regs) {
   return absl::StrFormat(
       "\trsp=%016x rbp=%016x, rip=%016x\n"
@@ -375,9 +424,10 @@ constexpr uint64_t kBlockContents = 0x800000008;
   std::copy(after_block.begin(), after_block.end(),
             &mapped_span[before_block.size() + basic_block.size()]);
 
-  auto mapped_func =
-      reinterpret_cast<void (*)(const X64Regs* initial_regs)>(mapped_address);
-  mapped_func(&accessed_addrs.initial_regs);
+  auto mapped_func = reinterpret_cast<void (*)(const RawX64Regs* initial_regs)>(
+      mapped_address);
+  auto raw_regs = ToRawRegs(accessed_addrs.initial_regs);
+  mapped_func(&raw_regs);
 
   // mapped_func should never return, but we can't put [[noreturn]] on a
   // function pointer. So stick this here to satisfy the compiler.
@@ -413,33 +463,6 @@ absl::Status ForkAndTestAddresses(absl::Span<const uint8_t> basic_block,
 
       return ParentProcess(pid, pipe_read_fd, accessed_addrs);
   }
-}
-
-void RandomiseRegs(absl::BitGen& gen, X64Regs& regs) {
-  // Pick between three values: 0, a low address, and a high address. These are
-  // picked to try to maximise the chance that some combination will produce a
-  // valid address when run through a wide range of functions. This is just a
-  // first stab, there are likely better sets of values we could use here.
-  constexpr int64_t kValues[] = {0, 0x15000, 0x1000000};
-  absl::uniform_int_distribution<int> dist(0, std::size(kValues) - 1);
-  auto random_reg = [&gen, &dist]() { return kValues[dist(gen)]; };
-
-  regs.rax = random_reg();
-  regs.rbx = random_reg();
-  regs.rcx = random_reg();
-  regs.rdx = random_reg();
-  regs.rsi = random_reg();
-  regs.rdi = random_reg();
-  regs.rsp = random_reg();
-  regs.rbp = random_reg();
-  regs.r8 = random_reg();
-  regs.r9 = random_reg();
-  regs.r10 = random_reg();
-  regs.r11 = random_reg();
-  regs.r12 = random_reg();
-  regs.r13 = random_reg();
-  regs.r14 = random_reg();
-  regs.r15 = random_reg();
 }
 
 }  // namespace

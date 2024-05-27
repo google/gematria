@@ -42,9 +42,10 @@ ABSL_FLAG(std::string, exegesis_snippets_dir, "",
           "Directory to write EXEgesis snippets to");
 
 void WriteRegisterDef(std::ofstream& snippets_file, std::string_view name,
-                      int64_t value) {
+                      std::optional<int64_t> value) {
+  if (!value) return;
   snippets_file << "# LLVM-EXEGESIS-DEFREG " << name << " "
-                << absl::StrFormat("%016x", value) << "\n";
+                << absl::StrFormat("%016x", *value) << "\n";
 }
 
 void WriteExegesisSnippet(gematria::BHiveImporter& bhive_importer,
