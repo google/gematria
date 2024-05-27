@@ -16,31 +16,56 @@
 #define THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_FIND_ACCESSED_ADDRS_H_
 
 #include <cstdint>
+#include <optional>
+#include <type_traits>
 #include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 
 namespace gematria {
+namespace internal {
 
-struct X64Regs {
-  int64_t rax;
-  int64_t rbx;
-  int64_t rcx;
-  int64_t rdx;
-  int64_t rsi;
-  int64_t rdi;
-  int64_t rsp;
-  int64_t rbp;
-  int64_t r8;
-  int64_t r9;
-  int64_t r10;
-  int64_t r11;
-  int64_t r12;
-  int64_t r13;
-  int64_t r14;
-  int64_t r15;
+template <template <typename T> class Templ>
+struct X64RegsTemplate {
+  typename Templ<int64_t>::type rax;
+  typename Templ<int64_t>::type rbx;
+  typename Templ<int64_t>::type rcx;
+  typename Templ<int64_t>::type rdx;
+  typename Templ<int64_t>::type rsi;
+  typename Templ<int64_t>::type rdi;
+  typename Templ<int64_t>::type rsp;
+  typename Templ<int64_t>::type rbp;
+  typename Templ<int64_t>::type r8;
+  typename Templ<int64_t>::type r9;
+  typename Templ<int64_t>::type r10;
+  typename Templ<int64_t>::type r11;
+  typename Templ<int64_t>::type r12;
+  typename Templ<int64_t>::type r13;
+  typename Templ<int64_t>::type r14;
+  typename Templ<int64_t>::type r15;
 };
+
+template <typename T>
+struct Optional {
+  using type = std::optional<T>;
+};
+
+template <class T>
+struct type_identity {
+  using type = T;
+};
+
+}  // namespace internal
+
+// We need two versions of the registers struct:
+// * one with each member optional, so that we can communicate to the caller the
+//   subset of registers that are required to be set
+// * one with each member directly encoded, so that it has a predictible memory
+//   layout to pass into the prelude assembly which sets the registers before
+//    executing the block
+using RawX64Regs = internal::X64RegsTemplate<internal::type_identity>;
+using X64Regs = internal::X64RegsTemplate<internal::Optional>;
 
 struct AccessedAddrs {
   uintptr_t code_location;
