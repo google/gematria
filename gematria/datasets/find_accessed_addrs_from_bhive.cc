@@ -24,6 +24,7 @@
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/log/check.h"
+#include "absl/strings/ascii.h"
 #include "absl/strings/str_format.h"
 #include "gematria/datasets/bhive_importer.h"
 #include "gematria/datasets/find_accessed_addrs.h"
@@ -59,22 +60,13 @@ void WriteExegesisSnippet(gematria::BHiveImporter& bhive_importer,
   std::ofstream snippets_file(filename);
 
   // register values
-  WriteRegisterDef(snippets_file, "RAX", addrs.initial_regs.rax);
-  WriteRegisterDef(snippets_file, "RBX", addrs.initial_regs.rbx);
-  WriteRegisterDef(snippets_file, "RCX", addrs.initial_regs.rcx);
-  WriteRegisterDef(snippets_file, "RDX", addrs.initial_regs.rdx);
-  WriteRegisterDef(snippets_file, "RSI", addrs.initial_regs.rsi);
-  WriteRegisterDef(snippets_file, "RDI", addrs.initial_regs.rdi);
-  WriteRegisterDef(snippets_file, "RSP", addrs.initial_regs.rsp);
-  WriteRegisterDef(snippets_file, "RBP", addrs.initial_regs.rbp);
-  WriteRegisterDef(snippets_file, "R8", addrs.initial_regs.r8);
-  WriteRegisterDef(snippets_file, "R9", addrs.initial_regs.r9);
-  WriteRegisterDef(snippets_file, "R10", addrs.initial_regs.r10);
-  WriteRegisterDef(snippets_file, "R11", addrs.initial_regs.r11);
-  WriteRegisterDef(snippets_file, "R12", addrs.initial_regs.r12);
-  WriteRegisterDef(snippets_file, "R13", addrs.initial_regs.r13);
-  WriteRegisterDef(snippets_file, "R14", addrs.initial_regs.r14);
-  WriteRegisterDef(snippets_file, "R15", addrs.initial_regs.r15);
+  addrs.initial_regs.ForEachReg([&snippets_file](
+                                    const std::optional<int64_t>& value,
+                                    std::string_view name) {
+    if (!value) return;
+    snippets_file << "# LLVM-EXEGESIS-DEFREG " << absl::AsciiStrToUpper(name)
+                  << " " << absl::StrFormat("%016x", *value) << "\n";
+  });
 
   // Every block has the same size and contents, so we define one and then map
   // it for every accessed block.
