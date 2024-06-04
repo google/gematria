@@ -22,6 +22,7 @@
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
+#include "gematria/llvm/llvm_architecture_support.h"
 
 namespace gematria {
 namespace internal {
@@ -80,6 +81,10 @@ struct AccessedAddrs {
 // must match the architecture on which this function is executed.
 absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
     absl::Span<const uint8_t> basic_block);
+
+// Public for testing.
+X64Regs FindReadRegs(const LlvmArchitectureSupport& llvm_arch_support,
+                     absl::Span<const uint8_t> basic_block);
 
 }  // namespace gematria
 
