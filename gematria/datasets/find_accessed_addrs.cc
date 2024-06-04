@@ -151,30 +151,16 @@ absl::StatusOr<PipedData> ReadAll(int fd) {
 uintptr_t AlignDown(uintptr_t x, size_t align) { return x - (x % align); }
 
 void RandomiseRegs(absl::BitGen& gen, X64Regs& regs) {
-  // Pick between three values: 0, a low address, and a high address. These are
-  // picked to try to maximise the chance that some combination will produce a
-  // valid address when run through a wide range of functions. This is just a
-  // first stab, there are likely better sets of values we could use here.
-  constexpr int64_t kValues[] = {0, 0x15000, 0x1000000};
-  absl::uniform_int_distribution<int> dist(0, std::size(kValues) - 1);
-  auto random_reg = [&gen, &dist]() { return kValues[dist(gen)]; };
-
-  regs.rax = random_reg();
-  regs.rbx = random_reg();
-  regs.rcx = random_reg();
-  regs.rdx = random_reg();
-  regs.rsi = random_reg();
-  regs.rdi = random_reg();
-  regs.rsp = random_reg();
-  regs.rbp = random_reg();
-  regs.r8 = random_reg();
-  regs.r9 = random_reg();
-  regs.r10 = random_reg();
-  regs.r11 = random_reg();
-  regs.r12 = random_reg();
-  regs.r13 = random_reg();
-  regs.r14 = random_reg();
-  regs.r15 = random_reg();
+  regs.ForEachReg([&gen](std::optional<int64_t>& value) {
+    // Pick between three values: 0, a low address, and a high address. These
+    // are picked to try to maximise the chance that some combination will
+    // produce a valid address when run through a wide range of functions. This
+    // is just a first stab, there are likely better sets of values we could use
+    // here.
+    constexpr int64_t kValues[] = {0, 0x15000, 0x1000000};
+    absl::uniform_int_distribution<int> dist(0, std::size(kValues) - 1);
+    value = kValues[dist(gen)];
+  });
 }
 
 RawX64Regs ToRawRegs(const X64Regs& regs) {
@@ -889,13 +875,16 @@ X64Regs FindReadRegs(const LlvmArchitectureSupport& llvm_arch_support,
 // * Much more complete testing.
 absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
     absl::Span<const uint8_t> basic_block) {
-  // This value is chosen to be almost the lowest address that's able to be
-  // mapped. We want it to be low so that even if a register is multiplied or
-  // added to another register, it will still be likely to be within an
-  // accessible region of memory. But it's very common to take small negative
-  // offsets from a register as a memory address, so we want to leave some space
-  // below so that such addresses will still be accessible.
-  constexpr int64_t kInitialRegValue = 0x15000;
+    X64Regs initial_regs;
+  initial_regs.ForEachReg([](std::optional<int64_t>& value) {
+    // This value is chosen to be almost the lowest address that's able to be
+    // mapped. We want it to be low so that even if a register is multiplied or
+    // added to another register, it will still be likely to be within an
+    // accessible region of memory. But it's very common to take small negative
+    // offsets from a register as a memory address, so we want to leave some
+    // space below so that such addresses will still be accessible.
+    value = 0x15000;
+  });
 
   absl::BitGen gen;
 
@@ -904,25 +893,7 @@ absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
       .block_size = static_cast<size_t>(getpagesize()),
       .block_contents = kBlockContents,
       .accessed_blocks = {},
-      .initial_regs =
-          {
-              .rax = kInitialRegValue,
-              .rbx = kInitialRegValue,
-              .rcx = kInitialRegValue,
-              .rdx = kInitialRegValue,
-              .rsi = kInitialRegValue,
-              .rdi = kInitialRegValue,
-              .rsp = kInitialRegValue,
-              .rbp = kInitialRegValue,
-              .r8 = kInitialRegValue,
-              .r9 = kInitialRegValue,
-              .r10 = kInitialRegValue,
-              .r11 = kInitialRegValue,
-              .r12 = kInitialRegValue,
-              .r13 = kInitialRegValue,
-              .r14 = kInitialRegValue,
-              .r15 = kInitialRegValue,
-          },
+      .initial_regs = initial_regs,
   };
 
   int n = 0;

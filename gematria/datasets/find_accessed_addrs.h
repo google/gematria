@@ -45,6 +45,43 @@ struct X64RegsTemplate {
   typename Templ<int64_t>::type r13;
   typename Templ<int64_t>::type r14;
   typename Templ<int64_t>::type r15;
+
+  void ForEachReg(absl::FunctionRef<void(const typename Templ<int64_t>::type&,
+                                         std::string_view)>
+                      visitor) const {
+    visitor(rax, "rax");
+    visitor(rbx, "rbx");
+    visitor(rcx, "rcx");
+    visitor(rdx, "rdx");
+    visitor(rsi, "rsi");
+    visitor(rdi, "rdi");
+    visitor(rsp, "rsp");
+    visitor(rbp, "rbp");
+    visitor(r8, "r8");
+    visitor(r9, "r9");
+    visitor(r10, "r10");
+    visitor(r11, "r11");
+    visitor(r12, "r12");
+    visitor(r13, "r13");
+    visitor(r14, "r14");
+    visitor(r15, "r15");
+  }
+
+  void ForEachReg(
+      absl::FunctionRef<void(typename Templ<int64_t>::type&, std::string_view)>
+          visitor) {
+    auto v = [visitor](const typename Templ<int64_t>::type& reg,
+                       std::string_view name) {
+      visitor(const_cast<typename Templ<int64_t>::type&>(reg), name);
+    };
+    const_cast<const X64RegsTemplate<Templ>*>(this)->ForEachReg(v);
+  }
+
+  void ForEachReg(
+      absl::FunctionRef<void(typename Templ<int64_t>::type&)> visitor) {
+    ForEachReg([visitor](typename Templ<int64_t>::type& reg,
+                         std::string_view name) { visitor(reg); });
+  }
 };
 
 template <typename T>

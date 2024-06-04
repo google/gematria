@@ -207,29 +207,12 @@ TEST_F(FindAccessedAddrsTest, DivideByPointee) {
 MATCHER_P(HasRegisters, reg_list_matcher, "") {
   X64Regs regs = arg;
   std::vector<std::string_view> accessed_regs;
-  auto check_reg = [&accessed_regs](std::string_view name,
-                                    std::optional<int64_t> reg) {
-    if (reg.has_value()) {
-      accessed_regs.push_back(name);
-    }
-  };
-
-  check_reg("rax", regs.rax);
-  check_reg("rbx", regs.rbx);
-  check_reg("rcx", regs.rcx);
-  check_reg("rdx", regs.rdx);
-  check_reg("rsi", regs.rsi);
-  check_reg("rdi", regs.rdi);
-  check_reg("rsp", regs.rsp);
-  check_reg("rbp", regs.rbp);
-  check_reg("r8", regs.r8);
-  check_reg("r9", regs.r9);
-  check_reg("r10", regs.r10);
-  check_reg("r11", regs.r11);
-  check_reg("r12", regs.r12);
-  check_reg("r13", regs.r13);
-  check_reg("r14", regs.r14);
-  check_reg("r15", regs.r15);
+  regs.ForEachReg(
+      [&accessed_regs](std::optional<int64_t> reg, std::string_view name) {
+        if (reg.has_value()) {
+          accessed_regs.push_back(name);
+        }
+      });
 
   *result_listener << "\naccessed registers: "
                    << absl::StrJoin(accessed_regs, ", ") << "\n"
