@@ -58,6 +58,14 @@ class GraphBuilderModelBase(
       'GraphBuilderModelBase.instruction_node_mask'
   )
 
+  # The name of the input tensor that holds the instruction annotations.
+  INSTRUCTION_ANNOTATIONS_TENSOR_NAME = (
+      'GraphBuilderModelBase.instruction_annotations'
+  )
+
+  # The name of the tensor holding ordered annotation names.
+  ANNOTATION_NAMES_TENSOR_NAME = 'GraphBuilderModelBase.annotation_names'
+
   # A Boolean tensor placeholder that receives a mask for instruction nodes. The
   # mask has shape (None,), and it must have the same length as
   # self._graphs_tuple_placeholders.nodes along the first dimension. It contains
@@ -80,6 +88,16 @@ class GraphBuilderModelBase(
   # builder. See the docstring of self.special_tokens_tensor for more details on
   # the format of the data.
   _special_tokens_tensor: tf.Tensor
+
+  # A 1D byte tensor that contains the list of annotation names in the order of
+  # their indices in the graph builder.
+  _annotation_name_tensor: tf.Tensor
+
+  # The list of annotation names, in the order of their indices in the model.
+  _annotation_name_list: Sequence[str]
+
+  # A 2D float tensor holding instruction annotations.
+  _instruction_annotations: tf.Tensor
 
   def __init__(
       self,
@@ -129,7 +147,6 @@ class GraphBuilderModelBase(
         tokens=tokens,
         **kwargs,
     )
-    self._instruction_node_mask = None
     self._instruction_features = None
     self._batch_graph_builder = graph_builder.BasicBlockGraphBuilder(
         node_tokens=self._token_list,
@@ -142,6 +159,21 @@ class GraphBuilderModelBase(
     )
 
     self._special_tokens_tensor = None
+
+    self._instruction_node_mask = tf.placeholder(
+        dtype=tf.dtypes.bool,
+        shape=(None,),
+        name=GraphBuilderModelBase.INSTRUCTION_NODE_MASK_TENSOR_NAME,
+    )
+
+    self._annotation_name_list = tuple(
+        self._batch_graph_builder.annotation_names
+    )
+    self._instruction_annotations = tf.placeholder(
+        dtype=self.dtype,
+        shape=(None, len(self._annotation_name_list)),
+        name=GraphBuilderModelBase.INSTRUCTION_ANNOTATIONS_TENSOR_NAME,
+    )
 
   @property
   def special_tokens_tensor(self) -> tf.Tensor:
@@ -190,13 +222,6 @@ class GraphBuilderModelBase(
   # @Override
   def _create_readout_network_resources(self) -> None:
     super()._create_readout_network_resources()
-    # May already be created by subclass.
-    if self._instruction_node_mask is None:
-      self._instruction_node_mask = tf.placeholder(
-          dtype=tf.dtypes.bool,
-          shape=(None,),
-          name=GraphBuilderModelBase.INSTRUCTION_NODE_MASK_TENSOR_NAME,
-      )
     self._instruction_features = tf.boolean_mask(
         self._graphs_tuple_outputs.nodes, self._instruction_node_mask
     )

@@ -52,20 +52,6 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
   READOUT_VARIABLES = 'TokenGraphBuilderModel.readout'
   TASK_READOUT_VARIABLES = 'TokenGraphBuilderModel.task_readout'
 
-  INSTRUCTION_ANNOTATIONS_TENSOR_NAME = (
-      'TokenGraphBuilderModel.instruction_annotations'
-  )
-  ANNOTATION_NAMES_TENSOR_NAME = 'TokenGraphBuilderModel.annotation_names'
-
-  # A 1D byte tensor that contains the list of annotation names in the order of
-  # their indices in the graph builder.
-  _annotation_name_tensor: tf.Tensor
-
-  # The list of annotation names, in the order of their indices in the model.
-  _annotation_name_list: Sequence[str]
-
-  _instruction_annotations: tf.Tensor
-
   def __init__(
       self,
       node_embedding_size: int,
@@ -170,22 +156,6 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     leaky_relu = functools.partial(tf.keras.activations.relu, alpha=0.1)
     self._readout_activation = readout_activation or leaky_relu
     self._update_activation = update_activation or leaky_relu
-
-    _GraphBuilderModelBase = graph_builder_model_base.GraphBuilderModelBase
-    self._instruction_node_mask = tf.placeholder(
-        dtype=tf.dtypes.bool,
-        shape=(None,),
-        name=_GraphBuilderModelBase.INSTRUCTION_NODE_MASK_TENSOR_NAME,
-    )
-
-    self._annotation_name_list = tuple(
-        self._batch_graph_builder.annotation_names
-    )
-    self._instruction_annotations = tf.placeholder(
-        dtype=self.dtype,
-        shape=(None, len(self._annotation_name_list)),
-        name=TokenGraphBuilderModel.INSTRUCTION_ANNOTATIONS_TENSOR_NAME,
-    )
 
   # @Override
   def _make_model_name(self) -> str:

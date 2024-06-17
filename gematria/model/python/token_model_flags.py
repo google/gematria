@@ -18,7 +18,6 @@ extracting tokens from the file specified by this command-line flag.
 """
 
 from collections.abc import Sequence
-from typing import Optional, Text
 
 from absl import flags
 from gematria.model.python import oov_token_behavior
@@ -105,10 +104,10 @@ def get_oov_token_behavior_from_command_line_flags() -> (
   )
 
 
-def get_lines_from_command_line_flag(
-    flag: flags.FlagHolder[Text | None],
-) -> Optional[Sequence[str]]:
-  """Returns a list of lines from a file passed as a command-line arguments.
+def get_lines_from_file(
+    filename: str | None,
+) -> Sequence[str] | None:
+  """Returns a list of lines from a file passed as a command-line argument.
 
   The input file is expected to be a text file. When loading the tokens, the
   function:
@@ -116,18 +115,18 @@ def get_lines_from_command_line_flag(
     2. ignores lines starting with a hash character (#).
 
   Args:
-    flag: The command-line flag holding the path of the input file.
+    filename: The path of the input file.
 
   Returns:
     The list of lines loaded from the file specified by the command-line flags
     or None when no such file is specified. The returned list is sorted and
     contains each line at most once.
   """
-  if not flag.value:
+  if not filename:
     return None
 
   lines = set()
-  with tf.io.gfile.GFile(flag.value, 'r') as f:
+  with tf.io.gfile.GFile(filename, 'r') as f:
     for line in f:
       line = line.strip()
       if not line or line.startswith('#'):
@@ -139,7 +138,7 @@ def get_lines_from_command_line_flag(
 
 def get_tokens_from_command_line_flags(  #
     model_tokens: Sequence[str] = (),
-) -> Optional[Sequence[str]]:
+) -> Sequence[str] | None:
   """Returns the list of tokens used in the model.
 
   When the command-line flag --gematria_tokens_file is used, returns a sorted
@@ -158,7 +157,7 @@ def get_tokens_from_command_line_flags(  #
     or None when no such file is specified. The returned list is sorted and
     contains each token at most once.
   """
-  tokens_from_file = get_lines_from_command_line_flag(_TOKEN_FILE)
+  tokens_from_file = get_lines_from_file(_TOKEN_FILE.value)
   if tokens_from_file is None:
     return None
 
@@ -180,11 +179,9 @@ def get_annotation_names_from_command_line_flags() -> Sequence[str]:
     command-line flags or an empty list when no such file is specified. The
     returned list is sorted and contains each annotation_name at most once.
   """
-  annotation_names_from_file = get_lines_from_command_line_flag(
-      _ANNOTATION_NAME_FILE
-  )
+  annotation_names_from_file = get_lines_from_file(_ANNOTATION_NAME_FILE.value)
   if annotation_names_from_file is None:
-    return []
+    return ()
 
   return annotation_names_from_file
 
@@ -194,6 +191,6 @@ def mark_token_flags_as_required() -> None:
   flags.mark_flag_as_required(_TOKEN_FILE.name)
 
 
-def set_default_oov_replacement_token(token: Optional[str]) -> None:
+def set_default_oov_replacement_token(token: str | None) -> None:
   """Overrides the default out-of-vocabulary replacement token."""
   flags.set_default(_OOV_REPLACEMENT_TOKEN, token)
