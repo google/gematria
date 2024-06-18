@@ -459,6 +459,8 @@ absl::Status ForkAndTestAddresses(absl::Span<const uint8_t> basic_block,
   }
 }
 
+// TODO(orodley): Switch on the super register using getSuperRegister, once
+// that's merged (#71).
 std::optional<int64_t>* LLVMRegNumberToX64Reg(X64Regs& regs,
                                               int llvm_reg_number) {
   switch (llvm_reg_number) {
@@ -823,6 +825,7 @@ std::optional<int64_t>* LLVMRegNumberToX64Reg(X64Regs& regs,
 
 }  // namespace
 
+// TODO(orodley): Merge this with the support code doing the same thing.
 X64Regs FindReadRegs(const LlvmArchitectureSupport& llvm_arch_support,
                      absl::Span<const uint8_t> basic_block) {
   X64Regs regs;
