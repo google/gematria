@@ -32,6 +32,10 @@
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
 
+// TODO(orodley): The BHive-related functionality in this tool should be
+// merged into convert_bhive_to_llvm_exegesis_input.cc (probably behind a flag),
+// at which point this tool will serve no purpose and can be deleted.
+
 ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
 ABSL_FLAG(bool, failures_only, false,
           "Only produce output for blocks which FindAccessedAddrs fails on");
