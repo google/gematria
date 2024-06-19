@@ -37,7 +37,7 @@ _TOKEN_FILE = flags.DEFINE_string(
     ),
 )
 
-_ANNOTATION_NAME_FILE = flags.DEFINE_string(
+_ANNOTATION_NAMES_FILE = flags.DEFINE_string(
     'gematria_annotation_names_file',
     None,
     (
@@ -168,18 +168,18 @@ def get_annotation_names_from_command_line_flags() -> Sequence[str]:
   """Returns the list of annotation names used in the model.
 
   When the command-line flag --gematria_annotation_names_file is used, returns a
-  sorted list of annotation_names from this file. The input file is expected to
+  sorted list of annotation names from this file. The input file is expected to
   be a text file that contains one annotation name per line. When loading the
   annotation names, the function:
     1. removes leading and trailing whitespace from each line.
     2. ignores lines starting with a hash character (#).
 
   Returns:
-    The list of annotation_names loaded from the file specified by the
+    The list of annotation names loaded from the file specified by the
     command-line flags or an empty list when no such file is specified. The
-    returned list is sorted and contains each annotation_name at most once.
+    returned list is sorted and contains each annotation name at most once.
   """
-  annotation_names_from_file = get_lines_from_file(_ANNOTATION_NAME_FILE.value)
+  annotation_names_from_file = get_lines_from_file(_ANNOTATION_NAMES_FILE.value)
   if annotation_names_from_file is None:
     return ()
 
