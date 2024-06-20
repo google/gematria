@@ -78,6 +78,12 @@ class BasicBlockGraphBuilderTest(
       self.assertGreaterEqual(min(edge_senders), 0)
       self.assertGreaterEqual(min(edge_receivers), 0)
 
+    num_instruction_nodes = sum(builder.instruction_node_mask)
+    num_annotation_types = len(builder.annotation_names)
+    self.assertLen(builder.instruction_annotations, num_instruction_nodes)
+    for row in builder.instruction_annotations:
+      self.assertLen(row, num_annotation_types)
+
   def test_single_instruction_basic_block(self):
     builder = graph_builder.BasicBlockGraphBuilder(
         node_tokens=self.tokens,
@@ -120,6 +126,24 @@ class BasicBlockGraphBuilderTest(
     self.assertTrue(builder.add_basic_block(self.blocks[1]))
 
     self.assertBuilderIsSelfConsistent(builder, 2)
+
+  def test_multiple_annotated_basic_blocks(self):
+    builder = graph_builder.BasicBlockGraphBuilder(
+        node_tokens=self.tokens,
+        immediate_token=tokens.IMMEDIATE,
+        fp_immediate_token=tokens.IMMEDIATE,
+        address_token=tokens.ADDRESS,
+        memory_token=tokens.MEMORY,
+        annotation_names=self.annotation_names,
+        out_of_vocabulary_behavior=_OutOfVocabularyTokenBehavior.return_error(),
+    )
+
+    self.assertTrue(builder.add_basic_block(self.annotated_blocks[0]))
+    self.assertTrue(builder.add_basic_block(self.annotated_blocks[1]))
+    self.assertTrue(builder.add_basic_block(self.annotated_blocks[2]))
+    self.assertTrue(builder.add_basic_block(self.annotated_blocks[3]))
+
+    self.assertBuilderIsSelfConsistent(builder, 4)
 
   def test_many_blocks(self):
     builder = graph_builder.BasicBlockGraphBuilder(

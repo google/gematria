@@ -18,6 +18,8 @@ syntax = "proto3";
 
 package gematria;
 
+import "gematria/proto/annotation.proto";
+
 // Contains information about an instruction and all its inputs and outputs.
 // This proto can be used to create the embedding of the instruction as
 // described in the Ithemal [1] and Granite [2] papers.
@@ -51,6 +53,9 @@ message CanonicalizedInstructionProto {
 
   // The list of implicit input operands of the instruction.
   repeated CanonicalizedOperandProto implicit_input_operands = 7;
+
+  // Runtime related instruction level annotations.
+  repeated AnnotationProto instruction_annotations = 8;
 }
 
 // Contains information about a single operand in the canonicalized instruction.
