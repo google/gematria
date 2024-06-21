@@ -160,20 +160,10 @@ class GraphBuilderModelBase(
 
     self._special_tokens_tensor = None
 
-    self._instruction_node_mask = tf.placeholder(
-        dtype=tf.dtypes.bool,
-        shape=(None,),
-        name=GraphBuilderModelBase.INSTRUCTION_NODE_MASK_TENSOR_NAME,
-    )
-
     self._annotation_name_list = tuple(
         self._batch_graph_builder.annotation_names
     )
-    self._instruction_annotations = tf.placeholder(
-        dtype=self.dtype,
-        shape=(None, len(self._annotation_name_list)),
-        name=GraphBuilderModelBase.INSTRUCTION_ANNOTATIONS_TENSOR_NAME,
-    )
+    self._num_annotations = len(self._annotation_name_list)
 
   @property
   def special_tokens_tensor(self) -> tf.Tensor:
@@ -191,12 +181,17 @@ class GraphBuilderModelBase(
     """
     return self._special_tokens_tensor
 
+  @property
+  def annotation_names_tensor(self) -> tf.Tensor:
+    return self._annotation_names_tensor
+
   # @Override
   @property
   def output_tensor_names(self) -> Sequence[str]:
     return (
         *super().output_tensor_names,
         GraphBuilderModelBase.SPECIAL_TOKENS_TENSOR_NAME,
+        GraphBuilderModelBase.ANNOTATION_NAMES_TENSOR_NAME,
     )
 
   # @Override
@@ -217,6 +212,28 @@ class GraphBuilderModelBase(
         special_tokens,
         dtype=tf.dtypes.int32,
         name=GraphBuilderModelBase.SPECIAL_TOKENS_TENSOR_NAME,
+    )
+    annotation_names_array = np.frombuffer(
+        b'\0'.join(name.encode('utf-8') for name in self._annotation_name_list),
+        dtype=np.uint8,
+    )
+    self._annotation_name_tensor = tf.constant(
+        annotation_names_array,
+        name=GraphBuilderModelBase.ANNOTATION_NAMES_TENSOR_NAME,
+    )
+
+  # @Override
+  def _create_graph_network_resources(self) -> None:
+    super()._create_graph_network_resources()
+    self._instruction_annotations = tf.placeholder(
+        dtype=self.dtype,
+        shape=(None, len(self._annotation_name_list)),
+        name=GraphBuilderModelBase.INSTRUCTION_ANNOTATIONS_TENSOR_NAME,
+    )
+    self._instruction_node_mask = tf.placeholder(
+        dtype=tf.dtypes.bool,
+        shape=(None,),
+        name=GraphBuilderModelBase.INSTRUCTION_NODE_MASK_TENSOR_NAME,
     )
 
   # @Override
