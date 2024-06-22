@@ -64,3 +64,17 @@ gematria_py_binary(
         "//gematria/proto:throughput_py_pb2",
     ],
 )
+
+gematria_py_test(
+    name = "generate_vocab_test",
+    size = "small",
+    srcs = ["generate_vocab_test.py"],
+    data = [
+        "generate_vocab_tests/lit.cfg.py",
+        "generate_vocab_tests/lit.site.cfg.py",
+        ":generate_vocab",
+        ":import_from_bhive",
+        "@llvm-project//llvm:FileCheck",
+        "@llvm-project//llvm:split-file",
+    ] + glob(["generate_vocab_tests/*.test"]),
+)

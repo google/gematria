@@ -1,0 +1,37 @@
+; Test that we can process a couple basic blocks and get the expected tokens
+; out of them.
+
+; RUN: split-file %s %t
+; RUN: %import_from_bhive --gematria_input_csv=%t/test.csv --gematria_output_tfrecord=%t/test.tfrecord --gematria_throughput_source_name=test
+; RUN: %generate_vocab --input_tfrecord=%t/test.tfrecord --output_vocab=%t/test.vocab
+; RUN: cat %t/test.vocab | FileCheck %s
+
+; CHECK: CMP
+; CHECK: EAX
+; CHECK: EDI
+; CHECK: EFLAGS
+; CHECK: JGE
+; CHECK: JMP
+; CHECK: JNE
+; CHECK: MOV
+; CHECK: POP
+; CHECK: PUSH
+; CHECK: RBP
+; CHECK: RSP
+; CHECK: _ADDRESS_
+; CHECK: _DISPLACEMENT_
+; CHECK: _D_
+; CHECK: _IMMEDIATE_
+; CHECK: _MEMORY_
+; CHECK: _NO_REGISTER_
+; CHECK: ret
+
+;--- test.csv
+554889E5897DF8837DF8007509,1
+C745FC00000000EB25,1
+837DF8037D09,1
+C745FC03000000EB16,1
+837DF8057D09,1
+C745FC05000000EB07,1
+C745FC07000000,1
+8B45FC5DC3,1

@@ -45,7 +45,7 @@ _OUTPUT_TXT_FILE = flags.DEFINE_string(
 
 
 def main(argv) -> None:
-  del argv # Unused.
+  del argv  # Unused.
 
   loaded_protos = tfrecord.read_protos(
       _INPUT_TFRECORD_FILE.value, throughput_pb2.BasicBlockWithThroughputProto
