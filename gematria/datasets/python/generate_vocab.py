@@ -44,7 +44,9 @@ _OUTPUT_TXT_FILE = flags.DEFINE_string(
 )
 
 
-def main(_) -> None:
+def main(argv) -> None:
+  del argv # Unused.
+
   loaded_protos = tfrecord.read_protos(
       _INPUT_TFRECORD_FILE.value, throughput_pb2.BasicBlockWithThroughputProto
   )
@@ -65,7 +67,7 @@ def main(_) -> None:
     current_proto_index += 1
 
   with open(_OUTPUT_TXT_FILE.value, 'w') as output_file_handle:
-    for token in tokens:
+    for token in sorted(tokens):
       output_file_handle.write(f'{token}\n')
 
 
