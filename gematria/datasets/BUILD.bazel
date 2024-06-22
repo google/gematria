@@ -56,6 +56,8 @@ cc_binary(
         "//gematria/utils:string",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings:str_format",
     ],
 )
 
@@ -74,18 +76,29 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "process_and_filter_bbs",
+    srcs = ["process_and_filter_bbs.cc"],
+    deps = [
+        "//gematria/llvm:disassembler",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/utils:string",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
 gematria_py_test(
     name = "convert_bhive_to_llvm_exegesis_input_test",
     size = "small",
     srcs = ["convert_bhive_to_llvm_exegesis_input_test.py"],
     data = [
-        "tests/lit.cfg.py",
-        "tests/lit.site.cfg.py",
+        "convert_bhive_to_llvm_exegesis_input_tests/lit.cfg.py",
+        "convert_bhive_to_llvm_exegesis_input_tests/lit.site.cfg.py",
         ":convert_bhive_to_llvm_exegesis_input",
         "@llvm-project//llvm:FileCheck",
         "@llvm-project//llvm:not",
         "@llvm-project//llvm:split-file",
-    ] + glob(["tests/*.test"]),
+    ] + glob(["convert_bhive_to_llvm_exegesis_input_tests/*.test"]),
 )
 
 cc_library(
@@ -97,8 +110,11 @@ cc_library(
     target_compatible_with = [
         "@platforms//os:linux",
     ],
+    copts = ["-Iexternal/llvm-project/llvm"],
     deps = [
         ":block_wrapper",
+        "//gematria/llvm:disassembler",
+        "//gematria/llvm:llvm_architecture_support",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/random:distributions",
         "@com_google_absl//absl/status",
@@ -106,6 +122,8 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
+        "@llvm-project//llvm:MC",
+        "@llvm-project//llvm:X86UtilsAndDesc",
     ],
 )
 
@@ -187,4 +205,26 @@ cc_library(
         "@platforms//cpu:x86_64",
     ],
     deps = ["@com_google_absl//absl/types:span"],
+)
+
+cc_binary(
+    name = "extract_bbs_from_obj",
+    srcs = ["extract_bbs_from_obj.cc"],
+    deps = [
+        "@llvm-project//llvm:Object",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+gematria_py_test(
+    name = "extract_bbs_from_obj_test",
+    size = "small",
+    srcs = ["extract_bbs_from_obj_test.py"],
+    data = [
+        "extract_bbs_from_obj_tests/lit.cfg.py",
+        "extract_bbs_from_obj_tests/lit.site.cfg.py",
+        ":extract_bbs_from_obj",
+        "@llvm-project//llvm:FileCheck",
+        "@llvm-project//llvm:yaml2obj",
+    ] + glob(["extract_bbs_from_obj_tests/*.test"]),
 )
