@@ -30,7 +30,9 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "absl/random/random.h"
 #include "absl/random/uniform_int_distribution.h"
@@ -40,6 +42,12 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "gematria/datasets/block_wrapper.h"
+#include "gematria/llvm/disassembler.h"
+#include "gematria/llvm/llvm_architecture_support.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCRegister.h"
+#include "lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 
 namespace gematria {
 namespace {
@@ -141,6 +149,41 @@ absl::StatusOr<PipedData> ReadAll(int fd) {
 }
 
 uintptr_t AlignDown(uintptr_t x, size_t align) { return x - (x % align); }
+
+void RandomiseRegs(absl::BitGen& gen, X64Regs& regs) {
+  regs.ForEachReg([&gen](std::optional<int64_t>& value) {
+    // Pick between three values: 0, a low address, and a high address. These
+    // are picked to try to maximise the chance that some combination will
+    // produce a valid address when run through a wide range of functions. This
+    // is just a first stab, there are likely better sets of values we could use
+    // here.
+    constexpr int64_t kValues[] = {0, 0x15000, 0x1000000};
+    absl::uniform_int_distribution<int> dist(0, std::size(kValues) - 1);
+    value = kValues[dist(gen)];
+  });
+}
+
+RawX64Regs ToRawRegs(const X64Regs& regs) {
+  RawX64Regs raw_regs;
+  raw_regs.rax = regs.rax.value_or(0);
+  raw_regs.rbx = regs.rbx.value_or(0);
+  raw_regs.rcx = regs.rcx.value_or(0);
+  raw_regs.rdx = regs.rdx.value_or(0);
+  raw_regs.rsi = regs.rsi.value_or(0);
+  raw_regs.rdi = regs.rdi.value_or(0);
+  raw_regs.rsp = regs.rsp.value_or(0);
+  raw_regs.rbp = regs.rbp.value_or(0);
+  raw_regs.r8 = regs.r8.value_or(0);
+  raw_regs.r9 = regs.r9.value_or(0);
+  raw_regs.r10 = regs.r10.value_or(0);
+  raw_regs.r11 = regs.r11.value_or(0);
+  raw_regs.r12 = regs.r12.value_or(0);
+  raw_regs.r13 = regs.r13.value_or(0);
+  raw_regs.r14 = regs.r14.value_or(0);
+  raw_regs.r15 = regs.r15.value_or(0);
+
+  return raw_regs;
+}
 
 std::string DumpRegs(const struct user_regs_struct& regs) {
   return absl::StrFormat(
@@ -281,6 +324,11 @@ void repmovsb(void* dst, const void* src, size_t count) {
   abort();
 }
 
+// Keep this in sync with the code below that initialises mapped blocks. This
+// value, when repeated over 8-byte chunks, should produce the same block as
+// the code below.
+constexpr uint64_t kBlockContents = 0x800000008;
+
 [[noreturn]] void ChildProcess(absl::Span<const uint8_t> basic_block,
                                int pipe_write_fd,
                                const AccessedAddrs& accessed_addrs) {
@@ -370,9 +418,10 @@ void repmovsb(void* dst, const void* src, size_t count) {
   std::copy(after_block.begin(), after_block.end(),
             &mapped_span[before_block.size() + basic_block.size()]);
 
-  auto mapped_func =
-      reinterpret_cast<void (*)(const X64Regs* initial_regs)>(mapped_address);
-  mapped_func(&accessed_addrs.initial_regs);
+  auto mapped_func = reinterpret_cast<void (*)(const RawX64Regs* initial_regs)>(
+      mapped_address);
+  auto raw_regs = ToRawRegs(accessed_addrs.initial_regs);
+  mapped_func(&raw_regs);
 
   // mapped_func should never return, but we can't put [[noreturn]] on a
   // function pointer. So stick this here to satisfy the compiler.
@@ -410,34 +459,410 @@ absl::Status ForkAndTestAddresses(absl::Span<const uint8_t> basic_block,
   }
 }
 
-void RandomiseRegs(absl::BitGen& gen, X64Regs& regs) {
-  // Pick between three values: 0, a low address, and a high address. These are
-  // picked to try to maximise the chance that some combination will produce a
-  // valid address when run through a wide range of functions. This is just a
-  // first stab, there are likely better sets of values we could use here.
-  constexpr int64_t kValues[] = {0, 0x15000, 0x1000000};
-  absl::uniform_int_distribution<int> dist(0, std::size(kValues) - 1);
-  auto random_reg = [&gen, &dist]() { return kValues[dist(gen)]; };
+// TODO(orodley): Switch on the super register using getSuperRegister, once
+// that's merged (#71).
+std::optional<int64_t>* LLVMRegNumberToX64Reg(X64Regs& regs,
+                                              int llvm_reg_number) {
+  switch (llvm_reg_number) {
+    case llvm::X86::AH:
+    case llvm::X86::AL:
+    case llvm::X86::AX:
+    case llvm::X86::HAX:
+    case llvm::X86::EAX:
+    case llvm::X86::RAX:
+      return &regs.rax;
 
-  regs.rax = random_reg();
-  regs.rbx = random_reg();
-  regs.rcx = random_reg();
-  regs.rdx = random_reg();
-  regs.rsi = random_reg();
-  regs.rdi = random_reg();
-  regs.rsp = random_reg();
-  regs.rbp = random_reg();
-  regs.r8 = random_reg();
-  regs.r9 = random_reg();
-  regs.r10 = random_reg();
-  regs.r11 = random_reg();
-  regs.r12 = random_reg();
-  regs.r13 = random_reg();
-  regs.r14 = random_reg();
-  regs.r15 = random_reg();
+    case llvm::X86::BH:
+    case llvm::X86::BL:
+    case llvm::X86::BX:
+    case llvm::X86::HBX:
+    case llvm::X86::EBX:
+    case llvm::X86::RBX:
+      return &regs.rbx;
+
+    case llvm::X86::CH:
+    case llvm::X86::CL:
+    case llvm::X86::CX:
+    case llvm::X86::HCX:
+    case llvm::X86::ECX:
+    case llvm::X86::RCX:
+      return &regs.rcx;
+
+    case llvm::X86::DH:
+    case llvm::X86::DL:
+    case llvm::X86::DX:
+    case llvm::X86::HDX:
+    case llvm::X86::EDX:
+    case llvm::X86::RDX:
+      return &regs.rdx;
+
+    case llvm::X86::SIH:
+    case llvm::X86::SIL:
+    case llvm::X86::SI:
+    case llvm::X86::HSI:
+    case llvm::X86::ESI:
+    case llvm::X86::RSI:
+      return &regs.rsi;
+
+    case llvm::X86::DIH:
+    case llvm::X86::DIL:
+    case llvm::X86::DI:
+    case llvm::X86::HDI:
+    case llvm::X86::EDI:
+    case llvm::X86::RDI:
+      return &regs.rdi;
+
+    case llvm::X86::SPH:
+    case llvm::X86::SPL:
+    case llvm::X86::SP:
+    case llvm::X86::HSP:
+    case llvm::X86::ESP:
+    case llvm::X86::RSP:
+      return &regs.rsp;
+
+    case llvm::X86::BPH:
+    case llvm::X86::BPL:
+    case llvm::X86::BP:
+    case llvm::X86::HBP:
+    case llvm::X86::EBP:
+    case llvm::X86::RBP:
+      return &regs.rbp;
+
+    case llvm::X86::R8B:
+    case llvm::X86::R8BH:
+    case llvm::X86::R8W:
+    case llvm::X86::R8WH:
+    case llvm::X86::R8D:
+    case llvm::X86::R8:
+      return &regs.r8;
+
+    case llvm::X86::R9B:
+    case llvm::X86::R9BH:
+    case llvm::X86::R9W:
+    case llvm::X86::R9WH:
+    case llvm::X86::R9D:
+    case llvm::X86::R9:
+      return &regs.r9;
+
+    case llvm::X86::R10B:
+    case llvm::X86::R10BH:
+    case llvm::X86::R10W:
+    case llvm::X86::R10WH:
+    case llvm::X86::R10D:
+    case llvm::X86::R10:
+      return &regs.r10;
+
+    case llvm::X86::R11B:
+    case llvm::X86::R11BH:
+    case llvm::X86::R11W:
+    case llvm::X86::R11WH:
+    case llvm::X86::R11D:
+    case llvm::X86::R11:
+      return &regs.r11;
+
+    case llvm::X86::R12B:
+    case llvm::X86::R12BH:
+    case llvm::X86::R12W:
+    case llvm::X86::R12WH:
+    case llvm::X86::R12D:
+    case llvm::X86::R12:
+      return &regs.r12;
+
+    case llvm::X86::R13B:
+    case llvm::X86::R13BH:
+    case llvm::X86::R13W:
+    case llvm::X86::R13WH:
+    case llvm::X86::R13D:
+    case llvm::X86::R13:
+      return &regs.r13;
+
+    case llvm::X86::R14B:
+    case llvm::X86::R14BH:
+    case llvm::X86::R14W:
+    case llvm::X86::R14WH:
+    case llvm::X86::R14D:
+    case llvm::X86::R14:
+      return &regs.r14;
+
+    case llvm::X86::R15B:
+    case llvm::X86::R15BH:
+    case llvm::X86::R15W:
+    case llvm::X86::R15WH:
+    case llvm::X86::R15D:
+    case llvm::X86::R15:
+      return &regs.r15;
+
+    // TODO(orodley): Implement these after adding support in X64Regs.
+
+    // SSE registers, we don't support these yet but will later.
+    case llvm::X86::XMM0:
+    case llvm::X86::XMM1:
+    case llvm::X86::XMM2:
+    case llvm::X86::XMM3:
+    case llvm::X86::XMM4:
+    case llvm::X86::XMM5:
+    case llvm::X86::XMM6:
+    case llvm::X86::XMM7:
+    case llvm::X86::XMM8:
+    case llvm::X86::XMM9:
+    case llvm::X86::XMM10:
+    case llvm::X86::XMM11:
+    case llvm::X86::XMM12:
+    case llvm::X86::XMM13:
+    case llvm::X86::XMM14:
+    case llvm::X86::XMM15:
+
+    // AVX registers, ditto.
+    case llvm::X86::YMM0:
+    case llvm::X86::YMM1:
+    case llvm::X86::YMM2:
+    case llvm::X86::YMM3:
+    case llvm::X86::YMM4:
+    case llvm::X86::YMM5:
+    case llvm::X86::YMM6:
+    case llvm::X86::YMM7:
+    case llvm::X86::YMM8:
+    case llvm::X86::YMM9:
+    case llvm::X86::YMM10:
+    case llvm::X86::YMM11:
+    case llvm::X86::YMM12:
+    case llvm::X86::YMM13:
+    case llvm::X86::YMM14:
+    case llvm::X86::YMM15:
+    case llvm::X86::K0:
+    case llvm::X86::K1:
+    case llvm::X86::K2:
+    case llvm::X86::K3:
+    case llvm::X86::K4:
+    case llvm::X86::K5:
+    case llvm::X86::K6:
+    case llvm::X86::K7:
+    case llvm::X86::XMM16:
+    case llvm::X86::XMM17:
+    case llvm::X86::XMM18:
+    case llvm::X86::XMM19:
+    case llvm::X86::XMM20:
+    case llvm::X86::XMM21:
+    case llvm::X86::XMM22:
+    case llvm::X86::XMM23:
+    case llvm::X86::XMM24:
+    case llvm::X86::XMM25:
+    case llvm::X86::XMM26:
+    case llvm::X86::XMM27:
+    case llvm::X86::XMM28:
+    case llvm::X86::XMM29:
+    case llvm::X86::XMM30:
+    case llvm::X86::XMM31:
+    case llvm::X86::YMM16:
+    case llvm::X86::YMM17:
+    case llvm::X86::YMM18:
+    case llvm::X86::YMM19:
+    case llvm::X86::YMM20:
+    case llvm::X86::YMM21:
+    case llvm::X86::YMM22:
+    case llvm::X86::YMM23:
+    case llvm::X86::YMM24:
+    case llvm::X86::YMM25:
+    case llvm::X86::YMM26:
+    case llvm::X86::YMM27:
+    case llvm::X86::YMM28:
+    case llvm::X86::YMM29:
+    case llvm::X86::YMM30:
+    case llvm::X86::YMM31:
+
+    // AVX-512 registers, ditto.
+    case llvm::X86::ZMM0:
+    case llvm::X86::ZMM1:
+    case llvm::X86::ZMM2:
+    case llvm::X86::ZMM3:
+    case llvm::X86::ZMM4:
+    case llvm::X86::ZMM5:
+    case llvm::X86::ZMM6:
+    case llvm::X86::ZMM7:
+    case llvm::X86::ZMM8:
+    case llvm::X86::ZMM9:
+    case llvm::X86::ZMM10:
+    case llvm::X86::ZMM11:
+    case llvm::X86::ZMM12:
+    case llvm::X86::ZMM13:
+    case llvm::X86::ZMM14:
+    case llvm::X86::ZMM15:
+    case llvm::X86::ZMM16:
+    case llvm::X86::ZMM17:
+    case llvm::X86::ZMM18:
+    case llvm::X86::ZMM19:
+    case llvm::X86::ZMM20:
+    case llvm::X86::ZMM21:
+    case llvm::X86::ZMM22:
+    case llvm::X86::ZMM23:
+    case llvm::X86::ZMM24:
+    case llvm::X86::ZMM25:
+    case llvm::X86::ZMM26:
+    case llvm::X86::ZMM27:
+    case llvm::X86::ZMM28:
+    case llvm::X86::ZMM29:
+    case llvm::X86::ZMM30:
+    case llvm::X86::ZMM31:
+    case llvm::X86::K0_K1:
+    case llvm::X86::K2_K3:
+    case llvm::X86::K4_K5:
+    case llvm::X86::K6_K7:
+    case llvm::X86::TMMCFG:
+    case llvm::X86::TMM0:
+    case llvm::X86::TMM1:
+    case llvm::X86::TMM2:
+    case llvm::X86::TMM3:
+    case llvm::X86::TMM4:
+    case llvm::X86::TMM5:
+    case llvm::X86::TMM6:
+    case llvm::X86::TMM7:
+
+    // APX adds 16 more general purpose registers. Ditto.
+    case llvm::X86::R16B:
+    case llvm::X86::R16BH:
+    case llvm::X86::R16W:
+    case llvm::X86::R16WH:
+    case llvm::X86::R16D:
+    case llvm::X86::R16:
+    case llvm::X86::R17B:
+    case llvm::X86::R17BH:
+    case llvm::X86::R17W:
+    case llvm::X86::R17WH:
+    case llvm::X86::R17D:
+    case llvm::X86::R17:
+    case llvm::X86::R18B:
+    case llvm::X86::R18BH:
+    case llvm::X86::R18W:
+    case llvm::X86::R18WH:
+    case llvm::X86::R18D:
+    case llvm::X86::R18:
+    case llvm::X86::R19B:
+    case llvm::X86::R19BH:
+    case llvm::X86::R19W:
+    case llvm::X86::R19WH:
+    case llvm::X86::R19D:
+    case llvm::X86::R19:
+    case llvm::X86::R20B:
+    case llvm::X86::R20BH:
+    case llvm::X86::R20W:
+    case llvm::X86::R20WH:
+    case llvm::X86::R20D:
+    case llvm::X86::R20:
+    case llvm::X86::R21B:
+    case llvm::X86::R21BH:
+    case llvm::X86::R21W:
+    case llvm::X86::R21WH:
+    case llvm::X86::R21D:
+    case llvm::X86::R21:
+    case llvm::X86::R22B:
+    case llvm::X86::R22BH:
+    case llvm::X86::R22W:
+    case llvm::X86::R22WH:
+    case llvm::X86::R22D:
+    case llvm::X86::R22:
+    case llvm::X86::R23B:
+    case llvm::X86::R23BH:
+    case llvm::X86::R23W:
+    case llvm::X86::R23WH:
+    case llvm::X86::R23D:
+    case llvm::X86::R23:
+    case llvm::X86::R24B:
+    case llvm::X86::R24BH:
+    case llvm::X86::R24W:
+    case llvm::X86::R24WH:
+    case llvm::X86::R24D:
+    case llvm::X86::R24:
+    case llvm::X86::R25B:
+    case llvm::X86::R25BH:
+    case llvm::X86::R25W:
+    case llvm::X86::R25WH:
+    case llvm::X86::R25D:
+    case llvm::X86::R25:
+    case llvm::X86::R26B:
+    case llvm::X86::R26BH:
+    case llvm::X86::R26W:
+    case llvm::X86::R26WH:
+    case llvm::X86::R26D:
+    case llvm::X86::R26:
+    case llvm::X86::R27B:
+    case llvm::X86::R27BH:
+    case llvm::X86::R27W:
+    case llvm::X86::R27WH:
+    case llvm::X86::R27D:
+    case llvm::X86::R27:
+    case llvm::X86::R28B:
+    case llvm::X86::R28BH:
+    case llvm::X86::R28W:
+    case llvm::X86::R28WH:
+    case llvm::X86::R28D:
+    case llvm::X86::R28:
+    case llvm::X86::R29B:
+    case llvm::X86::R29BH:
+    case llvm::X86::R29W:
+    case llvm::X86::R29WH:
+    case llvm::X86::R29D:
+    case llvm::X86::R29:
+    case llvm::X86::R30B:
+    case llvm::X86::R30BH:
+    case llvm::X86::R30W:
+    case llvm::X86::R30WH:
+    case llvm::X86::R30D:
+    case llvm::X86::R30:
+    case llvm::X86::R31B:
+    case llvm::X86::R31BH:
+    case llvm::X86::R31W:
+    case llvm::X86::R31WH:
+    case llvm::X86::R31D:
+    case llvm::X86::R31:
+      return nullptr;
+
+    // The remainder of the LLVM x86 registers are not of interest to us, for
+    // one reason or another, so we ignore them.
+    default:
+      return nullptr;
+  }
 }
 
 }  // namespace
+
+// TODO(orodley): Merge this with the support code doing the same thing.
+X64Regs FindReadRegs(const LlvmArchitectureSupport& llvm_arch_support,
+                     absl::Span<const uint8_t> basic_block) {
+  X64Regs regs;
+
+  llvm::ArrayRef<uint8_t> llvm_array(basic_block.data(), basic_block.size());
+  const auto instrs = DisassembleAllInstructions(
+      llvm_arch_support.mc_disassembler(), llvm_arch_support.mc_instr_info(),
+      llvm_arch_support.mc_register_info(),
+      llvm_arch_support.mc_subtarget_info(),
+      *llvm_arch_support.CreateMCInstPrinter(1), /*base_address=*/0,
+      llvm_array);
+
+  for (const auto& instr : *instrs) {
+    const llvm::MCInst& mcinst = instr.mc_inst;
+    const auto& mc_desc =
+        llvm_arch_support.mc_instr_info().get(mcinst.getOpcode());
+
+    for (int n = mc_desc.getNumDefs(); n < mcinst.getNumOperands(); n++) {
+      const llvm::MCOperand& operand = mcinst.getOperand(n);
+      if (!operand.isReg()) continue;
+
+      auto reg = LLVMRegNumberToX64Reg(regs, operand.getReg());
+      if (reg == nullptr) continue;
+
+      *reg = 0;
+    }
+
+    for (const llvm::MCPhysReg llvm_reg : mc_desc.implicit_uses()) {
+      auto reg = LLVMRegNumberToX64Reg(regs, llvm_reg);
+      if (reg == nullptr) continue;
+
+      *reg = 0;
+    }
+  }
+
+  return regs;
+}
 
 // TODO(orodley):
 // * Set up registers to minimise chance of needing to map an unmappable or
@@ -453,39 +878,25 @@ void RandomiseRegs(absl::BitGen& gen, X64Regs& regs) {
 // * Much more complete testing.
 absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
     absl::Span<const uint8_t> basic_block) {
-  // This value is chosen to be almost the lowest address that's able to be
-  // mapped. We want it to be low so that even if a register is multiplied or
-  // added to another register, it will still be likely to be within an
-  // accessible region of memory. But it's very common to take small negative
-  // offsets from a register as a memory address, so we want to leave some space
-  // below so that such addresses will still be accessible.
-  constexpr int64_t kInitialRegValue = 0x15000;
+    X64Regs initial_regs;
+  initial_regs.ForEachReg([](std::optional<int64_t>& value) {
+    // This value is chosen to be almost the lowest address that's able to be
+    // mapped. We want it to be low so that even if a register is multiplied or
+    // added to another register, it will still be likely to be within an
+    // accessible region of memory. But it's very common to take small negative
+    // offsets from a register as a memory address, so we want to leave some
+    // space below so that such addresses will still be accessible.
+    value = 0x15000;
+  });
 
   absl::BitGen gen;
 
   AccessedAddrs accessed_addrs = {
       .code_location = 0,
       .block_size = static_cast<size_t>(getpagesize()),
+      .block_contents = kBlockContents,
       .accessed_blocks = {},
-      .initial_regs =
-          {
-              .rax = kInitialRegValue,
-              .rbx = kInitialRegValue,
-              .rcx = kInitialRegValue,
-              .rdx = kInitialRegValue,
-              .rsi = kInitialRegValue,
-              .rdi = kInitialRegValue,
-              .rsp = kInitialRegValue,
-              .rbp = kInitialRegValue,
-              .r8 = kInitialRegValue,
-              .r9 = kInitialRegValue,
-              .r10 = kInitialRegValue,
-              .r11 = kInitialRegValue,
-              .r12 = kInitialRegValue,
-              .r13 = kInitialRegValue,
-              .r14 = kInitialRegValue,
-              .r15 = kInitialRegValue,
-          },
+      .initial_regs = initial_regs,
   };
 
   int n = 0;
