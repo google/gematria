@@ -129,7 +129,7 @@ unsigned getSuperRegisterAllClasses(unsigned OriginalRegister,
   return SuperRegister;
 }
 
-std::optional<unsigned> getLoopRegister(
+std::optional<unsigned> getUnusedGPRegister(
     const std::vector<DisassembledInstruction> &Instructions,
     const MCRegisterInfo &RegisterInfo, const MCInstrInfo &InstructionInfo) {
   std::set<unsigned> UsedRegisters;
