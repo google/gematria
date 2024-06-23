@@ -49,6 +49,8 @@ constexpr unsigned kInitialMemValBitWidth = 64;
 constexpr std::string_view kRegDefPrefix = "# LLVM-EXEGESIS-DEFREG ";
 constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
 constexpr std::string_view kMemMapPrefix = "# LLVM-EXEGESIS-MEM-MAP ";
+constexpr std::string_view kLoopRegisterPrefix =
+    "# LLVM-EXEGESIS-LOOP-REGISTER ";
 constexpr std::string_view kMemNamePrefix = "MEM";
 
 enum class AnnotatorType { kExegesis, kFast, kNone };
@@ -94,6 +96,9 @@ ABSL_FLAG(unsigned, max_bb_count, std::numeric_limits<unsigned>::max(),
           "The maximum number of basic blocks to process");
 ABSL_FLAG(unsigned, report_progress_every, std::numeric_limits<unsigned>::max(),
           "The number of blocks after which to report progress.");
+ABSL_FLAG(bool, skip_no_loop_register, true,
+          "Whether or not to skip basic blocks where a loop counter register "
+          "cannot be found.");
 
 absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
@@ -202,7 +207,9 @@ int main(int argc, char* argv[]) {
   const unsigned max_bb_count = absl::GetFlag(FLAGS_max_bb_count);
   const unsigned report_progress_every =
       absl::GetFlag(FLAGS_report_progress_every);
+  const bool skip_no_loop_register = absl::GetFlag(FLAGS_skip_no_loop_register);
   unsigned int file_counter = 0;
+  unsigned int loop_register_failures = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
     if (file_counter >= max_bb_count) break;
 
@@ -249,6 +256,20 @@ int main(int argc, char* argv[]) {
       continue;
     }
 
+    // Get a register that we can use as the loop register.
+    std::optional<unsigned> loop_register = gematria::getLoopRegister(
+        *instructions, reg_info, llvm_support->mc_instr_info());
+
+    // If we can't find a loop register, skip writing out this basic block
+    // so that downstream tooling doesn't execute the incorrect number of
+    // iterations.
+    if (!loop_register && skip_no_loop_register) {
+      std::cerr
+          << "Skipping block due to not being able to find a loop register\n";
+      ++loop_register_failures;
+      continue;
+    }
+
     if (!asm_output_dir.empty()) {
       // Create output file path.
       llvm::Twine output_file_path = llvm::Twine(asm_output_dir)
@@ -280,6 +301,11 @@ int main(int argc, char* argv[]) {
                     << addr << "\n";
       }
 
+      // Write the loop register annotation, assuming we were able to find one.
+      if (loop_register)
+        output_file << kLoopRegisterPrefix << reg_info.getName(*loop_register)
+                    << "\n";
+
       // Append disassembled instructions.
       for (const auto& instr : proto.machine_instructions()) {
         output_file << instr.assembly() << "\n";
@@ -298,6 +324,12 @@ int main(int argc, char* argv[]) {
       }
       current_snippet["RegisterDefinitions"] =
           llvm::json::Value(std::move(register_definitions));
+
+      // Output the loop register.
+      if (loop_register)
+        current_snippet["LoopRegister"] = *loop_register;
+      else
+        current_snippet["LoopRegister"] = llvm::json::Value(nullptr);
 
       if (addrs->accessed_blocks.size() > 0) {
         llvm::json::Array memory_definitions;
@@ -349,6 +381,9 @@ int main(int argc, char* argv[]) {
                                             json_file_number, json_output_dir);
     if (!write_successfully) return 4;
   }
+
+  std::cerr << "Failed to find a loop register for " << loop_register_failures
+            << " blocks\n";
 
   return 0;
 }
