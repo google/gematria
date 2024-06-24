@@ -254,6 +254,9 @@ class GraphBuilderModelBase(
     feed_dict[self._instruction_node_mask] = np.array(
         self._batch_graph_builder.instruction_node_mask, dtype=bool
     )
+    feed_dict[self._instruction_annotations] = (
+        self._batch_graph_builder.instruction_annotations
+    )
     return feed_dict
 
   # @Override

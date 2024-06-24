@@ -22,11 +22,9 @@ from gematria.granite.python import gnn_model_base
 from gematria.granite.python import graph_builder
 from gematria.granite.python import graph_builder_model_base
 from gematria.model.python import model_blocks
-from gematria.model.python import model_base
 from gematria.model.python import options
 import graph_nets
 import sonnet as snt
-import numpy as np
 import tensorflow.compat.v1 as tf
 
 
@@ -357,22 +355,14 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
         ),
     )
 
-  def _make_batch_feed_dict(self) -> model_base.FeedDict:
-    feed_dict = super()._make_batch_feed_dict()
-
-    feed_dict[self._instruction_annotations] = (
-        self._batch_graph_builder.instruction_annotations
-    )
-    return feed_dict
-
 
 class TokenGraphBuilderModelNodeEmbed:
-  """`snt.Embed`-like class representing node embeddings with instruction
-  annotations included.
+  """Class representing node embeddings with instruction annotations included.
 
-  Generates node embeddings normally, then replaces the last `num_annotation`
-  values of the embeddings corresponding to instructions with the annotation
-  values. The embeddings for other node types remain unchanged.
+  `snt.Embed`-like class. Generates node embeddings normally, then replaces the
+  last `num_annotation` values of the embeddings corresponding to instructions
+  with the annotation values. The embeddings for other node types remain
+  unchanged.
   """
 
   def __init__(
@@ -395,11 +385,11 @@ class TokenGraphBuilderModelNodeEmbed:
       instruction_node_mask: As in `BasicBlockGraphBuilder`.
       kwargs: Additional arguments to be passed to the internal `snt.Embed`s.
     """
-    self.instruction_annotations = instruction_annotations
-    self.instruction_node_mask = instruction_node_mask
+    self._instruction_annotations = instruction_annotations
+    self._instruction_node_mask = instruction_node_mask
 
     # The first `embed_dim - num_annotations` embedding values for all nodes.
-    self.common_embed = snt.Embed(
+    self._common_embed = snt.Embed(
         embed_dim=common_embed_dim,
         **kwargs,
     )
@@ -408,9 +398,9 @@ class TokenGraphBuilderModelNodeEmbed:
     # Instruction nodes will use instruction annotations instead of these learnt
     # embeddings. This is not required when there are no annotations - in that
     # case, we simply return the common embeddings.
-    self.extra_embed = None
+    self._extra_embed = None
     if num_annotations:
-      self.extra_embed = snt.Embed(
+      self._extra_embed = snt.Embed(
           embed_dim=num_annotations,
           **kwargs,
       )
@@ -419,11 +409,11 @@ class TokenGraphBuilderModelNodeEmbed:
       self,
       inputs,
   ):
-    if not self.extra_embed:
-      return self.common_embed(inputs)
+    if not self._extra_embed:
+      return self._common_embed(inputs)
 
-    common_embeddings = self.common_embed(inputs)
-    extra_embeddings = self.extra_embed(inputs)
+    common_embeddings = self._common_embed(inputs)
+    extra_embeddings = self._extra_embed(inputs)
 
     return tf.concat(
         [
@@ -431,9 +421,9 @@ class TokenGraphBuilderModelNodeEmbed:
             tf.tensor_scatter_nd_update(
                 extra_embeddings,
                 indices=tf.where(
-                    self.instruction_node_mask,
+                    self._instruction_node_mask,
                 ),
-                updates=self.instruction_annotations,
+                updates=self._instruction_annotations,
             ),
         ],
         axis=1,
