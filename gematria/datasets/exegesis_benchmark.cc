@@ -45,19 +45,23 @@ static cl::opt<std::string> AnnotatedBlocksJson(
 
 Expected<BenchmarkCode> parseJSONBlock(
     const json::Object &BasicBlockJSON, MCInstPrinter &MachinePrinter,
-    const MCDisassembler &MachineDisassembler, const LLVMState &State) {
+    const MCDisassembler &MachineDisassembler, const LLVMState &State,
+    size_t BlockIndex) {
   BenchmarkCode BenchCode;
 
   std::optional<StringRef> HexValue = BasicBlockJSON.getString("Hex");
   if (!HexValue)
     return llvm::make_error<StringError>(
-        errc::invalid_argument, "Expected basic block to have hex value");
+        errc::invalid_argument, "Malformed basic block: Basic block at index " +
+                                    Twine(BlockIndex) + " has no hex value");
 
   std::optional<int64_t> LoopRegister =
       BasicBlockJSON.getInteger("LoopRegister");
   if (!LoopRegister.has_value())
     return llvm::make_error<StringError>(
-        errc::invalid_argument, "Malformed basic block: no loop register");
+        errc::invalid_argument, "Malformed basic block: Basic block at index " +
+                                    Twine(BlockIndex) +
+                                    " has no loop register");
 
   BenchCode.Key.LoopRegister = *LoopRegister;
 
@@ -68,7 +72,9 @@ Expected<BenchmarkCode> parseJSONBlock(
 
   if (!BytesOr.has_value())
     return llvm::make_error<StringError>(
-        errc::invalid_argument, "Malformed basic block: invalid hex value");
+        errc::invalid_argument, "Malformed basic block: Basic block at index " +
+                                    Twine(BlockIndex) +
+                                    " has an invalid hex value: " + *HexValue);
 
   Expected<std::vector<gematria::DisassembledInstruction>>
       DisInstructionsOrErr = gematria::DisassembleAllInstructions(
@@ -90,9 +96,11 @@ Expected<BenchmarkCode> parseJSONBlock(
 
   if (!RegisterDefinitions)
     return llvm::make_error<StringError>(
-        errc::invalid_argument,
-        "Malformed basic block: no register definitions array");
+        errc::invalid_argument, "Malformed basic block: Basic block at index " +
+                                    Twine(BlockIndex) +
+                                    " has no register definitions array");
 
+  size_t RegisterLoopIndex = 0;
   for (const auto &RegisterDefinitionValue : *RegisterDefinitions) {
     const json::Object *RegisterDefinitionObject =
         RegisterDefinitionValue.getAsObject();
@@ -105,11 +113,16 @@ Expected<BenchmarkCode> parseJSONBlock(
     if (!RegisterIndex.has_value() || !RegisterValue.has_value())
       return llvm::make_error<StringError>(
           errc::invalid_argument,
-          "Malformed register definition: invalid register number or value");
+          "Malformed register definition: Basic block at index " +
+              Twine(BlockIndex) +
+              " is missing a register number or value for register at index " +
+              Twine(RegisterLoopIndex));
 
     RegVal.Register = *RegisterIndex;
     RegVal.Value = APInt(64, *RegisterValue);
     BenchCode.Key.RegisterInitialValues.push_back(RegVal);
+
+    ++RegisterLoopIndex;
   }
 
   const json::Array *MemoryDefinitions =
@@ -117,8 +130,9 @@ Expected<BenchmarkCode> parseJSONBlock(
 
   if (!MemoryDefinitions)
     return llvm::make_error<StringError>(
-        errc::invalid_argument,
-        "Malformed basic block: no memory definitions array");
+        errc::invalid_argument, "Malformed basic block: Basic block at index " +
+                                    Twine(BlockIndex) +
+                                    " has no memory definitions array");
 
   size_t MemoryDefinitionIndex = 0;
 
@@ -129,8 +143,9 @@ Expected<BenchmarkCode> parseJSONBlock(
     if (!MemoryDefinitionObject)
       return llvm::make_error<StringError>(
           errc::invalid_argument,
-          "Malformed memory definition: memory "
-          "definition is not a JSON object");
+          "Malformed memory definition: Basic block at index " +
+              Twine(BlockIndex) + " has a memory definition at index " +
+              Twine(MemoryDefinitionIndex) + " that is not a JSON object");
 
     std::optional<StringRef> MemoryDefinitionName =
         MemoryDefinitionObject->getString("Name");
@@ -145,7 +160,9 @@ Expected<BenchmarkCode> parseJSONBlock(
         !MemoryDefinitionHexValue.has_value())
       return llvm::make_error<StringError>(
           errc::invalid_argument,
-          "Malformed memory definition: no size, name, or value");
+          "Malformed memory definition: Basic block at index " +
+              Twine(BlockIndex) + " has a memory definition at index " +
+              Twine(MemoryDefinitionIndex) + " with no size, name, or value");
 
     MemoryValue MemVal;
     MemVal.Value = APInt(32, *MemoryDefinitionHexValue);
@@ -161,16 +178,20 @@ Expected<BenchmarkCode> parseJSONBlock(
 
   if (!MemoryMappings)
     return llvm::make_error<StringError>(
-        errc::invalid_argument,
-        "Malformed basic block: no memory mappings array");
+        errc::invalid_argument, "Malformed basic block: Basic block at index " +
+                                    Twine(BlockIndex) +
+                                    " has no memory mappings array");
 
-  for (const auto &MemoryMappingValue : *MemoryMappings) {
-    const json::Object *MemoryMappingObject = MemoryMappingValue.getAsObject();
+  for (size_t I = 0; I < MemoryMappings->size(); ++I) {
+    const json::Object *MemoryMappingObject =
+        MemoryMappings->data()[I].getAsObject();
 
     if (!MemoryMappingObject)
       return llvm::make_error<StringError>(
           errc::invalid_argument,
-          "Malformed memory mapping: memory mapping is not a JSON object");
+          "Malformed memory mapping: Basic block at index " +
+              Twine(BlockIndex) + " has a memory mapping at index " + Twine(I) +
+              " which is not a JSON object");
 
     std::optional<StringRef> MemoryMappingDefinitionName =
         MemoryMappingObject->getString("Value");
@@ -181,7 +202,9 @@ Expected<BenchmarkCode> parseJSONBlock(
         !MemoryMappingAddress.has_value())
       return llvm::make_error<StringError>(
           errc::invalid_argument,
-          "Malformed memory mapping: no name or address");
+          "Malformed memory mapping: Basic block at index " +
+              Twine(BlockIndex) + " has a memory mapping at index " + Twine(I) +
+              " with no name or address");
 
     MemoryMapping MemMap;
     MemMap.Address = *MemoryMappingAddress;
@@ -192,9 +215,9 @@ Expected<BenchmarkCode> parseJSONBlock(
   return BenchCode;
 }
 
-Expected<unsigned> benchmarkBasicBlock(const BenchmarkCode &BenchCode,
-                                       const BenchmarkRunner &BenchRunner,
-                                       const LLVMState &State) {
+Expected<double> benchmarkBasicBlock(const BenchmarkCode &BenchCode,
+                                     const BenchmarkRunner &BenchRunner,
+                                     const LLVMState &State) {
   std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
       SnippetRepetitor::Create(Benchmark::RepetitionModeE::MiddleHalfLoop,
                                State, BenchCode.Key.LoopRegister);
@@ -208,21 +231,21 @@ Expected<unsigned> benchmarkBasicBlock(const BenchmarkCode &BenchCode,
       BenchRunner.getRunnableConfiguration(BenchCode, 10000, 0, *SnipRepetitor);
   if (!RC2) return RC2.takeError();
 
-  std::pair<Error, Benchmark> BenchmarkResult1OrErr =
+  std::pair<Error, Benchmark> BenchmarkResultAOrErr =
       BenchRunner.runConfiguration(std::move(*RC1), {});
 
-  if (std::get<0>(BenchmarkResult1OrErr))
-    return std::move(std::get<0>(BenchmarkResult1OrErr));
+  if (std::get<0>(BenchmarkResultAOrErr))
+    return std::move(std::get<0>(BenchmarkResultAOrErr));
 
-  AllResults.push_back(std::move(std::get<1>(BenchmarkResult1OrErr)));
+  AllResults.push_back(std::move(std::get<1>(BenchmarkResultAOrErr)));
 
-  std::pair<Error, Benchmark> BenchmarkResult2OrErr =
+  std::pair<Error, Benchmark> BenchmarkResultBOrErr =
       BenchRunner.runConfiguration(std::move(*RC2), {});
 
-  if (std::get<0>(BenchmarkResult2OrErr))
-    return std::move(std::get<0>(BenchmarkResult2OrErr));
+  if (std::get<0>(BenchmarkResultBOrErr))
+    return std::move(std::get<0>(BenchmarkResultBOrErr));
 
-  AllResults.push_back(std::move(std::get<1>(BenchmarkResult2OrErr)));
+  AllResults.push_back(std::move(std::get<1>(BenchmarkResultBOrErr)));
 
   std::unique_ptr<ResultAggregator> ResultAgg =
       ResultAggregator::CreateAggregator(
@@ -233,10 +256,7 @@ Expected<unsigned> benchmarkBasicBlock(const BenchmarkCode &BenchCode,
   ResultAgg->AggregateResults(Result,
                               ArrayRef<Benchmark>(AllResults).drop_front());
 
-  unsigned Throughput100 = static_cast<unsigned>(
-      round(Result.Measurements[0].PerSnippetValue * 100));
-
-  return Throughput100;
+  return Result.Measurements[0].PerSnippetValue;
 }
 
 int main(int Argc, char *Argv[]) {
@@ -248,12 +268,6 @@ int main(int Argc, char *Argv[]) {
     ExitOnErr(llvm::make_error<StringError>(
         errc::invalid_argument, "--annotated_blocks_json is required"));
 
-  auto JsonMemoryBuffer = ExitOnErr(
-      errorOrToExpected(MemoryBuffer::getFile(AnnotatedBlocksJson, true)));
-
-  auto ParsedAnnotatedBlocks =
-      ExitOnErr(json::parse(JsonMemoryBuffer->getBuffer()));
-
   // LLVM Setup
   LLVMInitializeX86TargetInfo();
   LLVMInitializeX86TargetMC();
@@ -264,6 +278,10 @@ int main(int Argc, char *Argv[]) {
 
   // Exegesis Setup
   InitializeX86ExegesisTarget();
+
+  if (pfm::pfmInitialize())
+    ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(),
+                                            "Failed to initialize libpfm"));
 
   const LLVMState State = ExitOnErr(LLVMState::Create("", "native"));
 
@@ -291,10 +309,13 @@ int main(int Argc, char *Argv[]) {
           Benchmark::Latency, State, BenchmarkPhaseSelectorE::Measure,
           BenchmarkRunner::ExecutionModeE::SubProcess, 30, {}, Benchmark::Min));
 
-  if (pfm::pfmInitialize())
-    ExitOnErr(llvm::make_error<StringError>(inconvertibleErrorCode(),
-                                            "Failed to initialize libpfm"));
+  auto JsonMemoryBuffer = ExitOnErr(
+      errorOrToExpected(MemoryBuffer::getFile(AnnotatedBlocksJson, true)));
 
+  auto ParsedAnnotatedBlocks =
+      ExitOnErr(json::parse(JsonMemoryBuffer->getBuffer()));
+
+  size_t BlockIndex = 0;
   for (const auto &AnnotatedBlock : *ParsedAnnotatedBlocks.getAsArray()) {
     const llvm::json::Object *AnnotatedBlockObject =
         AnnotatedBlock.getAsObject();
@@ -303,22 +324,35 @@ int main(int Argc, char *Argv[]) {
           errc::invalid_argument,
           "Malformed basic block: is not a JSON object"));
 
-    BenchmarkCode BenchCode = ExitOnErr(parseJSONBlock(
-        *AnnotatedBlockObject, *MachinePrinter, *MachineDisassembler, State));
+    Expected<BenchmarkCode> BenchCodeOrErr =
+        parseJSONBlock(*AnnotatedBlockObject, *MachinePrinter,
+                       *MachineDisassembler, State, BlockIndex);
+    if (!BenchCodeOrErr)
+      ExitOnErr(
+          createFileError(AnnotatedBlocksJson, BenchCodeOrErr.takeError()));
+
+    const BenchmarkCode &BenchCode = *BenchCodeOrErr;
 
     std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
         SnippetRepetitor::Create(Benchmark::RepetitionModeE::MiddleHalfLoop,
                                  State, BenchCode.Key.LoopRegister);
 
-    unsigned Throughput100 =
-        ExitOnErr(benchmarkBasicBlock(BenchCode, *Runner, State));
+    Expected<double> ThroughputOrErr =
+        benchmarkBasicBlock(BenchCode, *Runner, State);
+
+    if (!ThroughputOrErr)
+      ExitOnErr(
+          createFileError(AnnotatedBlocksJson, ThroughputOrErr.takeError()));
 
     std::optional<StringRef> HexValue = AnnotatedBlockObject->getString("Hex");
-    if (!HexValue)
-      ExitOnErr(llvm::make_error<StringError>(
-          errc::invalid_argument, "Expected basic block to have hex value"));
+    // The block has already been parsed previously, and thus should have thrown
+    // an error if there is no hex value. Assert that this is the case here.
+    assert(HexValue.has_value() &&
+           "Expected block to already have been checked for a hex value.");
 
-    outs() << *HexValue << "," << Throughput100 << "\n";
+    outs() << *HexValue << "," << *ThroughputOrErr << "\n";
+
+    ++BlockIndex;
   }
 
   return 0;
