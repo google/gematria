@@ -119,12 +119,12 @@ cc_library(
     name = "find_accessed_addrs",
     srcs = ["find_accessed_addrs.cc"],
     hdrs = ["find_accessed_addrs.h"],
+    copts = ["-Iexternal/llvm-project/llvm"],
     # This library uses various POSIX APIs. Only tested on Linux, and we'll likely use some
     # Linux-only APIs in future.
     target_compatible_with = [
         "@platforms//os:linux",
     ],
-    copts = ["-Iexternal/llvm-project/llvm"],
     deps = [
         ":block_wrapper",
         "//gematria/llvm:disassembler",
