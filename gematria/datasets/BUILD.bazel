@@ -87,6 +87,8 @@ cc_binary(
         "@llvm-project//llvm:Exegesis",
         "@llvm-project//llvm:Support",
         "@llvm-project//llvm:X86Disassembler",
+    ]
+)
 
 cc_binary(
     name = "process_and_filter_bbs",
