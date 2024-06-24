@@ -32,6 +32,10 @@ _ROOT_PATH = 'com_google_gematria'
 _BASIC_BLOCK_RESOURCE_PATH = os.path.join(
     _ROOT_PATH, 'gematria/testing/testdata/basic_blocks_with_throughput.pbtxt'
 )
+_ANNOTATED_BASIC_BLOCK_RESOURCE_PATH = os.path.join(
+    _ROOT_PATH,
+    'gematria/testing/testdata/annotated_basic_blocks_with_throughput.pbtxt',
+)
 # Parsed basic block. An exception is thrown if the basic blocks do not parse.
 _BASIC_BLOCKS: throughput_pb2.BasicBlockWithThroughputListProto | None = None
 
@@ -42,14 +46,21 @@ CleanupFn = Callable[
 KeepFn = Callable[[throughput_pb2.BasicBlockWithThroughputProto], bool]
 
 
-def _get_basic_block_list_proto():
+def _get_basic_block_list_proto(get_annotated_blocks=False):
   """Loads basic blocks from test data."""
   global _BASIC_BLOCKS
   if _BASIC_BLOCKS is None:
     runfiles_dir = os.environ.get('PYTHON_RUNFILES')
     runfiles_env = runfiles.Create({'RUNFILES_DIR': runfiles_dir})
     assert runfiles_env is not None
-    with open(runfiles_env.Rlocation(_BASIC_BLOCK_RESOURCE_PATH), 'rt') as f:
+    with open(
+        runfiles_env.Rlocation(
+            _ANNOTATED_BASIC_BLOCK_RESOURCE_PATH
+            if get_annotated_blocks
+            else _BASIC_BLOCK_RESOURCE_PATH
+        ),
+        'rt',
+    ) as f:
       _BASIC_BLOCKS = text_format.Parse(
           f.read(), throughput_pb2.BasicBlockWithThroughputListProto()
       )
@@ -58,6 +69,7 @@ def _get_basic_block_list_proto():
 
 def get_basic_blocks(
     num_blocks: int = 0,
+    get_annotated_blocks: bool = False,
     cleanup_fn: CleanupFn | None = None,
     keep_fn: KeepFn | None = None,
 ) -> list[throughput_pb2.BasicBlockWithThroughputProto]:
@@ -70,6 +82,8 @@ def get_basic_blocks(
   Args:
     num_blocks: The number of blocks to return. When zero, all blocks are
       returned.
+    get_annotated_blocks: Whether the returned blocks should contain instruction
+      annotations or not. Defaults to False.
     cleanup_fn: An optional function that cleans up the proto before it is
       filtered via keep_fn.
     keep_fn: A function that returns True for basic blocks that should be
@@ -79,7 +93,7 @@ def get_basic_blocks(
   Returns:
     A list of blocks and a list of tokens for canonicalized representations.
   """
-  source_blocks = _get_basic_block_list_proto().basic_blocks
+  source_blocks = _get_basic_block_list_proto(get_annotated_blocks).basic_blocks
   num_blocks = num_blocks or len(source_blocks)
   # The following makes a deep copy of all the basic block protos, and ensures
   # that the container is a list rather than a repeated proto field container.
@@ -132,9 +146,14 @@ class TestCase(unittest.TestCase):
 
   Attributes:
     blocks: Only the basic block part of blocks_with_throughput.
+    annotated_blocks: Variant of `blocks` with instruction annotations.
     block_protos: Basic block with throughput protos loaded from test data.
+    annotated_block_protos: Variant of `block_protos` with instruction
+      annotations.
     blocks_with_throughput: The basic blocks with throughput loaded from the
       test data. Initializes by the setUp() overload of this class.
+    annotated_blocks_with_throughput: Variant of `blocks_with_throughput` with
+      instruction annotations.
     num_blocks: The number of blocks retrieved from the test data. By default,
       we use just a single basic block as it is enough to test the whole
       learning process, and all the algorithms should be able to overfit on it
@@ -142,26 +161,43 @@ class TestCase(unittest.TestCase):
       before calling `super().setUp()` in their setUp() method.
     tokens: The list of all tokens appearing in self.blocks. The tokens are
       sorted, and each token appears in the list only once.
+    annotation_names: The set of annotation names to be used.
   """
 
   num_blocks: int = 1
 
   blocks: list[basic_block.BasicBlock]
+  annotated_blocks: list[basic_block.BasicBlock]
   block_protos: list[throughput_pb2.BasicBlockWithThroughputProto]
+  annotated_block_protos: list[throughput_pb2.BasicBlockWithThroughputProto]
   blocks_with_throughput: list[throughput.BasicBlockWithThroughput]
+  annotated_blocks_with_throughput: list[throughput.BasicBlockWithThroughput]
 
   tokens: Sequence[str]
+  annotation_names: set[str]
 
   def setUp(self):
     super().setUp()
 
     self.block_protos = get_basic_blocks(self.num_blocks)
+    self.annotated_block_protos = get_basic_blocks(
+        self.num_blocks, get_annotated_blocks=True
+    )
     self.blocks_with_throughput = [
         throughput_protos.block_with_throughput_from_proto(proto)
         for proto in self.block_protos
+    ]
+    self.annotated_blocks_with_throughput = [
+        throughput_protos.block_with_throughput_from_proto(proto)
+        for proto in self.annotated_block_protos
     ]
     self.blocks = [
         block_with_throughput.block
         for block_with_throughput in self.blocks_with_throughput
     ]
+    self.annotated_blocks = [
+        block_with_throughput.block
+        for block_with_throughput in self.annotated_blocks_with_throughput
+    ]
     self.tokens = _get_block_tokens(self.blocks)
+    self.annotation_names = set(('made_up_cache_miss_freq',))
