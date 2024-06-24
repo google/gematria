@@ -92,8 +92,7 @@ llvm::SmallVector<std::string_view, 2> SplitByAny(std::string_view str,
 
   while (pos != str.npos) {
     const size_t next_separator = str.find_first_of(separators, pos);
-    size_t token_end = std::min(next_separator, str.size());
-    tokens.push_back(str.substr(pos, token_end));
+    tokens.push_back(str.substr(pos, next_separator - pos));
 
     pos = str.find_first_not_of(separators, next_separator);
   }
