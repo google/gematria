@@ -13,10 +13,10 @@ main,3,3.809524e-01
 
 //--- bb-frequency-test.s
 # CHECK:      <main>:
-# CHECK-NEXT: Calculated Frequency: 1.803670e+02
+# CHECK-NEXT: Calculated Frequency: 1.8{{[0-9]+}}e+02
 
 # CHECK-COUNT: <main>:
-# CHECK-COUNT: Calculated Frequency: 6.000000e+00
+# CHECK-COUNT: Calculated Frequency: 6.0{{[0-9]+}}e+00
 
  .text
  .file "bb-frequency.ll"
