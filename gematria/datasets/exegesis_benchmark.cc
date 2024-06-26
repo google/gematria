@@ -312,17 +312,24 @@ int main(int Argc, char *Argv[]) {
   auto JsonMemoryBuffer = ExitOnErr(
       errorOrToExpected(MemoryBuffer::getFile(AnnotatedBlocksJson, true)));
 
-  auto ParsedAnnotatedBlocks =
-      ExitOnErr(json::parse(JsonMemoryBuffer->getBuffer()));
+  Expected<json::Value> ParsedAnnotatedBlocksOrErr =
+      json::parse(JsonMemoryBuffer->getBuffer());
+
+  if (!ParsedAnnotatedBlocksOrErr) {
+    ExitOnErr(createFileError(AnnotatedBlocksJson,
+                              ParsedAnnotatedBlocksOrErr.takeError()));
+  }
 
   size_t BlockIndex = 0;
-  for (const auto &AnnotatedBlock : *ParsedAnnotatedBlocks.getAsArray()) {
+  for (const auto &AnnotatedBlock : *ParsedAnnotatedBlocksOrErr->getAsArray()) {
     const llvm::json::Object *AnnotatedBlockObject =
         AnnotatedBlock.getAsObject();
     if (!AnnotatedBlockObject)
-      ExitOnErr(llvm::make_error<StringError>(
-          errc::invalid_argument,
-          "Malformed basic block: is not a JSON object"));
+      ExitOnErr(
+          createFileError(AnnotatedBlocksJson,
+                          llvm::make_error<StringError>(
+                              errc::invalid_argument,
+                              "Malformed basic block: is not a JSON object")));
 
     Expected<BenchmarkCode> BenchCodeOrErr =
         parseJSONBlock(*AnnotatedBlockObject, *MachinePrinter,
