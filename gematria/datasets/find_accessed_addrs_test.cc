@@ -17,8 +17,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/memory/memory.h"
@@ -26,6 +28,7 @@
 #include "absl/random/random.h"
 #include "absl/random/seed_sequences.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
 #include "absl/types/span.h"
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/llvm_architecture_support.h"
@@ -103,6 +106,13 @@ class FindAccessedAddrsTest : public testing::Test {
     auto span = absl::MakeConstSpan(
         reinterpret_cast<const uint8_t*>(code.data()), code.size());
     return FindAccessedAddrs(span);
+  }
+
+  absl::StatusOr<X64Regs> FindReadRegsAsm(std::string_view textual_assembly) {
+    auto code = Assemble(textual_assembly);
+    auto span = absl::MakeConstSpan(
+        reinterpret_cast<const uint8_t*>(code.data()), code.size());
+    return FindReadRegs(*llvm_arch_support_, span);
   }
 };
 
@@ -192,6 +202,60 @@ TEST_F(FindAccessedAddrsTest, DivideByPointee) {
   )asm"),
               IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
                                  ElementsAre(0x15000))));
+}
+
+MATCHER_P(HasRegisters, reg_list_matcher, "") {
+  X64Regs regs = arg;
+  std::vector<std::string_view> accessed_regs;
+  regs.ForEachReg(
+      [&accessed_regs](std::optional<int64_t> reg, std::string_view name) {
+        if (reg.has_value()) {
+          accessed_regs.push_back(name);
+        }
+      });
+
+  *result_listener << "\naccessed registers: "
+                   << absl::StrJoin(accessed_regs, ", ") << "\n"
+                   << "expected registers: "
+                   << testing::DescribeMatcher<std::vector<std::string_view>>(
+                          reg_list_matcher)
+                   << "\n";
+  return testing::ExplainMatchResult(reg_list_matcher, accessed_regs,
+                                     result_listener);
+}
+
+TEST_F(FindAccessedAddrsTest, NoRegisters) {
+  EXPECT_THAT(FindReadRegsAsm(R"asm(
+    nop
+  )asm"),
+              IsOkAndHolds(HasRegisters(IsEmpty())));
+}
+
+TEST_F(FindAccessedAddrsTest, ExplicitRegisters) {
+  EXPECT_THAT(FindReadRegsAsm(R"asm(
+    add rax, rbx
+  )asm"),
+              IsOkAndHolds(HasRegisters(ElementsAre("rax", "rbx"))));
+
+  // edi is written to, but not read from.
+  EXPECT_THAT(FindReadRegsAsm(R"asm(
+    popcnt edi, ebx
+  )asm"),
+              IsOkAndHolds(HasRegisters(ElementsAre("rbx"))));
+}
+
+TEST_F(FindAccessedAddrsTest, ImplicitRegisters) {
+  EXPECT_THAT(FindReadRegsAsm(R"asm(
+    idiv ebx
+  )asm"),
+              IsOkAndHolds(HasRegisters(ElementsAre("rax", "rbx", "rdx"))));
+
+  // CDQ writes to edx, but doesn't read from it, so it is not included in the
+  // accessed registers.
+  EXPECT_THAT(FindReadRegsAsm(R"asm(
+    cdq
+  )asm"),
+              IsOkAndHolds(HasRegisters(ElementsAre("rax"))));
 }
 
 }  // namespace

@@ -36,15 +36,33 @@ unsigned getSuperRegister(unsigned OriginalRegister,
   unsigned SuperRegister = OriginalRegister;
   for (MCPhysReg CurrentSuperRegister :
        RegisterInfo.superregs_inclusive(OriginalRegister)) {
-    SuperRegister = CurrentSuperRegister;
+    if (RegisterInfo.isSuperRegister(SuperRegister, CurrentSuperRegister)) {
+      SuperRegister = CurrentSuperRegister;
+    }
   }
   // Only return super registers for GPRs. Since mainly GPRs will be used for
   // addressing, redefining other aliasing registers (like vector registers)
   // does not matter as much.
+  // TODO(boomanaiden154): We are only handling the simple case as it gives the
+  // most mileage, and vector registers need additional target-specific handling
+  // to ensure that the instructions are actually supported by the CPU we are
+  // executing on. This should be fixed in the future.
   if (RegisterInfo.getRegClass(X86::GR64RegClassID).contains(SuperRegister))
     return SuperRegister;
   else
     return OriginalRegister;
+}
+
+bool shouldSkipDueToPartialWrite(unsigned Register,
+                                 const MCRegisterInfo &RegisterInfo) {
+  // Do not define the super register of 8-bit or 16-bit registers as
+  // already being defined, as moving values into those registers does not
+  // zero the rest of the bits in the register, unlike when writing to
+  // 32-bit registers.
+  if (RegisterInfo.getRegClass(X86::GR8RegClassID).contains(Register) ||
+      RegisterInfo.getRegClass(X86::GR16RegClassID).contains(Register))
+    return true;
+  return false;
 }
 
 std::vector<unsigned> getUsedRegisters(
@@ -78,14 +96,7 @@ std::vector<unsigned> getUsedRegisters(
     // Handle instructions that have implicit defs
     for (unsigned ImplicitlyDefinedRegister :
          InstructionInfo.get(Instruction.mc_inst.getOpcode()).implicit_defs()) {
-      // Do not define the super register of 8-bit or 16-bit registers as
-      // already being defined, as moving values into those registers does not
-      // zero the rest of the bits in the register, unlike when writing to
-      // 32-bit registers.
-      if (RegisterInfo.getRegClass(X86::GR8RegClassID)
-              .contains(ImplicitlyDefinedRegister) ||
-          RegisterInfo.getRegClass(X86::GR16RegClassID)
-              .contains(ImplicitlyDefinedRegister))
+      if (shouldSkipDueToPartialWrite(ImplicitlyDefinedRegister, RegisterInfo))
         continue;
       DefinedInBBRegisters.insert(
           getSuperRegister(ImplicitlyDefinedRegister, RegisterInfo));
@@ -96,15 +107,7 @@ std::vector<unsigned> getUsedRegisters(
         unsigned RegisterNumber =
             Instruction.mc_inst.getOperand(OperandIndex).getReg();
         if (RegisterNumber == 0) continue;
-        // Do not define the super register of 8-bit or 16-bit registers as
-        // already being defined, as moving values into those registers does not
-        // zero the rest of the bits in the register, unlike when writing to
-        // 32-bit registers.
-        if (RegisterInfo.getRegClass(X86::GR8RegClassID)
-                .contains(RegisterNumber) ||
-            RegisterInfo.getRegClass(X86::GR16RegClassID)
-                .contains(RegisterNumber))
-          continue;
+        if (shouldSkipDueToPartialWrite(RegisterNumber, RegisterInfo)) continue;
         DefinedInBBRegisters.insert(
             getSuperRegister(RegisterNumber, RegisterInfo));
       }

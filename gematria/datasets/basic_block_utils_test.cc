@@ -125,9 +125,7 @@ TEST_F(BasicBlockUtilsTest, UsedRegistersImplicitDefs) {
 TEST_F(BasicBlockUtilsTest, UsedRegistersCPUID) {
   std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
     cpuid
-    movq %rax, %r8
     movq %rbx, %r8
-    movq %rcx, %r8
     movq %rdx, %r8
   )asm");
   EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RAX, X86::RCX));
@@ -162,6 +160,20 @@ TEST_F(BasicBlockUtilsTest, UsedRegistersAddressingModes) {
   )asm");
   EXPECT_THAT(UsedRegisters,
               UnorderedElementsAre(X86::RAX, X86::RBX, X86::RCX));
+}
+
+// TODO(boomanaiden154): Currently, this returns %RCX in addition to %RAX and
+// %RDX, when it should only return the latter two. This is not a large concern
+// as we are still returning a safe register set, but this should be fixed
+// eventually.
+TEST_F(BasicBlockUtilsTest, DISABLED_UsedRegistersSingleByteDefines) {
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
+    movb %al, %cl
+    movb %cl, %dl
+    addq %rdx, %rax
+  )asm");
+  EXPECT_THAT(UsedRegisters,
+              UnorderedElementsAre(X86::RAX, X86::RDX, X86::RCX));
 }
 
 }  // namespace

@@ -12,16 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import lit.main
-import sys
+import lit.formats
 
-# Lit expects the test folder path to be specifided on the command-line, which
-# is usually passed in through CMake. Bazel doesn't support this configuration,
-# so we manually add the path here.
-sys.argv.append(
-    "./gematria/datasets/convert_bhive_to_llvm_exegesis_input_tests"
+config.name = 'extract_bbs_from_obj_tests'
+config.test_format = lit.formats.ShTest(True)
+
+config.suffixes = ['.test']
+
+config.test_source_root = os.path.dirname(__file__)
+config.test_exec_root = os.path.join(config.obj_root, 'test')
+
+config.substitutions.append(
+    ('FileCheck', os.path.join(config.llvm_tools_root, 'FileCheck'))
 )
-sys.argv.append("-vv")
+config.substitutions.append(
+    ('%yaml2obj', os.path.join(config.llvm_tools_root, 'yaml2obj'))
+)
 
-if __name__ == "__main__":
-  lit.main.main()
+config.substitutions.append((
+    '%extract_bbs_from_obj',
+    os.path.join(config.tools_root, 'extract_bbs_from_obj'),
+))
