@@ -1,0 +1,39 @@
+; Test that converting a single basic block with the default settings with
+; JSON output specified produces the appropriate JSON file.
+
+; RUN: split-file %s %t
+; RUN: mkdir %t.jsondir
+; RUN: %convert_bhive_to_llvm_exegesis_input --json_output_dir=%t.jsondir --bhive_csv=%t/test.csv
+; RUN: cat %t.jsondir/0.json | FileCheck %s
+
+; CHECK: [
+; CHECK:   {
+; CHECK:     "Hex": "3b31",
+; CHECK:     "MemoryDefinitions": [
+; CHECK:       {
+; CHECK:         "Name": "MEM",
+; CHECK:         "Size": 4096,
+; CHECK:         "Value": 305419776
+; CHECK:       }
+; CHECK:     ],
+; CHECK:     "MemoryMappings": [
+; CHECK:       {
+; CHECK:         "Address": 86016,
+; CHECK:         "Value": "MEM"
+; CHECK:       }
+; CHECK:     ],
+; CHECK:     "RegisterDefinitions": [
+; CHECK:       {
+; CHECK:         "Register": 54,
+; CHECK:         "Value": 305419776
+; CHECK:       },
+; CHECK:       {
+; CHECK:         "Register": 60,
+; CHECK:         "Value": 305419776
+; CHECK:       }
+; CHECK:     ]
+; CHECK:   }
+; CHECK: ]
+
+;--- test.csv
+3b31,45.000000
