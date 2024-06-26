@@ -44,10 +44,10 @@
 #include "gematria/datasets/block_wrapper.h"
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
+#include "lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCRegister.h"
-#include "lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 
 namespace gematria {
 namespace {
@@ -878,7 +878,7 @@ X64Regs FindReadRegs(const LlvmArchitectureSupport& llvm_arch_support,
 // * Much more complete testing.
 absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
     absl::Span<const uint8_t> basic_block) {
-    X64Regs initial_regs;
+  X64Regs initial_regs;
   initial_regs.ForEachReg([](std::optional<int64_t>& value) {
     // This value is chosen to be almost the lowest address that's able to be
     // mapped. We want it to be low so that even if a register is multiplied or
