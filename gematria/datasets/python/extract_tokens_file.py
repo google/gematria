@@ -40,7 +40,10 @@ _INPUT_TFRECORD_FILE = flags.DEFINE_string(
     required=True,
 )
 _OUTPUT_TXT_FILE = flags.DEFINE_string(
-    'gematria_output_tokens_file', None, 'The path to the output txt file', required=True
+    'gematria_output_tokens_file',
+    None,
+    'The path to the output txt file',
+    required=True,
 )
 
 
