@@ -14,7 +14,7 @@
 
 import lit.formats
 
-config.name = 'generate_vocab_tests'
+config.name = 'extract_tokens_file_tests'
 config.test_format = lit.formats.ShTest(True)
 
 config.suffixes = ['.test']
@@ -30,8 +30,8 @@ config.substitutions.append(
 )
 
 config.substitutions.append((
-    '%generate_vocab',
-    os.path.join(config.tools_root, 'generate_vocab'),
+    '%extract_tokens_file',
+    os.path.join(config.tools_root, 'extract_tokens_file'),
 ))
 
 config.substitutions.append((

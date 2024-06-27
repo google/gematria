@@ -3,7 +3,7 @@
 
 ; RUN: split-file %s %t
 ; RUN: %import_from_bhive --gematria_input_csv=%t/test.csv --gematria_output_tfrecord=%t/test.tfrecord --gematria_throughput_source_name=test
-; RUN: %generate_vocab --input_tfrecord=%t/test.tfrecord --output_vocab=%t/test.vocab
+; RUN: %extract_tokens_file --gematria_input_tfrecord=%t/test.tfrecord --gematria_output_tokens_file=%t/test.vocab
 ; RUN: cat %t/test.vocab | FileCheck %s
 
 ; CHECK: CMP

@@ -55,8 +55,8 @@ gematria_py_binary(
 )
 
 gematria_py_binary(
-    name = "generate_vocab",
-    srcs = ["generate_vocab.py"],
+    name = "extract_tokens_file",
+    srcs = ["extract_tokens_file.py"],
     deps = [
         "//gematria/basic_block/python:basic_block",
         "//gematria/basic_block/python:basic_block_protos",
@@ -66,15 +66,15 @@ gematria_py_binary(
 )
 
 gematria_py_test(
-    name = "generate_vocab_test",
+    name = "extract_tokens_file_test",
     size = "small",
-    srcs = ["generate_vocab_test.py"],
+    srcs = ["extract_tokens_file_test.py"],
     data = [
-        "generate_vocab_tests/lit.cfg.py",
-        "generate_vocab_tests/lit.site.cfg.py",
-        ":generate_vocab",
+        "extract_tokens_file_tests/lit.cfg.py",
+        "extract_tokens_file_tests/lit.site.cfg.py",
+        ":extract_tokens_file",
         ":import_from_bhive",
         "@llvm-project//llvm:FileCheck",
         "@llvm-project//llvm:split-file",
-    ] + glob(["generate_vocab_tests/*.test"]),
+    ] + glob(["extract_tokens_file_tests/*.test"]),
 )

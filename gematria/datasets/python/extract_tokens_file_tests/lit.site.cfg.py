@@ -15,7 +15,7 @@
 import os
 
 config.obj_root = os.path.join(
-    os.getcwd(), 'gematria/datasets/python/generate_vocab_tests'
+    os.getcwd(), 'gematria/datasets/python/extract_tokens_file_tests'
 )
 config.tools_root = os.path.join(os.getcwd(), 'gematria/datasets/python')
 config.llvm_tools_root = os.path.join(os.getcwd(), 'external/llvm-project/llvm')

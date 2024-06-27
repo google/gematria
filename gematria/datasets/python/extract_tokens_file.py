@@ -34,13 +34,13 @@ from gematria.basic_block.python import basic_block_protos
 from gematria.basic_block.python import basic_block
 
 _INPUT_TFRECORD_FILE = flags.DEFINE_string(
-    'input_tfrecord',
+    'gematria_input_tfrecord',
     None,
     'The path to the tfrecord file to process',
     required=True,
 )
 _OUTPUT_TXT_FILE = flags.DEFINE_string(
-    'output_vocab', None, 'The path to the output txt file', required=True
+    'gematria_output_tokens_file', None, 'The path to the output txt file', required=True
 )
 
 
@@ -53,9 +53,7 @@ def main(argv) -> None:
 
   tokens = set()
 
-  current_proto_index = 0
-
-  for proto in loaded_protos:
+  for current_proto_index, proto in enumerate(loaded_protos):
     if current_proto_index % 1000 == 0:
       logging.info(f'Just finished proto {current_proto_index}')
     basic_block_proto = basic_block_protos.basic_block_from_proto(
