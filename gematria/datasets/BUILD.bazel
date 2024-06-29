@@ -112,9 +112,11 @@ cc_library(
         "@platforms//os:linux",
     ],
     deps = [
+        ":basic_block_utils",
         ":block_wrapper",
         "//gematria/llvm:disassembler",
         "//gematria/llvm:llvm_architecture_support",
+        "//gematria/llvm:llvm_to_absl",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/random:distributions",
         "@com_google_absl//absl/status",
@@ -124,8 +126,6 @@ cc_library(
         "@com_google_absl//absl/types:span",
         "@llvm-project//llvm:MC",
         "@llvm-project//llvm:X86UtilsAndDesc",
-        ":basic_block_utils",
-        "//gematria/llvm:llvm_to_absl",
     ],
 )
 

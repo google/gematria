@@ -34,6 +34,7 @@
 #include <string>
 #include <vector>
 
+#include "X86.h"
 #include "absl/random/random.h"
 #include "absl/random/uniform_int_distribution.h"
 #include "absl/status/status.h"
@@ -50,7 +51,6 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCRegister.h"
-#include "X86.h"
 
 namespace gematria {
 namespace {
@@ -170,7 +170,7 @@ RawX64Regs ToRawRegs(const std::vector<RegisterAndValue> regs) {
   RawX64Regs raw_regs;
 
   for (const RegisterAndValue reg_and_value : regs) {
-    switch(reg_and_value.register_index) {
+    switch (reg_and_value.register_index) {
       case X86::RAX:
         raw_regs.rax = reg_and_value.register_value;
         break;
@@ -533,8 +533,9 @@ absl::StatusOr<std::vector<unsigned>> FindReadRegs(
 // * Much more complete testing.
 absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
-    LlvmArchitectureSupport &llvm_arch_support) {
-  absl::StatusOr<std::vector<unsigned>> used_regs = FindReadRegs(llvm_arch_support, basic_block);
+    LlvmArchitectureSupport& llvm_arch_support) {
+  absl::StatusOr<std::vector<unsigned>> used_regs =
+      FindReadRegs(llvm_arch_support, basic_block);
   if (!used_regs.ok()) {
     return used_regs.status();
   }
@@ -549,10 +550,8 @@ absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
     // accessible region of memory. But it's very common to take small negative
     // offsets from a register as a memory address, so we want to leave some
     // space below so that such addresses will still be accessible.
-    initial_regs.push_back({
-      .register_index = used_reg,
-      .register_value = 0x15000
-    });
+    initial_regs.push_back(
+        {.register_index = used_reg, .register_value = 0x15000});
   }
 
   absl::BitGen gen;
