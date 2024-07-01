@@ -44,10 +44,6 @@ $ . env/bin/activate
 # Install Python dependencies.
 $ pip install -r requirements.in
 
-# On OS X only. The dependencies of tensorflow-ranking are not set up correctly
-# and it needs to be installed manually.
-$ pip install --no-deps tensorflow-ranking.
-
 # Build the project, run tests, ...
 $ bazel build ...
 $ bazel test ...
