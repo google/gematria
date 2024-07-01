@@ -26,6 +26,9 @@
 
 namespace gematria {
 
+// We need a register struct with each member directly encoded so that it has a
+// predictible memory layout to pass into the prelude assembly which sets the
+// registers before executing the block
 struct RawX64Regs {
   int64_t rax;
   int64_t rbx;
