@@ -56,7 +56,8 @@ void WriteRegisterDef(std::ofstream& snippets_file, std::string_view name,
 void WriteExegesisSnippet(gematria::BHiveImporter& bhive_importer,
                           std::string_view snippets_dir,
                           const std::vector<uint8_t>& code,
-                          const gematria::AccessedAddrs& addrs, int n) {
+                          const gematria::AccessedAddrs& addrs, int n,
+                          gematria::LlvmArchitectureSupport& llvm_support) {
   auto proto = bhive_importer.BasicBlockProtoFromMachineCode(code);
   CHECK_OK(proto);
 
@@ -64,13 +65,13 @@ void WriteExegesisSnippet(gematria::BHiveImporter& bhive_importer,
   std::ofstream snippets_file(filename);
 
   // register values
-  addrs.initial_regs.ForEachReg([&snippets_file](
-                                    const std::optional<int64_t>& value,
-                                    std::string_view name) {
-    if (!value) return;
-    snippets_file << "# LLVM-EXEGESIS-DEFREG " << absl::AsciiStrToUpper(name)
-                  << " " << absl::StrFormat("%016x", *value) << "\n";
-  });
+  for (const gematria::RegisterAndValue register_value : addrs.initial_regs) {
+    snippets_file << "# LLVM-EXEGESIS-DEFREG "
+                  << llvm_support.mc_register_info().getName(
+                         register_value.register_index)
+                  << absl::StrFormat("%016x", register_value.register_value)
+                  << "\n";
+  }
 
   // Every block has the same size and contents, so we define one and then map
   // it for every accessed block.
@@ -128,7 +129,7 @@ int main(int argc, char* argv[]) {
     }
 
     const auto& bytes = bytes_or.value();
-    auto addrs_or = gematria::FindAccessedAddrs(bytes);
+    auto addrs_or = gematria::FindAccessedAddrs(bytes, *llvm_support);
     if (addrs_or.ok()) {
       successful_calls++;
 
@@ -151,7 +152,7 @@ int main(int argc, char* argv[]) {
       if (!absl::GetFlag(FLAGS_exegesis_snippets_dir).empty()) {
         WriteExegesisSnippet(bhive_importer,
                              absl::GetFlag(FLAGS_exegesis_snippets_dir), bytes,
-                             addrs_or.value(), n++);
+                             addrs_or.value(), n++, *llvm_support);
       }
     } else {
       if (failing_blocks_csv_file.has_value()) {
