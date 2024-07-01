@@ -99,13 +99,13 @@ ABSL_FLAG(unsigned, max_annotation_attempts, 50,
 absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
     gematria::ExegesisAnnotator* exegesis_annotator,
-    const unsigned max_annotation_attempts) {
+    const unsigned max_annotation_attempts,
+    gematria::LlvmArchitectureSupport& llvm_support) {
   const AnnotatorType annotator_implementation =
       absl::GetFlag(FLAGS_annotator_implementation);
   switch (annotator_implementation) {
     case AnnotatorType::kFast:
-      // This will only get the first segfault address.
-      return gematria::FindAccessedAddrs(basic_block);
+      return gematria::FindAccessedAddrs(basic_block, llvm_support);
     case AnnotatorType::kExegesis:
       return gematria::LlvmExpectedToStatusOr(
           exegesis_annotator->findAccessedAddrs(
@@ -261,7 +261,7 @@ int main(int argc, char* argv[]) {
     }
 
     auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator.get(),
-                                  max_annotation_attempts);
+                                  max_annotation_attempts, *llvm_support);
 
     if (!addrs.ok()) {
       std::cerr << "Failed to find addresses for block '" << hex
