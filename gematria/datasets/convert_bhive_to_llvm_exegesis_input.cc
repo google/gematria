@@ -105,7 +105,6 @@ absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
       absl::GetFlag(FLAGS_annotator_implementation);
   switch (annotator_implementation) {
     case AnnotatorType::kFast:
-      // This will only get the first segfault address.
       return gematria::FindAccessedAddrs(basic_block, llvm_support);
     case AnnotatorType::kExegesis:
       return gematria::LlvmExpectedToStatusOr(
