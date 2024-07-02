@@ -145,6 +145,7 @@ class TestCase(unittest.TestCase):
   """
 
   num_blocks: int = 1
+  keep_function: KeepFn = None
 
   blocks: list[basic_block.BasicBlock]
   block_protos: list[throughput_pb2.BasicBlockWithThroughputProto]
@@ -155,7 +156,9 @@ class TestCase(unittest.TestCase):
   def setUp(self):
     super().setUp()
 
-    self.block_protos = get_basic_blocks(self.num_blocks)
+    self.block_protos = get_basic_blocks(
+        self.num_blocks, keep_fn=self.keep_function
+    )
     self.blocks_with_throughput = [
         throughput_protos.block_with_throughput_from_proto(proto)
         for proto in self.block_protos

@@ -22,6 +22,7 @@ from gematria.model.python import model_base
 from gematria.model.python import model_blocks
 from gematria.model.python import oov_token_behavior
 from gematria.testing.python import model_test
+from gematria.proto import throughput_pb2
 import tensorflow.compat.v1 as tf
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
@@ -575,6 +576,70 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
     model.initialize()
     with self.assertRaises(model_base.AddBasicBlockError):
       model.schedule_batch(self.blocks_with_throughput)
+
+
+class TokenGraphBuilderModelEsotericBlocksTest(
+    parameterized.TestCase, model_test.TestCase
+):
+  """Test that we can train on esoteric blocks.
+
+  Test that we can handle blocks containing rather esoteric instruction
+  features, such as instruction prefixes, correctly during training.
+  """
+
+  def setUp(self):
+    def _block_filter(
+        basic_block: throughput_pb2.BasicBlockWithThroughputProto,
+    ):
+      prefixes = basic_block.basic_block.canonicalized_instructions[0].prefixes
+      if len(prefixes) == 0:
+        return False
+      return (
+          basic_block.basic_block.canonicalized_instructions[0].prefixes[0]
+          == 'REP'
+      )
+
+    self.keep_function = _block_filter
+    super().setUp()
+
+  def test_train_seq2num_instruction_with_prefix(self):
+    num_message_passing_iterations = 1
+    node_embedding_size = 14
+    edge_embedding_size = 16
+    global_embedding_size = 18
+    node_update_layers = (15, 7)
+    edge_update_layers = (13, 9)
+    global_update_layers = (11, 17)
+    readout_layers = (16,)
+    task_readout_layers = ()
+    activation = functools.partial(tf.keras.activations.relu, alpha=0.1)
+    model = token_graph_builder_model.TokenGraphBuilderModel(
+        tokens=self.tokens,
+        immediate_token=tokens.IMMEDIATE,
+        fp_immediate_token=tokens.IMMEDIATE,
+        address_token=tokens.ADDRESS,
+        memory_token=tokens.MEMORY,
+        out_of_vocabulary_behavior=_OutOfVocabularyTokenBehavior.return_error(),
+        use_deltas=False,
+        learning_rate=0.01,
+        node_embedding_size=node_embedding_size,
+        edge_embedding_size=edge_embedding_size,
+        global_embedding_size=global_embedding_size,
+        node_update_layers=node_update_layers,
+        edge_update_layers=edge_update_layers,
+        global_update_layers=global_update_layers,
+        readout_layers=readout_layers,
+        task_readout_layers=task_readout_layers,
+        readout_activation=activation,
+        update_activation=activation,
+        graph_module_layer_normalization=True,
+        task_readout_input_layer_normalization=False,
+        readout_input_layer_normalization=False,
+        num_message_passing_iterations=num_message_passing_iterations,
+        dtype=tf.dtypes.float32,
+    )
+    model.initialize()
+    self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
 
 if __name__ == '__main__':

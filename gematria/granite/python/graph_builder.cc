@@ -61,6 +61,7 @@ PYBIND11_MODULE(graph_builder, m) {
       .value("ADDRESS_INDEX_REGISTER", EdgeType::kAddressIndexRegister)
       .value("ADDRESS_SEGMENT_REGISTER", EdgeType::kAddressSegmentRegister)
       .value("ADDRESS_DISPLACEMENT", EdgeType::kAddressDisplacement)
+      .value("INSTRUCTION_PREFIX", EdgeType::kInstructionPrefix)
       .export_values();
 
   py::class_<BasicBlockGraphBuilder>(m, "BasicBlockGraphBuilder")
