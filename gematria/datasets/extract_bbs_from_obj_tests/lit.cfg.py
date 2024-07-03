@@ -29,7 +29,9 @@ config.substitutions.append(
     ('%yaml2obj', os.path.join(config.llvm_tools_root, 'yaml2obj'))
 )
 
-config.substitutions.append((
-    '%extract_bbs_from_obj',
-    os.path.join(config.tools_root, 'extract_bbs_from_obj'),
-))
+config.substitutions.append(
+    (
+        '%extract_bbs_from_obj',
+        os.path.join(config.tools_root, 'extract_bbs_from_obj'),
+    )
+)

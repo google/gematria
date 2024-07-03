@@ -62,18 +62,28 @@ class ConvertFromProtoTest(absltest.TestCase):
     self.assertEqual(
         block.block,
         basic_block.BasicBlock(
-            basic_block.InstructionList((
-                basic_block.Instruction(
-                    mnemonic='MOV',
-                    llvm_mnemonic='MOV32rr',
-                    input_operands=basic_block.InstructionOperandList((
-                        basic_block.InstructionOperand.from_register('RAX'),
-                    )),
-                    output_operands=basic_block.InstructionOperandList((
-                        basic_block.InstructionOperand.from_register('R15'),
-                    )),
-                ),
-            ))
+            basic_block.InstructionList(
+                (
+                    basic_block.Instruction(
+                        mnemonic='MOV',
+                        llvm_mnemonic='MOV32rr',
+                        input_operands=basic_block.InstructionOperandList(
+                            (
+                                basic_block.InstructionOperand.from_register(
+                                    'RAX'
+                                ),
+                            )
+                        ),
+                        output_operands=basic_block.InstructionOperandList(
+                            (
+                                basic_block.InstructionOperand.from_register(
+                                    'R15'
+                                ),
+                            )
+                        ),
+                    ),
+                )
+            )
         ),
     )
 
@@ -124,19 +134,31 @@ class ConvertFromProtoTest(absltest.TestCase):
     self.assertEqual(
         block.block,
         basic_block.BasicBlock(
-            basic_block.InstructionList((
-                basic_block.Instruction(
-                    mnemonic='MOV',
-                    llvm_mnemonic='MOV32rr',
-                    input_operands=basic_block.InstructionOperandList((
-                        basic_block.InstructionOperand.from_register('RAX'),
-                    )),
-                    output_operands=basic_block.InstructionOperandList((
-                        basic_block.InstructionOperand.from_register('R15'),
-                    )),
-                ),
-                basic_block.Instruction(mnemonic='NOP', llvm_mnemonic='NOP'),
-            ))
+            basic_block.InstructionList(
+                (
+                    basic_block.Instruction(
+                        mnemonic='MOV',
+                        llvm_mnemonic='MOV32rr',
+                        input_operands=basic_block.InstructionOperandList(
+                            (
+                                basic_block.InstructionOperand.from_register(
+                                    'RAX'
+                                ),
+                            )
+                        ),
+                        output_operands=basic_block.InstructionOperandList(
+                            (
+                                basic_block.InstructionOperand.from_register(
+                                    'R15'
+                                ),
+                            )
+                        ),
+                    ),
+                    basic_block.Instruction(
+                        mnemonic='NOP', llvm_mnemonic='NOP'
+                    ),
+                )
+            )
         ),
     )
 
@@ -187,19 +209,31 @@ class ConvertFromProtoTest(absltest.TestCase):
     self.assertEqual(
         block.block,
         basic_block.BasicBlock(
-            basic_block.InstructionList((
-                basic_block.Instruction(
-                    mnemonic='MOV',
-                    llvm_mnemonic='MOV32rr',
-                    input_operands=basic_block.InstructionOperandList((
-                        basic_block.InstructionOperand.from_register('RAX'),
-                    )),
-                    output_operands=basic_block.InstructionOperandList((
-                        basic_block.InstructionOperand.from_register('R15'),
-                    )),
-                ),
-                basic_block.Instruction(mnemonic='NOP', llvm_mnemonic='NOP'),
-            ))
+            basic_block.InstructionList(
+                (
+                    basic_block.Instruction(
+                        mnemonic='MOV',
+                        llvm_mnemonic='MOV32rr',
+                        input_operands=basic_block.InstructionOperandList(
+                            (
+                                basic_block.InstructionOperand.from_register(
+                                    'RAX'
+                                ),
+                            )
+                        ),
+                        output_operands=basic_block.InstructionOperandList(
+                            (
+                                basic_block.InstructionOperand.from_register(
+                                    'R15'
+                                ),
+                            )
+                        ),
+                    ),
+                    basic_block.Instruction(
+                        mnemonic='NOP', llvm_mnemonic='NOP'
+                    ),
+                )
+            )
         ),
     )
     self.assertLen(block.throughputs, 3)
