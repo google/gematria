@@ -120,13 +120,11 @@ class SequenceModelBase(token_model.TokenModel, model_base.ModelBase):
         name='SequenceModelBase.num_instructions_per_block',
     )
 
-    model_output = self._model(
-        (
-            self._token_sequence_placeholder,
-            self._num_tokens_per_instruction_placeholder,
-            self._num_instructions_per_block_placeholder,
-        )
-    )
+    model_output = self._model((
+        self._token_sequence_placeholder,
+        self._num_tokens_per_instruction_placeholder,
+        self._num_instructions_per_block_placeholder,
+    ))
 
     if self._use_deltas:
       self._output_tensor_deltas = model_output

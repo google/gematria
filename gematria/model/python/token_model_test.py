@@ -121,9 +121,9 @@ class TokenModelTest(model_test.TestCase):
       self.assertTrue(model.validate_basic_block_with_throughput(block))
 
     invalid_block = basic_block.BasicBlock(
-        basic_block.InstructionList(
-            (basic_block.Instruction(mnemonic='FOOBAR'),)
-        )
+        basic_block.InstructionList((
+            basic_block.Instruction(mnemonic='FOOBAR'),
+        ))
     )
     self.assertFalse(model.validate_basic_block(invalid_block))
     self.assertFalse(model.validate_basic_blockTokens(invalid_block))
@@ -152,9 +152,9 @@ class TokenModelTest(model_test.TestCase):
       self.assertTrue(model.validate_basic_block_with_throughput(block))
 
     block = basic_block.BasicBlock(
-        basic_block.InstructionList(
-            (basic_block.Instruction(mnemonic='FOOBAR'),)
-        )
+        basic_block.InstructionList((
+            basic_block.Instruction(mnemonic='FOOBAR'),
+        ))
     )
     self.assertTrue(model.validate_basic_block(block))
     self.assertTrue(model.validate_basic_blockTokens(block))

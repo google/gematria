@@ -227,9 +227,9 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
     # This basic block is invalid - there is no x86-64 instruction `FOOBAR`.
     invalid_block = throughput.BasicBlockWithThroughput(
         block=basic_block.BasicBlock(
-            basic_block.InstructionList(
-                (basic_block.Instruction(mnemonic='FOOBAR'),)
-            )
+            basic_block.InstructionList((
+                basic_block.Instruction(mnemonic='FOOBAR'),
+            ))
         )
     )
     self.assertFalse(model.validate_basic_block_with_throughput(invalid_block))
