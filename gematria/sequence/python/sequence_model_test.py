@@ -109,9 +109,9 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
     model.initialize()
 
     invalid_block = basic_block.BasicBlock(
-        instructions=basic_block.InstructionList(
-            (basic_block.Instruction(mnemonic='FOOBAR'),)
-        )
+        instructions=basic_block.InstructionList((
+            basic_block.Instruction(mnemonic='FOOBAR'),
+        ))
     )
     self.assertFalse(model.validate_basic_block(invalid_block))
 
@@ -251,9 +251,9 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
       self.assertTrue(model.validate_basic_block_with_throughput(block))
 
     invalid_block = basic_block.BasicBlock(
-        instructions=basic_block.InstructionList(
-            (basic_block.Instruction(mnemonic='FOOBAR'),)
-        )
+        instructions=basic_block.InstructionList((
+            basic_block.Instruction(mnemonic='FOOBAR'),
+        ))
     )
     self.assertFalse(model.validate_basic_block(invalid_block))
 

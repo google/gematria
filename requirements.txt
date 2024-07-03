@@ -7,15 +7,13 @@
 absl-py==2.1.0
     # via
     #   -r ./requirements.in
+    #   keras
     #   tensorboard
     #   tensorflow
     #   tensorflow-probability
-    #   tensorflow-ranking
 astunparse==1.6.3
     # via tensorflow
-cachetools==5.3.3
-    # via google-auth
-certifi==2024.2.2
+certifi==2024.6.2
     # via requests
 charset-normalizer==3.3.2
     # via requests
@@ -29,75 +27,74 @@ dm-tree==0.1.8
     # via tensorflow-probability
 flatbuffers==24.3.25
     # via tensorflow
-gast==0.4.0
+gast==0.6.0
     # via
     #   tensorflow
     #   tensorflow-probability
-google-auth==2.29.0
-    # via
-    #   google-auth-oauthlib
-    #   tensorboard
-google-auth-oauthlib==1.0.0
-    # via tensorboard
 google-pasta==0.2.0
     # via tensorflow
-grpcio==1.62.1
+grpcio==1.64.1
     # via
     #   tensorboard
     #   tensorflow
-    #   tensorflow-serving-api
-h5py==3.10.0
-    # via tensorflow
+h5py==3.11.0
+    # via
+    #   keras
+    #   tensorflow
 idna==3.7
     # via requests
-keras==2.13.1
+keras==3.4.1
     # via tensorflow
 libclang==18.1.1
     # via tensorflow
-lit==18.1.2
+lit==18.1.8
     # via -r ./requirements.in
 markdown==3.6
     # via tensorboard
+markdown-it-py==3.0.0
+    # via rich
 markupsafe==2.1.5
     # via werkzeug
-networkx==3.2.1
+mdurl==0.1.2
+    # via markdown-it-py
+ml-dtypes==0.3.2
+    # via
+    #   keras
+    #   tensorflow
+namex==0.0.8
+    # via keras
+networkx==3.3
     # via -r ./requirements.in
-numpy==1.24.3
+numpy==1.26.4
     # via
     #   -r ./requirements.in
     #   h5py
+    #   keras
+    #   ml-dtypes
     #   opt-einsum
     #   scipy
     #   tensorboard
     #   tensorflow
     #   tensorflow-probability
-    #   tensorflow-ranking
-oauthlib==3.2.2
-    # via requests-oauthlib
 opt-einsum==3.3.0
     # via tensorflow
-packaging==24.0
-    # via tensorflow
+optree==0.11.0
+    # via keras
+packaging==24.1
+    # via
+    #   keras
+    #   tensorflow
 protobuf==4.25.3
     # via
     #   tensorboard
     #   tensorflow
-    #   tensorflow-serving-api
-pyasn1==0.6.0
-    # via
-    #   pyasn1-modules
-    #   rsa
-pyasn1-modules==0.4.0
-    # via google-auth
-requests==2.31.0
-    # via
-    #   requests-oauthlib
-    #   tensorboard
-requests-oauthlib==2.0.0
-    # via google-auth-oauthlib
-rsa==4.9
-    # via google-auth
-scipy==1.12.0
+pygments==2.18.0
+    # via rich
+requests==2.32.3
+    # via tensorflow
+rich==13.7.1
+    # via keras
+scipy==1.14.0
     # via -r ./requirements.in
 semantic-version==2.10.0
     # via -r ./requirements.in
@@ -105,42 +102,35 @@ six==1.16.0
     # via
     #   astunparse
     #   google-pasta
+    #   tensorboard
     #   tensorflow
     #   tensorflow-probability
-    #   tensorflow-ranking
-tensorboard==2.13.0
+tensorboard==2.16.2
     # via tensorflow
 tensorboard-data-server==0.7.2
     # via tensorboard
-tensorflow==2.13.1 ; sys_platform == "linux"
+tensorflow==2.16.2 ; sys_platform == "linux"
     # via
     #   -r ./requirements.in
-    #   tensorflow-ranking
-    #   tensorflow-serving-api
-tensorflow-estimator==2.13.0
+    #   tf-keras
+tensorflow-io-gcs-filesystem==0.37.1
     # via tensorflow
-tensorflow-io-gcs-filesystem==0.36.0
-    # via tensorflow
-tensorflow-probability==0.21.0
+tensorflow-probability==0.24.0
     # via -r ./requirements.in
-tensorflow-ranking==0.5.5 ; sys_platform != "darwin"
-    # via -r ./requirements.in
-tensorflow-serving-api==2.13.1
-    # via tensorflow-ranking
 termcolor==2.4.0
     # via tensorflow
-typing-extensions==4.5.0
+tf-keras==2.16.0
+    # via -r ./requirements.in
+typing-extensions==4.12.2
     # via
+    #   optree
     #   tensorflow
-    #   tensorflow-probability
-urllib3==2.2.1
+urllib3==2.2.2
     # via requests
-werkzeug==3.0.1
+werkzeug==3.0.3
     # via tensorboard
 wheel==0.43.0
-    # via
-    #   astunparse
-    #   tensorboard
+    # via astunparse
 wrapt==1.16.0
     # via tensorflow
 

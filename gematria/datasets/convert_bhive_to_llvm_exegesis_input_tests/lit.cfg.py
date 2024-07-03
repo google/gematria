@@ -32,9 +32,7 @@ config.substitutions.append(
     ('%not', os.path.join(config.llvm_tools_root, 'not'))
 )
 
-config.substitutions.append(
-    (
-        '%convert_bhive_to_llvm_exegesis_input',
-        os.path.join(config.tools_root, 'convert_bhive_to_llvm_exegesis_input'),
-    )
-)
+config.substitutions.append((
+    '%convert_bhive_to_llvm_exegesis_input',
+    os.path.join(config.tools_root, 'convert_bhive_to_llvm_exegesis_input'),
+))

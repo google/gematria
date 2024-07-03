@@ -80,14 +80,10 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
         side_effect=keras.layers.Dense,
     ) as mock_dense:
       model.initialize()
-    mock_dense.assert_has_calls(
-        (
-            mock.call(
-                16, activation=mock.ANY, bias_initializer='glorot_normal'
-            ),
-            mock.call(1, activation=keras.activations.linear, use_bias=False),
-        )
-    )
+    mock_dense.assert_has_calls((
+        mock.call(16, activation=mock.ANY, bias_initializer='glorot_normal'),
+        mock.call(1, activation=keras.activations.linear, use_bias=False),
+    ))
 
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
@@ -326,13 +322,11 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
         side_effect=keras.layers.LayerNormalization,
     ) as keras_layer_norm:
       model.initialize()
-    keras_layer_norm.assert_has_calls(
-        (
-            mock.call(name='graph_network_layer_norm_1_0_nodes'),
-            mock.call(name='graph_network_layer_norm_1_0_edges'),
-            mock.call(name='graph_network_layer_norm_1_0_globals'),
-        )
-    )
+    keras_layer_norm.assert_has_calls((
+        mock.call(name='graph_network_layer_norm_1_0_nodes'),
+        mock.call(name='graph_network_layer_norm_1_0_edges'),
+        mock.call(name='graph_network_layer_norm_1_0_globals'),
+    ))
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
   def test_train_seq2seq_with_sent_edges(self):
@@ -377,13 +371,11 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
         side_effect=keras.layers.LayerNormalization,
     ) as keras_layer_norm:
       model.initialize()
-    keras_layer_norm.assert_has_calls(
-        (
-            mock.call(name='graph_network_layer_norm_1_0_nodes'),
-            mock.call(name='graph_network_layer_norm_1_0_edges'),
-            mock.call(name='graph_network_layer_norm_1_0_globals'),
-        )
-    )
+    keras_layer_norm.assert_has_calls((
+        mock.call(name='graph_network_layer_norm_1_0_nodes'),
+        mock.call(name='graph_network_layer_norm_1_0_edges'),
+        mock.call(name='graph_network_layer_norm_1_0_globals'),
+    ))
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
   def test_train_seq2seq_with_readout_residual_connection(self):
