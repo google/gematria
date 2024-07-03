@@ -26,6 +26,7 @@ from gematria.model.python import options
 import graph_nets
 import sonnet as snt
 import tensorflow.compat.v1 as tf
+import tf_keras as keras
 
 
 class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
@@ -151,7 +152,7 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     # NOTE(ondrasej): This just creates a closure around the constructor, but it
     # doesn't make any TensorFlow ops until this closure is called, i.e. it is
     # cheap to create or discard this object.
-    leaky_relu = functools.partial(tf.keras.activations.relu, alpha=0.1)
+    leaky_relu = functools.partial(keras.activations.relu, alpha=0.1)
     self._readout_activation = readout_activation or leaky_relu
     self._update_activation = update_activation or leaky_relu
 
@@ -193,7 +194,7 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     ]
     readout_input = data
     for size in self._readout_layers:
-      dense = tf.keras.layers.Dense(
+      dense = keras.layers.Dense(
           size,
           activation=self._readout_activation,
           bias_initializer='glorot_normal',
@@ -213,7 +214,7 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
             ' readout network has no layers.'
         )
     if self._task_readout_input_layer_normalization:
-      layer_normalization = tf.keras.layers.LayerNormalization(
+      layer_normalization = keras.layers.LayerNormalization(
           name='task_readout_input_layer_normalization'
       )
       data = layer_normalization(data)
@@ -224,7 +225,7 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     for _ in range(self.num_tasks):
       task_data = data
       for size in self._task_readout_layers:
-        dense = tf.keras.layers.Dense(
+        dense = keras.layers.Dense(
             size,
             activation=self._readout_activation,
             bias_initializer='glorot_normal',
@@ -245,8 +246,8 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
           )
       # Create a linear layer that computes a weighted sum of the output of the
       # last dense layer.
-      linear_layer = tf.keras.layers.Dense(
-          1, activation=tf.keras.activations.linear, use_bias=False
+      linear_layer = keras.layers.Dense(
+          1, activation=keras.activations.linear, use_bias=False
       )
       task_outputs.append(linear_layer(task_data))
       task_variables.extend(linear_layer.trainable_weights)
@@ -258,7 +259,7 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     else:
       data = self._graphs_tuple_outputs.globals
     if self._readout_input_layer_normalization:
-      layer_normalization = tf.keras.layers.LayerNormalization(
+      layer_normalization = keras.layers.LayerNormalization(
           name='readout_input_layer_normalization'
       )
       data = layer_normalization(data)
@@ -268,11 +269,11 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
       self,
   ) -> Sequence[gnn_model_base.GraphNetworkLayer]:
     mlp_initializers = {
-        'w': tf.keras.initializers.glorot_normal(),
-        'b': tf.keras.initializers.glorot_normal(),
+        'w': keras.initializers.glorot_normal(),
+        'b': keras.initializers.glorot_normal(),
     }
     embedding_initializers = {
-        'embeddings': tf.keras.initializers.glorot_normal(),
+        'embeddings': keras.initializers.glorot_normal(),
     }
     return (
         gnn_model_base.GraphNetworkLayer(

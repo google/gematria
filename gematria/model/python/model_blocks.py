@@ -18,9 +18,10 @@ from typing import Optional
 
 import sonnet as snt
 import tensorflow.compat.v1 as tf
+import tf_keras as keras
 
 
-class ResidualConnectionLayer(tf.keras.layers.Layer):
+class ResidualConnectionLayer(keras.layers.Layer):
   """A Keras layer that implements residual connections.
 
   The layer takes a pair of tensors, assuming that the first tensor is the
@@ -56,9 +57,9 @@ class ResidualConnectionLayer(tf.keras.layers.Layer):
     if not output_shape.is_compatible_with(residual_shape):
       # When the shapes of the input and the output of the subnetwork differ, we
       # add a learned linear transformation layer to match them.
-      self._linear_transformation = tf.keras.layers.Dense(
+      self._linear_transformation = keras.layers.Dense(
           units=output_shape[1],
-          activation=tf.keras.activations.linear,
+          activation=keras.activations.linear,
           use_bias=False,
           name=self.name + '_transformation',
       )

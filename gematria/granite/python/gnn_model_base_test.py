@@ -24,6 +24,7 @@ import networkx as nx
 import numpy as np
 import sonnet as snt
 import tensorflow.compat.v1 as tf
+import tf_keras as keras
 
 
 class TestGnnModel(gnn_model_base.GnnModelBase):
@@ -57,7 +58,7 @@ class TestGnnModel(gnn_model_base.GnnModelBase):
         units in one layer.
       readout_activation: The activation function used by all layers in the
         readout network. Any value accepted as 'activation' by
-        tf.keras.layers.Dense() can be used here.
+        keras.layers.Dense() can be used here.
       **kwargs: Additional positional arguments are passed to the GnnModelBase
         constructor.
     """
@@ -94,8 +95,8 @@ class TestGnnModel(gnn_model_base.GnnModelBase):
   def _create_graph_network_modules(self):
     # We use a fully-connected network with the same shape in all contexts.
     initializers = {
-        'w': tf.keras.initializers.glorot_normal(),
-        'b': tf.keras.initializers.glorot_normal(),
+        'w': keras.initializers.glorot_normal(),
+        'b': keras.initializers.glorot_normal(),
     }
     mlp = functools.partial(
         snt.nets.MLP, output_sizes=(32, 16), initializers=initializers
@@ -118,7 +119,7 @@ class TestGnnModel(gnn_model_base.GnnModelBase):
     else:
       dense_data = self._graphs_tuple_outputs.globals
     for i, layer_size in enumerate(self.readout_dense_layers):
-      layer = tf.keras.layers.Dense(
+      layer = keras.layers.Dense(
           layer_size,
           activation=self.readout_activation,
           name=f'dense_{i}',
@@ -128,7 +129,7 @@ class TestGnnModel(gnn_model_base.GnnModelBase):
 
     # Create a linear layer that computes a weighted sum of the output of the
     # last dense layer.
-    linear_layer = tf.keras.layers.Dense(
+    linear_layer = keras.layers.Dense(
         self.num_tasks, activation='linear', use_bias=False
     )
     return linear_layer(dense_data)
@@ -240,11 +241,11 @@ class TestEncoderDecoderGnnModel(gnn_model_base.GnnModelBase):
   # @Override
   def _create_graph_network_modules(self):
     mlp_initializers = {
-        'w': tf.keras.initializers.glorot_normal(),
-        'b': tf.keras.initializers.glorot_normal(),
+        'w': keras.initializers.glorot_normal(),
+        'b': keras.initializers.glorot_normal(),
     }
     embedding_initializers = {
-        'embeddings': tf.keras.initializers.glorot_normal(),
+        'embeddings': keras.initializers.glorot_normal(),
     }
     enable_decoder_residual_connection = (
         options.EnableFeature.ALWAYS
@@ -337,7 +338,7 @@ class TestEncoderDecoderGnnModel(gnn_model_base.GnnModelBase):
       dense_data = self._graphs_tuple_outputs.globals
     # Create a linear layer that computes a weighted sum of the output of the
     # last dense layer.
-    linear_layer = tf.keras.layers.Dense(self.num_tasks, activation='linear')
+    linear_layer = keras.layers.Dense(self.num_tasks, activation='linear')
     return linear_layer(dense_data)
 
   # @Override
@@ -457,8 +458,8 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
         learning_rate=0.01,
     )
     with mock.patch(
-        'tensorflow.compat.v1.keras.layers.LayerNormalization',
-        side_effect=tf.keras.layers.LayerNormalization,
+        'tf_keras.layers.LayerNormalization',
+        side_effect=keras.layers.LayerNormalization,
     ) as keras_layer_norm:
       model.initialize()
     self.assertEqual(
@@ -487,8 +488,8 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
     )
     with (
         mock.patch(
-            'tensorflow.compat.v1.keras.layers.LayerNormalization',
-            side_effect=tf.keras.layers.LayerNormalization,
+            'tf_keras.layers.LayerNormalization',
+            side_effect=keras.layers.LayerNormalization,
         ) as keras_layer_norm,
         mock.patch(
             'tensorflow.compat.v1.math.add', side_effect=tf.math.add
@@ -545,8 +546,8 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
             'tensorflow.compat.v1.math.add', side_effect=tf.math.add
         ) as tf_add,
         mock.patch(
-            'tensorflow.compat.v1.keras.layers.Dense',
-            side_effect=tf.keras.layers.Dense,
+            'tf_keras.layers.Dense',
+            side_effect=keras.layers.Dense,
         ) as keras_dense,
     ):
       model.initialize()
@@ -615,8 +616,8 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
             'tensorflow.compat.v1.math.add', side_effect=tf.math.add
         ) as tf_add,
         mock.patch(
-            'tensorflow.compat.v1.keras.layers.Dense',
-            side_effect=tf.keras.layers.Dense,
+            'tf_keras.layers.Dense',
+            side_effect=keras.layers.Dense,
         ) as keras_dense,
     ):
       model.initialize()
@@ -634,19 +635,19 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
         keras_dense.call_args_list,
         [
             mock.call(
-                activation=tf.keras.activations.linear,
+                activation=keras.activations.linear,
                 name='residual_connection_2_0_nodes_transformation',
                 units=tf.Dimension(5),
                 use_bias=False,
             ),
             mock.call(
-                activation=tf.keras.activations.linear,
+                activation=keras.activations.linear,
                 name='residual_connection_2_0_edges_transformation',
                 units=tf.Dimension(6),
                 use_bias=False,
             ),
             mock.call(
-                activation=tf.keras.activations.linear,
+                activation=keras.activations.linear,
                 name='residual_connection_2_0_globals_transformation',
                 units=tf.Dimension(4),
                 use_bias=False,

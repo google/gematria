@@ -30,6 +30,7 @@ import graph_nets
 import numpy as np
 import sonnet as snt
 import tensorflow.compat.v1 as tf
+import tf_keras as keras
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 
@@ -57,11 +58,11 @@ class TestGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
 
   def _create_graph_network_modules(self):
     embedding_initializers = {
-        'embeddings': tf.keras.initializers.glorot_normal(),
+        'embeddings': keras.initializers.glorot_normal(),
     }
     mlp_initializers = {
-        'w': tf.keras.initializers.glorot_normal(),
-        'b': tf.keras.initializers.glorot_normal(),
+        'w': keras.initializers.glorot_normal(),
+        'b': keras.initializers.glorot_normal(),
     }
     return (
         gnn_model_base.GraphNetworkLayer(

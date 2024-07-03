@@ -21,6 +21,7 @@ from gematria.sequence.python import sequence_model
 from gematria.testing.python import model_test
 import numpy as np
 import tensorflow.compat.v1 as tf
+import tf_keras as keras
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 
@@ -49,11 +50,11 @@ class TestSequenceModel(sequence_model.SequenceModelBase):
     return 'TestSequenceModel'
 
   def _create_model(self):
-    token_sequence = tf.keras.Input(shape=(), dtype=tf.dtypes.int32)
-    num_tokens_per_instruction = tf.keras.Input(shape=(), dtype=tf.dtypes.int32)
-    num_instructions_per_block = tf.keras.Input(shape=(), dtype=tf.dtypes.int32)
+    token_sequence = keras.Input(shape=(), dtype=tf.dtypes.int32)
+    num_tokens_per_instruction = keras.Input(shape=(), dtype=tf.dtypes.int32)
+    num_instructions_per_block = keras.Input(shape=(), dtype=tf.dtypes.int32)
 
-    embed_input = tf.keras.layers.Embedding(
+    embed_input = keras.layers.Embedding(
         input_dim=len(self._token_list), output_dim=self.num_tasks
     )
     embedded_tokens = embed_input(token_sequence)
@@ -71,7 +72,7 @@ class TestSequenceModel(sequence_model.SequenceModelBase):
       output = tf.math.reduce_sum(block_tensor, axis=1)
 
     output = tf.reshape(output, (-1, self.num_tasks))
-    return tf.keras.Model(
+    return keras.Model(
         inputs=(
             token_sequence,
             num_tokens_per_instruction,

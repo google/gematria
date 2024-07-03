@@ -21,6 +21,7 @@ from collections.abc import Sequence
 from gematria.model.python import model_base
 from gematria.sequence.python import sequence_model
 import tensorflow.compat.v1 as tf
+import tf_keras as keras
 
 
 class HierarchicalLstmModel(sequence_model.SequenceModelBase):
@@ -149,7 +150,7 @@ class HierarchicalLstmModel(sequence_model.SequenceModelBase):
     self._task_output_layers = tuple(task_output_layers)
 
   # @Override
-  def _create_model(self) -> tf.keras.Model:
+  def _create_model(self) -> keras.Model:
     """See base class."""
     return _HierarchicalLstmKerasModel(
         num_tokens=len(self._token_list),
@@ -179,7 +180,7 @@ class HierarchicalLstmModel(sequence_model.SequenceModelBase):
     )
 
 
-class _HierarchicalLstmKerasModel(tf.keras.Model):
+class _HierarchicalLstmKerasModel(keras.Model):
   """Implements the hierarchical LSTM model as a Keras model.
 
   The model works both in the sequence-to-number mode (the model returns one
@@ -230,7 +231,7 @@ class _HierarchicalLstmKerasModel(tf.keras.Model):
         RNN and the output head network.
       dtype: The DType used for tensors in the model.
       name: The name of the model.
-      **kwargs: All remaining (keyword) arguments are passed to tf.keras.Model
+      **kwargs: All remaining (keyword) arguments are passed to keras.Model
         constructor.
     """
     if num_tokens <= 0:
@@ -263,33 +264,33 @@ class _HierarchicalLstmKerasModel(tf.keras.Model):
 
     self._ragged_from_row_lengths = _RaggedFromRowLengths()
     self._values_from_ragged = _RaggedTensorValues()
-    self._concatenate_outputs = tf.keras.layers.Concatenate(axis=1)
+    self._concatenate_outputs = keras.layers.Concatenate(axis=1)
 
-    self._token_embedding = tf.keras.layers.Embedding(
+    self._token_embedding = keras.layers.Embedding(
         input_dim=self._num_tokens,
         output_dim=self._token_embedding_size,
         dtype=dtype,
     )
 
-    self._instruction_lstm = tf.keras.layers.LSTM(
+    self._instruction_lstm = keras.layers.LSTM(
         units=instruction_embedding_size // 2, return_state=True, dtype=dtype
     )
 
-    self._block_lstm = tf.keras.layers.LSTM(
+    self._block_lstm = keras.layers.LSTM(
         units=block_embedding_size // 2,
         return_sequences=self._use_deltas,
         return_state=not self._use_deltas,
         dtype=dtype,
     )
     if self._bidirectional:
-      self._block_lstm = tf.keras.layers.Bidirectional(self._block_lstm)
+      self._block_lstm = keras.layers.Bidirectional(self._block_lstm)
 
-    self._output_network = tf.keras.Sequential()
+    self._output_network = keras.Sequential()
     for layer_size in output_layers:
       self._output_network.add(
-          tf.keras.layers.Dense(
+          keras.layers.Dense(
               layer_size,
-              activation=tf.keras.activations.relu,
+              activation=keras.activations.relu,
               dtype=dtype,
               bias_initializer='glorot_normal',
           )
@@ -299,18 +300,18 @@ class _HierarchicalLstmKerasModel(tf.keras.Model):
     # task does not affect the others.
     self._output_heads = []
     for task_name in task_list:
-      head = tf.keras.Sequential()
+      head = keras.Sequential()
       for layer_size in task_output_layers:
         head.add(
-            tf.keras.layers.Dense(
+            keras.layers.Dense(
                 layer_size,
-                activation=tf.keras.activations.relu,
+                activation=keras.activations.relu,
                 dtype=dtype,
                 bias_initializer='glorot_normal',
             )
         )
       head.add(
-          tf.keras.layers.Dense(
+          keras.layers.Dense(
               1,
               activation='linear',
               use_bias=False,
@@ -381,10 +382,10 @@ class _HierarchicalLstmKerasModel(tf.keras.Model):
         if self._use_deltas
         else model_base.ModelBase.OUTPUT_TENSOR_NAME
     )
-    return tf.keras.layers.concatenate(outputs, axis=1, name=output_name)
+    return keras.layers.concatenate(outputs, axis=1, name=output_name)
 
 
-class _RaggedFromRowLengths(tf.keras.layers.Layer):
+class _RaggedFromRowLengths(keras.layers.Layer):
   """Creates a ragged tensor from values and row lengths."""
 
   def call(self, values, row_lengths):
@@ -394,7 +395,7 @@ class _RaggedFromRowLengths(tf.keras.layers.Layer):
     )
 
 
-class _RaggedTensorValues(tf.keras.layers.Layer):
+class _RaggedTensorValues(keras.layers.Layer):
   """Extracts values from a ragged tensor."""
 
   def call(self, ragged_tensor):

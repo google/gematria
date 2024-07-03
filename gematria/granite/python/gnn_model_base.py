@@ -27,6 +27,7 @@ from gematria.model.python import options
 import graph_nets
 import sonnet as snt
 import tensorflow.compat.v1 as tf
+import tf_keras as keras
 
 
 def _add_batch_dimension(shape: Sequence[int]) -> Sequence[Optional[int]]:
@@ -382,13 +383,13 @@ class GnnModelBase(model_base.ModelBase):
           layer_norm_name_base = (
               f'graph_network_layer_norm_{layer_index}_{iteration}'
           )
-          nodes_layer_norm = tf.keras.layers.LayerNormalization(
+          nodes_layer_norm = keras.layers.LayerNormalization(
               name=layer_norm_name_base + '_nodes'
           )
-          edges_layer_norm = tf.keras.layers.LayerNormalization(
+          edges_layer_norm = keras.layers.LayerNormalization(
               name=layer_norm_name_base + '_edges'
           )
-          globals_layer_norm = tf.keras.layers.LayerNormalization(
+          globals_layer_norm = keras.layers.LayerNormalization(
               name=layer_norm_name_base + '_globals'
           )
           graphs_tuple = graph_nets.graphs.GraphsTuple(
