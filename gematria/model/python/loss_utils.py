@@ -227,9 +227,9 @@ class LossComputation:
           )
         case _:
           raise ValueError(f'Unexpected loss type: {loss_type}')
-      assert tensor.shape.is_compatible_with((
-          self._num_tasks,
-      )), f'The actual shape is {tensor.shape}'
+      assert tensor.shape.is_compatible_with(
+          (self._num_tasks,)
+      ), f'The actual shape is {tensor.shape}'
       self._loss_tensors[loss_type, normalization] = tensor
     return tensor
 

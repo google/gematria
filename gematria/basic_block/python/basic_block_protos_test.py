@@ -206,27 +206,31 @@ class BasicBlockFromProtoTest(absltest.TestCase):
         basic_block.Instruction(
             mnemonic='MOV',
             llvm_mnemonic='MOV32rr',
-            input_operands=basic_block.InstructionOperandList((
-                basic_block.InstructionOperand.from_register('RSI'),
-            )),
-            output_operands=basic_block.InstructionOperandList((
-                basic_block.InstructionOperand.from_register('RCX'),
-            )),
+            input_operands=basic_block.InstructionOperandList(
+                (basic_block.InstructionOperand.from_register('RSI'),)
+            ),
+            output_operands=basic_block.InstructionOperandList(
+                (basic_block.InstructionOperand.from_register('RCX'),)
+            ),
         ),
         basic_block.Instruction(
             mnemonic='MOVSB',
             llvm_mnemonic='MOVSB',
-            implicit_input_operands=basic_block.InstructionOperandList((
-                basic_block.InstructionOperand.from_register('RCX'),
-                basic_block.InstructionOperand.from_register('RSI'),
-                basic_block.InstructionOperand.from_register('RDI'),
-                basic_block.InstructionOperand.from_memory(1),
-            )),
-            implicit_output_operands=basic_block.InstructionOperandList((
-                basic_block.InstructionOperand.from_register('RSI'),
-                basic_block.InstructionOperand.from_register('RDI'),
-                basic_block.InstructionOperand.from_memory(2),
-            )),
+            implicit_input_operands=basic_block.InstructionOperandList(
+                (
+                    basic_block.InstructionOperand.from_register('RCX'),
+                    basic_block.InstructionOperand.from_register('RSI'),
+                    basic_block.InstructionOperand.from_register('RDI'),
+                    basic_block.InstructionOperand.from_memory(1),
+                )
+            ),
+            implicit_output_operands=basic_block.InstructionOperandList(
+                (
+                    basic_block.InstructionOperand.from_register('RSI'),
+                    basic_block.InstructionOperand.from_register('RDI'),
+                    basic_block.InstructionOperand.from_memory(2),
+                )
+            ),
         ),
     )
     self.assertSequenceEqual(block.instructions, expected)

@@ -188,19 +188,21 @@ class InstructionTest(absltest.TestCase):
     instruction = basic_block.Instruction(
         mnemonic='ADC',
         llvm_mnemonic='ADC32rr',
-        input_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RCX'),
-            basic_block.InstructionOperand.from_register('RDX'),
-        )),
-        implicit_input_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('EFLAGS'),
-        )),
-        output_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RDX'),
-        )),
-        implicit_output_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('EFLAGS'),
-        )),
+        input_operands=basic_block.InstructionOperandList(
+            (
+                basic_block.InstructionOperand.from_register('RCX'),
+                basic_block.InstructionOperand.from_register('RDX'),
+            )
+        ),
+        implicit_input_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('EFLAGS'),)
+        ),
+        output_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('RDX'),)
+        ),
+        implicit_output_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('EFLAGS'),)
+        ),
     )
     self.assertEqual(instruction.mnemonic, 'ADC')
     self.assertEqual(instruction.llvm_mnemonic, 'ADC32rr')
@@ -250,32 +252,32 @@ class InstructionTest(absltest.TestCase):
     instruction_b1 = basic_block.Instruction(
         mnemonic='MOV',
         llvm_mnemonic='MOV32rrr',
-        input_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RCX'),
-        )),
-        output_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RDX'),
-        )),
+        input_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('RCX'),)
+        ),
+        output_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('RDX'),)
+        ),
     )
     instruction_b2 = basic_block.Instruction(
         mnemonic='MOV',
         llvm_mnemonic='MOV32rrr',
-        input_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RCX'),
-        )),
-        output_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RDX'),
-        )),
+        input_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('RCX'),)
+        ),
+        output_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('RDX'),)
+        ),
     )
     instruction_b3 = basic_block.Instruction(
         mnemonic='MOV',
         llvm_mnemonic='MOV32rrr',
-        input_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RSI'),
-        )),
-        output_operands=basic_block.InstructionOperandList((
-            basic_block.InstructionOperand.from_register('RDI'),
-        )),
+        input_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('RSI'),)
+        ),
+        output_operands=basic_block.InstructionOperandList(
+            (basic_block.InstructionOperand.from_register('RDI'),)
+        ),
     )
     self.assertEqual(instruction_b1, instruction_b2)
     self.assertNotEqual(instruction_a1, instruction_b2)
@@ -325,19 +327,21 @@ class InstructionTest(absltest.TestCase):
                 mnemonic='ADD',
                 llvm_mnemonic='ADD32rr',
                 prefixes=basic_block.StringList(('LOCK',)),
-                input_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RAX'),
-                    basic_block.InstructionOperand.from_register('RBX'),
-                )),
-                implicit_input_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('EFLAGS'),
-                )),
-                output_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RBX'),
-                )),
-                implicit_output_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('EFLAGS'),
-                )),
+                input_operands=basic_block.InstructionOperandList(
+                    (
+                        basic_block.InstructionOperand.from_register('RAX'),
+                        basic_block.InstructionOperand.from_register('RBX'),
+                    )
+                ),
+                implicit_input_operands=basic_block.InstructionOperandList(
+                    (basic_block.InstructionOperand.from_register('EFLAGS'),)
+                ),
+                output_operands=basic_block.InstructionOperandList(
+                    (basic_block.InstructionOperand.from_register('RBX'),)
+                ),
+                implicit_output_operands=basic_block.InstructionOperandList(
+                    (basic_block.InstructionOperand.from_register('EFLAGS'),)
+                ),
             ),
             (
                 'LOCK',
@@ -362,79 +366,93 @@ class BasicBlockTest(absltest.TestCase):
 
   def test_equality(self):
     block_1a = basic_block.BasicBlock(
-        instructions=basic_block.InstructionList((
-            basic_block.Instruction(
-                mnemonic='MOV',
-                llvm_mnemonic='MOV32rr',
-                input_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RSI'),
-                )),
-                output_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RCX'),
-                )),
-            ),
-            basic_block.Instruction(
-                mnemonic='MOVSB',
-                llvm_mnemonic='MOVSB',
-                implicit_input_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RCX'),
-                    basic_block.InstructionOperand.from_register('RSI'),
-                    basic_block.InstructionOperand.from_register('RDI'),
-                    basic_block.InstructionOperand.from_memory(1),
-                )),
-                implicit_output_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RSI'),
-                    basic_block.InstructionOperand.from_register('RDI'),
-                    basic_block.InstructionOperand.from_memory(2),
-                )),
-            ),
-        ))
+        instructions=basic_block.InstructionList(
+            (
+                basic_block.Instruction(
+                    mnemonic='MOV',
+                    llvm_mnemonic='MOV32rr',
+                    input_operands=basic_block.InstructionOperandList(
+                        (basic_block.InstructionOperand.from_register('RSI'),)
+                    ),
+                    output_operands=basic_block.InstructionOperandList(
+                        (basic_block.InstructionOperand.from_register('RCX'),)
+                    ),
+                ),
+                basic_block.Instruction(
+                    mnemonic='MOVSB',
+                    llvm_mnemonic='MOVSB',
+                    implicit_input_operands=basic_block.InstructionOperandList(
+                        (
+                            basic_block.InstructionOperand.from_register('RCX'),
+                            basic_block.InstructionOperand.from_register('RSI'),
+                            basic_block.InstructionOperand.from_register('RDI'),
+                            basic_block.InstructionOperand.from_memory(1),
+                        )
+                    ),
+                    implicit_output_operands=basic_block.InstructionOperandList(
+                        (
+                            basic_block.InstructionOperand.from_register('RSI'),
+                            basic_block.InstructionOperand.from_register('RDI'),
+                            basic_block.InstructionOperand.from_memory(2),
+                        )
+                    ),
+                ),
+            )
+        )
     )
     block_1b = basic_block.BasicBlock(
-        instructions=basic_block.InstructionList((
-            basic_block.Instruction(
-                mnemonic='MOV',
-                llvm_mnemonic='MOV32rr',
-                input_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RSI'),
-                )),
-                output_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RCX'),
-                )),
-            ),
-            basic_block.Instruction(
-                mnemonic='MOVSB',
-                llvm_mnemonic='MOVSB',
-                implicit_input_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RCX'),
-                    basic_block.InstructionOperand.from_register('RSI'),
-                    basic_block.InstructionOperand.from_register('RDI'),
-                    basic_block.InstructionOperand.from_memory(1),
-                )),
-                implicit_output_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RSI'),
-                    basic_block.InstructionOperand.from_register('RDI'),
-                    basic_block.InstructionOperand.from_memory(2),
-                )),
-            ),
-        ))
+        instructions=basic_block.InstructionList(
+            (
+                basic_block.Instruction(
+                    mnemonic='MOV',
+                    llvm_mnemonic='MOV32rr',
+                    input_operands=basic_block.InstructionOperandList(
+                        (basic_block.InstructionOperand.from_register('RSI'),)
+                    ),
+                    output_operands=basic_block.InstructionOperandList(
+                        (basic_block.InstructionOperand.from_register('RCX'),)
+                    ),
+                ),
+                basic_block.Instruction(
+                    mnemonic='MOVSB',
+                    llvm_mnemonic='MOVSB',
+                    implicit_input_operands=basic_block.InstructionOperandList(
+                        (
+                            basic_block.InstructionOperand.from_register('RCX'),
+                            basic_block.InstructionOperand.from_register('RSI'),
+                            basic_block.InstructionOperand.from_register('RDI'),
+                            basic_block.InstructionOperand.from_memory(1),
+                        )
+                    ),
+                    implicit_output_operands=basic_block.InstructionOperandList(
+                        (
+                            basic_block.InstructionOperand.from_register('RSI'),
+                            basic_block.InstructionOperand.from_register('RDI'),
+                            basic_block.InstructionOperand.from_memory(2),
+                        )
+                    ),
+                ),
+            )
+        )
     )
     self.assertEqual(block_1a, block_1a)
     self.assertEqual(block_1a, block_1b)
 
     block_2 = basic_block.BasicBlock(
-        instructions=basic_block.InstructionList((
-            basic_block.Instruction(
-                mnemonic='MOV',
-                llvm_mnemonic='MOV32rr',
-                input_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RSI'),
-                )),
-                output_operands=basic_block.InstructionOperandList((
-                    basic_block.InstructionOperand.from_register('RCX'),
-                )),
-            ),
-        ))
+        instructions=basic_block.InstructionList(
+            (
+                basic_block.Instruction(
+                    mnemonic='MOV',
+                    llvm_mnemonic='MOV32rr',
+                    input_operands=basic_block.InstructionOperandList(
+                        (basic_block.InstructionOperand.from_register('RSI'),)
+                    ),
+                    output_operands=basic_block.InstructionOperandList(
+                        (basic_block.InstructionOperand.from_register('RCX'),)
+                    ),
+                ),
+            )
+        )
     )
     self.assertNotEqual(block_1a, block_2)
 
@@ -443,27 +461,31 @@ class BasicBlockTest(absltest.TestCase):
         basic_block.Instruction(
             mnemonic='MOV',
             llvm_mnemonic='MOV32rr',
-            input_operands=basic_block.InstructionOperandList((
-                basic_block.InstructionOperand.from_register('RSI'),
-            )),
-            output_operands=basic_block.InstructionOperandList((
-                basic_block.InstructionOperand.from_register('RCX'),
-            )),
+            input_operands=basic_block.InstructionOperandList(
+                (basic_block.InstructionOperand.from_register('RSI'),)
+            ),
+            output_operands=basic_block.InstructionOperandList(
+                (basic_block.InstructionOperand.from_register('RCX'),)
+            ),
         ),
         basic_block.Instruction(
             mnemonic='MOVSB',
             llvm_mnemonic='MOVSB',
-            implicit_input_operands=basic_block.InstructionOperandList((
-                basic_block.InstructionOperand.from_register('RCX'),
-                basic_block.InstructionOperand.from_register('RSI'),
-                basic_block.InstructionOperand.from_register('RDI'),
-                basic_block.InstructionOperand.from_memory(1),
-            )),
-            implicit_output_operands=basic_block.InstructionOperandList((
-                basic_block.InstructionOperand.from_register('RSI'),
-                basic_block.InstructionOperand.from_register('RDI'),
-                basic_block.InstructionOperand.from_memory(2),
-            )),
+            implicit_input_operands=basic_block.InstructionOperandList(
+                (
+                    basic_block.InstructionOperand.from_register('RCX'),
+                    basic_block.InstructionOperand.from_register('RSI'),
+                    basic_block.InstructionOperand.from_register('RDI'),
+                    basic_block.InstructionOperand.from_memory(1),
+                )
+            ),
+            implicit_output_operands=basic_block.InstructionOperandList(
+                (
+                    basic_block.InstructionOperand.from_register('RSI'),
+                    basic_block.InstructionOperand.from_register('RDI'),
+                    basic_block.InstructionOperand.from_memory(2),
+                )
+            ),
         ),
     )
 

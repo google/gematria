@@ -72,9 +72,7 @@ class LossComputationTest(tf.test.TestCase):
       mse, mae, huber, percentiles = sess.run(
           (mse_tensor, mae_tensor, huber_tensor, percentiles_tensor)
       )
-      self.assertNear(
-          float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6
-      )
+      self.assertNear(float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6)
       self.assertNear(float(mae), (3 + 0 + 0 + 4 + 0.5) / 5, 1e-6)
       self.assertNear(
           float(huber), (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5, 1e-6
@@ -205,13 +203,15 @@ class LossComputationTest(tf.test.TestCase):
         expected_outputs=tf.constant(
             ((4, 14), (500, 12), (30, 13), (1, 11), (2, 12)), dtype=self.dtype
         ),
-        mask=tf.constant((
-            (True, True),
-            (False, True),
-            (True, False),
-            (False, False),
-            (True, False),
-        )),
+        mask=tf.constant(
+            (
+                (True, True),
+                (False, True),
+                (True, False),
+                (False, False),
+                (True, False),
+            )
+        ),
         percentile_ranks=(0, 10, 50, 75, 100),
         dtype=self.dtype,
     )
@@ -228,15 +228,17 @@ class LossComputationTest(tf.test.TestCase):
     )
     percentile_tensor = loss.absolute_error_percentiles
     with self.session() as sess:
-      mse, mspe, mae, mape, huber, huber_percentage, percentiles = sess.run((
-          mse_tensor,
-          mspe_tensor,
-          mae_tensor,
-          mape_tensor,
-          huber_tensor,
-          huber_percentage_tensor,
-          percentile_tensor,
-      ))
+      mse, mspe, mae, mape, huber, huber_percentage, percentiles = sess.run(
+          (
+              mse_tensor,
+              mspe_tensor,
+              mae_tensor,
+              mape_tensor,
+              huber_tensor,
+              huber_percentage_tensor,
+              percentile_tensor,
+          )
+      )
       self.assertAllClose(
           mse,
           ((3**2 + 27**2 + 0.5**2) / 3, (6**2 + 0.1**2) / 2),
@@ -310,9 +312,7 @@ class LossComputationTest(tf.test.TestCase):
           (mse_tensor, mae_tensor, huber_tensor, percentiles_tensor),
           feed_dict=feed_dict,
       )
-      self.assertNear(
-          float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6
-      )
+      self.assertNear(float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6)
       self.assertNear(float(mae), (3 + 0 + 0 + 4 + 0.5) / 5, 1e-6)
       self.assertNear(
           float(huber), (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5, 1e-6
@@ -360,10 +360,12 @@ class LossComputationTest(tf.test.TestCase):
       )
       self.assertNDArrayNear(
           mse,
-          np.array((
-              (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5,
-              (6**2 + 0 + 0 + 4**2 + 0.5**2) / 5,
-          )),
+          np.array(
+              (
+                  (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5,
+                  (6**2 + 0 + 0 + 4**2 + 0.5**2) / 5,
+              )
+          ),
           1e-6,
       )
       self.assertNDArrayNear(
@@ -371,10 +373,12 @@ class LossComputationTest(tf.test.TestCase):
       )
       self.assertNDArrayNear(
           huber,
-          ((
-              (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5,
-              (5.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5,
-          )),
+          (
+              (
+                  (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5,
+                  (5.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5,
+              )
+          ),
           1e-6,
       )
       self.assertAllEqual(percentiles, ((0, 0), (0.5, 0.5), (3, 4), (4, 6)))
@@ -417,9 +421,7 @@ class LossComputationTest(tf.test.TestCase):
           (mse_tensor, mae_tensor, huber_tensor, percentiles_tensor),
           feed_dict=feed_dict,
       )
-      self.assertNear(
-          float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6
-      )
+      self.assertNear(float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6)
       self.assertNear(float(mae), (3 + 0 + 0 + 4 + 0.5) / 5, 1e-6)
       self.assertNear(
           float(huber), (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5, 1e-6
