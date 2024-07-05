@@ -234,11 +234,11 @@ int main(int argc, char* argv[]) {
             *inst_printer, 0, *bytes);
 
     if (!instructions) {
-      std::cerr << "Failed to disassemble block '" << hex << "\n";
+      std::cerr << "Failed to disassemble block '" << hex << "'\n";
       continue;
     }
 
-    // Get used registers
+    // Get used registers.
     std::vector<unsigned> used_registers = gematria::getUsedRegisters(
         *instructions, reg_info, llvm_support->mc_instr_info());
 
