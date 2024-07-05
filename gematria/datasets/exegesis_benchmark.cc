@@ -261,7 +261,7 @@ ExitOnError ExitOnErr("exegesis-benchmark error: ");
 // from the llvm-exegesis code. These should be made generic and moved into
 // Error.h in upstream LLVM most likely. Check Err. If it's in a failure state
 // log the file error(s) and exit.
-static void ExitOnFileError(const Twine &FileName, Error Err) {
+static void exitOnFileError(const Twine &FileName, Error Err) {
   if (Err) {
     ExitOnErr(createFileError(FileName, std::move(Err)));
   }
@@ -270,8 +270,8 @@ static void ExitOnFileError(const Twine &FileName, Error Err) {
 // Check E. If it's in a success state then return the contained value.
 // If it's in a failure state log the file error(s) and exit.
 template <typename T>
-T ExitOnFileError(const Twine &FileName, Expected<T> &&E) {
-  ExitOnFileError(FileName, E.takeError());
+T exitOnFileError(const Twine &FileName, Expected<T> &&E) {
+  exitOnFileError(FileName, E.takeError());
   return std::move(*E);
 }
 
@@ -327,7 +327,7 @@ int main(int Argc, char *Argv[]) {
   auto JsonMemoryBuffer = ExitOnErr(
       errorOrToExpected(MemoryBuffer::getFile(AnnotatedBlocksJson, true)));
 
-  json::Value ParsedAnnotatedBlocks = ExitOnFileError(
+  json::Value ParsedAnnotatedBlocks = exitOnFileError(
       AnnotatedBlocksJson, json::parse(JsonMemoryBuffer->getBuffer()));
 
   for (size_t BlockIndex = 0;
@@ -335,12 +335,12 @@ int main(int Argc, char *Argv[]) {
     const llvm::json::Object *AnnotatedBlockObject =
         (*ParsedAnnotatedBlocks.getAsArray())[BlockIndex].getAsObject();
     if (!AnnotatedBlockObject)
-      ExitOnFileError(AnnotatedBlocksJson,
+      exitOnFileError(AnnotatedBlocksJson,
                       llvm::make_error<StringError>(
                           errc::invalid_argument,
                           "Malformed basic block: is not a JSON object"));
 
-    BenchmarkCode BenchCode = ExitOnFileError(
+    BenchmarkCode BenchCode = exitOnFileError(
         AnnotatedBlocksJson,
         parseJSONBlock(*AnnotatedBlockObject, *MachinePrinter,
                        *MachineDisassembler, State, BlockIndex));
@@ -349,7 +349,7 @@ int main(int Argc, char *Argv[]) {
         SnippetRepetitor::Create(Benchmark::RepetitionModeE::MiddleHalfLoop,
                                  State, BenchCode.Key.LoopRegister);
 
-    double Throughput = ExitOnFileError(
+    double Throughput = exitOnFileError(
         AnnotatedBlocksJson, benchmarkBasicBlock(BenchCode, *Runner, State));
 
     std::optional<StringRef> HexValue = AnnotatedBlockObject->getString("Hex");
