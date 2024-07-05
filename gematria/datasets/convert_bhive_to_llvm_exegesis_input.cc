@@ -265,7 +265,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Get a register that we can use as the loop register.
-    std::optional<unsigned> loop_register = gematria::getLoopRegister(
+    std::optional<unsigned> loop_register = gematria::getUnusedGPRegister(
         *instructions, reg_info, llvm_support->mc_instr_info());
 
     // If we can't find a loop register, skip writing out this basic block

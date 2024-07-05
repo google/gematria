@@ -36,24 +36,17 @@ unsigned getSuperRegister(unsigned OriginalRegister,
   unsigned SuperRegister = OriginalRegister;
   for (MCPhysReg CurrentSuperRegister :
        RegisterInfo.superregs_inclusive(OriginalRegister)) {
-<<<<<<< HEAD
-    SuperRegister = CurrentSuperRegister;
-=======
     if (RegisterInfo.isSuperRegister(SuperRegister, CurrentSuperRegister)) {
       SuperRegister = CurrentSuperRegister;
     }
->>>>>>> main
   }
   // Only return super registers for GPRs. Since mainly GPRs will be used for
   // addressing, redefining other aliasing registers (like vector registers)
   // does not matter as much.
-<<<<<<< HEAD
-=======
   // TODO(boomanaiden154): We are only handling the simple case as it gives the
   // most mileage, and vector registers need additional target-specific handling
   // to ensure that the instructions are actually supported by the CPU we are
   // executing on. This should be fixed in the future.
->>>>>>> main
   if (RegisterInfo.getRegClass(X86::GR64RegClassID).contains(SuperRegister))
     return SuperRegister;
   else
