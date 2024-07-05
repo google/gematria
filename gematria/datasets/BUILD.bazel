@@ -78,6 +78,20 @@ cc_binary(
 )
 
 cc_binary(
+    name = "exegesis_benchmark",
+    srcs = ["exegesis_benchmark.cc"],
+    deps = [
+        "//gematria/llvm:disassembler",
+        "//gematria/utils:string",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@llvm-project//llvm:Exegesis",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:X86Disassembler",
+    ],
+)
+
+cc_binary(
     name = "process_and_filter_bbs",
     srcs = ["process_and_filter_bbs.cc"],
     deps = [
