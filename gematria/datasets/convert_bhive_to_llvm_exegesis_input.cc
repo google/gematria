@@ -99,20 +99,25 @@ ABSL_FLAG(unsigned, report_progress_every, std::numeric_limits<unsigned>::max(),
 ABSL_FLAG(bool, skip_no_loop_register, true,
           "Whether or not to skip basic blocks where a loop counter register "
           "cannot be found.");
+ABSL_FLAG(unsigned, max_annotation_attempts, 50,
+          "The maximum number of times to attempt to annotate a block before "
+          "giving up.");
 
 absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
-    gematria::ExegesisAnnotator* exegesis_annotator) {
+    gematria::ExegesisAnnotator* exegesis_annotator,
+    const unsigned max_annotation_attempts,
+    gematria::LlvmArchitectureSupport& llvm_support) {
   const AnnotatorType annotator_implementation =
       absl::GetFlag(FLAGS_annotator_implementation);
   switch (annotator_implementation) {
     case AnnotatorType::kFast:
-      // This will only get the first segfault address.
-      return gematria::FindAccessedAddrs(basic_block);
+      return gematria::FindAccessedAddrs(basic_block, llvm_support);
     case AnnotatorType::kExegesis:
       return gematria::LlvmExpectedToStatusOr(
           exegesis_annotator->findAccessedAddrs(
-              llvm::ArrayRef(basic_block.begin(), basic_block.end())));
+              llvm::ArrayRef(basic_block.begin(), basic_block.end()),
+              max_annotation_attempts));
     case AnnotatorType::kNone:
       return gematria::AccessedAddrs();
   }
@@ -208,6 +213,8 @@ int main(int argc, char* argv[]) {
   const unsigned report_progress_every =
       absl::GetFlag(FLAGS_report_progress_every);
   const bool skip_no_loop_register = absl::GetFlag(FLAGS_skip_no_loop_register);
+  const unsigned max_annotation_attempts =
+      absl::GetFlag(FLAGS_max_annotation_attempts);
   unsigned int file_counter = 0;
   unsigned int loop_register_failures = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
@@ -234,17 +241,18 @@ int main(int argc, char* argv[]) {
             *inst_printer, 0, *bytes);
 
     if (!instructions) {
-      std::cerr << "Failed to disassemble block '" << hex << "\n";
+      std::cerr << "Failed to disassemble block '" << hex << "'\n";
       continue;
     }
 
-    // Get used registers
+    // Get used registers.
     std::vector<unsigned> used_registers = gematria::getUsedRegisters(
         *instructions, reg_info, llvm_support->mc_instr_info());
 
     auto proto = bhive_importer.BasicBlockProtoFromInstructions(*instructions);
 
-    auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator.get());
+    auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator.get(),
+                                  max_annotation_attempts, *llvm_support);
 
     if (!addrs.ok()) {
       std::cerr << "Failed to find addresses for block '" << hex

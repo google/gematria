@@ -18,6 +18,8 @@
 // canonical include path within LLVM as they are not properly exposed through
 // a library and could potentially be confused with other LLVM includes.
 
+#include <unistd.h>
+
 #include "X86.h"
 #include "X86InstrInfo.h"
 #include "X86RegisterInfo.h"
@@ -76,7 +78,7 @@ Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::create(
 }
 
 Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
-    ArrayRef<uint8_t> BasicBlock) {
+    ArrayRef<uint8_t> BasicBlock, unsigned MaxAnnotationAttempts) {
   Expected<std::vector<DisassembledInstruction>> DisInstructions =
       DisassembleAllInstructions(*MachineDisassembler, State.getInstrInfo(),
                                  State.getRegInfo(), State.getSubtargetInfo(),
@@ -146,10 +148,15 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
     Error AnnotationError = handleErrors(
         std::move(std::get<0>(BenchmarkResultOrErr)),
         [&](SnippetSegmentationFault &CrashInfo) -> Error {
+          if (BenchCode.Key.MemoryMappings.size() > MaxAnnotationAttempts)
+            return make_error<Failure>(
+                "Hit the maximum number of annotation attempts.");
+
           MemoryMapping MemMap;
           // Zero out the last twelve bits of the address to align
           // the address to a page boundary.
-          uintptr_t MapAddress = (CrashInfo.getAddress() & ~0xfff);
+          uintptr_t MapAddress =
+              (CrashInfo.getAddress() / getpagesize()) * getpagesize();
           if (MapAddress == 0)
             return make_error<Failure>("Segfault at zero address, cannot map.");
           // TODO(boomanaiden154): The fault captured below occurs when

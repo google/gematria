@@ -12,20 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "absl/log/check.h"
+#include "absl/strings/ascii.h"
+#include "absl/strings/str_format.h"
 #include "gematria/datasets/bhive_importer.h"
 #include "gematria/datasets/find_accessed_addrs.h"
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
+
+// TODO(orodley): The BHive-related functionality in this tool should be
+// merged into convert_bhive_to_llvm_exegesis_input.cc (probably behind a flag),
+// at which point this tool will serve no purpose and can be deleted.
 
 ABSL_FLAG(std::string, bhive_csv, "", "Filename of the input BHive CSV file");
 ABSL_FLAG(bool, failures_only, false,
@@ -34,6 +43,48 @@ ABSL_FLAG(bool, quiet, false, "Omit all output except for the final summary");
 ABSL_FLAG(std::string, failing_blocks_csv, "",
           "Filename of an output CSV file to which any failing blocks are "
           "written. This can be used as an input for subsequent runs.");
+ABSL_FLAG(std::string, exegesis_snippets_dir, "",
+          "Directory to write EXEgesis snippets to");
+
+void WriteRegisterDef(std::ofstream& snippets_file, std::string_view name,
+                      std::optional<int64_t> value) {
+  if (!value) return;
+  snippets_file << "# LLVM-EXEGESIS-DEFREG " << name << " "
+                << absl::StrFormat("%016x", *value) << "\n";
+}
+
+void WriteExegesisSnippet(gematria::BHiveImporter& bhive_importer,
+                          std::string_view snippets_dir,
+                          const std::vector<uint8_t>& code,
+                          const gematria::AccessedAddrs& addrs, int n,
+                          gematria::LlvmArchitectureSupport& llvm_support) {
+  auto proto = bhive_importer.BasicBlockProtoFromMachineCode(code);
+  CHECK_OK(proto);
+
+  auto filename = absl::StrFormat("%s/%d", snippets_dir, n);
+  std::ofstream snippets_file(filename);
+
+  // register values
+  for (const gematria::RegisterAndValue register_value : addrs.initial_regs) {
+    snippets_file << "# LLVM-EXEGESIS-DEFREG "
+                  << llvm_support.mc_register_info().getName(
+                         register_value.register_index)
+                  << absl::StrFormat("%016x", register_value.register_value)
+                  << "\n";
+  }
+
+  // Every block has the same size and contents, so we define one and then map
+  // it for every accessed block.
+  snippets_file << "# LLVM-EXEGESIS-MEM-DEF block " << addrs.block_size << " "
+                << absl::StrFormat("%016x", addrs.block_contents) << "\n";
+  for (const auto& addr : addrs.accessed_blocks) {
+    snippets_file << "# LLVM-EXEGESIS-MEM-MAP block " << addr << "\n";
+  }
+
+  for (const auto& instr : proto->machine_instructions()) {
+    snippets_file << instr.assembly() << "\n";
+  }
+}
 
 int main(int argc, char* argv[]) {
   absl::ParseCommandLine(argc, argv);
@@ -62,6 +113,7 @@ int main(int argc, char* argv[]) {
   std::ifstream bhive_csv_file(bhive_filename);
   int successful_calls = 0;
   int total_calls = 0;
+  int n = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
     auto comma_index = line.find(',');
     if (comma_index == std::string::npos) {
@@ -77,7 +129,7 @@ int main(int argc, char* argv[]) {
     }
 
     const auto& bytes = bytes_or.value();
-    auto addrs_or = gematria::FindAccessedAddrs(bytes);
+    auto addrs_or = gematria::FindAccessedAddrs(bytes, *llvm_support);
     if (addrs_or.ok()) {
       successful_calls++;
 
@@ -95,6 +147,12 @@ int main(int argc, char* argv[]) {
           if (&addr != &addrs.accessed_blocks.back()) std::cout << ",";
         }
         std::cout << "\n";
+      }
+
+      if (!absl::GetFlag(FLAGS_exegesis_snippets_dir).empty()) {
+        WriteExegesisSnippet(bhive_importer,
+                             absl::GetFlag(FLAGS_exegesis_snippets_dir), bytes,
+                             addrs_or.value(), n++, *llvm_support);
       }
     } else {
       if (failing_blocks_csv_file.has_value()) {
