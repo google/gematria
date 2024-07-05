@@ -25,10 +25,12 @@
 #include "X86Subtarget.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "gematria/datasets/basic_block_utils.h"
 #include "gematria/datasets/bhive_importer.h"
 #include "gematria/datasets/find_accessed_addrs.h"
 #include "gematria/datasets/find_accessed_addrs_exegesis.h"
 #include "gematria/llvm/canonicalizer.h"
+#include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/llvm/llvm_to_absl.h"
 #include "gematria/utils/string.h"
@@ -171,38 +173,9 @@ int main(int argc, char* argv[]) {
             (kInitialMemValBitWidth - initial_mem_val_str.size() * 4) / 4,
             '0') +
         initial_mem_val_str;
-  std::string register_defs_lines;
   const std::unique_ptr<gematria::LlvmArchitectureSupport> llvm_support =
       gematria::LlvmArchitectureSupport::X86_64();
   const llvm::MCRegisterInfo& reg_info = llvm_support->mc_register_info();
-
-  // Iterate through all general purpose registers and vector registers
-  // and add them to the register definitions.
-  const auto& gr64_register_class =
-      reg_info.getRegClass(llvm::X86::GR64_NOREX2RegClassID);
-  for (unsigned i = 0; i < gr64_register_class.getNumRegs(); ++i) {
-    if (gr64_register_class.getRegister(i) == llvm::X86::RIP) continue;
-    llvm::StringRef reg_name =
-        reg_info.getName(gr64_register_class.getRegister(i));
-    register_defs_lines += llvm::Twine(kRegDefPrefix)
-                               .concat(reg_name)
-                               .concat(" ")
-                               .concat(initial_reg_val_str)
-                               .concat("\n")
-                               .str();
-  }
-  const auto& vr128_register_class =
-      reg_info.getRegClass(llvm::X86::VR128RegClassID);
-  for (unsigned i = 0; i < vr128_register_class.getNumRegs(); ++i) {
-    llvm::StringRef reg_name =
-        reg_info.getName(vr128_register_class.getRegister(i));
-    register_defs_lines += llvm::Twine(kRegDefPrefix)
-                               .concat(reg_name)
-                               .concat(" ")
-                               .concat(initial_reg_val_str)
-                               .concat("\n")
-                               .str();
-  }
 
   gematria::X86Canonicalizer canonicalizer(&llvm_support->target_machine());
   gematria::BHiveImporter bhive_importer(&canonicalizer);
@@ -225,6 +198,9 @@ int main(int argc, char* argv[]) {
     }
     exegesis_annotator = std::move(*exegesis_annotator_or_error);
   }
+
+  std::unique_ptr<llvm::MCInstPrinter> inst_printer =
+      llvm_support->CreateMCInstPrinter(0);
 
   std::ifstream bhive_csv_file(bhive_filename);
   llvm::json::Array processed_snippets;
@@ -251,14 +227,22 @@ int main(int argc, char* argv[]) {
       return 3;
     }
 
-    auto proto = bhive_importer.BasicBlockProtoFromMachineCode(*bytes);
+    llvm::Expected<std::vector<gematria::DisassembledInstruction>>
+        instructions = gematria::DisassembleAllInstructions(
+            llvm_support->mc_disassembler(), llvm_support->mc_instr_info(),
+            llvm_support->mc_register_info(), llvm_support->mc_subtarget_info(),
+            *inst_printer, 0, *bytes);
 
-    // Check for errors.
-    if (!proto.ok()) {
-      std::cerr << "Failed to disassemble block '" << hex
-                << "': " << proto.status() << "\n";
+    if (!instructions) {
+      std::cerr << "Failed to disassemble block '" << hex << "'\n";
       continue;
     }
+
+    // Get used registers.
+    std::vector<unsigned> used_registers = gematria::getUsedRegisters(
+        *instructions, reg_info, llvm_support->mc_instr_info());
+
+    auto proto = bhive_importer.BasicBlockProtoFromInstructions(*instructions);
 
     auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator.get(),
                                   max_annotation_attempts, *llvm_support);
@@ -267,7 +251,7 @@ int main(int argc, char* argv[]) {
       std::cerr << "Failed to find addresses for block '" << hex
                 << "': " << addrs.status() << "\n";
       std::cerr << "Block disassembly:\n";
-      for (const auto& instr : proto->machine_instructions()) {
+      for (const auto& instr : proto.machine_instructions()) {
         std::cerr << "\t" << instr.assembly() << "\n";
       }
       continue;
@@ -288,8 +272,11 @@ int main(int argc, char* argv[]) {
         return 4;
       }
 
-      // Write the register definition lines into the output file.
-      output_file << register_defs_lines;
+      // Write registers to the output file.
+      for (const auto register_id : used_registers) {
+        output_file << kRegDefPrefix << reg_info.getName(register_id) << " "
+                    << initial_reg_val_str << "\n";
+      }
 
       // Multiple mappings can point to the same definition.
       if (addrs->accessed_blocks.size() > 0) {
@@ -302,13 +289,23 @@ int main(int argc, char* argv[]) {
       }
 
       // Append disassembled instructions.
-      for (const auto& instr : proto->machine_instructions()) {
+      for (const auto& instr : proto.machine_instructions()) {
         output_file << instr.assembly() << "\n";
       }
     }
 
     if (!json_output_dir.empty()) {
       llvm::json::Object current_snippet;
+
+      llvm::json::Array register_definitions;
+      for (const auto register_id : used_registers) {
+        llvm::json::Object current_register_definition;
+        current_register_definition["Register"] = register_id;
+        current_register_definition["Value"] = kInitialRegVal;
+        register_definitions.push_back(std::move(current_register_definition));
+      }
+      current_snippet["RegisterDefinitions"] =
+          llvm::json::Value(std::move(register_definitions));
 
       if (addrs->accessed_blocks.size() > 0) {
         llvm::json::Array memory_definitions;
