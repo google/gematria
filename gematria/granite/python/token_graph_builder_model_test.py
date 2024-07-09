@@ -582,11 +582,7 @@ def _block_filter(
     basic_block: throughput_pb2.BasicBlockWithThroughputProto,
 ):
   prefixes = basic_block.basic_block.canonicalized_instructions[0].prefixes
-  if len(prefixes) == 0:
-    return False
-  return (
-      basic_block.basic_block.canonicalized_instructions[0].prefixes[0] == 'REP'
-  )
+  return 'REP' in prefixes
 
 
 class TokenGraphBuilderModelEsotericBlocksTest(

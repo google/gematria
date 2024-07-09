@@ -162,11 +162,7 @@ class TestCase(unittest.TestCase):
     self.block_protos = get_basic_blocks(
         self.num_blocks, keep_fn=self.keep_function
     )
-    if len(self.block_protos) != self.num_blocks:
-      raise ValueError(
-          f'Expected {self.num_blocks} blocks, but only got'
-          f' {len(self.block_protos)}.'
-      )
+    self.assertEqual(len(self.block_protos), self.num_blocks)
 
     self.blocks_with_throughput = [
         throughput_protos.block_with_throughput_from_proto(proto)
