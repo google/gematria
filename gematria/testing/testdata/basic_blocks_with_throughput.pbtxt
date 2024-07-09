@@ -2531,3 +2531,39 @@ basic_blocks {
     }
   }
 }
+basic_blocks {
+  basic_block: {
+    canonicalized_instructions {
+      mnemonic: "MOV32ri"
+      prefixes: "REP"
+      llvm_mnemonic: "MOV32ri"
+      output_operands {
+        register_name: "EAX"
+      }
+      input_operands {
+        immediate_value: 1
+      }
+    }
+  }
+  inverse_throughputs: {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs: {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+  inverse_throughputs: {
+    source: "test: made up values"
+    inverse_throughput_cycles: [5.0, 4.0, 3.0, 2.0, 1.0]
+    prefix_inverse_throughputs: {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+  inverse_throughputs: {
+    source: "test: predicted value for tests"
+    inverse_throughput_cycles: [1.0]
+    prefix_inverse_throughputs: {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}

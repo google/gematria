@@ -159,12 +159,16 @@ class TestCase(unittest.TestCase):
       learning process, and all the algorithms should be able to overfit on it
       easily. Child classes can override this by setting `self.num_blocks`
       before calling `super().setUp()` in their setUp() method.
+    keep_function: A function that specifies what blocks to keep when collecting
+      test data. This is intended for filtering for specific blocks that
+      exercise specific functionality for regression tests.
     tokens: The list of all tokens appearing in self.blocks. The tokens are
       sorted, and each token appears in the list only once.
-    annotation_names: The set of annotation names to be used.
+    annotation_names: The list of annotation names to be used.
   """
 
   num_blocks: int = 1
+  keep_function: KeepFn = None
 
   blocks: list[basic_block.BasicBlock]
   annotated_blocks: list[basic_block.BasicBlock]
@@ -174,15 +178,20 @@ class TestCase(unittest.TestCase):
   annotated_blocks_with_throughput: list[throughput.BasicBlockWithThroughput]
 
   tokens: Sequence[str]
-  annotation_names: set[str]
+  annotation_names: Sequence[str]
 
   def setUp(self):
     super().setUp()
 
-    self.block_protos = get_basic_blocks(self.num_blocks)
-    self.annotated_block_protos = get_basic_blocks(
-        self.num_blocks, get_annotated_blocks=True
+    self.block_protos = get_basic_blocks(
+        self.num_blocks, keep_fn=self.keep_function
     )
+    self.annotated_block_protos = get_basic_blocks(
+        self.num_blocks, get_annotated_blocks=True, keep_fn=self.keep_function
+    )
+    self.assertEqual(len(self.block_protos), self.num_blocks)
+    self.assertEqual(len(self.annotated_block_protos), self.num_blocks)
+
     self.blocks_with_throughput = [
         throughput_protos.block_with_throughput_from_proto(proto)
         for proto in self.block_protos
@@ -200,4 +209,6 @@ class TestCase(unittest.TestCase):
         for block_with_throughput in self.annotated_blocks_with_throughput
     ]
     self.tokens = _get_block_tokens(self.blocks)
-    self.annotation_names = set(('made_up_cache_miss_freq',))
+    self.annotation_names = [
+        'made_up_cache_miss_freq',
+    ]
