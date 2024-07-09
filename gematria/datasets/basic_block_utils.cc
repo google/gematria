@@ -127,8 +127,12 @@ unsigned getSuperRegisterAllClasses(unsigned OriginalRegister,
                                     const MCRegisterInfo &RegisterInfo) {
   unsigned SuperRegister = OriginalRegister;
   for (MCPhysReg CurrentSuperRegister :
-       RegisterInfo.superregs_inclusive(OriginalRegister))
+       RegisterInfo.superregs_inclusive(OriginalRegister)) {
+    if (RegisterInfo.isSuperRegister(SuperRegister, CurrentSuperRegister)) {
+      SuperRegister = CurrentSuperRegister;
+    }
     SuperRegister = CurrentSuperRegister;
+  }
   return SuperRegister;
 }
 
@@ -155,6 +159,12 @@ std::optional<unsigned> getUnusedGPRegister(
          InstructionInfo.get(Instruction.mc_inst.getOpcode()).implicit_defs())
       UsedRegisters.insert(
           getSuperRegisterAllClasses(ImplicitlyDefinedRegister, RegisterInfo));
+    const MCInstrDesc &InstructionDescription =
+        InstructionInfo.get(Instruction.mc_inst.getOpcode());
+    UsedRegisters.insert(InstructionDescription.implicit_uses().begin(),
+                         InstructionDescription.implicit_uses().end());
+    UsedRegisters.insert(InstructionDescription.implicit_defs().begin(),
+                         InstructionDescription.implicit_defs().data());
   }
 
   const auto &GR64RegisterClass =
