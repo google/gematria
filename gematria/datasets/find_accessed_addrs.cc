@@ -30,8 +30,11 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <optional>
 #include <string>
+#include <vector>
 
+#include "X86.h"
 #include "absl/random/random.h"
 #include "absl/random/uniform_int_distribution.h"
 #include "absl/status/status.h"
@@ -39,7 +42,15 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "gematria/datasets/basic_block_utils.h"
 #include "gematria/datasets/block_wrapper.h"
+#include "gematria/llvm/disassembler.h"
+#include "gematria/llvm/llvm_architecture_support.h"
+#include "gematria/llvm/llvm_to_absl.h"
+#include "lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCRegister.h"
 
 namespace gematria {
 namespace {
@@ -141,6 +152,78 @@ absl::StatusOr<PipedData> ReadAll(int fd) {
 }
 
 uintptr_t AlignDown(uintptr_t x, size_t align) { return x - (x % align); }
+
+void RandomiseRegs(absl::BitGen& gen, std::vector<RegisterAndValue>& regs) {
+  for (size_t i = 0; i < regs.size(); ++i) {
+    // Pick between three values: 0, a low address, and a high address. These
+    // are picked to try to maximise the chance that some combination will
+    // produce a valid address when run through a wide range of functions. This
+    // is just a first stab, there are likely better sets of values we could use
+    // here.
+    constexpr int64_t kValues[] = {0, 0x15000, 0x1000000};
+    absl::uniform_int_distribution<int> dist(0, std::size(kValues) - 1);
+    regs[i].register_value = kValues[dist(gen)];
+  }
+}
+
+RawX64Regs ToRawRegs(const std::vector<RegisterAndValue> regs) {
+  RawX64Regs raw_regs;
+
+  for (const RegisterAndValue reg_and_value : regs) {
+    switch (reg_and_value.register_index) {
+      case X86::RAX:
+        raw_regs.rax = reg_and_value.register_value;
+        break;
+      case X86::RBX:
+        raw_regs.rbx = reg_and_value.register_value;
+        break;
+      case X86::RCX:
+        raw_regs.rcx = reg_and_value.register_value;
+        break;
+      case X86::RDX:
+        raw_regs.rdx = reg_and_value.register_value;
+        break;
+      case X86::RSI:
+        raw_regs.rsi = reg_and_value.register_value;
+        break;
+      case X86::RDI:
+        raw_regs.rdi = reg_and_value.register_value;
+        break;
+      case X86::RSP:
+        raw_regs.rsp = reg_and_value.register_value;
+        break;
+      case X86::RBP:
+        raw_regs.rbp = reg_and_value.register_value;
+        break;
+      case X86::R8:
+        raw_regs.r8 = reg_and_value.register_value;
+        break;
+      case X86::R9:
+        raw_regs.r9 = reg_and_value.register_value;
+        break;
+      case X86::R10:
+        raw_regs.r10 = reg_and_value.register_value;
+        break;
+      case X86::R11:
+        raw_regs.r11 = reg_and_value.register_value;
+        break;
+      case X86::R12:
+        raw_regs.r12 = reg_and_value.register_value;
+        break;
+      case X86::R13:
+        raw_regs.r13 = reg_and_value.register_value;
+        break;
+      case X86::R14:
+        raw_regs.r14 = reg_and_value.register_value;
+        break;
+      case X86::R15:
+        raw_regs.r15 = reg_and_value.register_value;
+        break;
+    }
+  }
+
+  return raw_regs;
+}
 
 std::string DumpRegs(const struct user_regs_struct& regs) {
   return absl::StrFormat(
@@ -281,6 +364,11 @@ void repmovsb(void* dst, const void* src, size_t count) {
   abort();
 }
 
+// Keep this in sync with the code below that initialises mapped blocks. This
+// value, when repeated over 8-byte chunks, should produce the same block as
+// the code below.
+constexpr uint64_t kBlockContents = 0x800000008;
+
 [[noreturn]] void ChildProcess(absl::Span<const uint8_t> basic_block,
                                int pipe_write_fd,
                                const AccessedAddrs& accessed_addrs) {
@@ -370,9 +458,10 @@ void repmovsb(void* dst, const void* src, size_t count) {
   std::copy(after_block.begin(), after_block.end(),
             &mapped_span[before_block.size() + basic_block.size()]);
 
-  auto mapped_func =
-      reinterpret_cast<void (*)(const X64Regs* initial_regs)>(mapped_address);
-  mapped_func(&accessed_addrs.initial_regs);
+  auto mapped_func = reinterpret_cast<void (*)(const RawX64Regs* initial_regs)>(
+      mapped_address);
+  auto raw_regs = ToRawRegs(accessed_addrs.initial_regs);
+  mapped_func(&raw_regs);
 
   // mapped_func should never return, but we can't put [[noreturn]] on a
   // function pointer. So stick this here to satisfy the compiler.
@@ -410,31 +499,22 @@ absl::Status ForkAndTestAddresses(absl::Span<const uint8_t> basic_block,
   }
 }
 
-void RandomiseRegs(absl::BitGen& gen, X64Regs& regs) {
-  // Pick between three values: 0, a low address, and a high address. These are
-  // picked to try to maximise the chance that some combination will produce a
-  // valid address when run through a wide range of functions. This is just a
-  // first stab, there are likely better sets of values we could use here.
-  constexpr int64_t kValues[] = {0, 0x15000, 0x1000000};
-  absl::uniform_int_distribution<int> dist(0, std::size(kValues) - 1);
-  auto random_reg = [&gen, &dist]() { return kValues[dist(gen)]; };
+absl::StatusOr<std::vector<unsigned>> FindReadRegs(
+    const LlvmArchitectureSupport& llvm_arch_support,
+    absl::Span<const uint8_t> basic_block) {
+  llvm::ArrayRef<uint8_t> llvm_array(basic_block.data(), basic_block.size());
+  llvm::Expected<std::vector<DisassembledInstruction>> instrs =
+      DisassembleAllInstructions(llvm_arch_support.mc_disassembler(),
+                                 llvm_arch_support.mc_instr_info(),
+                                 llvm_arch_support.mc_register_info(),
+                                 llvm_arch_support.mc_subtarget_info(),
+                                 *llvm_arch_support.CreateMCInstPrinter(1),
+                                 /*base_address=*/0, llvm_array);
 
-  regs.rax = random_reg();
-  regs.rbx = random_reg();
-  regs.rcx = random_reg();
-  regs.rdx = random_reg();
-  regs.rsi = random_reg();
-  regs.rdi = random_reg();
-  regs.rsp = random_reg();
-  regs.rbp = random_reg();
-  regs.r8 = random_reg();
-  regs.r9 = random_reg();
-  regs.r10 = random_reg();
-  regs.r11 = random_reg();
-  regs.r12 = random_reg();
-  regs.r13 = random_reg();
-  regs.r14 = random_reg();
-  regs.r15 = random_reg();
+  if (!instrs) return LlvmErrorToStatus(instrs.takeError());
+
+  return getUsedRegisters(*instrs, llvm_arch_support.mc_register_info(),
+                          llvm_arch_support.mc_instr_info());
 }
 
 }  // namespace
@@ -452,40 +532,36 @@ void RandomiseRegs(absl::BitGen& gen, X64Regs& regs) {
 //   particular offset).
 // * Much more complete testing.
 absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
-    absl::Span<const uint8_t> basic_block) {
-  // This value is chosen to be almost the lowest address that's able to be
-  // mapped. We want it to be low so that even if a register is multiplied or
-  // added to another register, it will still be likely to be within an
-  // accessible region of memory. But it's very common to take small negative
-  // offsets from a register as a memory address, so we want to leave some space
-  // below so that such addresses will still be accessible.
-  constexpr int64_t kInitialRegValue = 0x15000;
+    absl::Span<const uint8_t> basic_block,
+    LlvmArchitectureSupport& llvm_arch_support) {
+  absl::StatusOr<std::vector<unsigned>> used_regs =
+      FindReadRegs(llvm_arch_support, basic_block);
+  if (!used_regs.ok()) {
+    return used_regs.status();
+  }
+
+  std::vector<RegisterAndValue> initial_regs;
+  initial_regs.reserve(used_regs->size());
+
+  for (unsigned used_reg : *used_regs) {
+    // This value is chosen to be almost the lowest address that's able to be
+    // mapped. We want it to be low so that even if a register is multiplied or
+    // added to another register, it will still be likely to be within an
+    // accessible region of memory. But it's very common to take small negative
+    // offsets from a register as a memory address, so we want to leave some
+    // space below so that such addresses will still be accessible.
+    initial_regs.push_back(
+        {.register_index = used_reg, .register_value = 0x15000});
+  }
 
   absl::BitGen gen;
 
   AccessedAddrs accessed_addrs = {
       .code_location = 0,
       .block_size = static_cast<size_t>(getpagesize()),
+      .block_contents = kBlockContents,
       .accessed_blocks = {},
-      .initial_regs =
-          {
-              .rax = kInitialRegValue,
-              .rbx = kInitialRegValue,
-              .rcx = kInitialRegValue,
-              .rdx = kInitialRegValue,
-              .rsi = kInitialRegValue,
-              .rdi = kInitialRegValue,
-              .rsp = kInitialRegValue,
-              .rbp = kInitialRegValue,
-              .r8 = kInitialRegValue,
-              .r9 = kInitialRegValue,
-              .r10 = kInitialRegValue,
-              .r11 = kInitialRegValue,
-              .r12 = kInitialRegValue,
-              .r13 = kInitialRegValue,
-              .r14 = kInitialRegValue,
-              .r15 = kInitialRegValue,
-          },
+      .initial_regs = initial_regs,
   };
 
   int n = 0;

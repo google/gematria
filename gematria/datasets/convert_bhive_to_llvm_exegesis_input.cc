@@ -99,20 +99,25 @@ ABSL_FLAG(unsigned, report_progress_every, std::numeric_limits<unsigned>::max(),
 ABSL_FLAG(bool, skip_no_loop_register, true,
           "Whether or not to skip basic blocks where a loop counter register "
           "cannot be found.");
+ABSL_FLAG(unsigned, max_annotation_attempts, 50,
+          "The maximum number of times to attempt to annotate a block before "
+          "giving up.");
 
 absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
-    gematria::ExegesisAnnotator* exegesis_annotator) {
+    gematria::ExegesisAnnotator* exegesis_annotator,
+    const unsigned max_annotation_attempts,
+    gematria::LlvmArchitectureSupport& llvm_support) {
   const AnnotatorType annotator_implementation =
       absl::GetFlag(FLAGS_annotator_implementation);
   switch (annotator_implementation) {
     case AnnotatorType::kFast:
-      // This will only get the first segfault address.
-      return gematria::FindAccessedAddrs(basic_block);
+      return gematria::FindAccessedAddrs(basic_block, llvm_support);
     case AnnotatorType::kExegesis:
       return gematria::LlvmExpectedToStatusOr(
           exegesis_annotator->findAccessedAddrs(
-              llvm::ArrayRef(basic_block.begin(), basic_block.end())));
+              llvm::ArrayRef(basic_block.begin(), basic_block.end()),
+              max_annotation_attempts));
     case AnnotatorType::kNone:
       return gematria::AccessedAddrs();
   }
@@ -150,7 +155,7 @@ absl::StatusOr<AnnotatedBlock> AnnotateBasicBlock(
     std::string_view basic_block_hex, gematria::BHiveImporter& bhive_importer,
     gematria::ExegesisAnnotator* exegesis_annotator,
     gematria::LlvmArchitectureSupport& llvm_support,
-    llvm::MCInstPrinter& inst_printer) {
+    llvm::MCInstPrinter& inst_printer, const unsigned max_annotation_attempts) {
   auto bytes = gematria::ParseHexString(basic_block_hex);
   if (!bytes.has_value())
     return absl::InvalidArgumentError(
@@ -169,7 +174,8 @@ absl::StatusOr<AnnotatedBlock> AnnotateBasicBlock(
 
   auto proto = bhive_importer.BasicBlockProtoFromInstructions(*instructions);
 
-  auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator);
+  auto addrs = GetAccessedAddrs(*bytes, exegesis_annotator,
+                                max_annotation_attempts, llvm_support);
 
   if (!addrs.ok()) return addrs.status();
 
@@ -179,9 +185,9 @@ absl::StatusOr<AnnotatedBlock> AnnotateBasicBlock(
   annotated_block.used_registers =
       gematria::getUsedRegisters(*instructions, llvm_support.mc_register_info(),
                                  llvm_support.mc_instr_info());
-  annotated_block.loop_register =
-      gematria::getLoopRegister(*instructions, llvm_support.mc_register_info(),
-                                llvm_support.mc_instr_info());
+  annotated_block.loop_register = gematria::getUnusedGPRegister(
+      *instructions, llvm_support.mc_register_info(),
+      llvm_support.mc_instr_info());
 
   return std::move(annotated_block);
 }
@@ -360,6 +366,8 @@ int main(int argc, char* argv[]) {
   const unsigned report_progress_every =
       absl::GetFlag(FLAGS_report_progress_every);
   const bool skip_no_loop_register = absl::GetFlag(FLAGS_skip_no_loop_register);
+  const unsigned max_annotation_attempts =
+      absl::GetFlag(FLAGS_max_annotation_attempts);
   unsigned int file_counter = 0;
   unsigned int loop_register_failures = 0;
   for (std::string line; std::getline(bhive_csv_file, line);) {
@@ -373,14 +381,14 @@ int main(int argc, char* argv[]) {
 
     std::string_view hex = std::string_view(line).substr(0, comma_index);
 
-    auto annotated_block =
-        AnnotateBasicBlock(hex, bhive_importer, exegesis_annotator.get(),
-                           *llvm_support, *inst_printer);
+    auto annotated_block = AnnotateBasicBlock(
+        hex, bhive_importer, exegesis_annotator.get(), *llvm_support,
+        *inst_printer, max_annotation_attempts);
 
     if (!annotated_block.ok()) {
       std::cerr << "Failed to annotate block: " << annotated_block.status()
                 << "\n";
-      continue;
+      return 2;
     }
 
     // If we can't find a loop register, skip writing out this basic block

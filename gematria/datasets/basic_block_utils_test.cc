@@ -60,10 +60,10 @@ class BasicBlockUtilsTest : public ::testing::Test {
                             LlvmArchSupport->mc_instr_info());
   }
 
-  std::optional<unsigned> getLoopReg(std::string_view TextualAssembly) {
-    return getLoopRegister(getInstructions(TextualAssembly),
-                           LlvmArchSupport->mc_register_info(),
-                           LlvmArchSupport->mc_instr_info());
+  std::optional<unsigned> getUnusedGPReg(std::string_view TextualAssembly) {
+    return getUnusedGPRegister(getInstructions(TextualAssembly),
+                               LlvmArchSupport->mc_register_info(),
+                               LlvmArchSupport->mc_instr_info());
   }
 };
 
@@ -132,9 +132,7 @@ TEST_F(BasicBlockUtilsTest, UsedRegistersImplicitDefs) {
 TEST_F(BasicBlockUtilsTest, UsedRegistersCPUID) {
   std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
     cpuid
-    movq %rax, %r8
     movq %rbx, %r8
-    movq %rcx, %r8
     movq %rdx, %r8
   )asm");
   EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RAX, X86::RCX));
@@ -171,18 +169,32 @@ TEST_F(BasicBlockUtilsTest, UsedRegistersAddressingModes) {
               UnorderedElementsAre(X86::RAX, X86::RBX, X86::RCX));
 }
 
-TEST_F(BasicBlockUtilsTest, LoopRegisterSingleInstruction) {
-  std::optional<unsigned> LoopRegister = getLoopReg(R"asm(
+// TODO(boomanaiden154): Currently, this returns %RCX in addition to %RAX and
+// %RDX, when it should only return the latter two. This is not a large concern
+// as we are still returning a safe register set, but this should be fixed
+// eventually.
+TEST_F(BasicBlockUtilsTest, DISABLED_UsedRegistersSingleByteDefines) {
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
+    movb %al, %cl
+    movb %cl, %dl
+    addq %rdx, %rax
+  )asm");
+  EXPECT_THAT(UsedRegisters,
+              UnorderedElementsAre(X86::RAX, X86::RDX, X86::RCX));
+}
+
+TEST_F(BasicBlockUtilsTest, UnusedGPRegisterSingleInstruction) {
+  std::optional<unsigned> UnusedGPRegister = getUnusedGPReg(R"asm(
     mov %rax, %rcx
   )asm");
-  EXPECT_THAT(*LoopRegister,
+  EXPECT_THAT(*UnusedGPRegister,
               AnyOf(X86::RDX, X86::RBX, X86::RSI, X86::RDI, X86::RSP, X86::RBP,
                     X86::R8, X86::R9, X86::R10, X86::R11, X86::R12, X86::R13,
                     X86::R14, X86::R15));
 }
 
-TEST_F(BasicBlockUtilsTest, LoopRegisterImplicitUseDef) {
-  std::optional<unsigned> LoopRegister = getLoopReg(R"asm(
+TEST_F(BasicBlockUtilsTest, UnusedGPRegisterImplicitUseDef) {
+  std::optional<unsigned> UnusedGPRegister = getUnusedGPReg(R"asm(
     pushq %rax
     pushq %rcx
     pushq %rdx
@@ -190,12 +202,12 @@ TEST_F(BasicBlockUtilsTest, LoopRegisterImplicitUseDef) {
     pushq %rsi
     pushq %rdi
   )asm");
-  EXPECT_THAT(*LoopRegister, AnyOf(X86::R8, X86::R9, X86::R10, X86::R11,
-                                   X86::R12, X86::R13, X86::R14, X86::R15));
+  EXPECT_THAT(*UnusedGPRegister, AnyOf(X86::R8, X86::R9, X86::R10, X86::R11,
+                                       X86::R12, X86::R13, X86::R14, X86::R15));
 }
 
-TEST_F(BasicBlockUtilsTest, LoopRegisterFullPressure) {
-  std::optional<unsigned> LoopRegister = getLoopReg(R"asm(
+TEST_F(BasicBlockUtilsTest, UnusedGPRegisterFullPressure) {
+  std::optional<unsigned> UnusedGPRegister = getUnusedGPReg(R"asm(
     movq %rax, %rcx
     movq %rdx, %rbx
     movq %rsi, %rdi
@@ -205,7 +217,7 @@ TEST_F(BasicBlockUtilsTest, LoopRegisterFullPressure) {
     movq %r12, %r13
     movq %r14, %r15
   )asm");
-  EXPECT_FALSE(LoopRegister.has_value());
+  EXPECT_FALSE(UnusedGPRegister.has_value());
 }
 
 }  // namespace

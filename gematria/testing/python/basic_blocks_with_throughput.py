@@ -140,11 +140,15 @@ class TestCase(unittest.TestCase):
       learning process, and all the algorithms should be able to overfit on it
       easily. Child classes can override this by setting `self.num_blocks`
       before calling `super().setUp()` in their setUp() method.
+    keep_function: A function that specifies what blocks to keep when collecting
+      test data. This is intended for filtering for specific blocks that
+      exercise specific functionality for regression tests.
     tokens: The list of all tokens appearing in self.blocks. The tokens are
       sorted, and each token appears in the list only once.
   """
 
   num_blocks: int = 1
+  keep_function: KeepFn = None
 
   blocks: list[basic_block.BasicBlock]
   block_protos: list[throughput_pb2.BasicBlockWithThroughputProto]
@@ -155,7 +159,11 @@ class TestCase(unittest.TestCase):
   def setUp(self):
     super().setUp()
 
-    self.block_protos = get_basic_blocks(self.num_blocks)
+    self.block_protos = get_basic_blocks(
+        self.num_blocks, keep_fn=self.keep_function
+    )
+    self.assertEqual(len(self.block_protos), self.num_blocks)
+
     self.blocks_with_throughput = [
         throughput_protos.block_with_throughput_from_proto(proto)
         for proto in self.block_protos
