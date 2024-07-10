@@ -34,6 +34,13 @@ std::vector<unsigned> getUsedRegisters(
     const ArrayRef<DisassembledInstruction> Instructions,
     const MCRegisterInfo &RegisterInfo, const MCInstrInfo &InstructionInfo);
 
+// Returns a GPR not touched by the block. This is intended to be used to find
+// a register that can be used to store a loop iteration index. In the case
+// there is no free GPR, the function will returns std::nullopt.
+std::optional<unsigned> getUnusedGPRegister(
+    const std::vector<DisassembledInstruction> &Instructions,
+    const MCRegisterInfo &RegisterInfo, const MCInstrInfo &InstructionInfo);
+
 }  // namespace gematria
 
 #endif  // THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_BASIC_BLOCK_UTILS_H_
