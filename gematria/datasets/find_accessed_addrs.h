@@ -16,14 +16,20 @@
 #define THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_FIND_ACCESSED_ADDRS_H_
 
 #include <cstdint>
+#include <optional>
+#include <type_traits>
 #include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
+#include "gematria/llvm/llvm_architecture_support.h"
 
 namespace gematria {
 
-struct X64Regs {
+// We need a register struct with each member directly encoded so that it has a
+// predictible memory layout to pass into the prelude assembly which sets the
+// registers before executing the block
+struct RawX64Regs {
   int64_t rax;
   int64_t rbx;
   int64_t rcx;
@@ -42,18 +48,25 @@ struct X64Regs {
   int64_t r15;
 };
 
+struct RegisterAndValue {
+  unsigned register_index;
+  int64_t register_value;
+};
+
 struct AccessedAddrs {
   uintptr_t code_location;
   size_t block_size;
+  uint64_t block_contents;
   std::vector<uintptr_t> accessed_blocks;
-  X64Regs initial_regs;
+  std::vector<RegisterAndValue> initial_regs;
 };
 
 // Given a basic block of code, attempt to determine what addresses that code
 // accesses. This is done by executing the code in a new process, so the code
 // must match the architecture on which this function is executed.
 absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
-    absl::Span<const uint8_t> basic_block);
+    absl::Span<const uint8_t> basic_block,
+    LlvmArchitectureSupport &llvm_arch_support);
 
 }  // namespace gematria
 

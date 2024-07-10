@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import lit.main
-import sys
+import os
 
-# Lit expects the test folder path to be specifided on the command-line, which
-# is usually passed in through CMake. Bazel doesn't support this configuration,
-# so we manually add the path here.
-sys.argv.append(
-    "./gematria/datasets/convert_bhive_to_llvm_exegesis_input_tests"
+config.obj_root = os.path.join(
+    os.getcwd(), 'gematria/datasets/python/extract_tokens_file_tests'
 )
-sys.argv.append("-vv")
+config.tools_root = os.path.join(os.getcwd(), 'gematria/datasets/python')
+config.llvm_tools_root = os.path.join(os.getcwd(), 'external/llvm-project/llvm')
 
-if __name__ == "__main__":
-  lit.main.main()
+lit_config.load_config(config, os.path.join(config.obj_root, 'lit.cfg.py'))
