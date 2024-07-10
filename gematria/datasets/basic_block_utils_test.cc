@@ -23,6 +23,7 @@
 #include "gematria/testing/matchers.h"
 #include "gtest/gtest.h"
 
+using testing::AnyOf;
 using testing::IsEmpty;
 using testing::UnorderedElementsAre;
 
@@ -57,6 +58,12 @@ class BasicBlockUtilsTest : public ::testing::Test {
     return getUsedRegisters(getInstructions(TextualAssembly),
                             LlvmArchSupport->mc_register_info(),
                             LlvmArchSupport->mc_instr_info());
+  }
+
+  std::optional<unsigned> getUnusedGPReg(std::string_view TextualAssembly) {
+    return getUnusedGPRegister(getInstructions(TextualAssembly),
+                               LlvmArchSupport->mc_register_info(),
+                               LlvmArchSupport->mc_instr_info());
   }
 };
 
@@ -174,6 +181,43 @@ TEST_F(BasicBlockUtilsTest, DISABLED_UsedRegistersSingleByteDefines) {
   )asm");
   EXPECT_THAT(UsedRegisters,
               UnorderedElementsAre(X86::RAX, X86::RDX, X86::RCX));
+}
+
+TEST_F(BasicBlockUtilsTest, UnusedGPRegisterSingleInstruction) {
+  std::optional<unsigned> UnusedGPRegister = getUnusedGPReg(R"asm(
+    mov %rax, %rcx
+  )asm");
+  EXPECT_THAT(*UnusedGPRegister,
+              AnyOf(X86::RDX, X86::RBX, X86::RSI, X86::RDI, X86::RSP, X86::RBP,
+                    X86::R8, X86::R9, X86::R10, X86::R11, X86::R12, X86::R13,
+                    X86::R14, X86::R15));
+}
+
+TEST_F(BasicBlockUtilsTest, UnusedGPRegisterImplicitUseDef) {
+  std::optional<unsigned> UnusedGPRegister = getUnusedGPReg(R"asm(
+    pushq %rax
+    pushq %rcx
+    pushq %rdx
+    pushq %rbx
+    pushq %rsi
+    pushq %rdi
+  )asm");
+  EXPECT_THAT(*UnusedGPRegister, AnyOf(X86::R8, X86::R9, X86::R10, X86::R11,
+                                       X86::R12, X86::R13, X86::R14, X86::R15));
+}
+
+TEST_F(BasicBlockUtilsTest, UnusedGPRegisterFullPressure) {
+  std::optional<unsigned> UnusedGPRegister = getUnusedGPReg(R"asm(
+    movq %rax, %rcx
+    movq %rdx, %rbx
+    movq %rsi, %rdi
+    movq %rsp, %rbp
+    movq %r8, %r9
+    movq %r10, %r11
+    movq %r12, %r13
+    movq %r14, %r15
+  )asm");
+  EXPECT_FALSE(UnusedGPRegister.has_value());
 }
 
 }  // namespace
