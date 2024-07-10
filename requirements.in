@@ -5,14 +5,6 @@ numpy>=1.23.2
 scipy>=1.10.1
 semantic_version>=2.10.0
 tensorflow-probability>=0.19.0
-# NOTE(ondrasej): tensorflow-ranking depends on `tensorflow` on all platforms.
-# This breaks installation via requirements.txt on OS X that uses a different
-# package name tensorflow-macos. When on OS X, install tensorflow-ranking
-# manually via `pip install tensorflow-ranking --no-deps`.
-# Remove this, once it is possible to specify `--no-deps` in requirements.in
-# (when https://github.com/pypa/pip/pull/10837 is merged) or when dependencies
-# of tensorflow-ranking are fixed.
-tensorflow-ranking; sys_platform!='darwin'
 tensorflow>=2.11.0; sys_platform=='linux'
 tensorflow-macos>=2.11.0; sys_platform=='darwin'
 lit>=17.0.6
