@@ -283,9 +283,10 @@ absl::Status WriteAsmOutput(const AnnotatedBlock& annotated_block,
   }
 
   // Write the loop register annotation, assuming we were able to find one.
-  if (annotated_block.loop_register)
+  if (annotated_block.loop_register) {
     output_file << kLoopRegisterPrefix
                 << reg_info.getName(*annotated_block.loop_register) << "\n";
+  }
 
   // Append disassembled instructions.
   for (const auto& instr :
