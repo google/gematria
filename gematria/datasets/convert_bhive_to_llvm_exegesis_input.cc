@@ -39,12 +39,6 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 
-// Use the constants from the BHive paper for setting initial register and
-// memory values. These constants are set to a high enough value to avoid
-// underflow and accesses within the first page, but low enough to avoid
-// exceeding the virtual address space ceiling in most cases.
-constexpr uint64_t kInitialRegVal = 0x12345600;
-constexpr uint64_t kInitialMemVal = 0x12345600;
 constexpr unsigned kInitialMemValBitWidth = 64;
 constexpr std::string_view kRegDefPrefix = "# LLVM-EXEGESIS-DEFREG ";
 constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
@@ -147,7 +141,6 @@ bool WriteJsonFile(llvm::json::Array to_write, size_t json_file_number,
 struct AnnotatedBlock {
   gematria::AccessedAddrs accessed_addrs;
   gematria::BasicBlockProto basic_block_proto;
-  std::vector<unsigned> used_registers;
   std::optional<unsigned> loop_register;
 };
 
@@ -182,9 +175,6 @@ absl::StatusOr<AnnotatedBlock> AnnotateBasicBlock(
   AnnotatedBlock annotated_block;
   annotated_block.accessed_addrs = std::move(*addrs);
   annotated_block.basic_block_proto = std::move(proto);
-  annotated_block.used_registers =
-      gematria::getUsedRegisters(*instructions, llvm_support.mc_register_info(),
-                                 llvm_support.mc_instr_info());
   annotated_block.loop_register = gematria::getUnusedGPRegister(
       *instructions, llvm_support.mc_register_info(),
       llvm_support.mc_instr_info());
@@ -195,9 +185,7 @@ absl::StatusOr<AnnotatedBlock> AnnotateBasicBlock(
 absl::Status WriteAsmOutput(const AnnotatedBlock& annotated_block,
                             llvm::StringRef asm_output_dir,
                             unsigned int file_counter,
-                            const llvm::MCRegisterInfo& reg_info,
-                            std::string_view initial_mem_val_str,
-                            std::string_view initial_reg_val_str) {
+                            const llvm::MCRegisterInfo& reg_info) {
   // Create output file path.
   llvm::Twine output_file_path = llvm::Twine(asm_output_dir)
                                      .concat("/")
@@ -213,17 +201,30 @@ absl::Status WriteAsmOutput(const AnnotatedBlock& annotated_block,
                                           .str());
   }
 
-  // Write registers to the output file.
-  for (const auto register_id : annotated_block.used_registers) {
-    output_file << kRegDefPrefix << reg_info.getName(register_id) << " "
-                << initial_reg_val_str << "\n";
+  for (const gematria::RegisterAndValue& register_and_value :
+       annotated_block.accessed_addrs.initial_regs) {
+    std::string register_value_string =
+        gematria::ConvertHexToString(register_and_value.register_value);
+    output_file << kRegDefPrefix
+                << reg_info.getName(register_and_value.register_index) << " "
+                << register_value_string << "\n";
   }
 
   // Multiple mappings can point to the same definition.
   if (annotated_block.accessed_addrs.accessed_blocks.size() > 0) {
+    std::string memory_value_string = gematria::ConvertHexToString(
+        annotated_block.accessed_addrs.block_contents);
+    // Prefix the string with zeroes as llvm-exegesis assumes the bit width
+    // of the memory value based on the number of characters in the string.
+    if (kInitialMemValBitWidth > memory_value_string.size() * 4)
+      memory_value_string =
+          std::string(
+              (kInitialMemValBitWidth - memory_value_string.size() * 4) / 4,
+              '0') +
+          memory_value_string;
     output_file << kMemDefPrefix << kMemNamePrefix << " "
                 << annotated_block.accessed_addrs.block_size << " "
-                << initial_mem_val_str << "\n";
+                << memory_value_string << "\n";
   }
   for (const auto& addr : annotated_block.accessed_addrs.accessed_blocks) {
     output_file << kMemMapPrefix << kMemNamePrefix << " " << std::dec << addr
@@ -267,19 +268,6 @@ int main(int argc, char* argv[]) {
   const AnnotatorType annotator_implementation =
       absl::GetFlag(FLAGS_annotator_implementation);
 
-  std::string initial_reg_val_str =
-      gematria::ConvertHexToString(kInitialRegVal);
-  std::string initial_mem_val_str =
-      gematria::ConvertHexToString(kInitialMemVal);
-
-  // Prefix the string with zeroes as llvm-exegesis assumes the bit width
-  // of the memory value based on the number of characters in the string.
-  if (kInitialMemValBitWidth > initial_mem_val_str.size() * 4)
-    initial_mem_val_str =
-        std::string(
-            (kInitialMemValBitWidth - initial_mem_val_str.size() * 4) / 4,
-            '0') +
-        initial_mem_val_str;
   const std::unique_ptr<gematria::LlvmArchitectureSupport> llvm_support =
       gematria::LlvmArchitectureSupport::X86_64();
   const llvm::MCRegisterInfo& reg_info = llvm_support->mc_register_info();
@@ -351,9 +339,8 @@ int main(int argc, char* argv[]) {
     }
 
     if (!asm_output_dir.empty()) {
-      absl::Status asm_output_error =
-          WriteAsmOutput(*annotated_block, asm_output_dir, file_counter,
-                         reg_info, initial_mem_val_str, initial_reg_val_str);
+      absl::Status asm_output_error = WriteAsmOutput(
+          *annotated_block, asm_output_dir, file_counter, reg_info);
       if (!asm_output_error.ok()) {
         std::cerr << "Failed to write block to file: " << asm_output_error
                   << "\n";
@@ -365,10 +352,13 @@ int main(int argc, char* argv[]) {
       llvm::json::Object current_snippet;
 
       llvm::json::Array register_definitions;
-      for (const auto register_id : annotated_block->used_registers) {
+      for (const gematria::RegisterAndValue register_and_value :
+           annotated_block->accessed_addrs.initial_regs) {
         llvm::json::Object current_register_definition;
-        current_register_definition["Register"] = register_id;
-        current_register_definition["Value"] = kInitialRegVal;
+        current_register_definition["Register"] =
+            register_and_value.register_index;
+        current_register_definition["Value"] =
+            register_and_value.register_value;
         register_definitions.push_back(std::move(current_register_definition));
       }
       current_snippet["RegisterDefinitions"] =
@@ -386,7 +376,8 @@ int main(int argc, char* argv[]) {
         current_memory_definition["Name"] = llvm::json::Value(kMemNamePrefix);
         current_memory_definition["Size"] =
             annotated_block->accessed_addrs.block_size;
-        current_memory_definition["Value"] = llvm::json::Value(kInitialMemVal);
+        current_memory_definition["Value"] =
+            annotated_block->accessed_addrs.block_contents;
         memory_definitions.push_back(std::move(current_memory_definition));
         current_snippet["MemoryDefinitions"] =
             llvm::json::Value(std::move(memory_definitions));

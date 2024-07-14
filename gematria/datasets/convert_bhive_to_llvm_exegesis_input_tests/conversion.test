@@ -4,11 +4,12 @@
 ; RUN: split-file %s %t
 ; RUN: mkdir %t.asmdir
 ; RUN: %convert_bhive_to_llvm_exegesis_input --asm_output_dir=%t.asmdir --bhive_csv=%t/test.csv
+; RUN: cat %t.asmdir/0.test > /tmp/0.test
 ; RUN: cat %t.asmdir/0.test | FileCheck %s
 
-; CHECK: # LLVM-EXEGESIS-DEFREG RCX 12345600
-; CHECK: # LLVM-EXEGESIS-DEFREG RSI 12345600
-; CHECK: # LLVM-EXEGESIS-MEM-DEF MEM 4096 0000000012345600
+; CHECK: # LLVM-EXEGESIS-DEFREG RCX 15000
+; CHECK: # LLVM-EXEGESIS-DEFREG RSI 15000
+; CHECK: # LLVM-EXEGESIS-MEM-DEF MEM 4096 0000000800000008
 ; CHECK: # LLVM-EXEGESIS-MEM-MAP MEM 86016
 ; CHECK:	cmpl	(%rcx), %esi
 

@@ -154,6 +154,7 @@ cc_library(
         "//gematria/llvm:llvm_architecture_support",
         "@llvm-project//llvm:Exegesis",
         "@llvm-project//llvm:Support",
+        ":basic_block_utils",
     ],
 )
 
