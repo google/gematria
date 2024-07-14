@@ -191,13 +191,12 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
     MemAnnotations.accessed_blocks.push_back(Mapping.Address);
   }
 
-  std::vector<unsigned> UsedRegisters = gematria::getUsedRegisters(*DisInstructions, State.getRegInfo(), State.getInstrInfo());
+  std::vector<unsigned> UsedRegisters = gematria::getUsedRegisters(
+      *DisInstructions, State.getRegInfo(), State.getInstrInfo());
 
   for (const unsigned UsedRegister : UsedRegisters) {
-    MemAnnotations.initial_regs.push_back({
-      .register_index = UsedRegister,
-      .register_value = kInitialRegVal
-    });
+    MemAnnotations.initial_regs.push_back(
+        {.register_index = UsedRegister, .register_value = kInitialRegVal});
   }
 
   MemAnnotations.block_contents = kInitialMemVal;
