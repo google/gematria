@@ -13,7 +13,7 @@
 ; CHECK:       {
 ; CHECK:         "Name": "MEM",
 ; CHECK:         "Size": 4096,
-; CHECK:         "Value": 305419776
+; CHECK:         "Value": 34359738376
 ; CHECK:       }
 ; CHECK:     ],
 ; CHECK:     "MemoryMappings": [
@@ -25,11 +25,11 @@
 ; CHECK:     "RegisterDefinitions": [
 ; CHECK:       {
 ; CHECK:         "Register": 54,
-; CHECK:         "Value": 305419776
+; CHECK:         "Value": 86016
 ; CHECK:       },
 ; CHECK:       {
 ; CHECK:         "Register": 60,
-; CHECK:         "Value": 305419776
+; CHECK:         "Value": 86016
 ; CHECK:       }
 ; CHECK:     ]
 ; CHECK:   }
