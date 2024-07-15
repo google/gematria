@@ -78,3 +78,37 @@ gematria_py_test(
         "@llvm-project//llvm:split-file",
     ] + glob(["extract_tokens_file_tests/*.test"]),
 )
+
+gematria_pybind_extension(
+    name = "extract_bbs_from_obj",
+    srcs = ["extract_bbs_from_obj.cc"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/datasets:extract_bbs_from_obj_lib",
+        "@pybind11_abseil_repo//pybind11_abseil:status_casters",
+        "//gematria/llvm:llvm_to_absl",
+    ]
+)
+
+genrule(
+    name = "extract_bbs_from_obj_test_file",
+    srcs = ["extract_bbs_from_obj_test.yaml"],
+    outs = ["extract_bbs_from_obj_test_file.o"],
+    cmd = "$(location @llvm-project//llvm:yaml2obj) $(location extract_bbs_from_obj_test.yaml) -o $(location extract_bbs_from_obj_test_file.o)",
+    tools = [
+        "@llvm-project//llvm:yaml2obj",
+    ],
+    testonly = True,
+)
+
+gematria_py_test(
+    name = "extract_bbs_from_obj_test",
+    size = "small",
+    srcs = ["extract_bbs_from_obj_test.py"],
+    deps = [
+        ":extract_bbs_from_obj",
+    ],
+    data = [
+        ":extract_bbs_from_obj_test_file",
+    ]
+)

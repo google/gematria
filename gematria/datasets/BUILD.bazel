@@ -278,4 +278,5 @@ cc_library(
         "@llvm-project//llvm:Object",
         "@llvm-project//llvm:Support",
     ],
+    visibility = ["//:internal_users"],
 )
