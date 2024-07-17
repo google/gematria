@@ -19,7 +19,7 @@ from gematria.model.python import options
 from gematria.testing.python import model_test
 import numpy as np
 import tensorflow.compat.v1 as tf
-import tf_keras as keras
+import tf_keras
 
 # The tolerance used in tests with heavier use of float32 arithmetics.
 _TOLERANCE = 1e-6
@@ -143,14 +143,14 @@ class TestModelWithVarGroups(model_base.ModelBase):
           name=f'weight_{task}',
           shape=(1,),
           dtype=self.dtype,
-          initializer=keras.initializers.constant(0.5),
+          initializer=tf_keras.initializers.constant(0.5),
       )
       self._variable_groups[TestModelWithVarGroups.WEIGHTS].append(weight)
       bias = tf.get_variable(
           name=f'bias_{task}',
           shape=(1,),
           dtype=self.dtype,
-          initializer=keras.initializers.constant(-0.5),
+          initializer=tf_keras.initializers.constant(-0.5),
       )
       self._variable_groups[TestModelWithVarGroups.BIAS].append(bias)
       output_parts.append(weight * self._input_tensor + bias)

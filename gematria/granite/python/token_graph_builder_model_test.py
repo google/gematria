@@ -23,7 +23,7 @@ from gematria.model.python import model_blocks
 from gematria.model.python import oov_token_behavior
 from gematria.testing.python import model_test
 import tensorflow.compat.v1 as tf
-import tf_keras as keras
+import tf_keras
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 
@@ -47,7 +47,7 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
     global_update_layers = (11, 17)
     readout_layers = (16,)
     task_readout_layers = ()
-    activation = functools.partial(keras.activations.relu, alpha=0.1)
+    activation = functools.partial(tf_keras.activations.relu, alpha=0.1)
     model = token_graph_builder_model.TokenGraphBuilderModel(
         tokens=self.tokens,
         immediate_token=tokens.IMMEDIATE,
@@ -77,12 +77,12 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
     )
     with mock.patch(
         'tf_keras.layers.Dense',
-        side_effect=keras.layers.Dense,
+        side_effect=tf_keras.layers.Dense,
     ) as mock_dense:
       model.initialize()
     mock_dense.assert_has_calls((
         mock.call(16, activation=mock.ANY, bias_initializer='glorot_normal'),
-        mock.call(1, activation=keras.activations.linear, use_bias=False),
+        mock.call(1, activation=tf_keras.activations.linear, use_bias=False),
     ))
 
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
@@ -178,10 +178,10 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
     # and so none of these functions should be used.
     with mock.patch(
         'tf_keras.layers.LayerNormalization',
-        side_effect=keras.layers.LayerNormalization,
-    ) as keras_layer_norm:
+        side_effect=tf_keras.layers.LayerNormalization,
+    ) as tf_keras_layer_norm:
       model.initialize()
-    keras_layer_norm.assert_not_called()
+    tf_keras_layer_norm.assert_not_called()
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
   def test_train_seq2seq_readout_layer_norm(self):
@@ -222,10 +222,10 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
     # to see the Keras version used once.
     with mock.patch(
         'tf_keras.layers.LayerNormalization',
-        side_effect=keras.layers.LayerNormalization,
-    ) as keras_layer_norm:
+        side_effect=tf_keras.layers.LayerNormalization,
+    ) as tf_keras_layer_norm:
       model.initialize()
-    keras_layer_norm.assert_called_once_with(
+    tf_keras_layer_norm.assert_called_once_with(
         name='readout_input_layer_normalization'
     )
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
@@ -273,10 +273,10 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
     # expect to see the Keras version used once.
     with mock.patch(
         'tf_keras.layers.LayerNormalization',
-        side_effect=keras.layers.LayerNormalization,
-    ) as keras_layer_norm:
+        side_effect=tf_keras.layers.LayerNormalization,
+    ) as tf_keras_layer_norm:
       model.initialize()
-    keras_layer_norm.assert_called_once_with(
+    tf_keras_layer_norm.assert_called_once_with(
         name='task_readout_input_layer_normalization'
     )
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
@@ -319,10 +319,10 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
     # Sonnet version of layer normalization should be used.
     with mock.patch(
         'tf_keras.layers.LayerNormalization',
-        side_effect=keras.layers.LayerNormalization,
-    ) as keras_layer_norm:
+        side_effect=tf_keras.layers.LayerNormalization,
+    ) as tf_keras_layer_norm:
       model.initialize()
-    keras_layer_norm.assert_has_calls((
+    tf_keras_layer_norm.assert_has_calls((
         mock.call(name='graph_network_layer_norm_1_0_nodes'),
         mock.call(name='graph_network_layer_norm_1_0_edges'),
         mock.call(name='graph_network_layer_norm_1_0_globals'),
@@ -368,10 +368,10 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
     # Sonnet version of layer normalization should be used.
     with mock.patch(
         'tf_keras.layers.LayerNormalization',
-        side_effect=keras.layers.LayerNormalization,
-    ) as keras_layer_norm:
+        side_effect=tf_keras.layers.LayerNormalization,
+    ) as tf_keras_layer_norm:
       model.initialize()
-    keras_layer_norm.assert_has_calls((
+    tf_keras_layer_norm.assert_has_calls((
         mock.call(name='graph_network_layer_norm_1_0_nodes'),
         mock.call(name='graph_network_layer_norm_1_0_edges'),
         mock.call(name='graph_network_layer_norm_1_0_globals'),

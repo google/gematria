@@ -23,7 +23,7 @@ from gematria.model.python import oov_token_behavior
 from gematria.model.python import token_model
 import numpy as np
 import tensorflow.compat.v1 as tf
-import tf_keras as keras
+import tf_keras
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 
@@ -73,7 +73,7 @@ class SequenceModelBase(token_model.TokenModel, model_base.ModelBase):
   """
 
   # The model used for processing the data.
-  _model: Optional[keras.Model] = None
+  _model: Optional[tf_keras.Model] = None
 
   # Temporary lists used when transforming basic blocks from BasicBlockProto to
   # the three tensors described above.
@@ -87,7 +87,7 @@ class SequenceModelBase(token_model.TokenModel, model_base.ModelBase):
   _num_instructions_per_block_placeholder: tf.Tensor
 
   @abc.abstractmethod
-  def _create_model(self) -> keras.Model:
+  def _create_model(self) -> tf_keras.Model:
     """Creates the Keras model for this class.
 
     The returned model must take a tuple of 1D int32 tensors

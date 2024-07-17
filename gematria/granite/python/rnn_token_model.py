@@ -20,9 +20,9 @@ information about the model.
 from gematria.granite.python import token_graph_builder_model
 from gematria.model.python import options
 import tensorflow.compat.v1 as tf
-import tf_keras as keras
+import tf_keras
 
-_RNN_TYPE_TO_TF = {'LSTM': keras.layers.LSTM, 'GRU': keras.layers.GRU}
+_RNN_TYPE_TO_TF = {'LSTM': tf_keras.layers.LSTM, 'GRU': tf_keras.layers.GRU}
 
 
 class RnnTokenModel(token_graph_builder_model.TokenGraphBuilderModel):
@@ -120,7 +120,7 @@ class RnnTokenModel(token_graph_builder_model.TokenGraphBuilderModel):
 
     # Normalize the instruction features if needed.
     if self._readout_input_layer_normalization:
-      layer_normalization = keras.layers.LayerNormalization()
+      layer_normalization = tf_keras.layers.LayerNormalization()
       instruction_features = layer_normalization(instruction_features)
 
     # A ragged tensor that contains the basic blocks in the batch. Each element
@@ -137,7 +137,7 @@ class RnnTokenModel(token_graph_builder_model.TokenGraphBuilderModel):
         return_sequences=self._use_deltas,
     )
     if self._rnn_bidirectional:
-      rnn_layer = keras.layers.Bidirectional(rnn_layer)
+      rnn_layer = tf_keras.layers.Bidirectional(rnn_layer)
 
     # Depending on the value of self._use_deltas:
     #  * In the seq2num mode (self._use_deltas == False), rnn_outputs contains
