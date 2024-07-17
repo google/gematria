@@ -79,6 +79,25 @@ git_repository(
     tag = "5.3.0-21.7",
 )
 
+# We use `perf_data_converter` with a patch to make it more usable as a library.
+git_repository(
+    name = "com_google_perf_data_converter",
+    commit = "607f0b5c11216e7da1821ad92adb60e52bb9c945",
+    patch_args = ["-p1"],
+    patch_cmds = [
+        "mv ./src/quipper .",
+        "rm -rf ./src",
+    ],
+    remote = "https://github.com/google/perf_data_converter.git",
+)
+
+http_archive(
+    name = "boringssl",
+    sha256 = "0a2b7a10fdce3d5ccdc6abf4f5701dca24b97efa75b00d203c50221269605476",
+    strip_prefix = "boringssl-ea4425fbb276871cfec5c4e19c12796b3cd1c9ab",
+    urls = ["https://github.com/google/boringssl/archive/ea4425fbb276871cfec5c4e19c12796b3cd1c9ab.tar.gz"],
+)
+
 # Python
 load("@upb//bazel:system_python.bzl", "system_python")
 

@@ -41,6 +41,27 @@ cc_test(
 )
 
 cc_library(
+    name = "annotating_importer",
+    srcs = ["annotating_importer.cc"],
+    hdrs = ["annotating_importer.h"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/basic_block:basic_block_protos",
+        "//gematria/datasets:bhive_importer",
+        "//gematria/llvm:canonicalizer",
+        "//gematria/llvm:llvm_to_absl",
+        "//gematria/proto:basic_block_cc_proto",
+        "//gematria/proto:throughput_cc_proto",
+        "//gematria/utils:string",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_perf_data_converter//quipper:perf_parser",
+        "@com_google_perf_data_converter//quipper:perf_reader",
+    ],
+)
+
+cc_library(
     name = "bhive_to_exegesis",
     srcs = ["bhive_to_exegesis.cc"],
     hdrs = ["bhive_to_exegesis.h"],

@@ -81,9 +81,9 @@ BasicBlockProto BHiveImporter::BasicBlockProtoFromInstructions(
   return basic_block_proto;
 }
 
-absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMachineCode(
-    llvm::ArrayRef<uint8_t> machine_code, uint64_t base_address /*= 0*/) {
-  BasicBlockProto basic_block_proto;
+absl::StatusOr<std::vector<DisassembledInstruction>>
+BHiveImporter::DisassembledInstructionsFromMachineCode(
+    llvm::ArrayRef<uint8_t> machine_code, uint64_t base_address /* = 0 */) {
   llvm::Expected<std::vector<DisassembledInstruction>> instructions =
       DisassembleAllInstructions(*disassembler_,
                                  *target_machine_.getMCInstrInfo(),
@@ -94,7 +94,18 @@ absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMachineCode(
     return LlvmErrorToStatus(std::move(error));
   }
 
-  return BasicBlockProtoFromInstructions(*instructions);
+  return *instructions;
+}
+
+absl::StatusOr<BasicBlockProto> BHiveImporter::BasicBlockProtoFromMachineCode(
+    llvm::ArrayRef<uint8_t> machine_code, uint64_t base_address /*= 0*/) {
+  auto instructions =
+      DisassembledInstructionsFromMachineCode(machine_code, base_address);
+  if (!instructions.ok()) {
+    return instructions.status();
+  }
+
+  return BasicBlockProtoFromInstructions(instructions.value());
 }
 
 absl::StatusOr<BasicBlockProto>
