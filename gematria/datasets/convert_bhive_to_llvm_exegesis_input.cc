@@ -39,10 +39,6 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 
-<<<<<<< HEAD
-constexpr unsigned kInitialMemValBitWidth = 64;
-=======
->>>>>>> main
 constexpr std::string_view kRegDefPrefix = "# LLVM-EXEGESIS-DEFREG ";
 constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
 constexpr std::string_view kMemMapPrefix = "# LLVM-EXEGESIS-MEM-MAP ";
