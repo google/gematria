@@ -149,6 +149,7 @@ cc_library(
     srcs = ["find_accessed_addrs_exegesis.cc"],
     hdrs = ["find_accessed_addrs_exegesis.h"],
     deps = [
+        ":basic_block_utils",
         ":find_accessed_addrs",
         "//gematria/llvm:disassembler",
         "//gematria/llvm:llvm_architecture_support",
@@ -251,7 +252,7 @@ cc_binary(
     name = "extract_bbs_from_obj",
     srcs = ["extract_bbs_from_obj.cc"],
     deps = [
-        "@llvm-project//llvm:Object",
+        ":extract_bbs_from_obj_lib",
         "@llvm-project//llvm:Support",
     ],
 )
@@ -267,4 +268,14 @@ gematria_py_test(
         "@llvm-project//llvm:FileCheck",
         "@llvm-project//llvm:yaml2obj",
     ] + glob(["extract_bbs_from_obj_tests/*.test"]),
+)
+
+cc_library(
+    name = "extract_bbs_from_obj_lib",
+    srcs = ["extract_bbs_from_obj_lib.cc"],
+    hdrs = ["extract_bbs_from_obj_lib.h"],
+    deps = [
+        "@llvm-project//llvm:Object",
+        "@llvm-project//llvm:Support",
+    ],
 )
