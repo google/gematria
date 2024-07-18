@@ -194,6 +194,8 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
   std::vector<unsigned> UsedRegisters = gematria::getUsedRegisters(
       *DisInstructions, State.getRegInfo(), State.getInstrInfo());
 
+  MemAnnotations.initial_regs.reserve(UsedRegisters.size());
+
   for (const unsigned UsedRegister : UsedRegisters) {
     MemAnnotations.initial_regs.push_back(
         {.register_index = UsedRegister, .register_value = kInitialRegVal});

@@ -39,7 +39,10 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 
+<<<<<<< HEAD
 constexpr unsigned kInitialMemValBitWidth = 64;
+=======
+>>>>>>> main
 constexpr std::string_view kRegDefPrefix = "# LLVM-EXEGESIS-DEFREG ";
 constexpr std::string_view kMemDefPrefix = "# LLVM-EXEGESIS-MEM-DEF ";
 constexpr std::string_view kMemMapPrefix = "# LLVM-EXEGESIS-MEM-MAP ";
@@ -212,16 +215,10 @@ absl::Status WriteAsmOutput(const AnnotatedBlock& annotated_block,
 
   // Multiple mappings can point to the same definition.
   if (annotated_block.accessed_addrs.accessed_blocks.size() > 0) {
-    std::string memory_value_string = gematria::ConvertHexToString(
-        annotated_block.accessed_addrs.block_contents);
-    // Prefix the string with zeroes as llvm-exegesis assumes the bit width
-    // of the memory value based on the number of characters in the string.
-    if (kInitialMemValBitWidth > memory_value_string.size() * 4)
-      memory_value_string =
-          std::string(
-              (kInitialMemValBitWidth - memory_value_string.size() * 4) / 4,
-              '0') +
-          memory_value_string;
+    // Make sure to left-pad the memory value string so llvm-exegesis is able to
+    // assume the right bit-width.
+    std::string memory_value_string =
+        absl::StrFormat("%016x", annotated_block.accessed_addrs.block_contents);
     output_file << kMemDefPrefix << kMemNamePrefix << " "
                 << annotated_block.accessed_addrs.block_size << " "
                 << memory_value_string << "\n";
