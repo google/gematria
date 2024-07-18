@@ -13,8 +13,35 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from rules_python.python.runfiles import runfiles
+import os
+from gematria.datasets.python import extract_bbs_from_obj
+
+_ROOT_PATH = 'com_google_gematria'
+_OBJECT_FILE_PATH = os.path.join(
+    _ROOT_PATH, 'gematria/datasets/python/extract_bbs_from_obj_test_file.o'
+)
+
 
 class ExtractBBsFromObjTests(absltest.TestCase):
+
   def test_thing(self):
     self.assertTrue(True)
-  
+
+    runfiles_dir = os.environ.get('PYTHON_RUNFILES')
+    runfiles_env = runfiles.Create({'RUNFILES_DIR': runfiles_dir})
+    assert runfiles_env is not None
+    object_file_path = runfiles_env.Rlocation(_OBJECT_FILE_PATH)
+    self.assertTrue(os.path.exists(object_file_path))
+
+    with open(object_file_path, 'rb') as object_file:
+      object_file_data = object_file.read()
+
+    basic_blocks = extract_bbs_from_obj.get_basic_block_hex_values(
+        object_file_data
+    )
+    self.assertContainsSubset(['AA', 'BB', 'CC'], basic_blocks)
+
+
+if __name__ == '__main__':
+  absltest.main()

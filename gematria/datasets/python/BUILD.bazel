@@ -85,30 +85,31 @@ gematria_pybind_extension(
     visibility = ["//:internal_users"],
     deps = [
         "//gematria/datasets:extract_bbs_from_obj_lib",
-        "@pybind11_abseil_repo//pybind11_abseil:status_casters",
         "//gematria/llvm:llvm_to_absl",
-    ]
+        "@pybind11_abseil_repo//pybind11_abseil:status_casters",
+    ],
 )
 
 genrule(
     name = "extract_bbs_from_obj_test_file",
+    testonly = True,
     srcs = ["extract_bbs_from_obj_test.yaml"],
     outs = ["extract_bbs_from_obj_test_file.o"],
     cmd = "$(location @llvm-project//llvm:yaml2obj) $(location extract_bbs_from_obj_test.yaml) -o $(location extract_bbs_from_obj_test_file.o)",
     tools = [
         "@llvm-project//llvm:yaml2obj",
     ],
-    testonly = True,
 )
 
 gematria_py_test(
     name = "extract_bbs_from_obj_test",
     size = "small",
     srcs = ["extract_bbs_from_obj_test.py"],
-    deps = [
-        ":extract_bbs_from_obj",
-    ],
     data = [
         ":extract_bbs_from_obj_test_file",
-    ]
+    ],
+    deps = [
+        ":extract_bbs_from_obj",
+        "@rules_python//python/runfiles",
+    ],
 )

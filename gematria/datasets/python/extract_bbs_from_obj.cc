@@ -17,7 +17,9 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "pybind11/detail/common.h"
 #include "pybind11/pybind11.h"
+#include "pybind11/stl.h"
 #include "pybind11_abseil/import_status_module.h"
+#include "pybind11_abseil/status_casters.h"
 
 namespace gematria {
 
@@ -25,6 +27,8 @@ namespace py = ::pybind11;
 
 PYBIND11_MODULE(extract_bbs_from_obj, m) {
   m.doc() = "Code for extracting BBs from object files and binaries.";
+
+  py::google::ImportStatusModule();
 
   m.def(
       "get_basic_block_hex_values",
