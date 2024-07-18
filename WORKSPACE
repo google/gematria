@@ -82,13 +82,23 @@ git_repository(
 # We use `perf_data_converter` with a patch to make it more usable as a library.
 git_repository(
     name = "com_google_perf_data_converter",
-    commit = "607f0b5c11216e7da1821ad92adb60e52bb9c945",
+    commit = "442981cd4071fa9b1057b2609406db027e6d6263",
     patch_args = ["-p1"],
     patch_cmds = [
         "mv ./src/quipper .",
         "rm -rf ./src",
     ],
+    patches = ["@//:perf_data_converter.patch"],
     remote = "https://github.com/google/perf_data_converter.git",
+)
+
+# Dependencies for `perf_data_converter`
+http_archive(
+    name = "elfutils",
+    build_file = "//:elfutils.BUILD",
+    sha256 = "df76db71366d1d708365fc7a6c60ca48398f14367eb2b8954efc8897147ad871",
+    strip_prefix = "elfutils-0.191",
+    urls = ["https://sourceware.org/pub/elfutils/0.191/elfutils-0.191.tar.bz2"],
 )
 
 http_archive(
