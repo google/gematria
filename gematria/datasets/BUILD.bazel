@@ -258,6 +258,7 @@ cc_library(
     name = "extract_bbs_from_obj_lib",
     srcs = ["extract_bbs_from_obj_lib.cc"],
     hdrs = ["extract_bbs_from_obj_lib.h"],
+    visibility = ["//:internal_users"],
     deps = [
         "@llvm-project//llvm:Object",
         "@llvm-project//llvm:Support",
