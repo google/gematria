@@ -6,23 +6,22 @@
 #
 absl-py==2.1.0
     # via
-    #   -r ./requirements.in
+    #   -r requirements.in
     #   tensorboard
     #   tensorflow
     #   tensorflow-probability
-    #   tensorflow-ranking
 astunparse==1.6.3
     # via tensorflow
 cachetools==5.3.3
     # via google-auth
-certifi==2024.2.2
+certifi==2024.7.4
     # via requests
 charset-normalizer==3.3.2
     # via requests
 cloudpickle==3.0.0
     # via tensorflow-probability
 contextlib2==21.6.0
-    # via -r ./requirements.in
+    # via -r requirements.in
 decorator==5.1.1
     # via tensorflow-probability
 dm-tree==0.1.8
@@ -45,7 +44,6 @@ grpcio==1.62.1
     # via
     #   tensorboard
     #   tensorflow
-    #   tensorflow-serving-api
 h5py==3.10.0
     # via tensorflow
 idna==3.7
@@ -55,23 +53,22 @@ keras==2.13.1
 libclang==18.1.1
     # via tensorflow
 lit==18.1.2
-    # via -r ./requirements.in
+    # via -r requirements.in
 markdown==3.6
     # via tensorboard
 markupsafe==2.1.5
     # via werkzeug
 networkx==3.2.1
-    # via -r ./requirements.in
+    # via -r requirements.in
 numpy==1.24.3
     # via
-    #   -r ./requirements.in
+    #   -r requirements.in
     #   h5py
     #   opt-einsum
     #   scipy
     #   tensorboard
     #   tensorflow
     #   tensorflow-probability
-    #   tensorflow-ranking
 oauthlib==3.2.2
     # via requests-oauthlib
 opt-einsum==3.3.0
@@ -82,14 +79,13 @@ protobuf==4.25.3
     # via
     #   tensorboard
     #   tensorflow
-    #   tensorflow-serving-api
 pyasn1==0.6.0
     # via
     #   pyasn1-modules
     #   rsa
 pyasn1-modules==0.4.0
     # via google-auth
-requests==2.31.0
+requests==2.32.2
     # via
     #   requests-oauthlib
     #   tensorboard
@@ -98,42 +94,34 @@ requests-oauthlib==2.0.0
 rsa==4.9
     # via google-auth
 scipy==1.12.0
-    # via -r ./requirements.in
+    # via -r requirements.in
 semantic-version==2.10.0
-    # via -r ./requirements.in
+    # via -r requirements.in
 six==1.16.0
     # via
     #   astunparse
     #   google-pasta
     #   tensorflow
     #   tensorflow-probability
-    #   tensorflow-ranking
 tensorboard==2.13.0
     # via tensorflow
 tensorboard-data-server==0.7.2
     # via tensorboard
 tensorflow==2.13.1 ; sys_platform == "linux"
-    # via
-    #   -r ./requirements.in
-    #   tensorflow-ranking
-    #   tensorflow-serving-api
+    # via -r requirements.in
 tensorflow-estimator==2.13.0
     # via tensorflow
 tensorflow-io-gcs-filesystem==0.36.0
     # via tensorflow
 tensorflow-probability==0.21.0
-    # via -r ./requirements.in
-tensorflow-ranking==0.5.5 ; sys_platform != "darwin"
-    # via -r ./requirements.in
-tensorflow-serving-api==2.13.1
-    # via tensorflow-ranking
+    # via -r requirements.in
 termcolor==2.4.0
     # via tensorflow
 typing-extensions==4.5.0
     # via
     #   tensorflow
     #   tensorflow-probability
-urllib3==2.2.1
+urllib3==2.2.2
     # via requests
 werkzeug==3.0.1
     # via tensorboard
