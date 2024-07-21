@@ -26,7 +26,7 @@ def _lit_test(test_file_name, data = []):
         for.
       data: An array of additional data dependencies needed by the test.
     """
-    lit_file_path = paths.join(native.package_name(), name)
+    lit_file_path = paths.join(native.package_name(), test_file_name)
 
     native.py_test(
         name = test_file_name + "_lit_test",
@@ -53,7 +53,7 @@ def glob_lit_tests(name, test_file_exts, data = []):
     )
 
     for test_file in test_files:
-        _lit_test(name = test_file, data = data)
+        _lit_test(test_file_name = test_file, data = data)
 
     native.test_suite(
         name = name,
