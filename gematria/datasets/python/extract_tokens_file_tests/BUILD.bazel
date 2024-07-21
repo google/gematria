@@ -1,0 +1,15 @@
+load(
+    "//gematria/testing:lit.bzl",
+    "glob_lit_tests",
+)
+
+glob_lit_tests(
+    name = "lit_tests",
+    data = [
+        "//gematria/datasets/python:extract_tokens_file",
+        "//gematria/datasets/python:import_from_bhive",
+        "@llvm-project//llvm:FileCheck",
+        "@llvm-project//llvm:split-file",
+    ],
+    test_file_exts = ["test"],
+)
