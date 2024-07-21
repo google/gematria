@@ -51,7 +51,7 @@ def main(argv) -> None:
   del argv  # Unused.
 
   loaded_protos = tfrecord.read_protos(
-      _INPUT_TFRECORD_FILE.value, throughput_pb2.BasicBlockWithThroughputProto
+      [_INPUT_TFRECORD_FILE.value], throughput_pb2.BasicBlockWithThroughputProto
   )
 
   tokens = set()
