@@ -68,8 +68,10 @@ Expected<std::vector<std::string>> getBasicBlockHexValues(
       }
     }
 
+    // Sort the basic blocks by start address as we assume this holds later
+    // on when iterating through all the basic blocks.
     std::sort(BasicBlocks.begin(), BasicBlocks.end(), [](auto &LHS, auto &RHS) {
-      return std::get<0>(LHS) < std::get<1>(RHS);
+      return std::get<0>(LHS) < std::get<0>(RHS);
     });
 
     if (BasicBlocks.size() == 0) {
