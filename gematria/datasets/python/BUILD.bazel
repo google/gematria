@@ -46,6 +46,7 @@ gematria_py_test(
 gematria_py_binary(
     name = "import_from_bhive",
     srcs = ["import_from_bhive.py"],
+    visibility = ["//gematria/datasets/python/extract_tokens_file_tests:__pkg__"],
     deps = [
         ":bhive_importer",
         "//gematria/llvm/python:canonicalizer",
@@ -57,26 +58,13 @@ gematria_py_binary(
 gematria_py_binary(
     name = "extract_tokens_file",
     srcs = ["extract_tokens_file.py"],
+    visibility = ["//gematria/datasets/python/extract_tokens_file_tests:__pkg__"],
     deps = [
         "//gematria/basic_block/python:basic_block",
         "//gematria/basic_block/python:basic_block_protos",
         "//gematria/io/python:tfrecord",
         "//gematria/proto:throughput_py_pb2",
     ],
-)
-
-gematria_py_test(
-    name = "extract_tokens_file_test",
-    size = "small",
-    srcs = ["extract_tokens_file_test.py"],
-    data = [
-        "extract_tokens_file_tests/lit.cfg.py",
-        "extract_tokens_file_tests/lit.site.cfg.py",
-        ":extract_tokens_file",
-        ":import_from_bhive",
-        "@llvm-project//llvm:FileCheck",
-        "@llvm-project//llvm:split-file",
-    ] + glob(["extract_tokens_file_tests/*.test"]),
 )
 
 gematria_pybind_extension(
