@@ -1,8 +1,3 @@
-load(
-    "//:python.bzl",
-    "gematria_py_test",
-)
-
 package(
     default_visibility = ["//visibility:private"],
 )
@@ -48,6 +43,7 @@ cc_test(
 cc_binary(
     name = "convert_bhive_to_llvm_exegesis_input",
     srcs = ["convert_bhive_to_llvm_exegesis_input.cc"],
+    visibility = ["//gematria/datasets/convert_bhive_to_llvm_exegesis_input_tests:__pkg__"],
     deps = [
         ":basic_block_utils",
         ":bhive_importer",
@@ -84,20 +80,6 @@ cc_binary(
         "//gematria/utils:string",
         "@llvm-project//llvm:Support",
     ],
-)
-
-gematria_py_test(
-    name = "convert_bhive_to_llvm_exegesis_input_test",
-    size = "small",
-    srcs = ["convert_bhive_to_llvm_exegesis_input_test.py"],
-    data = [
-        "convert_bhive_to_llvm_exegesis_input_tests/lit.cfg.py",
-        "convert_bhive_to_llvm_exegesis_input_tests/lit.site.cfg.py",
-        ":convert_bhive_to_llvm_exegesis_input",
-        "@llvm-project//llvm:FileCheck",
-        "@llvm-project//llvm:not",
-        "@llvm-project//llvm:split-file",
-    ] + glob(["convert_bhive_to_llvm_exegesis_input_tests/*.test"]),
 )
 
 cc_library(
@@ -235,23 +217,13 @@ cc_test(
 cc_binary(
     name = "extract_bbs_from_obj",
     srcs = ["extract_bbs_from_obj.cc"],
+    visibility = [
+        "//gematria/datasets/extract_bbs_from_obj_tests:__pkg__",
+    ],
     deps = [
         ":extract_bbs_from_obj_lib",
         "@llvm-project//llvm:Support",
     ],
-)
-
-gematria_py_test(
-    name = "extract_bbs_from_obj_test",
-    size = "small",
-    srcs = ["extract_bbs_from_obj_test.py"],
-    data = [
-        "extract_bbs_from_obj_tests/lit.cfg.py",
-        "extract_bbs_from_obj_tests/lit.site.cfg.py",
-        ":extract_bbs_from_obj",
-        "@llvm-project//llvm:FileCheck",
-        "@llvm-project//llvm:yaml2obj",
-    ] + glob(["extract_bbs_from_obj_tests/*.test"]),
 )
 
 cc_library(
