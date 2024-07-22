@@ -44,6 +44,9 @@ def main(argv):
   model_tokens = token_model_flags.get_tokens_from_command_line_flags(
       model_tokens=tokens.STRUCTURAL_TOKENS
   )
+  model_annotation_names = (
+      token_model_flags.get_annotation_names_from_command_line_flags()
+  )
 
   main_function.run_gematria_model_from_command_line_flags(
       model_class,
@@ -52,6 +55,7 @@ def main(argv):
       fp_immediate_token=tokens.IMMEDIATE,
       address_token=tokens.ADDRESS,
       memory_token=tokens.MEMORY,
+      annotation_names=model_annotation_names,
       dtype=tf.dtypes.float32,
       node_embedding_size=granite_flags.NODE_EMBEDDING_SIZE.value,
       edge_embedding_size=granite_flags.EDGE_EMBEDDING_SIZE.value,

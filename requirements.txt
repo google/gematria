@@ -13,7 +13,7 @@ absl-py==2.1.0
     #   tensorflow-probability
 astunparse==1.6.3
     # via tensorflow
-cachetools==5.3.3
+cachetools==5.4.0
     # via google-auth
 certifi==2024.7.4
     # via requests
@@ -22,7 +22,7 @@ charset-normalizer==3.3.2
 cloudpickle==3.0.0
     # via tensorflow-probability
 contextlib2==21.6.0
-    # via -r requirements.in
+    # via -r ./requirements.in
 decorator==5.1.1
     # via tensorflow-probability
 dm-tree==0.1.8
@@ -69,7 +69,7 @@ networkx==3.3
     # via -r ./requirements.in
 numpy==1.26.4
     # via
-    #   -r requirements.in
+    #   -r ./requirements.in
     #   h5py
     #   keras
     #   ml-dtypes
@@ -110,7 +110,7 @@ requests-oauthlib==2.0.0
 rsa==4.9
     # via google-auth
 semantic-version==2.10.0
-    # via -r requirements.in
+    # via -r ./requirements.in
 six==1.16.0
     # via
     #   astunparse

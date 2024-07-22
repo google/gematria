@@ -156,6 +156,17 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     self._readout_activation = readout_activation or leaky_relu
     self._update_activation = update_activation or leaky_relu
 
+    if self._num_annotations > self._node_embedding_size:
+      raise ValueError(
+          '_num_annotations cannot be greater than _node_embedding_size.'
+      )
+
+    # The length of the learnt part of the instruction node embedding vectors.
+    # The remaining elements are filled in with instruction annotations.
+    self._common_node_embedding_size = (
+        self._node_embedding_size - self._num_annotations
+    )
+
   # @Override
   def _make_model_name(self) -> str:
     # TODO(ondrasej): Use a string provided by the token feature factory as the
@@ -289,9 +300,12 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
                     initializers=embedding_initializers,
                 ),
                 node_model_fn=functools.partial(
-                    snt.Embed,
+                    TokenGraphBuilderModelNodeEmbed,
                     vocab_size=len(self._token_list),
-                    embed_dim=self._node_embedding_size,
+                    common_embed_dim=self._common_node_embedding_size,
+                    num_annotations=self._num_annotations,
+                    instruction_annotations=self._instruction_annotations,
+                    instruction_node_mask=self._instruction_node_mask,
                     initializers=embedding_initializers,
                 ),
                 global_model_fn=functools.partial(
@@ -340,4 +354,78 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
             layer_normalization=options.EnableFeature.BY_FLAG,
             residual_connection=options.EnableFeature.BY_FLAG,
         ),
+    )
+
+
+class TokenGraphBuilderModelNodeEmbed:
+  """Class representing node embeddings with instruction annotations included.
+
+  `snt.Embed`-like class. Generates node embeddings normally, then replaces the
+  last `num_annotation` values of the embeddings corresponding to instructions
+  with the annotation values. The embeddings for other node types remain
+  unchanged.
+  """
+
+  def __init__(
+      self,
+      common_embed_dim,
+      num_annotations,
+      instruction_annotations,
+      instruction_node_mask,
+      **kwargs,
+  ) -> None:
+    """Initializes node embeddings.
+
+    Args:
+      common_embed_dim: The length of the learnt part of the instruction node
+        embedding vectors. The remainder of the vector is filled with
+        instruction annotation.
+      num_annotations: The number of annotations per instruction.
+      instruction_annotations: Tensor holding instruction level runtime
+        annotations as in `BasicBlockGraphBuilder`.
+      instruction_node_mask: As in `BasicBlockGraphBuilder`.
+      kwargs: Additional arguments to be passed to the internal `snt.Embed`s.
+    """
+    self._instruction_annotations = instruction_annotations
+    self._instruction_node_mask = instruction_node_mask
+
+    # The first `embed_dim - num_annotations` embedding values for all nodes.
+    self._common_embed = snt.Embed(
+        embed_dim=common_embed_dim,
+        **kwargs,
+    )
+
+    # `num_annotations` extra learnt embedding values for non-instruction nodes.
+    # Instruction nodes will use instruction annotations instead of these learnt
+    # embeddings. This is not required when there are no annotations - in that
+    # case, we simply return the common embeddings.
+    self._extra_embed = None
+    if num_annotations:
+      self._extra_embed = snt.Embed(
+          embed_dim=num_annotations,
+          **kwargs,
+      )
+
+  def __call__(
+      self,
+      inputs,
+  ):
+    if not self._extra_embed:
+      return self._common_embed(inputs)
+
+    common_embeddings = self._common_embed(inputs)
+    extra_embeddings = self._extra_embed(inputs)
+
+    return tf.concat(
+        [
+            common_embeddings,
+            tf.tensor_scatter_nd_update(
+                extra_embeddings,
+                indices=tf.where(
+                    self._instruction_node_mask,
+                ),
+                updates=self._instruction_annotations,
+            ),
+        ],
+        axis=1,
     )

@@ -58,6 +58,14 @@ class GraphBuilderModelBase(
       'GraphBuilderModelBase.instruction_node_mask'
   )
 
+  # The name of the input tensor that holds the instruction annotations.
+  INSTRUCTION_ANNOTATIONS_TENSOR_NAME = (
+      'GraphBuilderModelBase.instruction_annotations'
+  )
+
+  # The name of the tensor holding ordered annotation names.
+  ANNOTATION_NAMES_TENSOR_NAME = 'GraphBuilderModelBase.annotation_names'
+
   # A Boolean tensor placeholder that receives a mask for instruction nodes. The
   # mask has shape (None,), and it must have the same length as
   # self._graphs_tuple_placeholders.nodes along the first dimension. It contains
@@ -81,6 +89,16 @@ class GraphBuilderModelBase(
   # the format of the data.
   _special_tokens_tensor: tf.Tensor
 
+  # A 1D byte tensor that contains the list of annotation names in the order of
+  # their indices in the graph builder.
+  _annotation_name_tensor: tf.Tensor
+
+  # The list of annotation names, in the order of their indices in the model.
+  _annotation_name_list: Sequence[str]
+
+  # A 2D float tensor holding instruction annotations.
+  _instruction_annotations: tf.Tensor
+
   def __init__(
       self,
       *,
@@ -89,6 +107,7 @@ class GraphBuilderModelBase(
       fp_immediate_token: str,
       address_token: str,
       memory_token: str,
+      annotation_names: Sequence[str] = [],
       **kwargs: Any,
   ) -> None:
     """Initializes the model with the given feature factory.
@@ -108,6 +127,7 @@ class GraphBuilderModelBase(
         in the basic block graph.
       memory_token: The token that is associated with memory value nodes in the
         basic block graph.
+      annotation_names: The list of names of annotations to be used.
       **kwargs: Additional keyword arguments are passed to the constructor of
         the base class.
     """
@@ -127,7 +147,6 @@ class GraphBuilderModelBase(
         tokens=tokens,
         **kwargs,
     )
-    self._instruction_node_mask = None
     self._instruction_features = None
     self._batch_graph_builder = graph_builder.BasicBlockGraphBuilder(
         node_tokens=self._token_list,
@@ -135,10 +154,16 @@ class GraphBuilderModelBase(
         fp_immediate_token=fp_immediate_token,
         address_token=address_token,
         memory_token=memory_token,
+        annotation_names=annotation_names,
         out_of_vocabulary_behavior=self._oov_behavior,
     )
 
     self._special_tokens_tensor = None
+
+    self._annotation_name_list = tuple(
+        self._batch_graph_builder.annotation_names
+    )
+    self._num_annotations = len(self._annotation_name_list)
 
   @property
   def special_tokens_tensor(self) -> tf.Tensor:
@@ -156,12 +181,17 @@ class GraphBuilderModelBase(
     """
     return self._special_tokens_tensor
 
+  @property
+  def annotation_names_tensor(self) -> tf.Tensor:
+    return self._annotation_names_tensor
+
   # @Override
   @property
   def output_tensor_names(self) -> Sequence[str]:
     return (
         *super().output_tensor_names,
         GraphBuilderModelBase.SPECIAL_TOKENS_TENSOR_NAME,
+        GraphBuilderModelBase.ANNOTATION_NAMES_TENSOR_NAME,
     )
 
   # @Override
@@ -183,15 +213,32 @@ class GraphBuilderModelBase(
         dtype=tf.dtypes.int32,
         name=GraphBuilderModelBase.SPECIAL_TOKENS_TENSOR_NAME,
     )
+    annotation_names_array = np.frombuffer(
+        b'\0'.join(name.encode('utf-8') for name in self._annotation_name_list),
+        dtype=np.uint8,
+    )
+    self._annotation_name_tensor = tf.constant(
+        annotation_names_array,
+        name=GraphBuilderModelBase.ANNOTATION_NAMES_TENSOR_NAME,
+    )
 
   # @Override
-  def _create_readout_network_resources(self) -> None:
-    super()._create_readout_network_resources()
+  def _create_graph_network_resources(self) -> None:
+    super()._create_graph_network_resources()
+    self._instruction_annotations = tf.placeholder(
+        dtype=self.dtype,
+        shape=(None, len(self._annotation_name_list)),
+        name=GraphBuilderModelBase.INSTRUCTION_ANNOTATIONS_TENSOR_NAME,
+    )
     self._instruction_node_mask = tf.placeholder(
         dtype=tf.dtypes.bool,
         shape=(None,),
         name=GraphBuilderModelBase.INSTRUCTION_NODE_MASK_TENSOR_NAME,
     )
+
+  # @Override
+  def _create_readout_network_resources(self) -> None:
+    super()._create_readout_network_resources()
     self._instruction_features = tf.boolean_mask(
         self._graphs_tuple_outputs.nodes, self._instruction_node_mask
     )
@@ -206,6 +253,9 @@ class GraphBuilderModelBase(
     feed_dict = super()._make_batch_feed_dict()
     feed_dict[self._instruction_node_mask] = np.array(
         self._batch_graph_builder.instruction_node_mask, dtype=bool
+    )
+    feed_dict[self._instruction_annotations] = (
+        self._batch_graph_builder.instruction_annotations
     )
     return feed_dict
 

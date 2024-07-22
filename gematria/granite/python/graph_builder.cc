@@ -14,6 +14,7 @@
 
 #include "gematria/granite/graph_builder.h"
 
+#include <set>
 #include <string>
 #include <vector>
 

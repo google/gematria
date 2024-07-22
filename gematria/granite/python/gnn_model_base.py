@@ -232,6 +232,7 @@ class GnnModelBase(model_base.ModelBase):
 
   # @Override
   def _create_tf_graph(self) -> None:
+    self._create_graph_network_resources()
     self._graph_network = self._create_graph_network_modules()
     assert self._graph_network is not None
     self._graphs_tuple_placeholders = self._create_graphs_placeholders()
@@ -319,6 +320,19 @@ class GnnModelBase(model_base.ModelBase):
             name=GnnModelBase.NUM_EDGES_TENSOR_NAME,
         ),
     )
+
+  def _create_graph_network_resources(self) -> None:
+    """Creates resources (like TensorFlow ops) needed by the readout network.
+
+    Child classes can override this method to create resources (e.g. TensorFlow
+    ops) that will be needed during the creation of the graph network, but
+    that are impractical to create in self._create_graph_network_modules(), e.g.
+    to make it easy to override in child classes.
+
+    This method is called before self._create_graph_network_modules().
+
+    By default, this method is a no-op.
+    """
 
   def _create_graph_network(self) -> graph_nets.graphs.GraphsTuple:
     """Creates TensorFlow ops for the graph network.
