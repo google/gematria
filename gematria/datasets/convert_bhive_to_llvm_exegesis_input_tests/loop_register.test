@@ -1,0 +1,56 @@
+; Test that by default, snippets are skipped when we can't find a loop register.
+; Additionally test that the annotation script outputs the number of blocks
+; where it failed to find a loop register at the end of execution.
+
+; RUN: split-file %s %t
+; RUN: mkdir %t.asmdir
+; RUN: %convert_bhive_to_llvm_exegesis_input --asm_output_dir=%t.asmdir --bhive_csv=%t/test.csv 2>&1 | FileCheck %s --check-prefix CONVERTER-OUTPUT
+; RUN: ls %t.asmdir | FileCheck %s --check-prefix DEFAULT-DIR
+
+; DEFAULT-DIR: 0.test
+; DEFAULT-DIR-NOT: 1.test
+
+; CONVERTER-OUTPUT: Failed to find a loop register for 1 blocks
+
+; Check that we actually get a reasonable loop register annotation
+
+; RUN: cat %t.asmdir/0.test | FileCheck %s --check-prefix SMALL-SNIPPET
+
+; SMALL-SNIPPET: # LLVM-EXEGESIS-LOOP-REGISTER RDX
+
+; Check that passing skip_no_loop_register to false forces the output of all
+; basic blocks, even if a loop register cannot be found.
+
+; RUN: rm %t.asmdir/*.test
+; RUN: %convert_bhive_to_llvm_exegesis_input --asm_output_dir=%t.asmdir --bhive_csv=%t/test.csv --skip_no_loop_register=false
+; RUN: ls %t.asmdir | FileCheck %s --check-prefix NO-SKIP-DIR
+
+; NO-SKIP-DIR: 0.test
+; NO-SKIP-DIR: 1.test
+
+; Check that if we can't find a loop register, we don't emit the annotation.
+
+; cat %t.asmdir/0.test | FileCheck %s --check-prefix SNIPPET-NO-LOOP-REGISTER
+
+; SMIPPET-NO-LOOP-REGISTER-NOT: # LLVM-EXEGESIS-LOOP-REGISTER
+
+; Check that outputting JSON works as expected and we get the appropriate
+; register number, or null if there is no available loop register.
+
+; RUN: mkdir %t.jsondir
+; RUN: %convert_bhive_to_llvm_exegesis_input --json_output_dir=%t.jsondir --bhive_csv=%t/test.csv --skip_no_loop_register=false --blocks_per_json_file=1
+; cat %t.jsondir/0.json | FileCheck %s --check-prefix JSON0
+; cat %t.jsondir/1.json | FileCheck %s --check-prefix JSON1
+
+; JSON0: "LoopRegister": null
+; JSON1: "LoopRegister": 56
+
+; The first line in test.csv contains an assembly snippet that uses every single
+; GPR (%RAX-%R15), leaving no register available to be used as the loop
+; register. The second snippet only has a single move instruction
+; (movq %rax, %rcx), thus leaving 14 other registers to be used as a loop
+; register.
+
+;--- test.csv
+4889c14889d34889f74889e54d89c14d89d34d89e54d89f7,4147
+4889c1,4147

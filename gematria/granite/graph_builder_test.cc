@@ -35,6 +35,7 @@ namespace {
 
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
+using ::testing::Pair;
 
 // Tokens used in the basic blocks in tests. For simplicity, we do not use the
 // full set of x86-64 tokens.
@@ -51,6 +52,10 @@ constexpr absl::string_view kTokens[] = {
     // 10
     "RBX", "RCX", "RDI", kUnknownToken, "NOP", "LOCK"};
 
+// Names of Instruction annotations used in tests.
+const std::vector<std::string> kAnnotationNames{"cache_miss_freq",
+                                                "other_annotation"};
+
 int TokenIndex(absl::string_view token) {
   const auto it = std::find(std::begin(kTokens), std::end(kTokens), token);
   EXPECT_NE(it, std::end(kTokens)) << "Invalid token: " << token;
@@ -66,7 +71,8 @@ class BasicBlockGraphBuilderTest : public testing::Test {
         /*immediate_token =*/kImmediateToken,
         /*fp_immediate_token =*/kFpImmediateToken,
         /*address_token =*/kAddressToken,
-        /*memory_token =*/kMemoryToken, out_of_vocabulary_behavior);
+        /*memory_token =*/kMemoryToken,
+        /*annotation_names=*/kAnnotationNames, out_of_vocabulary_behavior);
   }
   std::unique_ptr<BasicBlockGraphBuilder> builder_;
 };
@@ -158,6 +164,46 @@ TEST_F(BasicBlockGraphBuilderTest, SingleInstructionWithPrefix) {
   EXPECT_THAT(
       builder_->global_features(),
       ElementsAre(ElementsAre(0, 0, 1, 2, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1)));
+}
+
+TEST_F(BasicBlockGraphBuilderTest, SingleInstructionWithAnnotation) {
+  CreateBuilder(OutOfVocabularyTokenBehavior::ReturnError());
+  ASSERT_TRUE(builder_->AddBasicBlock(BasicBlockFromProto(ParseTextProto(R"pb(
+    canonicalized_instructions: {
+      mnemonic: "MOV"
+      llvm_mnemonic: "MOV64rr"
+      output_operands: { register_name: "RCX" }
+      input_operands: { register_name: "RAX" }
+      instruction_annotations: { name: "cache_miss_freq" value: 0.875 }
+    })pb"))));
+  EXPECT_EQ(builder_->num_graphs(), 1);
+  EXPECT_EQ(builder_->num_nodes(), 3);
+  EXPECT_EQ(builder_->num_edges(), 2);
+  EXPECT_EQ(builder_->num_node_tokens(), std::size(kTokens));
+  EXPECT_THAT(builder_->num_nodes_per_block(), ElementsAre(3));
+  EXPECT_THAT(builder_->num_edges_per_block(), ElementsAre(2));
+
+  EXPECT_THAT(builder_->node_types(),
+              ElementsAre(NodeType::kInstruction, NodeType::kRegister,
+                          NodeType::kRegister));
+  EXPECT_THAT(
+      builder_->node_features(),
+      ElementsAre(TokenIndex("MOV"), TokenIndex("RAX"), TokenIndex("RCX")));
+  EXPECT_THAT(builder_->InstructionNodeMask(), ElementsAre(true, false, false));
+
+  EXPECT_THAT(builder_->edge_senders(), ElementsAre(1, 0));
+  EXPECT_THAT(builder_->edge_receivers(), ElementsAre(0, 2));
+  EXPECT_THAT(builder_->edge_types(),
+              ElementsAre(EdgeType::kInputOperands, EdgeType::kOutputOperands));
+
+  EXPECT_THAT(
+      builder_->global_features(),
+      ElementsAre(ElementsAre(0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0)));
+
+  EXPECT_THAT(builder_->annotation_names(),
+              ElementsAre("cache_miss_freq", "other_annotation"));
+  EXPECT_THAT(builder_->instruction_annotations(),
+              ElementsAre(ElementsAre(0.875, -1)));
 }
 
 TEST_F(BasicBlockGraphBuilderTest, InvalidMnemonic_ReturnError) {
@@ -357,7 +403,8 @@ TEST_F(BasicBlockGraphBuilderTest, InvalidAddress_ReplaceToken) {
 }
 
 // Tests that the instruction nodes within the basic block are connected through
-// their operands when they refer to the same value.
+// their operands when they refer to the same value. Also ensures annotated and
+// non-annotated instructions are handled correctly when mixed.
 TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
   CreateBuilder(OutOfVocabularyTokenBehavior::ReturnError());
   ASSERT_TRUE(builder_->AddBasicBlock(BasicBlockFromProto(ParseTextProto(R"pb(
@@ -367,6 +414,7 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
       output_operands: { register_name: "R14" }
       input_operands: { memory: { alias_group_id: 1 } }
       input_operands: { address: { base_register: "R15" scaling: 1 } }
+      instruction_annotations: { name: "cache_miss_freq" value: 0.9 }
     }
     canonicalized_instructions: {
       mnemonic: "MOV"
@@ -376,12 +424,15 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
       input_operands: {
         address: { base_register: "R14" displacement: 112 scaling: 1 }
       }
+      instruction_annotations: { name: "unused_annotation", value: 1 }
     }
     canonicalized_instructions: {
       mnemonic: "MOV"
       llvm_mnemonic: "MOV64rr"
       output_operands: { register_name: "RCX" }
       input_operands: { register_name: "RAX" }
+      instruction_annotations: { name: "cache_miss_freq" value: 0.01 }
+      instruction_annotations: { name: "other_annotation", value: 0.5 }
     }
     canonicalized_instructions: {
       mnemonic: "NOT"
@@ -455,6 +506,10 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
               ElementsAre(1, 3, 2, 0, 0, 1, 4, 7, 6, 5, 5, 8, 9, 9, 10, 11));
   EXPECT_THAT(builder_->edge_receivers(),
               ElementsAre(0, 2, 0, 4, 5, 5, 6, 6, 5, 8, 9, 9, 10, 11, 11, 12));
+
+  EXPECT_THAT(builder_->instruction_annotations(),
+              ElementsAre(ElementsAre(0.9, -1), ElementsAre(-1, -1),
+                          ElementsAre(0.01, 0.5), ElementsAre(-1, -1)));
 }
 
 // Tests that nodes in basic blocks added through different AddBasicBlock()

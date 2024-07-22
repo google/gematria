@@ -1,0 +1,29 @@
+--- !ELF
+FileHeader:
+  Class: ELFCLASS64
+  Data:  ELFDATA2LSB
+  Type:  ET_EXEC
+Sections:
+  - Name:    .text
+    Type:    SHT_PROGBITS
+    Flags:   [ SHF_ALLOC, SHF_EXECINSTR ]
+    Content: AABBCC
+  - Name:    .llvm_bb_addr_map
+    Type:    SHT_LLVM_BB_ADDR_MAP
+    Link:    .text
+    Entries:
+      - Version: 2
+        BBRanges:
+          - BBEntries:
+            - ID:              0
+              AddressOffset:   0x0
+              Size:            0x1
+              Metadata:        0x1
+            - ID:              1
+              AddressOffset:   0x0
+              Size:            0x1
+              Metadata:        0x1
+            - ID:              2
+              AddressOffset:   0x0
+              Size:            0x1
+              Metadata:        0x1

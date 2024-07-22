@@ -123,4 +123,63 @@ std::vector<unsigned> getUsedRegisters(
   return UsedRegistersList;
 }
 
+unsigned getSuperRegisterAllClasses(unsigned OriginalRegister,
+                                    const MCRegisterInfo &RegisterInfo) {
+  unsigned SuperRegister = OriginalRegister;
+  for (MCPhysReg CurrentSuperRegister :
+       RegisterInfo.superregs_inclusive(OriginalRegister)) {
+    if (RegisterInfo.isSuperRegister(SuperRegister, CurrentSuperRegister)) {
+      SuperRegister = CurrentSuperRegister;
+    }
+    SuperRegister = CurrentSuperRegister;
+  }
+  return SuperRegister;
+}
+
+std::optional<unsigned> getUnusedGPRegister(
+    const std::vector<DisassembledInstruction> &Instructions,
+    const MCRegisterInfo &RegisterInfo, const MCInstrInfo &InstructionInfo) {
+  std::set<unsigned> UsedRegisters;
+  for (const gematria::DisassembledInstruction &Instruction : Instructions) {
+    for (unsigned OperandIndex = 0;
+         OperandIndex < Instruction.mc_inst.getNumOperands(); ++OperandIndex) {
+      if (Instruction.mc_inst.getOperand(OperandIndex).isReg()) {
+        unsigned RegisterNumber =
+            Instruction.mc_inst.getOperand(OperandIndex).getReg();
+        if (RegisterNumber == 0) continue;
+        UsedRegisters.insert(
+            getSuperRegisterAllClasses(RegisterNumber, RegisterInfo));
+      }
+    }
+    for (unsigned ImplicitlyUsedRegister :
+         InstructionInfo.get(Instruction.mc_inst.getOpcode()).implicit_uses())
+      UsedRegisters.insert(
+          getSuperRegisterAllClasses(ImplicitlyUsedRegister, RegisterInfo));
+    for (unsigned ImplicitlyDefinedRegister :
+         InstructionInfo.get(Instruction.mc_inst.getOpcode()).implicit_defs())
+      UsedRegisters.insert(
+          getSuperRegisterAllClasses(ImplicitlyDefinedRegister, RegisterInfo));
+    const MCInstrDesc &InstructionDescription =
+        InstructionInfo.get(Instruction.mc_inst.getOpcode());
+    UsedRegisters.insert(InstructionDescription.implicit_uses().begin(),
+                         InstructionDescription.implicit_uses().end());
+    UsedRegisters.insert(InstructionDescription.implicit_defs().begin(),
+                         InstructionDescription.implicit_defs().data());
+  }
+
+  const auto &GR64RegisterClass =
+      RegisterInfo.getRegClass(X86::GR64_NOREX2RegClassID);
+  std::optional<unsigned> LoopRegister = std::nullopt;
+  for (unsigned I = 0; I < GR64RegisterClass.getNumRegs(); ++I) {
+    unsigned CurrentRegister = GR64RegisterClass.getRegister(I);
+    if (CurrentRegister == X86::RIP) continue;
+    if (UsedRegisters.count(CurrentRegister) == 0) {
+      LoopRegister = CurrentRegister;
+      break;
+    }
+  }
+
+  return LoopRegister;
+}
+
 }  // namespace gematria

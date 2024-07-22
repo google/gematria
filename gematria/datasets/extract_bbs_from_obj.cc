@@ -12,13 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Object/ELFObjectFile.h"
-#include "llvm/Object/ELFTypes.h"
-#include "llvm/Object/ObjectFile.h"
+#include "gematria/datasets/extract_bbs_from_obj_lib.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Errc.h"
-#include "llvm/Support/WithColor.h"
+#include "llvm/Support/Error.h"
+#include "llvm/Support/MemoryBuffer.h"
 
 using namespace llvm;
 
@@ -31,67 +28,19 @@ int main(int argc, char **argv) {
 
   ExitOnError ExitOnErr("extract_bbs_from_obj error: ");
 
-  object::OwningBinary<object::Binary> ObjBinary =
-      ExitOnErr(object::createBinary(InputFilename));
-  object::Binary &Binary = *ObjBinary.getBinary();
-  object::ObjectFile *Obj = cast<object::ObjectFile>(&Binary);
+  ErrorOr<std::unique_ptr<MemoryBuffer>> FileBufferOrErr =
+      MemoryBuffer::getFile(InputFilename);
 
-  for (const auto &Section : Obj->sections()) {
-    if (!Section.isText()) continue;
+  if (!FileBufferOrErr) {
+    ExitOnErr(make_error<StringError>("Failed to load the input file.",
+                                      FileBufferOrErr.getError()));
+  }
 
-    DenseMap<uint64_t, object::BBAddrMap> BBAddrMap;
-    if (const auto *Elf = dyn_cast<object::ELFObjectFileBase>(Obj)) {
-      auto BBAddrMapping = ExitOnErr(Elf->readBBAddrMap(Section.getIndex()));
-      for (auto &BBAddr : BBAddrMapping) {
-        BBAddrMap.try_emplace(BBAddr.getFunctionAddress(), std::move(BBAddr));
-      }
-    } else {
-      ExitOnErr(make_error<StringError>(errc::invalid_argument,
-                                        "Specified object file is not ELF."));
-    }
+  std::vector<std::string> BasicBlocks =
+      ExitOnErr(gematria::getBasicBlockHexValues(*FileBufferOrErr->get()));
 
-    std::vector<std::pair<uint64_t, uint64_t>> BasicBlocks;
-
-    for (const auto &[FunctionAddress, BasicBlockAddressMap] : BBAddrMap) {
-      for (const auto &BasicBlockEntry : BasicBlockAddressMap.getBBEntries()) {
-        uint64_t StartAddress = FunctionAddress + BasicBlockEntry.Offset;
-        BasicBlocks.push_back(
-            std::make_pair(StartAddress, BasicBlockEntry.Size));
-      }
-    }
-
-    std::sort(BasicBlocks.begin(), BasicBlocks.end(), [](auto &LHS, auto &RHS) {
-      return std::get<0>(LHS) < std::get<1>(RHS);
-    });
-
-    if (BasicBlocks.size() == 0) {
-      dbgs() << "No basic blocks present in section.\n";
-      continue;
-    }
-
-    size_t BasicBlockIndex = 0;
-
-    uint64_t SectionEndAddress = Section.getAddress() + Section.getSize();
-
-    uint64_t CurrentAddress = std::get<0>(BasicBlocks[BasicBlockIndex]);
-
-    if (SectionEndAddress < CurrentAddress) continue;
-
-    StringRef SectionContents = ExitOnErr(Section.getContents());
-
-    while (CurrentAddress < SectionEndAddress &&
-           BasicBlockIndex < BasicBlocks.size()) {
-      uint64_t OffsetInSection = CurrentAddress - Section.getAddress();
-      StringRef BasicBlock(SectionContents.data() + OffsetInSection,
-                           std::get<1>(BasicBlocks[BasicBlockIndex]));
-      std::string BBHex = toHex(BasicBlock);
-      outs() << BBHex << "\n";
-      BasicBlockIndex++;
-      if (BasicBlockIndex >= BasicBlocks.size()) {
-        break;
-      }
-      CurrentAddress = std::get<0>(BasicBlocks[BasicBlockIndex]);
-    }
+  for (const std::string_view BasicBlock : BasicBlocks) {
+    outs() << BasicBlock << "\n";
   }
 
   return 0;
