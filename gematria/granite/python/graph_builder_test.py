@@ -91,7 +91,6 @@ class BasicBlockGraphBuilderTest(
         fp_immediate_token=tokens.IMMEDIATE,
         address_token=tokens.ADDRESS,
         memory_token=tokens.MEMORY,
-        annotation_names=set(),
         out_of_vocabulary_behavior=_OutOfVocabularyTokenBehavior.return_error(),
     )
 
@@ -120,7 +119,6 @@ class BasicBlockGraphBuilderTest(
         fp_immediate_token=tokens.IMMEDIATE,
         address_token=tokens.ADDRESS,
         memory_token=tokens.MEMORY,
-        annotation_names=set(),
         out_of_vocabulary_behavior=_OutOfVocabularyTokenBehavior.return_error(),
     )
 
@@ -154,7 +152,6 @@ class BasicBlockGraphBuilderTest(
         fp_immediate_token=tokens.IMMEDIATE,
         address_token=tokens.ADDRESS,
         memory_token=tokens.MEMORY,
-        annotation_names=set(),
         out_of_vocabulary_behavior=_OutOfVocabularyTokenBehavior.return_error(),
     )
 
@@ -171,7 +168,6 @@ class BasicBlockGraphBuilderTest(
         fp_immediate_token=tokens.IMMEDIATE,
         address_token=tokens.ADDRESS,
         memory_token=tokens.MEMORY,
-        annotation_names=set(),
         out_of_vocabulary_behavior=_OutOfVocabularyTokenBehavior.return_error(),
     )
 
@@ -190,7 +186,6 @@ class BasicBlockGraphBuilderTest(
         fp_immediate_token=tokens.IMMEDIATE,
         address_token=tokens.ADDRESS,
         memory_token=tokens.MEMORY,
-        annotation_names=set(),
         out_of_vocabulary_behavior=(
             _OutOfVocabularyTokenBehavior.replace_with_token(tokens.UNKNOWN)
         ),

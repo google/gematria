@@ -154,7 +154,7 @@ class GraphBuilderModelBase(
         fp_immediate_token=fp_immediate_token,
         address_token=address_token,
         memory_token=memory_token,
-        annotation_names=set(annotation_names),
+        annotation_names=annotation_names,
         out_of_vocabulary_behavior=self._oov_behavior,
     )
 
