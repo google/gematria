@@ -80,12 +80,80 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
         side_effect=tf.keras.layers.Dense,
     ) as mock_dense:
       model.initialize()
-    mock_dense.assert_has_calls((
-        mock.call(16, activation=mock.ANY, bias_initializer='glorot_normal'),
-        mock.call(1, activation=tf.keras.activations.linear, use_bias=False),
-    ))
+    mock_dense.assert_has_calls(
+        (
+            mock.call(
+                16, activation=mock.ANY, bias_initializer='glorot_normal'
+            ),
+            mock.call(
+                1, activation=tf.keras.activations.linear, use_bias=False
+            ),
+        )
+    )
 
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
+
+  @parameterized.named_parameters(
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
+  )
+  def test_train_seq2num_with_annotations(self, loss_type, loss_normalization):
+    num_message_passing_iterations = 1
+    node_embedding_size = 14
+    edge_embedding_size = 16
+    global_embedding_size = 18
+    node_update_layers = (15, 7)
+    edge_update_layers = (13, 9)
+    global_update_layers = (11, 17)
+    readout_layers = (16,)
+    task_readout_layers = ()
+    activation = functools.partial(tf.keras.activations.relu, alpha=0.1)
+    model = token_graph_builder_model.TokenGraphBuilderModel(
+        tokens=self.tokens,
+        immediate_token=tokens.IMMEDIATE,
+        fp_immediate_token=tokens.IMMEDIATE,
+        address_token=tokens.ADDRESS,
+        memory_token=tokens.MEMORY,
+        annotation_names=self.annotation_names,
+        out_of_vocabulary_behavior=_OutOfVocabularyTokenBehavior.return_error(),
+        use_deltas=False,
+        learning_rate=0.01,
+        loss_type=loss_type,
+        loss_normalization=loss_normalization,
+        node_embedding_size=node_embedding_size,
+        edge_embedding_size=edge_embedding_size,
+        global_embedding_size=global_embedding_size,
+        node_update_layers=node_update_layers,
+        edge_update_layers=edge_update_layers,
+        global_update_layers=global_update_layers,
+        readout_layers=readout_layers,
+        task_readout_layers=task_readout_layers,
+        readout_activation=activation,
+        update_activation=activation,
+        graph_module_layer_normalization=True,
+        task_readout_input_layer_normalization=False,
+        readout_input_layer_normalization=False,
+        num_message_passing_iterations=num_message_passing_iterations,
+        dtype=tf.dtypes.float32,
+    )
+    with mock.patch(
+        'tensorflow.compat.v1.keras.layers.Dense',
+        side_effect=tf.keras.layers.Dense,
+    ) as mock_dense:
+      model.initialize()
+    mock_dense.assert_has_calls(
+        (
+            mock.call(
+                16, activation=mock.ANY, bias_initializer='glorot_normal'
+            ),
+            mock.call(
+                1, activation=tf.keras.activations.linear, use_bias=False
+            ),
+        )
+    )
+
+    self.check_training_model(
+        model, self.annotated_blocks_with_throughput, num_epochs=40
+    )
 
   @parameterized.named_parameters(
       *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
@@ -322,11 +390,13 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
         side_effect=tf.keras.layers.LayerNormalization,
     ) as keras_layer_norm:
       model.initialize()
-    keras_layer_norm.assert_has_calls((
-        mock.call(name='graph_network_layer_norm_1_0_nodes'),
-        mock.call(name='graph_network_layer_norm_1_0_edges'),
-        mock.call(name='graph_network_layer_norm_1_0_globals'),
-    ))
+    keras_layer_norm.assert_has_calls(
+        (
+            mock.call(name='graph_network_layer_norm_1_0_nodes'),
+            mock.call(name='graph_network_layer_norm_1_0_edges'),
+            mock.call(name='graph_network_layer_norm_1_0_globals'),
+        )
+    )
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
   def test_train_seq2seq_with_sent_edges(self):
@@ -371,11 +441,13 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
         side_effect=tf.keras.layers.LayerNormalization,
     ) as keras_layer_norm:
       model.initialize()
-    keras_layer_norm.assert_has_calls((
-        mock.call(name='graph_network_layer_norm_1_0_nodes'),
-        mock.call(name='graph_network_layer_norm_1_0_edges'),
-        mock.call(name='graph_network_layer_norm_1_0_globals'),
-    ))
+    keras_layer_norm.assert_has_calls(
+        (
+            mock.call(name='graph_network_layer_norm_1_0_nodes'),
+            mock.call(name='graph_network_layer_norm_1_0_edges'),
+            mock.call(name='graph_network_layer_norm_1_0_globals'),
+        )
+    )
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
   def test_train_seq2seq_with_readout_residual_connection(self):
