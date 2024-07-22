@@ -191,7 +191,7 @@ class TestCase(unittest.TestCase):
     )
     self.assertEqual(len(self.block_protos), self.num_blocks)
     self.assertEqual(len(self.annotated_block_protos), self.num_blocks)
-
+    
     self.blocks_with_throughput = [
         throughput_protos.block_with_throughput_from_proto(proto)
         for proto in self.block_protos
