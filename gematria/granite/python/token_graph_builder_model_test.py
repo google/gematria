@@ -101,7 +101,7 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
     global_update_layers = (11, 17)
     readout_layers = (16,)
     task_readout_layers = ()
-    activation = functools.partial(tf.keras.activations.relu, alpha=0.1)
+    activation = functools.partial(tf_keras.activations.relu, alpha=0.1)
     model = token_graph_builder_model.TokenGraphBuilderModel(
         tokens=self.tokens,
         immediate_token=tokens.IMMEDIATE,
@@ -131,20 +131,14 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
         dtype=tf.dtypes.float32,
     )
     with mock.patch(
-        'tensorflow.compat.v1.keras.layers.Dense',
-        side_effect=tf.keras.layers.Dense,
+        'tf_keras.layers.Dense',
+        side_effect=tf_keras.layers.Dense,
     ) as mock_dense:
       model.initialize()
-    mock_dense.assert_has_calls(
-        (
-            mock.call(
-                16, activation=mock.ANY, bias_initializer='glorot_normal'
-            ),
-            mock.call(
-                1, activation=tf.keras.activations.linear, use_bias=False
-            ),
-        )
-    )
+    mock_dense.assert_has_calls((
+        mock.call(16, activation=mock.ANY, bias_initializer='glorot_normal'),
+        mock.call(1, activation=tf_keras.activations.linear, use_bias=False),
+    ))
 
     self.check_training_model(
         model, self.annotated_blocks_with_throughput, num_epochs=40
@@ -671,7 +665,7 @@ class TokenGraphBuilderModelEsotericBlocksTest(
     global_update_layers = (11, 17)
     readout_layers = (16,)
     task_readout_layers = ()
-    activation = functools.partial(tf.keras.activations.relu, alpha=0.1)
+    activation = functools.partial(tf_keras.activations.relu, alpha=0.1)
     model = token_graph_builder_model.TokenGraphBuilderModel(
         tokens=self.tokens,
         immediate_token=tokens.IMMEDIATE,

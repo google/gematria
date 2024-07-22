@@ -6,15 +6,13 @@
 #
 absl-py==2.1.0
     # via
-    #   -r requirements.in
+    #   -r ./requirements.in
     #   keras
     #   tensorboard
     #   tensorflow
     #   tensorflow-probability
 astunparse==1.6.3
     # via tensorflow
-cachetools==5.4.0
-    # via google-auth
 certifi==2024.7.4
     # via requests
 charset-normalizer==3.3.2
@@ -35,7 +33,7 @@ gast==0.6.0
     #   tensorflow-probability
 google-pasta==0.2.0
     # via tensorflow
-grpcio==1.64.1
+grpcio==1.65.1
     # via
     #   tensorboard
     #   tensorflow
@@ -50,7 +48,7 @@ keras==3.4.1
 libclang==18.1.1
     # via tensorflow
 lit==18.1.8
-    # via -r requirements.in
+    # via -r ./requirements.in
 markdown==3.6
     # via tensorboard
 markdown-it-py==3.0.0
@@ -59,7 +57,7 @@ markupsafe==2.1.5
     # via werkzeug
 mdurl==0.1.2
     # via markdown-it-py
-ml-dtypes==0.3.2
+ml-dtypes==0.4.0
     # via
     #   keras
     #   tensorflow
@@ -78,37 +76,26 @@ numpy==1.26.4
     #   tensorboard
     #   tensorflow
     #   tensorflow-probability
-oauthlib==3.2.2
-    # via requests-oauthlib
 opt-einsum==3.3.0
     # via tensorflow
-optree==0.11.0
+optree==0.12.1
     # via keras
 packaging==24.1
     # via
     #   keras
     #   tensorflow
 protobuf==4.25.3
-pyasn1==0.6.0
-    # via
-    #   pyasn1-modules
-    #   rsa
-pyasn1-modules==0.4.0
-    # via google-auth
-requests==2.32.3
     # via
     #   tensorboard
     #   tensorflow
 pygments==2.18.0
     # via rich
+requests==2.32.3
+    # via tensorflow
 rich==13.7.1
     # via keras
 scipy==1.14.0
     # via -r ./requirements.in
-requests-oauthlib==2.0.0
-    # via google-auth-oauthlib
-rsa==4.9
-    # via google-auth
 semantic-version==2.10.0
     # via -r ./requirements.in
 six==1.16.0
@@ -118,27 +105,26 @@ six==1.16.0
     #   tensorboard
     #   tensorflow
     #   tensorflow-probability
-tensorboard==2.16.2
+tensorboard==2.17.0
     # via tensorflow
 tensorboard-data-server==0.7.2
     # via tensorboard
-tensorflow==2.16.2 ; sys_platform == "linux"
+tensorflow==2.17.0 ; sys_platform == "linux"
     # via
-    #   -r requirements.in
+    #   -r ./requirements.in
     #   tf-keras
 tensorflow-io-gcs-filesystem==0.37.1
     # via tensorflow
 tensorflow-probability==0.24.0
-    # via -r requirements.in
+    # via -r ./requirements.in
 termcolor==2.4.0
     # via tensorflow
-tf-keras==2.16.0
-    # via -r requirements.in
+tf-keras==2.17.0
+    # via -r ./requirements.in
 typing-extensions==4.12.2
     # via
     #   optree
     #   tensorflow
-    #   tensorflow-probability
 urllib3==2.2.2
     # via requests
 werkzeug==3.0.3

@@ -239,6 +239,9 @@ class BasicBlockFromProtoTest(absltest.TestCase):
             output_operands=basic_block.InstructionOperandList((
                 basic_block.InstructionOperand.from_register('RCX'),
             )),
+            instruction_annotations=basic_block.AnnotationList((
+                basic_block.Annotation('cache_miss_freq', 0.875),
+            )),
         ),
         basic_block.Instruction(
             mnemonic='MOVSB',
