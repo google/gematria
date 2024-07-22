@@ -149,6 +149,8 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
     std::vector<std::string> node_tokens, std::string_view immediate_token,
     std::string_view fp_immediate_token, std::string_view address_token,
     std::string_view memory_token,
+    std::vector<std::string>
+        annotation_names /* = std::vector<std::string>() */,
     OutOfVocabularyTokenBehavior
         out_of_vocabulary_behavior /* = ReturnError() */
     )
@@ -161,6 +163,7 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
           FindTokenOrDie(node_tokens_, std::string(fp_immediate_token))),
       address_token_(FindTokenOrDie(node_tokens_, std::string(address_token))),
       memory_token_(FindTokenOrDie(node_tokens_, std::string(memory_token))),
+      annotation_names_(std::move(annotation_names)),
       out_of_vocabulary_behavior_(out_of_vocabulary_behavior),
       replacement_token_(
           out_of_vocabulary_behavior.behavior_type() ==
@@ -168,7 +171,23 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
               ? kInvalidTokenIndex
               : FindTokenOrDie(
                     node_tokens_,
-                    out_of_vocabulary_behavior.replacement_token())) {}
+                    out_of_vocabulary_behavior.replacement_token())) {
+  instruction_annotations_ = std::vector<std::vector<float>>();
+
+  // Make sure annotations are stored in a stable order as long the same
+  // annotation names are used.
+  std::sort(annotation_names.begin(), annotation_names.end());
+  annotation_names.erase(
+      std::unique(annotation_names.begin(), annotation_names.end()),
+      annotation_names.end());
+
+  // Store row indices corresponding to specific annotation names.
+  int annotation_idx = 0;
+  for (auto& annotation_name : annotation_names_) {
+    annotation_name_to_idx_[annotation_name] = annotation_idx;
+    ++annotation_idx;
+  }
+}
 
 bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
     const std::vector<Instruction>& instructions) {
@@ -190,6 +209,16 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
     if (instruction_node == kInvalidNode) {
       return false;
     }
+
+    // Store the annotations for later use (inclusion in embeddings), using -1
+    // as a default value wherever annotations are missing.
+    std::vector<float> row = std::vector<float>(annotation_names_.size(), -1);
+    for (const auto& [name, value] : instruction.instruction_annotations) {
+      const auto annotation_index = annotation_name_to_idx_.find(name);
+      if (annotation_index == annotation_name_to_idx_.end()) continue;
+      row[annotation_index->second] = value;
+    }
+    instruction_annotations_.push_back(row);
 
     // Add nodes for prefixes of the instruction.
     for (const std::string& prefix : instruction.prefixes) {
@@ -253,6 +282,8 @@ void BasicBlockGraphBuilder::Reset() {
   edge_types_.clear();
 
   global_features_.clear();
+
+  instruction_annotations_.clear();
 }
 
 bool BasicBlockGraphBuilder::AddInputOperand(
