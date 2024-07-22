@@ -94,13 +94,16 @@ jobs:
       USE_BAZEL_VERSION: 6.4.0
     steps:
     - uses: actions/checkout@v3
+    - name: Setup environment variables
+      run: echo "CURRENT_DAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
     - name: Cache Bazel
       uses: actions/cache@v3
       with:
         path: |
           ~/.cache/bazel
-        key: ${{ runner.os }}-bazel-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}
+        key: ${{ runner.os }}-bazel-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}-${{ env.CURRENT_DAY }}
         restore-keys: |
+          ${{ runner.os }}-bazel-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}
           ${{ runner.os }}-bazel-
     - name: Setup Python
       uses: actions/setup-python@v5
