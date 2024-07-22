@@ -1,8 +1,3 @@
-load(
-    "//:python.bzl",
-    "gematria_py_test",
-)
-
 package(
     default_visibility = ["//visibility:private"],
 )
@@ -46,23 +41,11 @@ cc_test(
 )
 
 cc_binary(
-    name = "find_accessed_addrs_from_bhive",
-    srcs = ["find_accessed_addrs_from_bhive.cc"],
-    deps = [
-        ":bhive_importer",
-        ":find_accessed_addrs",
-        "//gematria/llvm:canonicalizer",
-        "//gematria/llvm:llvm_architecture_support",
-        "//gematria/utils:string",
-        "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/flags:parse",
-    ],
-)
-
-cc_binary(
     name = "convert_bhive_to_llvm_exegesis_input",
     srcs = ["convert_bhive_to_llvm_exegesis_input.cc"],
+    visibility = ["//gematria/datasets/convert_bhive_to_llvm_exegesis_input_tests:__pkg__"],
     deps = [
+        ":basic_block_utils",
         ":bhive_importer",
         ":find_accessed_addrs",
         ":find_accessed_addrs_exegesis",
@@ -74,31 +57,47 @@ cc_binary(
     ],
 )
 
-gematria_py_test(
-    name = "convert_bhive_to_llvm_exegesis_input_test",
-    size = "small",
-    srcs = ["convert_bhive_to_llvm_exegesis_input_test.py"],
-    data = [
-        "tests/lit.cfg.py",
-        "tests/lit.site.cfg.py",
-        ":convert_bhive_to_llvm_exegesis_input",
-        "@llvm-project//llvm:FileCheck",
-        "@llvm-project//llvm:not",
-        "@llvm-project//llvm:split-file",
-    ] + glob(["tests/*.test"]),
+cc_binary(
+    name = "exegesis_benchmark",
+    srcs = ["exegesis_benchmark.cc"],
+    deps = [
+        "//gematria/llvm:disassembler",
+        "//gematria/utils:string",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@llvm-project//llvm:Exegesis",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:X86Disassembler",
+    ],
+)
+
+cc_binary(
+    name = "process_and_filter_bbs",
+    srcs = ["process_and_filter_bbs.cc"],
+    deps = [
+        "//gematria/llvm:disassembler",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/utils:string",
+        "@llvm-project//llvm:Support",
+    ],
 )
 
 cc_library(
     name = "find_accessed_addrs",
     srcs = ["find_accessed_addrs.cc"],
     hdrs = ["find_accessed_addrs.h"],
+    copts = ["-Iexternal/llvm-project/llvm"],
     # This library uses various POSIX APIs. Only tested on Linux, and we'll likely use some
     # Linux-only APIs in future.
     target_compatible_with = [
         "@platforms//os:linux",
     ],
     deps = [
+        ":basic_block_utils",
         ":block_wrapper",
+        "//gematria/llvm:disassembler",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/llvm:llvm_to_absl",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/random:distributions",
         "@com_google_absl//absl/status",
@@ -106,6 +105,8 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
+        "@llvm-project//llvm:MC",
+        "@llvm-project//llvm:X86UtilsAndDesc",
     ],
 )
 
@@ -114,6 +115,7 @@ cc_library(
     srcs = ["find_accessed_addrs_exegesis.cc"],
     hdrs = ["find_accessed_addrs_exegesis.h"],
     deps = [
+        ":basic_block_utils",
         ":find_accessed_addrs",
         "//gematria/llvm:disassembler",
         "//gematria/llvm:llvm_architecture_support",
@@ -187,4 +189,50 @@ cc_library(
         "@platforms//cpu:x86_64",
     ],
     deps = ["@com_google_absl//absl/types:span"],
+)
+
+cc_library(
+    name = "basic_block_utils",
+    srcs = ["basic_block_utils.cc"],
+    hdrs = ["basic_block_utils.h"],
+    deps = [
+        "//gematria/llvm:disassembler",
+        "@llvm-project//llvm:X86CodeGen",
+    ],
+)
+
+cc_test(
+    name = "basic_block_utils_test",
+    srcs = ["basic_block_utils_test.cc"],
+    deps = [
+        ":basic_block_utils",
+        "//gematria/llvm:asm_parser",
+        "//gematria/llvm:disassembler",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/testing:matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "extract_bbs_from_obj",
+    srcs = ["extract_bbs_from_obj.cc"],
+    visibility = [
+        "//gematria/datasets/extract_bbs_from_obj_tests:__pkg__",
+    ],
+    deps = [
+        ":extract_bbs_from_obj_lib",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+cc_library(
+    name = "extract_bbs_from_obj_lib",
+    srcs = ["extract_bbs_from_obj_lib.cc"],
+    hdrs = ["extract_bbs_from_obj_lib.h"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "@llvm-project//llvm:Object",
+        "@llvm-project//llvm:Support",
+    ],
 )

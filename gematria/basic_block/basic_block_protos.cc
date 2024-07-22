@@ -32,8 +32,8 @@ template <typename Object, typename Proto, typename Convertor>
 std::vector<Object> ToVector(
     const google::protobuf::RepeatedPtrField<Proto>& protos,
     Convertor object_from_proto) {
-  std::vector<Object> result(protos.size());
-  std::transform(protos.begin(), protos.end(), result.begin(),
+  std::vector<Object> result(std::size(protos));
+  std::transform(std::begin(protos), std::end(protos), std::begin(result),
                  object_from_proto);
   return result;
 }
@@ -43,8 +43,8 @@ void ToRepeatedPtrField(
     const std::vector<Object>& objects,
     google::protobuf::RepeatedPtrField<Proto>* repeated_field,
     Convertor proto_from_object) {
-  repeated_field->Reserve(objects.size());
-  std::transform(objects.begin(), objects.end(),
+  repeated_field->Reserve(std::size(objects));
+  std::transform(std::begin(objects), std::end(objects),
                  google::protobuf::RepeatedFieldBackInserter(repeated_field),
                  proto_from_object);
 }

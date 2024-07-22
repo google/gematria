@@ -18,9 +18,12 @@
 // canonical include path within LLVM as they are not properly exposed through
 // a library and could potentially be confused with other LLVM includes.
 
+#include <unistd.h>
+
 #include "X86.h"
 #include "X86InstrInfo.h"
 #include "X86RegisterInfo.h"
+#include "gematria/datasets/basic_block_utils.h"
 #include "gematria/llvm/disassembler.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkRunner.h"
 #include "llvm/tools/llvm-exegesis/lib/LlvmState.h"
@@ -29,6 +32,13 @@
 
 using namespace llvm;
 using namespace llvm::exegesis;
+
+// Use the constants from the BHive paper for setting initial register and
+// memory values. These constants are set to a high enough value to avoid
+// underflow and accesses within the first page, but low enough to avoid
+// exceeding the virtual address space ceiling in most cases.
+constexpr uint64_t kInitialRegVal = 0x12345600;
+constexpr uint64_t kInitialMemVal = 0x12345600;
 
 namespace gematria {
 
@@ -76,7 +86,7 @@ Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::create(
 }
 
 Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
-    ArrayRef<uint8_t> BasicBlock) {
+    ArrayRef<uint8_t> BasicBlock, unsigned MaxAnnotationAttempts) {
   Expected<std::vector<DisassembledInstruction>> DisInstructions =
       DisassembleAllInstructions(*MachineDisassembler, State.getInstrInfo(),
                                  State.getRegInfo(), State.getSubtargetInfo(),
@@ -98,7 +108,7 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
   BenchCode.Key.Instructions = Instructions;
 
   MemoryValue MemVal;
-  MemVal.Value = APInt(64, 0x12345600);
+  MemVal.Value = APInt(64, kInitialMemVal);
   MemVal.Index = 0;
   MemVal.SizeBytes = 4096;
 
@@ -111,7 +121,7 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
     RegisterValue RegVal;
     RegVal.Register =
         MRI.getRegClass(X86::GR64_NOREX2RegClassID).getRegister(i);
-    RegVal.Value = APInt(64, 0x12345600);
+    RegVal.Value = APInt(64, kInitialRegVal);
     BenchCode.Key.RegisterInitialValues.push_back(RegVal);
   }
 
@@ -119,7 +129,7 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
        ++i) {
     RegisterValue RegVal;
     RegVal.Register = MRI.getRegClass(X86::VR128RegClassID).getRegister(i);
-    RegVal.Value = APInt(128, 0x12345600);
+    RegVal.Value = APInt(128, kInitialRegVal);
     BenchCode.Key.RegisterInitialValues.push_back(RegVal);
   }
 
@@ -146,10 +156,15 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
     Error AnnotationError = handleErrors(
         std::move(std::get<0>(BenchmarkResultOrErr)),
         [&](SnippetSegmentationFault &CrashInfo) -> Error {
+          if (BenchCode.Key.MemoryMappings.size() > MaxAnnotationAttempts)
+            return make_error<Failure>(
+                "Hit the maximum number of annotation attempts.");
+
           MemoryMapping MemMap;
           // Zero out the last twelve bits of the address to align
           // the address to a page boundary.
-          uintptr_t MapAddress = (CrashInfo.getAddress() & ~0xfff);
+          uintptr_t MapAddress =
+              (CrashInfo.getAddress() / getpagesize()) * getpagesize();
           if (MapAddress == 0)
             return make_error<Failure>("Segfault at zero address, cannot map.");
           // TODO(boomanaiden154): The fault captured below occurs when
@@ -175,6 +190,18 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
   for (const MemoryMapping &Mapping : BenchCode.Key.MemoryMappings) {
     MemAnnotations.accessed_blocks.push_back(Mapping.Address);
   }
+
+  std::vector<unsigned> UsedRegisters = gematria::getUsedRegisters(
+      *DisInstructions, State.getRegInfo(), State.getInstrInfo());
+
+  MemAnnotations.initial_regs.reserve(UsedRegisters.size());
+
+  for (const unsigned UsedRegister : UsedRegisters) {
+    MemAnnotations.initial_regs.push_back(
+        {.register_index = UsedRegister, .register_value = kInitialRegVal});
+  }
+
+  MemAnnotations.block_contents = kInitialMemVal;
 
   return MemAnnotations;
 }
