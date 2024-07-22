@@ -25,7 +25,7 @@ _OBJECT_FILE_PATH = os.path.join(
 
 class ExtractBBsFromObjTests(absltest.TestCase):
 
-  def test_thing(self):
+  def test_simple_extraction(self):
     self.assertTrue(True)
 
     runfiles_dir = os.environ.get('PYTHON_RUNFILES')
