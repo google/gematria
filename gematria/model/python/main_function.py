@@ -460,7 +460,7 @@ def _is_list_of_ints(values: Sequence[str]) -> bool:
     ),
 )
 def _task_names_match_throughput_source_filters(
-    flags_dict: Mapping[str, Sequence[str]]
+    flags_dict: Mapping[str, Sequence[str]],
 ) -> bool:
   """Checks that the numbers of tasks and throughput source filtes match."""
   if flags_dict[_ACTION.name] in model_options.ACTIONS_WITHOUT_INPUT_DATA:
@@ -481,7 +481,7 @@ def _task_names_match_throughput_source_filters(
     ),
 )
 def _at_most_one_warm_start_source_can_be_used(
-    flags_dict: Mapping[str, str]
+    flags_dict: Mapping[str, str],
 ) -> bool:
   """Checks that at most one warm start flag is used."""
   warmstart_dir = flags_dict[_WARMSTART_DIR.name]
@@ -497,7 +497,7 @@ def _at_most_one_warm_start_source_can_be_used(
     ),
 )
 def _resume_from_and_resume_to_dir_must_be_used_at_the_same_time(
-    flags_dict: Mapping[str, str]
+    flags_dict: Mapping[str, str],
 ) -> bool:
   """Checks that the resume dir flags are either both present or both absent."""
   resume_from_dir = flags_dict[_RESUME_FROM_DIR.name]
