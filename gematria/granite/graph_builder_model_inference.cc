@@ -492,12 +492,12 @@ GraphBuilderModelInference::FromTfLiteModel(
 
   // Ensures no unexpected input tensors are present.
   const int num_input_tensors = (*interpreter)->inputs().size();
-  const bool uses_deltas = input_tensor_to_idx->at(static_cast<int>(
+  const bool is_seq2seq = input_tensor_to_idx->at(static_cast<int>(
                                InputTensor::kDeltaBlockIndexTensor)) != -1;
   const bool uses_annotations =
       input_tensor_to_idx->at(
           static_cast<int>(InputTensor::kInstructionAnnotationsTensor)) != -1;
-  if (uses_deltas && input_tensor_to_idx->at(static_cast<int>(
+  if (is_seq2seq && input_tensor_to_idx->at(static_cast<int>(
                          InputTensor::kInstructionNodeMaskTensor)) == -1) {
     return llvm::createStringError(
         llvm::errc::invalid_argument,
@@ -515,8 +515,8 @@ GraphBuilderModelInference::FromTfLiteModel(
             ".");
   }
   const int num_expected_input_tensors =
-      kNumRequiredInputTensors + int(uses_deltas) + int(uses_annotations) +
-      int(uses_deltas || uses_annotations);
+      kNumRequiredInputTensors + int(is_seq2seq) + int(uses_annotations) +
+      int(is_seq2seq || uses_annotations);
   if (num_input_tensors != num_expected_input_tensors) {
     return llvm::createStringError(
         llvm::errc::invalid_argument,
@@ -606,20 +606,20 @@ GraphBuilderModelInference::FromTfLiteModel(
   return std::unique_ptr<GraphBuilderModelInference>(
       new GraphBuilderModelInference(
           std::move(graph_builder), tflite_model, std::move(*interpreter),
-          std::move(input_tensor_to_idx), uses_deltas, uses_annotations));
+          std::move(input_tensor_to_idx), is_seq2seq, uses_annotations));
 }
 
 GraphBuilderModelInference::GraphBuilderModelInference(
     std::unique_ptr<BasicBlockGraphBuilder> graph_builder,
     const FlatBufferModel* tflite_model,
     std::unique_ptr<tflite::Interpreter> interpreter,
-    std::unique_ptr<std::vector<int>> input_tensor_to_idx, bool uses_deltas,
+    std::unique_ptr<std::vector<int>> input_tensor_to_idx, bool is_seq2seq,
     bool uses_annotations)
     : graph_builder_(std::move(graph_builder)),
       tflite_model_(*tflite_model),
       interpreter_(std::move(interpreter)),
       input_tensor_to_idx_(std::move(input_tensor_to_idx)),
-      uses_deltas_(uses_deltas),
+      is_seq2seq_(is_seq2seq),
       uses_annotations_(uses_annotations) {
   assert(tflite_model != nullptr);
   assert(interpreter_ != nullptr);
@@ -686,7 +686,7 @@ GraphBuilderModelInference::RunInference() {
       /* desired_first_dimension_size = */ graph_builder_->num_graphs(),
       /* expected_second_dimension_size = */
       graph_builder_->num_node_tokens()));
-  if (uses_deltas_) {
+  if (is_seq2seq_) {
     GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(
         interpreter_.get(),
         input_tensor_to_idx_->at(
@@ -703,7 +703,7 @@ GraphBuilderModelInference::RunInference() {
         /* expected_second_dimension_size = */
         static_cast<int>(graph_builder_->annotation_names().size())));
   }
-  if (uses_deltas_ || uses_annotations_) {
+  if (is_seq2seq_ || uses_annotations_) {
     GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(
         interpreter_.get(),
         input_tensor_to_idx_->at(
@@ -746,7 +746,7 @@ GraphBuilderModelInference::RunInference() {
       interpreter_.get(), graph_builder_->global_features(),
       input_tensor_to_idx_->at(
           static_cast<int>(InputTensor::kGraphGlobalsTensor))));
-  if (uses_deltas_) {
+  if (is_seq2seq_) {
     GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
         interpreter_.get(), delta_block_index,
         input_tensor_to_idx_->at(
@@ -758,7 +758,7 @@ GraphBuilderModelInference::RunInference() {
         input_tensor_to_idx_->at(
             static_cast<int>(InputTensor::kInstructionAnnotationsTensor))));
   }
-  if (uses_deltas_ || uses_annotations_) {
+  if (is_seq2seq_ || uses_annotations_) {
     GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<bool>(
         interpreter_.get(), instruction_node_mask,
         input_tensor_to_idx_->at(

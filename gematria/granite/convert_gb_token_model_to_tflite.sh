@@ -37,7 +37,6 @@ function print_error_and_exit() {
 # Parse command-line flags.
 # TODO(ondrasej): Consider using getopt instead of parsing the flags manually.
 gematria_export_as_seq2seq=0
-gematria_export_with_deltas=0
 gematria_export_with_annotations=0
 gematria_input_graphdef=""
 gematria_output_tflite=""
@@ -59,9 +58,6 @@ while [[ "$#" -gt 0 ]]; do
       ;;
     --gematria_export_as_seq2seq)
       gematria_export_as_seq2seq=1
-      ;;
-    --gematria_export_with_deltas)
-      gematria_export_with_deltas=1
       ;;
     --gematria_export_with_annotations)
       gematria_export_with_annotations=1
@@ -87,10 +83,11 @@ function str_join() {
 
 # The list of inputs of the model. This must contain an entry for each
 # tf.placeholder tensor used in the Python code.
-readonly INPUT_TENSORS_LIST=(
-  $([[ "${gematria_export_as_seq2seq}" -eq 1 || \
-       "${gematria_export_with_deltas}" -eq 1 ]] && \
-    echo 'ModelBase.delta_block_index_tensor')
+declare -a INPUT_TENSORS_LIST=()
+if [[ "${gematria_export_as_seq2seq}" -eq 1 ]]; then
+  INPUT_TENSORS_LIST+=( ModelBase.delta_block_index_tensor )
+fi
+INPUT_TENSORS_LIST+=(
   GnnModelBase.node_features
   GnnModelBase.edge_features
   GnnModelBase.global_features
@@ -98,12 +95,15 @@ readonly INPUT_TENSORS_LIST=(
   GnnModelBase.senders
   GnnModelBase.num_edges
   GnnModelBase.num_nodes
-  $([[ "${gematria_export_with_annotations}" -eq 1 ]] && \
-    echo 'GraphBuilderModelBase.instruction_node_mask')
-  $([[ "${gematria_export_with_deltas}" -eq 1 || \
-       "${gematria_export_with_annotations}" -eq 1 ]] && \
-    echo 'TokenGraphBuilderModel.instruction_annotations')
 )
+if [[ "${gematria_export_as_seq2seq}" -eq 1 || \
+      "${gematria_export_with_annotations}" -eq 1 ]]; then
+  INPUT_TENSORS_LIST+=( GraphBuilderModelBase.instruction_node_mask )
+fi
+if [[ "${gematria_export_with_annotations}" -eq 1 ]]; then
+  INPUT_TENSORS_LIST+=( TokenGraphBuilderModel.instruction_annotations )
+fi
+readonly INPUT_TENSORS_LIST
 INPUT_TENSORS=$(str_join "${INPUT_TENSORS_LIST[@]}")
 readonly INPUT_TENSORS
 
@@ -115,17 +115,19 @@ readonly TARGET_OPS_LIST=(
 TARGET_OPS=$(str_join "${TARGET_OPS_LIST[@]}")
 readonly TARGET_OPS
 
-readonly OUTPUT_TENSOR_LIST=(
-  ModelBase.output_tensor
-  $([[ "${gematria_export_as_seq2seq}" -eq 1 || \
-       "${gematria_export_with_deltas}" -eq 1 ]] && \
-    echo 'ModelBase.output_tensor_deltas')
+declare -a OUTPUT_TENSORS_LIST=( ModelBase.output_tensor )
+if [[ "${gematria_export_as_seq2seq}" -eq 1 ]]; then
+  OUTPUT_TENSORS_LIST+=( ModelBase.output_tensor_deltas )
+fi
+OUTPUT_TENSORS_LIST+=(
   TokenModel.token_list
   GraphBuilderModelBase.special_tokens
-  $([[ "${gematria_export_with_annotations}" -eq 1 ]] && \
-    echo 'TokenGraphBuilderModel.annotation_names')
 )
-OUTPUT_TENSORS=$(str_join "${OUTPUT_TENSOR_LIST[@]}")
+if [[ "${gematria_export_with_annotations}" -eq 1 ]]; then
+  OUTPUT_TENSORS_LIST+=( TokenGraphBuilderModel.annotation_names )
+fi
+readonly OUTPUT_TENSORS_LIST
+OUTPUT_TENSORS=$(str_join "${OUTPUT_TENSORS_LIST[@]}")
 readonly OUTPUT_TENSORS
 
 tflite_convert \

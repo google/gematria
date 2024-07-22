@@ -91,7 +91,7 @@ class GraphBuilderModelInference {
       const tflite::FlatBufferModel* tflite_model,
       std::unique_ptr<tflite::Interpreter> interpreter,
       std::unique_ptr<std::vector<int>> input_tensor_to_idx,
-      bool uses_deltas = true, bool uses_annotations = false);
+      bool is_seq2seq = true, bool uses_annotations = false);
 
   std::unique_ptr<BasicBlockGraphBuilder> graph_builder_;
   const tflite::FlatBufferModel& tflite_model_;
@@ -103,7 +103,7 @@ class GraphBuilderModelInference {
   std::unique_ptr<std::vector<int>> input_tensor_to_idx_;
 
   // Encodes the configuration of input tensors present in the tflite model.
-  const bool uses_deltas_;
+  const bool is_seq2seq_;
   const bool uses_annotations_;
 };
 
