@@ -20,7 +20,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <set>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -417,11 +416,11 @@ llvm::Expected<std::string> GetNodeTokenAtIndex(
   return node_token_list[token_index];
 }
 
-// Extracts the set of annotation names from the model. This should be a Const
+// Extracts the list of annotation names from the model. This should be a const
 // tensor, and as such, it should be readable without providing any inputs.
 // Returns an error when the annotation names tensor is not found or it is not
 // readable.
-llvm::Expected<std::set<std::string>> GetAnnotationNames(
+llvm::Expected<std::vector<std::string>> GetAnnotationNames(
     const tflite::Interpreter& interpreter) {
   llvm::Expected<int> annotation_names_tensor_index = TensorIndexByName(
       interpreter, interpreter.outputs(), kAnnotationNamesTensorName);
@@ -445,7 +444,7 @@ llvm::Expected<std::set<std::string>> GetAnnotationNames(
                                                annotation_names_size_bytes);
   std::vector<std::string> annotation_names =
       StrSplitAsCopy(annotation_names_data, '\0');
-  return std::set<std::string>(
+  return std::vector<std::string>(
       std::make_move_iterator(annotation_names.begin()),
       std::make_move_iterator(annotation_names.end()));
 }
@@ -551,10 +550,10 @@ GraphBuilderModelInference::FromTfLiteModel(
         "The special token index tensor could not be read");
   }
 
-  // Get the set of annotation names used by the model, if any.
-  std::set<std::string> annotation_names;
+  // Get the list of annotation names used by the model, if any.
+  std::vector<std::string> annotation_names;
   if (uses_annotations) {
-    llvm::Expected<std::set<std::string>> expected_annotation_names =
+    llvm::Expected<std::vector<std::string>> expected_annotation_names =
         GetAnnotationNames(**interpreter);
     if (llvm::Error error = expected_annotation_names.takeError()) return error;
     annotation_names = std::move(*expected_annotation_names);
