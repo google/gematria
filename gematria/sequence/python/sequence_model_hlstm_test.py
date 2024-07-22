@@ -17,6 +17,7 @@ from gematria.model.python import oov_token_behavior
 from gematria.sequence.python import sequence_model_hlstm
 from gematria.testing.python import model_test
 import tensorflow.compat.v1 as tf
+import tf_keras
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 
@@ -88,7 +89,7 @@ class SequenceModelHlstmTest(parameterized.TestCase, model_test.TestCase):
         out_of_vocabulary_behavior=_OutOfVocabularyTokenBehavior.return_error(),
     )
     model.initialize()
-    self.assertIsInstance(model._model._block_lstm, tf.keras.layers.LSTM)
+    self.assertIsInstance(model._model._block_lstm, tf_keras.layers.LSTM)
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
   @parameterized.named_parameters(
@@ -112,7 +113,7 @@ class SequenceModelHlstmTest(parameterized.TestCase, model_test.TestCase):
     )
     model.initialize()
     self.assertIsInstance(
-        model._model._block_lstm, tf.keras.layers.Bidirectional
+        model._model._block_lstm, tf_keras.layers.Bidirectional
     )
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
