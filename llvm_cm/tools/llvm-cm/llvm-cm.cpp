@@ -393,8 +393,7 @@ double CostModel::getLatency(
         EnteredBb = true;
         ThisBb = Label;
 
-        LLVM_DEBUG(dbgs() << "<"
-                          << "BB" + Twine(Label) << ">: "
+        LLVM_DEBUG(dbgs() << "<" << "BB" + Twine(Label) << ">: "
                           << format("%016" PRIx64 " ", CurrAddr) << "\n");
       }
     }

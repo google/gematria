@@ -109,14 +109,11 @@ class LossType(enum.Enum):
       of the errors of individual samples (the L1 loss).
     HUBER: The loss is the Huber loss; the loss is quadratic around zero, linear
       otherwise. See https://en.wikipedia.org/wiki/Huber_loss.
-    RANKING_SOFTMAX_LOSS: The loss is a softmax-based surrogate loss function
-      for learning to rank (the ListNet loss).
   """
 
   MEAN_SQUARED_ERROR = 1
   MEAN_ABSOLUTE_ERROR = 2
   HUBER = 3
-  RANKING_SOFTMAX_LOSS = 4
 
 
 @enum.unique

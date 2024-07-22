@@ -7,4 +7,19 @@ build \
   --strict_proto_deps=off \
   --cxxopt=-std=c++17 \
   --host_cxxopt=-std=c++17 \
-  --repo_env=CC=clang
+  --repo_env=CC=clang \
+  --define=use_fast_cpp_protos=true \
+  --linkopt="-fuse-ld=lld"
+
+build:asan --strip=never
+build:asan --copt=-fsanitize=address
+build:asan --copt=-O0
+build:asan --copt=-fno-omit-frame-pointer
+build:asan --copt=-DADDRESS_SANITIZER
+build:asan --linkopt=-fsanitize=address
+
+build:tsan --strip=never
+build:tsan --copt=-fsanitize=thread
+build:tsan --copt=-fno-omit-frame-pointer
+build:tsan --copt=-DTHREAD_SANITIZER
+build:tsan --linkopt=-fsanitize=thread

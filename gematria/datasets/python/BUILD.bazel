@@ -46,10 +46,58 @@ gematria_py_test(
 gematria_py_binary(
     name = "import_from_bhive",
     srcs = ["import_from_bhive.py"],
+    visibility = ["//gematria/datasets/python/extract_tokens_file_tests:__pkg__"],
     deps = [
         ":bhive_importer",
         "//gematria/llvm/python:canonicalizer",
         "//gematria/llvm/python:llvm_architecture_support",
         "//gematria/utils/python:pybind11_abseil_status",
+    ],
+)
+
+gematria_py_binary(
+    name = "extract_tokens_file",
+    srcs = ["extract_tokens_file.py"],
+    visibility = ["//gematria/datasets/python/extract_tokens_file_tests:__pkg__"],
+    deps = [
+        "//gematria/basic_block/python:basic_block",
+        "//gematria/basic_block/python:basic_block_protos",
+        "//gematria/io/python:tfrecord",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+)
+
+gematria_pybind_extension(
+    name = "extract_bbs_from_obj",
+    srcs = ["extract_bbs_from_obj.cc"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/datasets:extract_bbs_from_obj_lib",
+        "//gematria/llvm:llvm_to_absl",
+        "@pybind11_abseil_repo//pybind11_abseil:status_casters",
+    ],
+)
+
+genrule(
+    name = "extract_bbs_from_obj_test_file",
+    testonly = True,
+    srcs = ["extract_bbs_from_obj_test.yaml"],
+    outs = ["extract_bbs_from_obj_test_file.o"],
+    cmd = "$(location @llvm-project//llvm:yaml2obj) $(location extract_bbs_from_obj_test.yaml) -o $(location extract_bbs_from_obj_test_file.o)",
+    tools = [
+        "@llvm-project//llvm:yaml2obj",
+    ],
+)
+
+gematria_py_test(
+    name = "extract_bbs_from_obj_test",
+    size = "small",
+    srcs = ["extract_bbs_from_obj_test.py"],
+    data = [
+        ":extract_bbs_from_obj_test_file",
+    ],
+    deps = [
+        ":extract_bbs_from_obj",
+        "@rules_python//python/runfiles",
     ],
 )

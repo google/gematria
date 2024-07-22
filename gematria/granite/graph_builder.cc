@@ -149,7 +149,8 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
     std::vector<std::string> node_tokens, std::string_view immediate_token,
     std::string_view fp_immediate_token, std::string_view address_token,
     std::string_view memory_token,
-    std::set<std::string> annotation_names /* = std::set<std::string>() */,
+    std::vector<std::string>
+        annotation_names /* = std::vector<std::string>() */,
     OutOfVocabularyTokenBehavior
         out_of_vocabulary_behavior /* = ReturnError() */
     )
@@ -172,6 +173,13 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
                     node_tokens_,
                     out_of_vocabulary_behavior.replacement_token())) {
   instruction_annotations_ = std::vector<std::vector<float>>();
+
+  // Make sure annotations are stored in a stable order as long the same
+  // annotation names are used.
+  std::sort(annotation_names.begin(), annotation_names.end());
+  annotation_names.erase(
+      std::unique(annotation_names.begin(), annotation_names.end()),
+      annotation_names.end());
 
   // Store row indices corresponding to specific annotation names.
   int annotation_idx = 0;

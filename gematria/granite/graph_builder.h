@@ -177,7 +177,7 @@ class BasicBlockGraphBuilder {
       std::vector<std::string> node_tokens, std::string_view immediate_token,
       std::string_view fp_immediate_token, std::string_view address_token,
       std::string_view memory_token,
-      std::set<std::string> annotation_names = std::set<std::string>(),
+      std::vector<std::string> annotation_names = std::vector<std::string>(),
       OutOfVocabularyTokenBehavior out_of_vocabulary_behavior =
           OutOfVocabularyTokenBehavior::ReturnError());
 
@@ -244,7 +244,7 @@ class BasicBlockGraphBuilder {
   const std::vector<int>& node_features() const { return node_features_; }
 
   // Names of types of instruction annotations stored.
-  const std::set<std::string>& annotation_names() const {
+  const std::vector<std::string>& annotation_names() const {
     return annotation_names_;
   }
   // Values of instruction level runtime annotations. Represents a
@@ -396,7 +396,7 @@ class BasicBlockGraphBuilder {
   // Holds valid annotation names in sorted order. Instruction annotations with
   // names belonging to this list are stored in `instruction_annotations_` and
   // the rest are discarded.
-  const std::set<std::string> annotation_names_;
+  const std::vector<std::string> annotation_names_;
 
   const OutOfVocabularyTokenBehavior out_of_vocabulary_behavior_;
   const TokenIndex replacement_token_;

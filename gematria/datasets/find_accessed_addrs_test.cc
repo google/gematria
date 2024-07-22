@@ -17,8 +17,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/memory/memory.h"
@@ -26,6 +28,7 @@
 #include "absl/random/random.h"
 #include "absl/random/seed_sequences.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
 #include "absl/types/span.h"
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/llvm_architecture_support.h"
@@ -102,7 +105,7 @@ class FindAccessedAddrsTest : public testing::Test {
     auto code = Assemble(textual_assembly);
     auto span = absl::MakeConstSpan(
         reinterpret_cast<const uint8_t*>(code.data()), code.size());
-    return FindAccessedAddrs(span);
+    return FindAccessedAddrs(span, *llvm_arch_support_);
   }
 };
 

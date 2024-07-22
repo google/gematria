@@ -3,6 +3,8 @@
 ; RUN: split-file %s %t
 ; RUN: mkdir %t.jsondir
 ; RUN: %convert_bhive_to_llvm_exegesis_input --json_output_dir=%t.jsondir --bhive_csv=%t/test.csv --blocks_per_json_file=1
+; RUN: cat %t.jsondir/0.json > /tmp/0.json
+; RUN: cat %t.jsondir/1.json > /tmp/1.json
 ; RUN: cat %t.jsondir/0.json | FileCheck --check-prefix FILE1 %s
 ; RUN: cat %t.jsondir/1.json | FileCheck --check-prefix FILE2 %s
 
@@ -16,7 +18,7 @@
 ; FILE1:       {
 ; FILE1:         "Name": "MEM",
 ; FILE1:         "Size": 4096,
-; FILE1:         "Value": 305419776
+; FILE1:         "Value": 34359738376
 ; FILE1:       }
 ; FILE1:     ],
 ; FILE1:     "MemoryMappings": [
@@ -35,7 +37,7 @@
 ; FILE2:       {
 ; FILE2:         "Name": "MEM",
 ; FILE2:         "Size": 4096,
-; FILE2:         "Value": 305419776
+; FILE2:         "Value": 34359738376
 ; FILE2:       }
 ; FILE2:     ],
 ; FILE2:     "MemoryMappings": [

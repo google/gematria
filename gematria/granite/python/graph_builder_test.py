@@ -78,6 +78,12 @@ class BasicBlockGraphBuilderTest(
       self.assertGreaterEqual(min(edge_senders), 0)
       self.assertGreaterEqual(min(edge_receivers), 0)
 
+    num_instruction_nodes = sum(builder.instruction_node_mask)
+    num_annotation_types = len(builder.annotation_names)
+    self.assertLen(builder.instruction_annotations, num_instruction_nodes)
+    for row in builder.instruction_annotations:
+      self.assertLen(row, num_annotation_types)
+
   def test_single_instruction_basic_block(self):
     builder = graph_builder.BasicBlockGraphBuilder(
         node_tokens=self.tokens,
