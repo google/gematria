@@ -201,6 +201,9 @@ class InstructionTest(absltest.TestCase):
         implicit_output_operands=basic_block.InstructionOperandList((
             basic_block.InstructionOperand.from_register('EFLAGS'),
         )),
+        instruction_annotations=basic_block.AnnotationList((
+            basic_block.Annotation('cache_miss_freq', 0.875),
+        )),
     )
     self.assertEqual(instruction.mnemonic, 'ADC')
     self.assertEqual(instruction.llvm_mnemonic, 'ADC32rr')
@@ -223,6 +226,10 @@ class InstructionTest(absltest.TestCase):
     self.assertSequenceEqual(
         instruction.implicit_output_operands,
         (basic_block.InstructionOperand.from_register('EFLAGS'),),
+    )
+    self.assertSequenceEqual(
+        instruction.instruction_annotations,
+        (basic_block.Annotation('cache_miss_freq', 0.875),),
     )
 
     instruction = basic_block.Instruction(
