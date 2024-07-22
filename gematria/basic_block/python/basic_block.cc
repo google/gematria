@@ -189,7 +189,8 @@ PYBIND11_MODULE(basic_block, m) {
   py::class_<Annotation> annotation(m, "Annotation");
   annotation
       .def(py::init<std::string /* name */, double /* value */>(),
-           py::arg("name") = std::string(), py::arg("value"))
+           // `value` defaults to -1 to match the bound C++ constructor.
+           py::arg("name") = std::string(), py::arg("value") = -1)
       .def("__repr__", &Annotation::ToString)
       .def("__eq__", &Annotation::operator==)
       .def("__copy__",
