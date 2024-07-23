@@ -23,6 +23,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Error.h"
 #include "tensorflow/lite/interpreter.h"
+#include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/model_builder.h"
 
 namespace gematria {
@@ -90,8 +91,7 @@ class GraphBuilderModelInference {
       std::unique_ptr<BasicBlockGraphBuilder> graph_builder,
       const tflite::FlatBufferModel* tflite_model,
       std::unique_ptr<tflite::Interpreter> interpreter,
-      std::unique_ptr<std::vector<int>> input_tensor_to_idx,
-      bool is_seq2seq = true, bool uses_annotations = false);
+      std::vector<int> input_tensor_to_idx, bool uses_deltas);
 
   std::unique_ptr<BasicBlockGraphBuilder> graph_builder_;
   const tflite::FlatBufferModel& tflite_model_;
@@ -100,11 +100,10 @@ class GraphBuilderModelInference {
   // The mapping between input tensors and their indices in the tflite
   // model. Allows lookups of input tensors without knowing their indices at
   // compile time.
-  std::unique_ptr<std::vector<int>> input_tensor_to_idx_;
+  const std::vector<int> input_tensor_to_idx_;
 
   // Encodes the configuration of input tensors present in the tflite model.
-  const bool is_seq2seq_;
-  const bool uses_annotations_;
+  const bool uses_deltas_;
 };
 
 }  // namespace gematria
