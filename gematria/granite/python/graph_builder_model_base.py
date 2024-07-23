@@ -183,7 +183,7 @@ class GraphBuilderModelBase(
 
   @property
   def annotation_names_tensor(self) -> tf.Tensor:
-    return self._annotation_names_tensor
+    return self._annotation_name_tensor
 
   # @Override
   @property
