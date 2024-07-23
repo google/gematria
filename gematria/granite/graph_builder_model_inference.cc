@@ -128,6 +128,7 @@ constexpr std::string_view GetInputTensorName(const InputTensor tensor) {
       return name;
     }
   }
+  __builtin_unreachable();
 }
 
 // Get the input tensor associated with a name. `name` must be one of the
