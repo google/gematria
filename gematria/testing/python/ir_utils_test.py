@@ -13,7 +13,49 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from gematria.testing.python import ir_utils
+
 
 class IRUtilsTests(absltest.TestCase):
-  def test_thing(self):
-    self.assertTrue(True)
+
+  def test_get_bc_from_ir(self):
+    ir_string = """
+define i32 @a() {
+  ret i32 0
+}
+"""
+
+    bitcode = ir_utils.get_bc_from_ir(ir_string)
+    self.assertTrue(type(bitcode) == bytes)
+
+  def test_get_ir_from_bc(self):
+    ir_string = """
+define i32 @a() {
+  ret i32 0
+}
+"""
+    bitcode = ir_utils.get_bc_from_ir(ir_string)
+    ir_roundtrip = ir_utils.get_ir_from_bc(bitcode)
+    # Only assert that ir_string is in ir_roundtrip as there will be some
+    # additional metadata automatically added to the text.
+    self.assertTrue(ir_string in ir_roundtrip)
+
+  def test_create_compile_parquet(self):
+    ir_string1 = """
+define i32 @a() {
+ret i32 1
+}
+"""
+    ir_string2 = """
+define i32 @b() {
+ret i32 2
+}
+"""
+    parquet_file = self.create_tempfile()
+    ir_utils.create_compile_parquet(
+        [ir_string1, ir_string2], parquet_file.full_path
+    )
+
+
+if __name__ == '__main__':
+  absltest.main()

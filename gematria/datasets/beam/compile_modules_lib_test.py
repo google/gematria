@@ -14,7 +14,8 @@
 
 from absl.testing import absltest
 
+
 class CompileModulesTests(absltest.TestCase):
-  
+
   def test_thing(self):
     self.assertTrue(True)

@@ -64,9 +64,10 @@ gematria_py_library(
     visibility = ["//:internal_users"],
     deps = [
         "@rules_python//python/runfiles",
-    ]
+    ],
     data = [
         "@llvm-project//llvm:llvm-as",
+        "@llvm-project//llvm:llvm-dis",
     ],
 )
 
