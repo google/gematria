@@ -280,11 +280,11 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
       self,
   ) -> Sequence[gnn_model_base.GraphNetworkLayer]:
     mlp_initializers = {
-        'w': tf_keras.initializers.glorot_normal(),
-        'b': tf_keras.initializers.glorot_normal(),
+        'w': tf.keras.initializers.glorot_normal(),
+        'b': tf.keras.initializers.glorot_normal(),
     }
     embedding_initializers = {
-        'embeddings': tf_keras.initializers.glorot_normal(),
+        'embeddings': tf.keras.initializers.glorot_normal(),
     }
     return (
         gnn_model_base.GraphNetworkLayer(
