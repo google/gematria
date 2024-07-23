@@ -239,13 +239,14 @@ absl::Status WriteAsmOutput(const AnnotatedBlock& annotated_block,
                             unsigned int file_counter,
                             const llvm::MCRegisterInfo& reg_info) {
   // Create output file path.
-  llvm::Twine output_file_path = llvm::Twine(asm_output_dir)
+  std::string output_file_path = llvm::Twine(asm_output_dir)
                                      .concat("/")
                                      .concat(llvm::Twine(file_counter))
-                                     .concat(".test");
+                                     .concat(".test")
+                                     .str();
 
   // Open output file for writing.
-  std::ofstream output_file(output_file_path.str());
+  std::ofstream output_file(output_file_path);
   if (!output_file.is_open()) {
     return absl::InvalidArgumentError(Twine("Failed to open output file: ")
                                           .concat(output_file_path)
