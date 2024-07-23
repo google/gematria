@@ -279,6 +279,10 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
   def _create_graph_network_modules(
       self,
   ) -> Sequence[gnn_model_base.GraphNetworkLayer]:
+    # Disable module-attr around uses of tf_keras.initializers.glorot_normal as
+    # some tf_keras installations setup what is available in tf_keras.initializers
+    # using logic in __init__.py that pytype is not able to understand
+    # correctly.
     # pytype: disable=module-attr
     mlp_initializers = {
         'w': tf_keras.initializers.glorot_normal(),
