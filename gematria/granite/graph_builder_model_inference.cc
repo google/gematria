@@ -101,9 +101,19 @@ constexpr int kNumPossibleInputTensors = std::size(kPossibleInputTensors);
 // Basic checks to ensure the look-up table is consistent with `InputTensor`.
 // The second assertion must be manually updated with the first `InputTensor`
 // and the third assertion with the last `InputTensor` when a new one is added.
-static_assert(static_cast<int>(kPossibleInputTensors[0].first) == 0,
-              "The start of `kPossibleInputTensors` is not aligned with the "
-              "start of `InputTensor`");
+template <typename Container>
+constexpr bool IsConsistentWithEnum(const Container& entries) {
+  const int num_items = std::size(entries);
+  for (int i = 1; i < num_items; ++i) {
+    if (i != static_cast<int>(kPossibleInputTensors[i].first)) {
+      return false;
+    }
+  }
+  return true;
+}
+static_assert(IsConsistentWithEnum(kPossibleInputTensors),
+              "The sequence of entries in `kPossibleInputTensors` is not "
+              "consistent with `InputTensor`");
 static_assert(static_cast<int>(InputTensor::kDeltaBlockIndex) == 0,
               "`InputTensor` does not begin enumerating from 0");
 static_assert(
@@ -473,7 +483,7 @@ GraphBuilderModelInference::FromTfLiteModel(
       }
     }
     if (!unexpected_input_indices.empty()) {
-      buffer << "Model is has unexpected extra input tensors. ";
+      buffer << "Model has unexpected extra input tensors. ";
       for (const int idx : unexpected_input_indices) {
         buffer << (*interpreter)->GetInputName(idx) << " at index " << idx
                << ", ";
