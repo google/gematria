@@ -78,6 +78,7 @@ constexpr std::string_view kGraphNEdgeTensorName = "GnnModelBase.num_edges";
 constexpr std::string_view kGraphNNodeTensorName = "GnnModelBase.num_nodes";
 constexpr std::string_view kInstructionNodeMaskTensorName =
     "GraphBuilderModelBase.instruction_node_mask";
+constexpr std::string_view kUnknownTensorName = "UnknownName";
 
 // Look-up table between `InputTensor` and input tensor names. Used by
 // `GetInputTensorName` and `GetInputTensorFromName` to create an efficient
@@ -128,6 +129,7 @@ constexpr std::string_view GetInputTensorName(const InputTensor tensor) {
       return name;
     }
   }
+  return kUnknownTensorName;
 }
 
 // Get the input tensor associated with a name. `name` must be one of the
