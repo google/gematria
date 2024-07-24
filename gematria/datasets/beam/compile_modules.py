@@ -41,11 +41,8 @@ def main(argv) -> None:
 
   beam_options = PipelineOptions()
 
-  # beam_options.view_as(pipeline_options.DirectOptions).direct_num_workers = 0
-  # beam_options.view_as(pipeline_options.DirectOptions).direct_running_mode = 'in_memory'
-
   pipeline_constructor = compile_modules_lib.get_bbs(
-      _PARQUET_FOLDER.value, _OUTPUT_TXT_FILE.value
+      _PARQUET_FOLDER, _OUTPUT_TXT_FILE
   )
 
   with beam.Pipeline(options=beam_options) as pipeline:

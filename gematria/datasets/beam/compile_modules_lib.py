@@ -104,6 +104,19 @@ class GetBBsFromModule(beam.DoFn):
       yield bb_hex_value
 
 
+class DeduplicateBBs(beam.ptransform.PTransform):
+
+  def expand(self, pcoll):
+    return (
+        pcoll
+        | 'Use Value as Key'
+        >> beam.Map(lambda bb_hex_value: (bb_hex_value, None))
+        | 'Deduplicate' >> beam.CombinePerKey(lambda values: next(iter(values)))
+        | 'Output Value'
+        >> beam.Map(lambda bb_hex_value_tuple: bb_hex_value_tuple[0])
+    )
+
+
 def get_bbs(
     input_file_pattern: str, output_file: str
 ) -> Callable[[beam.Pipeline], None]:
@@ -122,19 +135,15 @@ def get_bbs(
     lowered_modules = optimized_modules | 'Lower' >> beam.ParDo(
         LowerModulesAsm(['-O0', '-O1', '-O2', '-O3'])
     )
-    bb_hex_values = lowered_modules | 'GetBBs' >> beam.ParDo(GetBBsFromModule())
-    bb_hex_values_tuples = bb_hex_values | 'TupleBBs' >> beam.Map(
-        lambda bb_hex_value: (bb_hex_value, bb_hex_value)
+    bb_hex_values = lowered_modules | 'Get BBs' >> beam.ParDo(
+        GetBBsFromModule()
     )
     bb_hex_values_deduplicated = (
-        bb_hex_values_tuples
-        | 'DeduplicateBBs'
-        >> beam.CombinePerKey(lambda values: next(iter(values)))
-    )
-    bb_hex_values_final = bb_hex_values_deduplicated | 'Untuple' >> beam.Map(
-        lambda bb_hex_value_tuple: bb_hex_value_tuple[0]
+        bb_hex_values | 'Deduplicate' >> DeduplicateBBs()
     )
 
-    _ = bb_hex_values_final | 'WriteToText' >> beam.io.WriteToText(output_file)
+    _ = bb_hex_values_deduplicated | 'WriteToText' >> beam.io.WriteToText(
+        output_file
+    )
 
   return pipeline
