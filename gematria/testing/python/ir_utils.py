@@ -21,8 +21,7 @@ from rules_python.python.runfiles import runfiles
 
 
 def _get_llvm_binary_path(tool_name: str) -> str:
-  runfiles_dir = os.environ.get('PYTHON_RUNFILES')
-  runfiles_env = runfiles.Create({'RUNFILES_DIR': runfiles_dir})
+  runfiles_env = runfiles.Create(os.environ)
   assert runfiles_env is not None
   return runfiles_env.Rlocation('llvm-project/llvm/' + tool_name)
 
