@@ -91,10 +91,10 @@ class GraphBuilderModelBase(
 
   # A 1D byte tensor that contains the list of annotation names in the order of
   # their indices in the graph builder.
-  _annotation_name_tensor: tf.Tensor
+  _annotation_names_tensor: tf.Tensor
 
   # The list of annotation names, in the order of their indices in the model.
-  _annotation_name_list: Sequence[str]
+  _annotation_names_list: Sequence[str]
 
   # A 2D float tensor holding instruction annotations.
   _instruction_annotations: tf.Tensor
@@ -107,7 +107,6 @@ class GraphBuilderModelBase(
       fp_immediate_token: str,
       address_token: str,
       memory_token: str,
-      annotation_names: Sequence[str] = [],
       annotation_names: Sequence[str] = [],
       **kwargs: Any,
   ) -> None:
@@ -128,7 +127,6 @@ class GraphBuilderModelBase(
         in the basic block graph.
       memory_token: The token that is associated with memory value nodes in the
         basic block graph.
-      annotation_names: The list of names of annotations to be used.
       annotation_names: The list of names of annotations to be used.
       **kwargs: Additional keyword arguments are passed to the constructor of
         the base class.
@@ -162,10 +160,10 @@ class GraphBuilderModelBase(
 
     self._special_tokens_tensor = None
 
-    self._annotation_name_list = tuple(
+    self._annotation_names_list = tuple(
         self._batch_graph_builder.annotation_names
     )
-    self._num_annotations = len(self._annotation_name_list)
+    self._num_annotations = len(self._annotation_names_list)
 
   @property
   def special_tokens_tensor(self) -> tf.Tensor:
@@ -185,7 +183,7 @@ class GraphBuilderModelBase(
 
   @property
   def annotation_names_tensor(self) -> tf.Tensor:
-    return self._annotation_name_tensor
+    return self._annotation_names_tensor
 
   # @Override
   @property
@@ -216,10 +214,12 @@ class GraphBuilderModelBase(
         name=GraphBuilderModelBase.SPECIAL_TOKENS_TENSOR_NAME,
     )
     annotation_names_array = np.frombuffer(
-        b'\0'.join(name.encode('utf-8') for name in self._annotation_name_list),
+        b'\0'.join(
+            name.encode('utf-8') for name in self._annotation_names_list
+        ),
         dtype=np.uint8,
     )
-    self._annotation_name_tensor = tf.constant(
+    self._annotation_names_tensor = tf.constant(
         annotation_names_array,
         name=GraphBuilderModelBase.ANNOTATION_NAMES_TENSOR_NAME,
     )
@@ -229,7 +229,7 @@ class GraphBuilderModelBase(
     super()._create_graph_network_resources()
     self._instruction_annotations = tf.placeholder(
         dtype=self.dtype,
-        shape=(None, len(self._annotation_name_list)),
+        shape=(None, len(self._annotation_names_list)),
         name=GraphBuilderModelBase.INSTRUCTION_ANNOTATIONS_TENSOR_NAME,
     )
     self._instruction_node_mask = tf.placeholder(

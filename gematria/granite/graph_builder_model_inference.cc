@@ -16,7 +16,6 @@
 
 #include <algorithm>
 #include <array>
-#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -25,7 +24,6 @@
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -186,15 +184,12 @@ constexpr std::string_view kNodeTokensTensorName = "TokenModel.token_list";
 constexpr std::string_view kSpecialTokensTensorName =
     "GraphBuilderModelBase.special_tokens";
 constexpr std::string_view kAnnotationNamesTensorName =
-    "TokenGraphBuilderModel.annotation_names";
+    "GraphBuilderModelBase.annotation_names";
 
 // Checks that:
 // 1. `tensor` != nullptr,
 // 2. `tensor` has type `tensor_type`.
 // 3. `tensor` has the number of dimensions corresponding to the number of
-// elements of `sizes`, and the sizes in those dimensions are equal to
-// `sizes`. Returns `llvm::Error::success()` when all checks pass, an error
-// otherwise.
 // elements of `sizes`, and the sizes in those dimensions are equal to `sizes`.
 // Returns `llvm::Error::success()` when all checks pass, an error otherwise.
 //
@@ -539,24 +534,24 @@ GraphBuilderModelInference::FromTfLiteModel(
   }
 
   // Infer the model configuration from the non-required input tensors present.
-  const bool uses_deltas =
+  const bool is_seq2seq =
       input_tensor_to_idx[static_cast<int>(InputTensor::kDeltaBlockIndex)] !=
       -1;
   const bool uses_annotations =
-      input_tensor_to_idx->at(
-          static_cast<int>(InputTensor::kInstructionAnnotationsTensor)) != -1;
+      input_tensor_to_idx[static_cast<int>(
+          InputTensor::kInstructionAnnotations)] != -1;
 
   // Ensure the inferred model configuration is valid.
-  if (uses_deltas && input_tensor_to_idx->at(static_cast<int>(
-                         InputTensor::kInstructionNodeMaskTensor)) == -1) {
+  if (is_seq2seq && input_tensor_to_idx[static_cast<int>(
+                        InputTensor::kInstructionNodeMask)] == -1) {
     return llvm::createStringError(
         llvm::errc::invalid_argument,
         "Missing input tensor. Models having " +
             llvm::Twine(kDeltaBlockIndexTensorName) + " must also have " +
             llvm::Twine(kInstructionNodeMaskTensorName) + ".");
   }
-  if (uses_annotations && input_tensor_to_idx->at(static_cast<int>(
-                              InputTensor::kInstructionNodeMaskTensor)) == -1) {
+  if (uses_annotations && input_tensor_to_idx[static_cast<int>(
+                              InputTensor::kInstructionNodeMask)] == -1) {
     return llvm::createStringError(
         llvm::errc::invalid_argument,
         "Missing input tensor. Models having " +
@@ -654,7 +649,7 @@ GraphBuilderModelInference::GraphBuilderModelInference(
     std::unique_ptr<BasicBlockGraphBuilder> graph_builder,
     const FlatBufferModel* tflite_model,
     std::unique_ptr<tflite::Interpreter> interpreter,
-    std::vector<int> input_tensor_to_idx, bool uses_deltas,
+    std::vector<int> input_tensor_to_idx, bool is_seq2seq,
     bool uses_annotations)
     : graph_builder_(std::move(graph_builder)),
       tflite_model_(*tflite_model),
@@ -719,30 +714,28 @@ GraphBuilderModelInference::RunInference() {
       /* desired_first_dimension_size = */ graph_builder_->num_graphs(),
       /* expected_second_dimension_size = */
       graph_builder_->num_node_tokens()));
-  // TODO: Resolve merge conflicts
-  if (uses_deltas_) {
+  if (is_seq2seq_) {
     GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(
         interpreter_.get(),
-        input_tensor_to_idx_->at(
-            static_cast<int>(InputTensor::kDeltaBlockIndexTensor)),
+        input_tensor_to_idx_[static_cast<int>(InputTensor::kDeltaBlockIndex)],
         static_cast<int>(delta_block_index.size())));
   }
   if (uses_annotations_) {
     GEMATRIA_RETURN_IF_ERROR(Resize2DTensor(
         interpreter_.get(),
-        input_tensor_to_idx_->at(
-            static_cast<int>(InputTensor::kInstructionAnnotationsTensor)),
+        input_tensor_to_idx_[static_cast<int>(
+            InputTensor::kInstructionAnnotations)],
         /* desired_first_dimension_size = */
         static_cast<int>(instruction_annotations.size()),
         /* expected_second_dimension_size = */
         static_cast<int>(graph_builder_->annotation_names().size())));
   }
   if (is_seq2seq_ || uses_annotations_) {
-    GEMATRIA_RETURN_IF_ERROR(Resize1DTensor(
-        interpreter_.get(),
-        input_tensor_to_idx_->at(
-            static_cast<int>(InputTensor::kInstructionNodeMaskTensor)),
-        static_cast<int>(instruction_node_mask.size())));
+    GEMATRIA_RETURN_IF_ERROR(
+        Resize1DTensor(interpreter_.get(),
+                       input_tensor_to_idx_[static_cast<int>(
+                           InputTensor::kInstructionNodeMask)],
+                       static_cast<int>(instruction_node_mask.size())));
   }
 
   if (const TfLiteStatus status = interpreter_->AllocateTensors();
@@ -768,31 +761,27 @@ GraphBuilderModelInference::RunInference() {
       interpreter_.get(), graph_builder_->num_nodes_per_block(),
       input_tensor_to_idx_[static_cast<int>(InputTensor::kGraphNNode)]));
   GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
-      // TODO: Resolve merge conflicts
       interpreter_.get(), graph_builder_->num_edges_per_block(),
-      input_tensor_to_idx_->at(
-          static_cast<int>(InputTensor::kGraphNEdgeTensor))));
+      input_tensor_to_idx_[static_cast<int>(InputTensor::kGraphNEdge)]));
   GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVectorMatrix<int32_t>(
       interpreter_.get(), graph_builder_->global_features(),
-      input_tensor_to_idx_->at(
-          static_cast<int>(InputTensor::kGraphGlobalsTensor))));
+      input_tensor_to_idx_[(static_cast<int>(InputTensor::kGraphGlobals))]));
   if (is_seq2seq_) {
     GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<int32_t>(
         interpreter_.get(), delta_block_index,
-        input_tensor_to_idx_->at(
-            static_cast<int>(InputTensor::kDeltaBlockIndexTensor))));
+        input_tensor_to_idx_[static_cast<int>(InputTensor::kDeltaBlockIndex)]));
   }
   if (uses_annotations_) {
     GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVectorMatrix<float>(
         interpreter_.get(), instruction_annotations,
-        input_tensor_to_idx_->at(
-            static_cast<int>(InputTensor::kInstructionAnnotationsTensor))));
+        input_tensor_to_idx_[static_cast<int>(
+            InputTensor::kInstructionAnnotations)]));
   }
   if (is_seq2seq_ || uses_annotations_) {
-    GEMATRIA_RETURN_IF_ERROR(FillTensorFromStdVector<bool>(
-        interpreter_.get(), instruction_node_mask,
-        input_tensor_to_idx_->at(
-            static_cast<int>(InputTensor::kInstructionNodeMaskTensor))));
+    GEMATRIA_RETURN_IF_ERROR(
+        FillTensorFromStdVector<bool>(interpreter_.get(), instruction_node_mask,
+                                      input_tensor_to_idx_[static_cast<int>(
+                                          InputTensor::kInstructionNodeMask)]));
   }
 
   if (const TfLiteStatus status = interpreter_->Invoke(); status != kTfLiteOk) {
@@ -801,7 +790,6 @@ GraphBuilderModelInference::RunInference() {
         llvm::errc::io_error);
   }
 
-  const TfLiteTensor* const output_tensor = interpreter_->output_tensor(0);
   const TfLiteTensor* const output_tensor = interpreter_->output_tensor(0);
   if (output_tensor == nullptr) {
     return llvm::createStringError(llvm::errc::invalid_argument,
@@ -821,7 +809,6 @@ GraphBuilderModelInference::RunInference() {
                                    output_tensor->dims->data[0]);
   }
   const int num_tasks = output_tensor->dims->data[1];
-  auto* const output_tensor_data = interpreter_->typed_output_tensor<float>(0);
   auto* const output_tensor_data = interpreter_->typed_output_tensor<float>(0);
   assert(output_tensor_data != nullptr);
 

@@ -101,7 +101,7 @@ if [[ "${gematria_export_as_seq2seq}" -eq 1 || \
   INPUT_TENSORS_LIST+=( GraphBuilderModelBase.instruction_node_mask )
 fi
 if [[ "${gematria_export_with_annotations}" -eq 1 ]]; then
-  INPUT_TENSORS_LIST+=( TokenGraphBuilderModel.instruction_annotations )
+  INPUT_TENSORS_LIST+=( GraphBuilderModelBase.instruction_annotations )
 fi
 readonly INPUT_TENSORS_LIST
 INPUT_TENSORS=$(str_join "${INPUT_TENSORS_LIST[@]}")
@@ -124,7 +124,7 @@ OUTPUT_TENSORS_LIST+=(
   GraphBuilderModelBase.special_tokens
 )
 if [[ "${gematria_export_with_annotations}" -eq 1 ]]; then
-  OUTPUT_TENSORS_LIST+=( TokenGraphBuilderModel.annotation_names )
+  OUTPUT_TENSORS_LIST+=( GraphBuilderModelBase.annotation_names )
 fi
 readonly OUTPUT_TENSORS_LIST
 OUTPUT_TENSORS=$(str_join "${OUTPUT_TENSORS_LIST[@]}")

@@ -164,7 +164,6 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
       address_token_(FindTokenOrDie(node_tokens_, std::string(address_token))),
       memory_token_(FindTokenOrDie(node_tokens_, std::string(memory_token))),
       annotation_names_(std::move(annotation_names)),
-      annotation_names_(std::move(annotation_names)),
       out_of_vocabulary_behavior_(out_of_vocabulary_behavior),
       replacement_token_(
           out_of_vocabulary_behavior.behavior_type() ==
@@ -210,16 +209,6 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
     if (instruction_node == kInvalidNode) {
       return false;
     }
-
-    // Store the annotations for later use (inclusion in embeddings), using -1
-    // as a default value wherever annotations are missing.
-    std::vector<float> row = std::vector<float>(annotation_names_.size(), -1);
-    for (const auto& [name, value] : instruction.instruction_annotations) {
-      const auto annotation_index = annotation_name_to_idx_.find(name);
-      if (annotation_index == annotation_name_to_idx_.end()) continue;
-      row[annotation_index->second] = value;
-    }
-    instruction_annotations_.push_back(row);
 
     // Store the annotations for later use (inclusion in embeddings), using -1
     // as a default value wherever annotations are missing.
@@ -293,8 +282,6 @@ void BasicBlockGraphBuilder::Reset() {
   edge_types_.clear();
 
   global_features_.clear();
-
-  instruction_annotations_.clear();
 
   instruction_annotations_.clear();
 }

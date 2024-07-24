@@ -53,20 +53,6 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
   READOUT_VARIABLES = 'TokenGraphBuilderModel.readout'
   TASK_READOUT_VARIABLES = 'TokenGraphBuilderModel.task_readout'
 
-  INSTRUCTION_ANNOTATIONS_TENSOR_NAME = (
-      'TokenGraphBuilderModel.instruction_annotations'
-  )
-  ANNOTATION_NAMES_TENSOR_NAME = 'TokenGraphBuilderModel.annotation_names'
-
-  # A 1D byte tensor that contains the list of annotation names in the order of
-  # their indices in the graph builder.
-  _annotation_name_tensor: tf.Tensor
-
-  # The list of annotation names, in the order of their indices in the model.
-  _annotation_name_list: Sequence[str]
-
-  _instruction_annotations: tf.Tensor
-
   def __init__(
       self,
       node_embedding_size: int,
@@ -205,30 +191,6 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
         f'{self._task_readout_input_layer_normalization}'
     )
 
-  @property
-  def annotation_name_tensor(self) -> tf.Tensor:
-    return self._annotation_name_tensor
-
-  @property
-  def output_tensor_names(self) -> Sequence[str]:
-    return (
-        *super().output_tensor_names,
-        TokenGraphBuilderModel.ANNOTATION_NAMES_TENSOR_NAME,
-    )
-
-  # @Override
-  def _create_tf_graph(self) -> None:
-    super()._create_tf_graph()
-
-    annotation_names_array = np.frombuffer(
-        b'\0'.join(name.encode('utf-8') for name in self._annotation_name_list),
-        dtype=np.uint8,
-    )
-    self._annotation_name_tensor = tf.constant(
-        annotation_names_array,
-        name=TokenGraphBuilderModel.ANNOTATION_NAMES_TENSOR_NAME,
-    )
-
   def _create_dense_readout_network(self, data: tf.Tensor) -> tf.Tensor:
     """Creates the dense part of the readout network from `data`.
 
@@ -347,15 +309,12 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
                 ),
                 node_model_fn=functools.partial(
                     TokenGraphBuilderModelNodeEmbed,
-                    TokenGraphBuilderModelNodeEmbed,
                     vocab_size=len(self._token_list),
                     common_embed_dim=self._common_node_embedding_size,
                     num_annotations=self._num_annotations,
                     instruction_annotations=self._instruction_annotations,
                     instruction_node_mask=self._instruction_node_mask,
                     initializers=embedding_initializers,
-                    instruction_annotations=self._instruction_annotations,
-                    instruction_node_mask=self._instruction_node_mask,
                 ),
                 global_model_fn=functools.partial(
                     snt.Sequential,

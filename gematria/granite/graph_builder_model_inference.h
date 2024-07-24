@@ -23,7 +23,6 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Error.h"
 #include "tensorflow/lite/interpreter.h"
-#include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/model_builder.h"
 
 namespace gematria {
@@ -91,7 +90,7 @@ class GraphBuilderModelInference {
       std::unique_ptr<BasicBlockGraphBuilder> graph_builder,
       const tflite::FlatBufferModel* tflite_model,
       std::unique_ptr<tflite::Interpreter> interpreter,
-      std::vector<int> input_tensor_to_idx, bool uses_deltas,
+      std::vector<int> input_tensor_to_idx, bool is_seq2seq,
       bool uses_annotations);
 
   std::unique_ptr<BasicBlockGraphBuilder> graph_builder_;
