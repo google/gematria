@@ -190,8 +190,9 @@ constexpr std::string_view kAnnotationNamesTensorName =
 // 1. `tensor` != nullptr,
 // 2. `tensor` has type `tensor_type`.
 // 3. `tensor` has the number of dimensions corresponding to the number of
-// elements of `sizes`, and the sizes in those dimensions are equal to `sizes`.
-// Returns `llvm::Error::success()` when all checks pass, an error otherwise.
+// elements of `sizes`, and the sizes in those dimensions are equal to
+// `sizes`. Returns `llvm::Error::success()` when all checks pass, an error
+// otherwise.
 //
 // TODO(ondrasej): See if we can replace this function and the one below with
 // TFModelEvaluatorImpl::checkReportAndInvalidate.
