@@ -27,6 +27,17 @@ def _get_llvm_binary_path(tool_name: str) -> str:
 
 
 def get_bc_from_ir(ir: str) -> bytes:
+  """Generates bitcode for an IR string.
+
+  Takes an IR string as input and outputs the bitcode representation of the
+  input textual IR as bytes.
+
+  Args:
+    ir: A string containing the textual IR to process.
+
+  Returns:
+    Bytes containing the bitcode representation of the input IR.
+  """
   llvm_as_path = _get_llvm_binary_path('llvm-as')
   with subprocess.Popen(
       [llvm_as_path],
@@ -42,6 +53,16 @@ def get_bc_from_ir(ir: str) -> bytes:
 
 
 def get_ir_from_bc(bc: bytes) -> str:
+  """Converts bitcode to textual IR.
+
+  Takes LLVM bitcode in the form of bytes and converts it into textual IR.
+
+  Args:
+    bc: The bitcode as bytes.
+
+  Returns:
+    A string containing the textual IR from the bitcode.
+  """
   llvm_dis_path = _get_llvm_binary_path('llvm-dis')
   with subprocess.Popen(
       [llvm_dis_path],
@@ -56,7 +77,18 @@ def get_ir_from_bc(bc: bytes) -> str:
     return output_ir.decode('utf-8')
 
 
-def create_compile_parquet(ir_examples: str, parquet_path: str) -> None:
+def create_compile_parquet(ir_examples: list[str], parquet_path: str) -> None:
+  """Creates a test parquet file matching the format of the ComPile dataset.
+
+  Creates a parquet file containing LLVM modules in the form of bitcode from
+  the ir_examples passed in. The parquet file is in the same format as the
+  ComPile dataset, in particular storing the bitcode in the content column.
+
+  Args:
+    ir_examples: A list of IR strings that should be included in the parquet
+      file in the form of bitcode.
+    parquet_path: The path to place the output parquet file at.
+  """
   bc_examples = [get_bc_from_ir(ir_example) for ir_example in ir_examples]
 
   dataframe = pandas.DataFrame.from_dict({'content': bc_examples})

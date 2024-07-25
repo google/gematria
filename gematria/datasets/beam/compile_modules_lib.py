@@ -33,6 +33,7 @@ def _get_llvm_binary_path(tool_name: str) -> str:
 
 
 class OptimizeModules(beam.DoFn):
+  """A Beam function that uses LLVM opt to optimize bitcode modules."""
 
   def __init__(self, optimization_pass_lists: list[str]):
     self.optimization_pass_lists = optimization_pass_lists
@@ -63,6 +64,9 @@ class OptimizeModules(beam.DoFn):
 
 
 class LowerModulesAsm(beam.DoFn):
+  """A Beam function that uses LLVM llc to lower bitcode modules to object
+  files.
+  """
 
   def __init__(self, optimization_levels: list[str]):
     self.optimization_levels = optimization_levels
@@ -96,6 +100,7 @@ class LowerModulesAsm(beam.DoFn):
 
 
 class GetBBsFromModule(beam.DoFn):
+  """A Beam function to extract BB hex values from object files."""
 
   def process(self, input_object_file: bytes) -> Iterable[str]:
     for bb_hex_value in extract_bbs_from_obj.get_basic_block_hex_values(
@@ -105,6 +110,7 @@ class GetBBsFromModule(beam.DoFn):
 
 
 class DeduplicateBBs(beam.ptransform.PTransform):
+  """A Beam transform to deduplicate string data."""
 
   def expand(self, pcoll):
     return (
@@ -127,7 +133,8 @@ def get_bbs(
     module_data = parquet_data | 'Load' >> beam.Map(
         lambda parquet_row: parquet_row['content']
     )
-    optimized_modules = module_data | 'Optimize' >> beam.ParDo(
+    module_data_shuffled = module_data | 'Shuffle' >> beam.Reshuffle()
+    optimized_modules = module_data_shuffled | 'Optimize' >> beam.ParDo(
         OptimizeModules(
             ['default<O0>', 'default<O1>', 'default<O2>', 'default<O3>']
         )
