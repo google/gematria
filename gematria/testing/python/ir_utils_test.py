@@ -43,12 +43,12 @@ define i32 @a() {
   def test_create_compile_parquet(self):
     ir_string1 = """
 define i32 @a() {
-ret i32 1
+  ret i32 1
 }
 """
     ir_string2 = """
 define i32 @b() {
-ret i32 2
+  ret i32 2
 }
 """
     parquet_file = self.create_tempfile()

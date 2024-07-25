@@ -121,9 +121,9 @@ def get_bbs(
     input_file_pattern: str, output_file: str
 ) -> Callable[[beam.Pipeline], None]:
   def pipeline(root: beam.Pipeline) -> None:
-    # Do something to process parquet files here.
-    # TODO(boomanaiden154): Only load IR here
-    parquet_data = root | 'Read' >> beam.io.ReadFromParquet(input_file_pattern)
+    parquet_data = root | 'Read' >> beam.io.ReadFromParquet(
+        input_file_pattern, columns=['content']
+    )
     module_data = parquet_data | 'Load' >> beam.Map(
         lambda parquet_row: parquet_row['content']
     )

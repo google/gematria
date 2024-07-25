@@ -26,6 +26,7 @@ gematria_py_test(
     srcs = ["compile_modules_lib_test.py"],
     deps = [
         ":compile_modules_lib",
+        "//gematria/testing/python:ir_utils",
     ]
 )
 

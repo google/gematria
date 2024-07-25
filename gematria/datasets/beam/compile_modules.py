@@ -20,7 +20,6 @@ import os
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
-from apache_beam.options import pipeline_options
 
 from gematria.datasets.beam import compile_modules_lib
 
@@ -42,7 +41,7 @@ def main(argv) -> None:
   beam_options = PipelineOptions()
 
   pipeline_constructor = compile_modules_lib.get_bbs(
-      _PARQUET_FOLDER, _OUTPUT_TXT_FILE
+      os.path.join(_PARQUET_FOLDER.value, '*.parquet'), _OUTPUT_TXT_FILE.value
   )
 
   with beam.Pipeline(options=beam_options) as pipeline:
