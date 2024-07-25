@@ -676,7 +676,7 @@ GraphBuilderModelInference::RunInference() {
 
   const std::vector<bool> instruction_node_mask =
       graph_builder_->InstructionNodeMask();
-  const std::vector<std::vector<float>> &instruction_annotations =
+  const std::vector<std::vector<float>>& instruction_annotations =
       graph_builder_->instruction_annotations();
   const std::vector<int> delta_block_index = graph_builder_->DeltaBlockIndex();
 
