@@ -56,3 +56,26 @@ gematria_py_library(
         "//gematria/model/python:options",
     ],
 )
+
+gematria_py_library(
+    name = "ir_utils",
+    testonly = True,
+    srcs = ["ir_utils.py"],
+    data = [
+        "@llvm-project//llvm:llvm-as",
+        "@llvm-project//llvm:llvm-dis",
+    ],
+    visibility = ["//:internal_users"],
+    deps = [
+        "@rules_python//python/runfiles",
+    ],
+)
+
+gematria_py_test(
+    name = "ir_utils_test",
+    size = "small",
+    srcs = ["ir_utils_test.py"],
+    deps = [
+        ":ir_utils",
+    ],
+)
