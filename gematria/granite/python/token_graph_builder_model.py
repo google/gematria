@@ -22,11 +22,9 @@ from gematria.granite.python import gnn_model_base
 from gematria.granite.python import graph_builder
 from gematria.granite.python import graph_builder_model_base
 from gematria.model.python import model_blocks
-from gematria.model.python import model_base
 from gematria.model.python import options
 import graph_nets
 import sonnet as snt
-import numpy as np
 import tensorflow.compat.v1 as tf
 import tf_keras
 

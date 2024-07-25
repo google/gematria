@@ -84,7 +84,7 @@ function str_join() {
 # The list of inputs of the model. This must contain an entry for each
 # tf.placeholder tensor used in the Python code.
 declare -a INPUT_TENSORS_LIST=()
-if [[ "${gematria_export_as_seq2seq}" -eq 1 ]]; then
+if (( gematria_export_as_seq2seq )); then
   INPUT_TENSORS_LIST+=( ModelBase.delta_block_index_tensor )
 fi
 INPUT_TENSORS_LIST+=(
@@ -96,11 +96,11 @@ INPUT_TENSORS_LIST+=(
   GnnModelBase.num_edges
   GnnModelBase.num_nodes
 )
-if [[ "${gematria_export_as_seq2seq}" -eq 1 || \
-      "${gematria_export_with_annotations}" -eq 1 ]]; then
+if (( gematria_export_as_seq2seq ||
+      gematria_export_with_annotations )); then
   INPUT_TENSORS_LIST+=( GraphBuilderModelBase.instruction_node_mask )
 fi
-if [[ "${gematria_export_with_annotations}" -eq 1 ]]; then
+if (( gematria_export_with_annotations )); then
   INPUT_TENSORS_LIST+=( GraphBuilderModelBase.instruction_annotations )
 fi
 readonly INPUT_TENSORS_LIST
@@ -116,14 +116,14 @@ TARGET_OPS=$(str_join "${TARGET_OPS_LIST[@]}")
 readonly TARGET_OPS
 
 declare -a OUTPUT_TENSORS_LIST=( ModelBase.output_tensor )
-if [[ "${gematria_export_as_seq2seq}" -eq 1 ]]; then
+if (( gematria_export_as_seq2seq )); then
   OUTPUT_TENSORS_LIST+=( ModelBase.output_tensor_deltas )
 fi
 OUTPUT_TENSORS_LIST+=(
   TokenModel.token_list
   GraphBuilderModelBase.special_tokens
 )
-if [[ "${gematria_export_with_annotations}" -eq 1 ]]; then
+if (( gematria_export_with_annotations )); then
   OUTPUT_TENSORS_LIST+=( GraphBuilderModelBase.annotation_names )
 fi
 readonly OUTPUT_TENSORS_LIST

@@ -455,8 +455,8 @@ llvm::Expected<std::vector<std::string>> GetAnnotationNames(
   assert(annotation_names_tensor != nullptr);
 
   const size_t annotation_names_size_bytes = annotation_names_tensor->bytes;
-  // The token list tensor is a Const operation, so it should be readable before
-  // running the inference or providing any inputs.
+  // The annotation names tensor is a Const operation, so it should be readable
+  // before running the inference or providing any inputs.
   const char* const annotation_names_raw_data = reinterpret_cast<const char*>(
       interpreter.typed_tensor<uint8_t>(*annotation_names_tensor_index));
   if (annotation_names_raw_data == nullptr) {
@@ -465,11 +465,7 @@ llvm::Expected<std::vector<std::string>> GetAnnotationNames(
   }
   const std::string_view annotation_names_data(annotation_names_raw_data,
                                                annotation_names_size_bytes);
-  std::vector<std::string> annotation_names =
-      StrSplitAsCopy(annotation_names_data, '\0');
-  return std::vector<std::string>(
-      std::make_move_iterator(annotation_names.begin()),
-      std::make_move_iterator(annotation_names.end()));
+  return StrSplitAsCopy(annotation_names_data, '\0');
 }
 
 }  // namespace
@@ -680,7 +676,7 @@ GraphBuilderModelInference::RunInference() {
 
   const std::vector<bool> instruction_node_mask =
       graph_builder_->InstructionNodeMask();
-  const std::vector<std::vector<float>> instruction_annotations =
+  const std::vector<std::vector<float>> &instruction_annotations =
       graph_builder_->instruction_annotations();
   const std::vector<int> delta_block_index = graph_builder_->DeltaBlockIndex();
 
