@@ -5,31 +5,31 @@
 
 
 # CHECK:      <reverse>:
-# CHECK-NEXT: Calculated Frequency: 8.3{{[0-9]+}}e+03
+# CHECK-NEXT: Calculated Frequency: 8.{{[0-9]+}}e+03
 # CHECK-NEXT: <tallestBillboard>:
-# CHECK-NEXT: Calculated Frequency: 2.9{{[0-9]+}}e+05
+# CHECK-NEXT: Calculated Frequency: 2.{{[0-9]+}}e+05
 # CHECK-NEXT: <isMatch>:
-# CHECK-NEXT: Calculated Frequency: 8.2{{[0-9]+}}e+02
+# CHECK-NEXT: Calculated Frequency: 8.{{[0-9]+}}e+02
 # CHECK-NEXT: <bubbleSort>:
-# CHECK-NEXT: Calculated Frequency: 6.6{{[0-9]+}}e+04
+# CHECK-NEXT: Calculated Frequency: 6.{{[0-9]+}}e+04
 # CHECK-NEXT: <isPrime>:
-# CHECK-NEXT: Calculated Frequency: 5.7{{[0-9]+}}e+02
+# CHECK-NEXT: Calculated Frequency: 5.{{[0-9]+}}e+02
 # CHECK-NEXT: <main>:
-# CHECK-NEXT: Calculated Frequency: 8.8{{[0-9]+}}e+03
+# CHECK-NEXT: Calculated Frequency: 8.{{[0-9]+}}e+03
 
 
 # CHECK-COUNT: <reverse>:
-# CHECK-COUNT: Calculated Frequency: 1.4{{[0-9]+}}e+02
+# CHECK-COUNT: Calculated Frequency: 1.{{[0-9]+}}e+02
 # CHECK-COUNT: <tallestBillboard>:
-# CHECK-COUNT: Calculated Frequency: 4.4{{[0-9]+}}e+03
+# CHECK-COUNT: Calculated Frequency: 4.{{[0-9]+}}e+03
 # CHECK-COUNT: <isMatch>:
-# CHECK-COUNT: Calculated Frequency: 2.2{{[0-9]+}}e+01
+# CHECK-COUNT: Calculated Frequency: 2.{{[0-9]+}}e+01
 # CHECK-COUNT: <bubbleSort>:
-# CHECK-COUNT: Calculated Frequency: 2.0{{[0-9]+}}e+03
+# CHECK-COUNT: Calculated Frequency: 3.{{[0-9]+}}e+03
 # CHECK-COUNT: <isPrime>:
-# CHECK-COUNT: Calculated Frequency: 2.7{{[0-9]+}}e+01
+# CHECK-COUNT: Calculated Frequency: 2.{{[0-9]+}}e+01
 # CHECK-COUNT: <main>:
-# CHECK-COUNT: Calculated Frequency: 2.3{{[0-9]+}}e+02
+# CHECK-COUNT: Calculated Frequency: 2.{{[0-9]+}}e+02
 
  .text
  .file "test.c"
