@@ -239,6 +239,7 @@ cc_library(
     name = "process_and_filter_bbs_lib",
     srcs = ["process_and_filter_bbs_lib.cc"],
     hdrs = ["process_and_filter_bbs_lib.h"],
+    visibility = ["//:internal_users"],
     deps = [
         "//gematria/llvm:disassembler",
         "//gematria/llvm:llvm_architecture_support",
