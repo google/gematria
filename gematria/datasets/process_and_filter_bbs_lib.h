@@ -16,21 +16,19 @@
 
 #include "gematria/llvm/llvm_architecture_support.h"
 
-using namespace llvm;
-
 namespace gematria {
 
 class BBProcessorFilter {
  public:
   explicit BBProcessorFilter();
 
-  Expected<std::string> processBasicBlock(const StringRef BasicBlock,
-                                          const StringRef Filename,
-                                          bool FilterMemoryAccessingBlocks);
+  llvm::Expected<std::string> processBasicBlock(
+      const llvm::StringRef BasicBlock, const llvm::StringRef Filename,
+      bool FilterMemoryAccessingBlocks);
 
  private:
   std::unique_ptr<LlvmArchitectureSupport> LLVMSupport;
-  std::unique_ptr<MCInstPrinter> InstructionPrinter;
+  std::unique_ptr<llvm::MCInstPrinter> InstructionPrinter;
 };
 
 }  // namespace gematria

@@ -20,6 +20,8 @@
 #include "gematria/utils/string.h"
 #include "llvm/ADT/StringExtras.h"
 
+using namespace llvm;
+
 namespace gematria {
 
 BBProcessorFilter::BBProcessorFilter() {
