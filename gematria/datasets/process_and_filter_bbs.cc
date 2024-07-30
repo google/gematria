@@ -52,6 +52,11 @@ static cl::opt<unsigned> ReportProgressEvery(
     cl::desc("The interval at which to report progress in blocks"),
     cl::init(std::numeric_limits<unsigned>::max()), cl::cat(ProcessFilterCat));
 
+static cl::opt<bool> FilterVariableLatencyInstructions(
+    "filter-variable-latency-instructions",
+    cl::desc("Whether or not to filter variable latency instructions"),
+    cl::init(false), cl::cat(ProcessFilterCat));
+
 Expected<std::string> processBasicBlock(
     const std::string &BasicBlock,
     const gematria::LlvmArchitectureSupport &LLVMSupport,
@@ -91,6 +96,15 @@ Expected<std::string> processBasicBlock(
     if (FilterMemoryAccessingBlocks &&
         (InstDesc.mayLoad() || InstDesc.mayStore()))
       continue;
+
+    if (FilterVariableLatencyInstructions) {
+      // Kind of a hacky solution, but can't figure out a better way to get a
+      // list of all the variable latency instructions, and div seems like the
+      // main one currently.
+      if (Instruction.assembly.find("DIV") != std::string::npos)
+        continue;
+    }
+
     OutputBlock += toHex(Instruction.machine_code);
   }
 
