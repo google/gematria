@@ -11,9 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utility functions for writing tests that work with IR.
+
+This library contains several functions that perform functions such as converting
+between LLVM Bitcode and textural IR to enable more easily writing tests that
+work with these formats.
+"""
 
 import subprocess
 import os
+from collections.abc import Sequence
+
+
 import pandas
 import pyarrow
 from pyarrow import parquet
@@ -30,52 +39,49 @@ def get_bc_from_ir(ir: str) -> bytes:
   """Generates bitcode for an IR string.
   Takes an IR string as input and outputs the bitcode representation of the
   input textual IR as bytes.
+
   Args:
     ir: A string containing the textual IR to process.
+
   Returns:
     Bytes containing the bitcode representation of the input IR.
+
+  Raises:
+    CalledProcessError: If running llvm-as fails.
   """
   llvm_as_path = _get_llvm_binary_path('llvm-as')
-  with subprocess.Popen(
-      [llvm_as_path],
-      stdin=subprocess.PIPE,
-      stdout=subprocess.PIPE,
-      stderr=subprocess.PIPE,
-  ) as as_process:
-    (output_bc, stderr) = as_process.communicate(ir.encode('utf-8'))
-    del stderr
-    if as_process.returncode != 0:
-      raise ValueError('Expected llvm-as to return 0')
-    return output_bc
+  return subprocess.run(
+      [llvm_as_path], input=ir.encode('utf-8'), capture_output=True, check=True
+  ).stdout
 
 
 def get_ir_from_bc(bc: bytes) -> str:
   """Converts bitcode to textual IR.
   Takes LLVM bitcode in the form of bytes and converts it into textual IR.
+
   Args:
     bc: The bitcode as bytes.
+
   Returns:
     A string containing the textual IR from the bitcode.
+
+  Raises:
+    CalledProcessError: If running llvm-dis fails.
   """
   llvm_dis_path = _get_llvm_binary_path('llvm-dis')
-  with subprocess.Popen(
-      [llvm_dis_path],
-      stdin=subprocess.PIPE,
-      stdout=subprocess.PIPE,
-      stderr=subprocess.PIPE,
-  ) as dis_process:
-    (output_ir, stderr) = dis_process.communicate(bc)
-    del stderr
-    if dis_process.returncode != 0:
-      raise ValueError('Expected llvm-dis to return 0')
-    return output_ir.decode('utf-8')
+  return subprocess.run(
+      [llvm_dis_path], input=bc, capture_output=True, check=True
+  ).stdout.decode('utf-8')
 
 
-def create_compile_parquet(ir_examples: list[str], parquet_path: str) -> None:
+def create_compile_parquet(
+    ir_examples: Sequence[str], parquet_path: str
+) -> None:
   """Creates a test parquet file matching the format of the ComPile dataset.
   Creates a parquet file containing LLVM modules in the form of bitcode from
   the ir_examples passed in. The parquet file is in the same format as the
   ComPile dataset, in particular storing the bitcode in the content column.
+
   Args:
     ir_examples: A list of IR strings that should be included in the parquet
       file in the form of bitcode.
