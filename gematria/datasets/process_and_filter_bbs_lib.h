@@ -15,14 +15,24 @@
 #include <string>
 
 #include "gematria/llvm/llvm_architecture_support.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/MC/MCInstPrinter.h"
+#include "llvm/Support/Error.h"
 
 namespace gematria {
 
+// BBProcessorFilter is used for processing and filtering raw basic blocks
+// extracted directly from applications. It contains functions to process
+// individual blocks with the class containing the relevant stateful objects
+// needed for processing.
 class BBProcessorFilter {
  public:
-  explicit BBProcessorFilter();
+  BBProcessorFilter();
 
-  llvm::Expected<std::string> processBasicBlock(
+  // Removes instructions that might be considered risky in that they
+  // might violate modeling assumptions explicitly or have unmodeled
+  // side effects that might cause problems
+  llvm::Expected<std::string> removeRiskyInstructions(
       const llvm::StringRef BasicBlock, const llvm::StringRef Filename,
       bool FilterMemoryAccessingBlocks);
 

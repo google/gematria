@@ -24,12 +24,11 @@ using namespace llvm;
 
 namespace gematria {
 
-BBProcessorFilter::BBProcessorFilter() {
-  LLVMSupport = LlvmArchitectureSupport::X86_64();
-  InstructionPrinter = LLVMSupport->CreateMCInstPrinter(0);
-}
+BBProcessorFilter::BBProcessorFilter()
+    : LLVMSupport(LlvmArchitectureSupport::X86_64()),
+      InstructionPrinter(LLVMSupport->CreateMCInstPrinter(0)) {}
 
-Expected<std::string> BBProcessorFilter::processBasicBlock(
+Expected<std::string> BBProcessorFilter::removeRiskyInstructions(
     const StringRef BasicBlock, const StringRef Filename,
     bool FilterMemoryAccessingBlocks) {
   // TODO(boomanaiden154): Update this to use llvm::Expected once
