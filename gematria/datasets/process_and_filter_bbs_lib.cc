@@ -14,6 +14,15 @@
 
 #include "gematria/datasets/process_and_filter_bbs_lib.h"
 
+#include <string>
+#include <system_error>
+#include <vector>
+
+#include "/gematria/external/llvm-project/llvm/include/llvm/ADT/StringRef.h"
+#include "/gematria/external/llvm-project/llvm/include/llvm/ADT/Twine.h"
+#include "/gematria/external/llvm-project/llvm/include/llvm/MC/MCInstrDesc.h"
+#include "/gematria/external/llvm-project/llvm/include/llvm/Support/Error.h"
+#include "/gematria/external/llvm-project/llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 #include "X86InstrInfo.h"
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
