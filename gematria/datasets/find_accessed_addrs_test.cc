@@ -100,7 +100,7 @@ class FindAccessedAddrsTest : public testing::Test {
     return std::string(code);
   }
 
-  absl::StatusOr<AccessedAddrs> FindAccessedAddrsAsm(
+  absl::StatusOr<BlockAnnotations> FindAccessedAddrsAsm(
       std::string_view textual_assembly) {
     auto code = Assemble(textual_assembly);
     auto span = absl::MakeConstSpan(
@@ -111,7 +111,7 @@ class FindAccessedAddrsTest : public testing::Test {
 
 TEST_F(FindAccessedAddrsTest, BasicMov) {
   EXPECT_THAT(FindAccessedAddrsAsm("mov [0x10000], eax"),
-              IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
+              IsOkAndHolds(Field(&BlockAnnotations::accessed_blocks,
                                  ElementsAre(0x10000))));
 }
 
@@ -142,7 +142,7 @@ TEST_F(FindAccessedAddrsTest, DISABLED_SingleAddressRandomTests) {
       mov ebx, [rax]
     )asm",
                                 addr);
-    const absl::StatusOr<AccessedAddrs> result = FindAccessedAddrsAsm(code);
+    const absl::StatusOr<BlockAnnotations> result = FindAccessedAddrsAsm(code);
     ASSERT_OK(result.status());
 
     EXPECT_THAT(result->accessed_blocks,
@@ -153,8 +153,9 @@ TEST_F(FindAccessedAddrsTest, DISABLED_SingleAddressRandomTests) {
 }
 
 TEST_F(FindAccessedAddrsTest, NoMemoryAccesses) {
-  EXPECT_THAT(FindAccessedAddrsAsm("mov eax, ebx"),
-              IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks, IsEmpty())));
+  EXPECT_THAT(
+      FindAccessedAddrsAsm("mov eax, ebx"),
+      IsOkAndHolds(Field(&BlockAnnotations::accessed_blocks, IsEmpty())));
 }
 
 TEST_F(FindAccessedAddrsTest, MultipleAccesses) {
@@ -162,7 +163,7 @@ TEST_F(FindAccessedAddrsTest, MultipleAccesses) {
     mov [0x10000], eax
     mov [0x20000], eax
   )asm"),
-              IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
+              IsOkAndHolds(Field(&BlockAnnotations::accessed_blocks,
                                  ElementsAre(0x10000, 0x20000))));
 }
 
@@ -171,7 +172,7 @@ TEST_F(FindAccessedAddrsTest, AccessFromRegister) {
     mov [eax], eax
     mov [r11+r12], eax
   )asm"),
-              IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
+              IsOkAndHolds(Field(&BlockAnnotations::accessed_blocks,
                                  ElementsAre(0x15000, 0x2a000))));
 }
 
@@ -180,7 +181,7 @@ TEST_F(FindAccessedAddrsTest, DoubleIndirection) {
     mov rax, [0x10000]
     mov rbx, [rax]
   )asm"),
-              IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
+              IsOkAndHolds(Field(&BlockAnnotations::accessed_blocks,
                                  ElementsAre(0x10000, 0x0000000800000000))));
 }
 
@@ -193,7 +194,7 @@ TEST_F(FindAccessedAddrsTest, DivideByPointee) {
     mov ebx, [rcx]
     idiv ebx
   )asm"),
-              IsOkAndHolds(Field(&AccessedAddrs::accessed_blocks,
+              IsOkAndHolds(Field(&BlockAnnotations::accessed_blocks,
                                  ElementsAre(0x15000))));
 }
 

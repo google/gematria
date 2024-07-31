@@ -53,7 +53,7 @@ struct RegisterAndValue {
   int64_t register_value;
 };
 
-struct AccessedAddrs {
+struct BlockAnnotations {
   uintptr_t code_location;
   size_t block_size;
   uint64_t block_contents;
@@ -64,7 +64,7 @@ struct AccessedAddrs {
 // Given a basic block of code, attempt to determine what addresses that code
 // accesses. This is done by executing the code in a new process, so the code
 // must match the architecture on which this function is executed.
-absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
+absl::StatusOr<BlockAnnotations> FindAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
     LlvmArchitectureSupport &llvm_arch_support);
 

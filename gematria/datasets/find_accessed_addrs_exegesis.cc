@@ -85,7 +85,7 @@ Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::create(
       ExegesisState, std::move(*RunnerOrErr), std::move(SnipRepetitor)));
 }
 
-Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
+Expected<BlockAnnotations> ExegesisAnnotator::findAccessedAddrs(
     ArrayRef<uint8_t> BasicBlock, unsigned MaxAnnotationAttempts) {
   Expected<std::vector<DisassembledInstruction>> DisInstructions =
       DisassembleAllInstructions(*MachineDisassembler, State.getInstrInfo(),
@@ -100,7 +100,7 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
   for (const auto &DisInstruction : *DisInstructions)
     Instructions.push_back(DisInstruction.mc_inst);
 
-  AccessedAddrs MemAnnotations;
+  BlockAnnotations MemAnnotations;
   MemAnnotations.code_location = 0;
   MemAnnotations.block_size = 4096;
 
