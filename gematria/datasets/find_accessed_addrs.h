@@ -59,6 +59,7 @@ struct BlockAnnotations {
   uint64_t block_contents;
   std::vector<uintptr_t> accessed_blocks;
   std::vector<RegisterAndValue> initial_regs;
+  std::optional<unsigned> loop_register;
 };
 
 // Given a basic block of code, attempt to determine what addresses that code

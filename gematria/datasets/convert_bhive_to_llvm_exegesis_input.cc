@@ -140,7 +140,6 @@ bool WriteJsonFile(llvm::json::Array to_write, size_t json_file_number,
 struct AnnotatedBlock {
   gematria::BlockAnnotations accessed_addrs;
   gematria::BasicBlockProto basic_block_proto;
-  std::optional<unsigned> loop_register;
 };
 
 absl::StatusOr<AnnotatedBlock> AnnotateBasicBlock(
@@ -174,9 +173,6 @@ absl::StatusOr<AnnotatedBlock> AnnotateBasicBlock(
   AnnotatedBlock annotated_block;
   annotated_block.accessed_addrs = std::move(*addrs);
   annotated_block.basic_block_proto = std::move(proto);
-  annotated_block.loop_register = gematria::getUnusedGPRegister(
-      *instructions, llvm_support.mc_register_info(),
-      llvm_support.mc_instr_info());
 
   return std::move(annotated_block);
 }
@@ -197,8 +193,9 @@ llvm::json::Value GetJSONForSnippet(const AnnotatedBlock& annotated_block,
       llvm::json::Value(std::move(register_definitions));
 
   // Output the loop register.
-  if (annotated_block.loop_register)
-    current_snippet["LoopRegister"] = *annotated_block.loop_register;
+  if (annotated_block.accessed_addrs.loop_register)
+    current_snippet["LoopRegister"] =
+        *annotated_block.accessed_addrs.loop_register;
   else
     current_snippet["LoopRegister"] = llvm::MCRegister::NoRegister;
 
@@ -279,9 +276,11 @@ absl::Status WriteAsmOutput(const AnnotatedBlock& annotated_block,
   }
 
   // Write the loop register annotation, assuming we were able to find one.
-  if (annotated_block.loop_register) {
+  if (annotated_block.accessed_addrs.loop_register) {
     output_file << kLoopRegisterPrefix
-                << reg_info.getName(*annotated_block.loop_register) << "\n";
+                << reg_info.getName(
+                       *annotated_block.accessed_addrs.loop_register)
+                << "\n";
   }
 
   // Append disassembled instructions.
@@ -378,7 +377,8 @@ int main(int argc, char* argv[]) {
     // If we can't find a loop register, skip writing out this basic block
     // so that downstream tooling doesn't execute the incorrect number of
     // iterations.
-    if (!annotated_block->loop_register && skip_no_loop_register) {
+    if (!annotated_block->accessed_addrs.loop_register &&
+        skip_no_loop_register) {
       std::cerr
           << "Skipping block due to not being able to find a loop register\n";
       ++loop_register_failures;

@@ -500,9 +500,9 @@ absl::Status ForkAndTestAddresses(absl::Span<const uint8_t> basic_block,
   }
 }
 
-absl::StatusOr<std::vector<unsigned>> FindReadRegs(
-    const LlvmArchitectureSupport& llvm_arch_support,
-    absl::Span<const uint8_t> basic_block) {
+absl::StatusOr<std::pair<std::vector<unsigned>, std::optional<unsigned>>>
+FindReadRegsAndLoopReg(const LlvmArchitectureSupport& llvm_arch_support,
+                       absl::Span<const uint8_t> basic_block) {
   llvm::ArrayRef<uint8_t> llvm_array(basic_block.data(), basic_block.size());
   llvm::Expected<std::vector<DisassembledInstruction>> instrs =
       DisassembleAllInstructions(llvm_arch_support.mc_disassembler(),
@@ -514,8 +514,14 @@ absl::StatusOr<std::vector<unsigned>> FindReadRegs(
 
   if (!instrs) return LlvmErrorToStatus(instrs.takeError());
 
-  return getUsedRegisters(*instrs, llvm_arch_support.mc_register_info(),
+  std::vector<unsigned> used_registers =
+      getUsedRegisters(*instrs, llvm_arch_support.mc_register_info(),
+                       llvm_arch_support.mc_instr_info());
+  std::optional<unsigned> loop_register =
+      getUnusedGPRegister(*instrs, llvm_arch_support.mc_register_info(),
                           llvm_arch_support.mc_instr_info());
+
+  return std::make_pair(used_registers, loop_register);
 }
 
 }  // namespace
@@ -535,16 +541,17 @@ absl::StatusOr<std::vector<unsigned>> FindReadRegs(
 absl::StatusOr<BlockAnnotations> FindAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
     LlvmArchitectureSupport& llvm_arch_support) {
-  absl::StatusOr<std::vector<unsigned>> used_regs =
-      FindReadRegs(llvm_arch_support, basic_block);
-  if (!used_regs.ok()) {
-    return used_regs.status();
+  absl::StatusOr<std::pair<std::vector<unsigned>, std::optional<unsigned>>>
+      used_regs_and_loop_reg =
+          FindReadRegsAndLoopReg(llvm_arch_support, basic_block);
+  if (!used_regs_and_loop_reg.ok()) {
+    return used_regs_and_loop_reg.status();
   }
 
   std::vector<RegisterAndValue> initial_regs;
-  initial_regs.reserve(used_regs->size());
+  initial_regs.reserve(used_regs_and_loop_reg->first.size());
 
-  for (unsigned used_reg : *used_regs) {
+  for (unsigned used_reg : used_regs_and_loop_reg->first) {
     // This value is chosen to be almost the lowest address that's able to be
     // mapped. We want it to be low so that even if a register is multiplied or
     // added to another register, it will still be likely to be within an
@@ -563,7 +570,7 @@ absl::StatusOr<BlockAnnotations> FindAccessedAddrs(
       .block_contents = kBlockContents,
       .accessed_blocks = {},
       .initial_regs = initial_regs,
-  };
+      .loop_register = used_regs_and_loop_reg->second};
 
   int n = 0;
   size_t num_accessed_blocks;
