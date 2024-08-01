@@ -43,7 +43,7 @@ class ProcessFilterBBsTest : public testing::Test {
         LLVMArchSupport->CreateMCInstPrinter(InlineAsm::AsmDialect::AD_ATT);
   }
 
-  std::vector<DisassembledInstruction> processAndFilter(
+  std::vector<DisassembledInstruction> removeRiskyInstructions(
       std::string_view TextualAssembly, bool FilterMemoryAccessingBlocks) {
     auto MCInstsOrErr = gematria::ParseAsmCodeFromString(
         LLVMArchSupport->target_machine(), TextualAssembly,
@@ -66,8 +66,9 @@ class ProcessFilterBBsTest : public testing::Test {
                                      LLVMArchSupport->mc_subtarget_info());
 
     std::string BlockHex = FormatAsHexString(Code.str());
-    Expected<std::string> ProcessedBlockHex = BBProcessor.processBasicBlock(
-        BlockHex, "test", FilterMemoryAccessingBlocks);
+    Expected<std::string> ProcessedBlockHex =
+        BBProcessor.removeRiskyInstructions(BlockHex, "test",
+                                            FilterMemoryAccessingBlocks);
     CHECK(static_cast<bool>(ProcessedBlockHex));
 
     std::optional<std::vector<uint8_t>> BytesString =
@@ -85,72 +86,72 @@ class ProcessFilterBBsTest : public testing::Test {
   }
 };
 
-// TODO(boomanaiden154): The formatting of the below processAndFilter function
-// calls is weird. This appears to be a bug in clang-format that will hopefully
-// be fixed before the next version bump.
+// TODO(boomanaiden154): The formatting of the below removeRiskyInstructions
+// function calls is weird. This appears to be a bug in clang-format that will
+// hopefully be fixed before the next version bump.
 // https://github.com/llvm/llvm-project/issues/100944
 
 TEST_F(ProcessFilterBBsTest, RemoveSyscall) {
-  auto ProcessedInstructions = processAndFilter(R"asm(
+  auto ProcessedInstructions = removeRiskyInstructions(R"asm(
     movq %r11, %r12
     syscall
   )asm",
-                                                false);
+                                                       false);
 
   EXPECT_EQ(ProcessedInstructions.size(), 1);
   EXPECT_EQ(ProcessedInstructions[0].mc_inst.getOpcode(), X86::MOV64rr);
 }
 
 TEST_F(ProcessFilterBBsTest, RemoveReturn) {
-  auto ProcessedInstructions = processAndFilter(R"asm(
+  auto ProcessedInstructions = removeRiskyInstructions(R"asm(
     movq %r11, %r12
     retq
   )asm",
-                                                false);
+                                                       false);
 
   EXPECT_EQ(ProcessedInstructions.size(), 1);
   EXPECT_EQ(ProcessedInstructions[0].mc_inst.getOpcode(), X86::MOV64rr);
 }
 
 TEST_F(ProcessFilterBBsTest, RemoveCall) {
-  auto ProcessedInstructions = processAndFilter(R"asm(
+  auto ProcessedInstructions = removeRiskyInstructions(R"asm(
     movq %r11, %r12
     callq *%rax
   )asm",
-                                                false);
+                                                       false);
 
   EXPECT_EQ(ProcessedInstructions.size(), 1);
   EXPECT_EQ(ProcessedInstructions[0].mc_inst.getOpcode(), X86::MOV64rr);
 }
 
 TEST_F(ProcessFilterBBsTest, RemoveBranch) {
-  auto ProcessedInstructions = processAndFilter(R"asm(
+  auto ProcessedInstructions = removeRiskyInstructions(R"asm(
     movq %r11, %r12
     je 0x10
   )asm",
-                                                false);
+                                                       false);
 
   EXPECT_EQ(ProcessedInstructions.size(), 1);
   EXPECT_EQ(ProcessedInstructions[0].mc_inst.getOpcode(), X86::MOV64rr);
 }
 
 TEST_F(ProcessFilterBBsTest, RemoveMemoryAccessingInstructions) {
-  auto ProcessedInstructions = processAndFilter(R"asm(
+  auto ProcessedInstructions = removeRiskyInstructions(R"asm(
     movq %r11, %r12
     movq (%rax), %rax
   )asm",
-                                                true);
+                                                       true);
 
   EXPECT_EQ(ProcessedInstructions.size(), 1);
   EXPECT_EQ(ProcessedInstructions[0].mc_inst.getOpcode(), X86::MOV64rr);
 }
 
 TEST_F(ProcessFilterBBsTest, PreserveMemoryAccessingInstructions) {
-  auto ProcessedInstructions = processAndFilter(R"asm(
+  auto ProcessedInstructions = removeRiskyInstructions(R"asm(
     movq %r11, %r12
     movq (%rax), %rax
   )asm",
-                                                false);
+                                                       false);
 
   EXPECT_EQ(ProcessedInstructions.size(), 2);
   EXPECT_EQ(ProcessedInstructions[0].mc_inst.getOpcode(), X86::MOV64rr);
