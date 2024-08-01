@@ -9,3 +9,5 @@ tensorflow>=2.16.0; sys_platform=='linux'
 tensorflow-macos>=2.16.0; sys_platform=='darwin'
 tf-keras>=2.16
 lit>=17.0.6
+pandas>=2.2.2
+pyarrow>=17.0.0
