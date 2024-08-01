@@ -24,7 +24,7 @@ class ProcessAndFilterBBsTests(absltest.TestCase):
     self.bb_processor_filter = process_and_filter_bbs.BBProcessorFilter()
 
   def test_bb_processor(self):
-    processed_bb = self.bb_processor_filter.process_basic_block(
+    processed_bb = self.bb_processor_filter.remove_risky_instructions(
         "B801000000C3", "test", False
     )
     self.assertEqual(processed_bb, "B801000000")

@@ -58,8 +58,9 @@ int main(int Argc, char **Argv) {
   std::ifstream InputFileStream(InputFile);
   std::ofstream OutputFileStream(OutputFile);
   for (std::string Line; std::getline(InputFileStream, Line);) {
-    Expected<std::string> ProcessedBlockOrErr = BBProcessor.processBasicBlock(
-        Line, InputFile, FilterMemoryAccessingBlocks);
+    Expected<std::string> ProcessedBlockOrErr =
+        BBProcessor.removeRiskyInstructions(Line, InputFile,
+                                            FilterMemoryAccessingBlocks);
     if (!ProcessedBlockOrErr) ExitOnErr(ProcessedBlockOrErr.takeError());
 
     OutputFileStream << *ProcessedBlockOrErr << "\n";

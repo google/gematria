@@ -33,10 +33,10 @@ PYBIND11_MODULE(process_and_filter_bbs, m) {
            R"(Initializes a new BBProcessorFilter.
     )")
       .def(
-          "process_basic_block",
+          "remove_risky_instructions",
           [](BBProcessorFilter& Self, std::string BasicBlock,
              std::string Filename, bool FilterMemoryAccessingBlocks) {
-            return LlvmExpectedToStatusOr(Self.processBasicBlock(
+            return LlvmExpectedToStatusOr(Self.removeRiskyInstructions(
                 BasicBlock, Filename, FilterMemoryAccessingBlocks));
           },
           py::arg("basic_block"), py::arg("file_name"),
