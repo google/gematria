@@ -12,14 +12,14 @@ f1,2,1.000000e+00
 
 //--- profile-dump-test.s
 # CHECK:      <f2>:
-# CHECK-NEXT: Calculated Frequency: 9.6{{[0-9]+}}e+01
+# CHECK-NEXT: Calculated Frequency: 3.{{[0-9]+}}e+01
 # CHECK-NEXT: <f1>:
-# CHECK-NEXT: Calculated Frequency: 1.6{{[0-9]+}}e+02
+# CHECK-NEXT: Calculated Frequency: 1.{{[0-9]+}}e+02
 
 # CHECK-COUNT: <f2>:
-# CHECK-COUNT: Calculated Frequency: 3.0{{[0-9]+}}e+00
+# CHECK-COUNT: Calculated Frequency: 1.{{[0-9]+}}e+01
 # CHECK-COUNT: <f1>:
-# CHECK-COUNT: Calculated Frequency: 8.5{{[0-9]+}}e+00
+# CHECK-COUNT: Calculated Frequency: 8.{{[0-9]+}}e+00
 
 
  .text

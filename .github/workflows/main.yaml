@@ -14,6 +14,13 @@
 
 name: Gematria CI
 
+# The pinned version of LLVM. Must be manually updated to match the
+# `LLVM_COMMIT` variable defined in `WORKSPACE`.
+# TODO(virajbshah): Find a better way to keep these two in sync without the
+# need to update one manually every time the other is changed.
+env:
+  LLVM_COMMIT: 67a55e01e3f13d6ea5be917765a4171cd68cb5ac
+
 on:
   push:
     branches:
@@ -63,7 +70,11 @@ jobs:
         with:
           apt: cmake ninja-build libpthreadpool-dev
       - name: Get LLVM
-        run: git clone --depth 1 https://github.com/llvm/llvm-project.git /tmp/llvm-project
+        run: |
+          git clone --depth 1 --no-checkout https://github.com/llvm/llvm-project.git /tmp/llvm-project
+          cd /tmp/llvm-project
+          git fetch --depth 1 origin $LLVM_COMMIT
+          git checkout $LLVM_COMMIT
       - name: Set up TFLite
         run: |
           mkdir /tmp/tflite
