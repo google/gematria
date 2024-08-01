@@ -24,9 +24,9 @@ class IRUtilsTests(absltest.TestCase):
 
   def test_get_bc_from_ir(self):
     ir_string = textwrap.dedent("""\
-    define i32 @a() {
-      ret i32 0
-    }
+        define i32 @a() {
+          ret i32 0
+        }
     """)
 
     bitcode = ir_utils.get_bc_from_ir(ir_string)
@@ -34,9 +34,9 @@ class IRUtilsTests(absltest.TestCase):
 
   def test_round_trip(self):
     ir_string = textwrap.dedent("""\
-    define i32 @a() {
-      ret i32 0
-    }
+        define i32 @a() {
+          ret i32 0
+        }
     """)
 
     bitcode = ir_utils.get_bc_from_ir(ir_string)
@@ -47,14 +47,14 @@ class IRUtilsTests(absltest.TestCase):
 
   def test_create_compile_parquet(self):
     ir_string1 = textwrap.dedent("""\
-    define i32 @a() {
-      ret i32 1
-    }
+        define i32 @a() {
+          ret i32 1
+        }
     """)
     ir_string2 = textwrap.dedent("""\
-    define i32 @b() {
-      ret i32 2
-    }
+        define i32 @b() {
+          ret i32 2
+        }
     """)
 
     parquet_file = self.create_tempfile()

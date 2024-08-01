@@ -37,6 +37,7 @@ def _get_llvm_binary_path(tool_name: str) -> str:
 
 def get_bc_from_ir(ir: str) -> bytes:
   """Generates bitcode for an IR string.
+
   Takes an IR string as input and outputs the bitcode representation of the
   input textual IR as bytes.
 
@@ -57,6 +58,7 @@ def get_bc_from_ir(ir: str) -> bytes:
 
 def get_ir_from_bc(bc: bytes) -> str:
   """Converts bitcode to textual IR.
+
   Takes LLVM bitcode in the form of bytes and converts it into textual IR.
 
   Args:
@@ -78,6 +80,7 @@ def create_compile_parquet(
     ir_examples: Sequence[str], parquet_path: str
 ) -> None:
   """Creates a test parquet file matching the format of the ComPile dataset.
+
   Creates a parquet file containing LLVM modules in the form of bitcode from
   the ir_examples passed in. The parquet file is in the same format as the
   ComPile dataset, in particular storing the bitcode in the content column.
