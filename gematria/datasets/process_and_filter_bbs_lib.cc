@@ -14,20 +14,30 @@
 
 #include "gematria/datasets/process_and_filter_bbs_lib.h"
 
+#include <string>
+#include <system_error>
+#include <vector>
+
 #include "X86InstrInfo.h"
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
 #include "llvm/ADT/StringExtras.h"
+#include "llvm/include/llvm/ADT/StringRef.h"
+#include "llvm/include/llvm/ADT/Twine.h"
+#include "llvm/include/llvm/MC/MCInstrDesc.h"
+#include "llvm/include/llvm/Support/Error.h"
+#include "llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
+
+using namespace llvm;
 
 namespace gematria {
 
-BBProcessorFilter::BBProcessorFilter() {
-  LLVMSupport = LlvmArchitectureSupport::X86_64();
-  InstructionPrinter = LLVMSupport->CreateMCInstPrinter(0);
-}
+BBProcessorFilter::BBProcessorFilter()
+    : LLVMSupport(LlvmArchitectureSupport::X86_64()),
+      InstructionPrinter(LLVMSupport->CreateMCInstPrinter(0)) {}
 
-Expected<std::string> BBProcessorFilter::processBasicBlock(
+Expected<std::string> BBProcessorFilter::removeRiskyInstructions(
     const StringRef BasicBlock, const StringRef Filename,
     bool FilterMemoryAccessingBlocks) {
   // TODO(boomanaiden154): Update this to use llvm::Expected once
