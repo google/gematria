@@ -238,7 +238,8 @@ std::string DumpRegs(const struct user_regs_struct& regs) {
       regs.r13, regs.r14, regs.r15);
 }
 
-absl::Status ParentProcessInner(int child_pid, AccessedAddrs& accessed_addrs) {
+absl::Status ParentProcessInner(int child_pid,
+                                BlockAnnotations& accessed_addrs) {
   int status;
   waitpid(child_pid, &status, 0);
 
@@ -305,7 +306,7 @@ absl::Status ParentProcessInner(int child_pid, AccessedAddrs& accessed_addrs) {
 }
 
 absl::Status ParentProcess(int child_pid, int pipe_read_fd,
-                           AccessedAddrs& accessed_addrs) {
+                           BlockAnnotations& accessed_addrs) {
   auto result = ParentProcessInner(child_pid, accessed_addrs);
 
   // Regardless of what happened, kill the child with SIGKILL. If we just detach
@@ -371,7 +372,7 @@ constexpr uint64_t kBlockContents = 0x800000008;
 
 [[noreturn]] void ChildProcess(absl::Span<const uint8_t> basic_block,
                                int pipe_write_fd,
-                               const AccessedAddrs& accessed_addrs) {
+                               const BlockAnnotations& accessed_addrs) {
   // Make sure the parent is attached before doing anything that they might want
   // to listen for.
   ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
@@ -469,7 +470,7 @@ constexpr uint64_t kBlockContents = 0x800000008;
 }
 
 absl::Status ForkAndTestAddresses(absl::Span<const uint8_t> basic_block,
-                                  AccessedAddrs& accessed_addrs) {
+                                  BlockAnnotations& accessed_addrs) {
   int pipe_fds[2];
   if (pipe(pipe_fds) != 0) {
     int err = errno;
@@ -531,7 +532,7 @@ absl::StatusOr<std::vector<unsigned>> FindReadRegs(
 //   stating that the code passed in is invalid, with a bad instruction at a
 //   particular offset).
 // * Much more complete testing.
-absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
+absl::StatusOr<BlockAnnotations> FindAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
     LlvmArchitectureSupport& llvm_arch_support) {
   absl::StatusOr<std::vector<unsigned>> used_regs =
@@ -556,7 +557,7 @@ absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
 
   absl::BitGen gen;
 
-  AccessedAddrs accessed_addrs = {
+  BlockAnnotations accessed_addrs = {
       .code_location = 0,
       .block_size = static_cast<size_t>(getpagesize()),
       .block_contents = kBlockContents,

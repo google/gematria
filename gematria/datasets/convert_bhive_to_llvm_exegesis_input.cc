@@ -96,7 +96,7 @@ ABSL_FLAG(unsigned, max_annotation_attempts, 50,
           "The maximum number of times to attempt to annotate a block before "
           "giving up.");
 
-absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
+absl::StatusOr<gematria::BlockAnnotations> GetAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
     gematria::ExegesisAnnotator* exegesis_annotator,
     const unsigned max_annotation_attempts,
@@ -112,7 +112,7 @@ absl::StatusOr<gematria::AccessedAddrs> GetAccessedAddrs(
               llvm::ArrayRef(basic_block.begin(), basic_block.end()),
               max_annotation_attempts));
     case AnnotatorType::kNone:
-      return gematria::AccessedAddrs();
+      return gematria::BlockAnnotations();
   }
   return absl::InvalidArgumentError("unknown annotator type");
 }
@@ -138,7 +138,7 @@ bool WriteJsonFile(llvm::json::Array to_write, size_t json_file_number,
 }
 
 struct AnnotatedBlock {
-  gematria::AccessedAddrs accessed_addrs;
+  gematria::BlockAnnotations accessed_addrs;
   gematria::BasicBlockProto basic_block_proto;
   std::optional<unsigned> loop_register;
 };

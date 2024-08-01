@@ -69,7 +69,7 @@ class FindAccessedAddrsExegesisTest : public testing::Test {
     return std::string(Code);
   }
 
-  llvm::Expected<AccessedAddrs> FindAccessedAddrsExegesis(
+  llvm::Expected<BlockAnnotations> FindAccessedAddrsExegesis(
       std::string_view TextualAssembly) {
     auto Code = Assemble(TextualAssembly);
     auto Annotator = cantFail(ExegesisAnnotator::create(State));
@@ -89,7 +89,7 @@ TEST_F(FindAccessedAddrsExegesisTest, ExegesisNoAccess) {
     movq %r11, %r12
   )asm");
   ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
-  AccessedAddrs Result = *AddrsOrErr;
+  BlockAnnotations Result = *AddrsOrErr;
   EXPECT_EQ(Result.accessed_blocks.size(), 0);
 }
 
@@ -99,7 +99,7 @@ TEST_F(FindAccessedAddrsExegesisTest, ExegesisOneAccess) {
     movq (%rax), %rax
   )asm");
   ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
-  AccessedAddrs Result = *AddrsOrErr;
+  BlockAnnotations Result = *AddrsOrErr;
   EXPECT_EQ(Result.accessed_blocks.size(), 1);
   EXPECT_EQ(Result.accessed_blocks[0], 0x10000);
 }
@@ -110,7 +110,7 @@ TEST_F(FindAccessedAddrsExegesisTest, ExegesisNotPageAligned) {
     movq (%rax), %rax
   )asm");
   ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
-  AccessedAddrs Result = *AddrsOrErr;
+  BlockAnnotations Result = *AddrsOrErr;
   EXPECT_EQ(Result.accessed_blocks.size(), 1);
   EXPECT_EQ(Result.accessed_blocks[0], 0x10000);
 }
