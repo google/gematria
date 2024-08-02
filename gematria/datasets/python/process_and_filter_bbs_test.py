@@ -14,6 +14,7 @@
 
 from absl.testing import absltest
 from gematria.datasets.python import process_and_filter_bbs
+from pybind11_abseil import status
 
 
 class ProcessAndFilterBBsTests(absltest.TestCase):
@@ -28,6 +29,12 @@ class ProcessAndFilterBBsTests(absltest.TestCase):
         "B801000000C3", "test", False
     )
     self.assertEqual(processed_bb, "B801000000")
+
+  def test_bb_processor_exception(self):
+    with self.assertRaises(status.StatusNotOk):
+      _ = self.bb_processor_filter.remove_risky_instructions(
+          "INVALIDHEX", "test", False
+      )
 
 
 if __name__ == "__main__":

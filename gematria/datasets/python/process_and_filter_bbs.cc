@@ -1,4 +1,4 @@
-// Copyright 2023 Google Inc.
+// Copyright 2024 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <string>
+
 #include "gematria/datasets/process_and_filter_bbs_lib.h"
 #include "gematria/llvm/llvm_to_absl.h"
+#include "pybind11/cast.h"
+#include "pybind11/detail/common.h"
 #include "pybind11/pybind11.h"
 #include "pybind11_abseil/import_status_module.h"
-#include "pybind11_abseil/status_casters.h"
 
 namespace gematria {
 
@@ -41,7 +44,7 @@ PYBIND11_MODULE(process_and_filter_bbs, m) {
           },
           py::arg("basic_block"), py::arg("file_name"),
           py::arg("filter_memory_accessing_blocks"),
-          R"(Processes a raw basic block extracted from a ELF file.
+          R"(Processes a raw basic block extracted from an ELF file.
 
           Processes and filters a raw basic block, performing operations such
           as removing calls and branches so that the BB can then be annotated
