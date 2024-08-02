@@ -201,6 +201,11 @@ Expected<BlockAnnotations> ExegesisAnnotator::findAccessedAddrs(
         {.register_index = UsedRegister, .register_value = kInitialRegVal});
   }
 
+  std::optional<unsigned> LoopRegister = gematria::getUnusedGPRegister(
+      *DisInstructions, State.getRegInfo(), State.getInstrInfo());
+
+  MemAnnotations.loop_register = LoopRegister;
+
   MemAnnotations.block_contents = kInitialMemVal;
 
   return MemAnnotations;
