@@ -20,6 +20,7 @@
 #include "pybind11/detail/common.h"
 #include "pybind11/pybind11.h"
 #include "pybind11_abseil/import_status_module.h"
+#include "pybind11_abseil/status_casters.h"  // IWYU pragma: keep
 
 namespace gematria {
 
