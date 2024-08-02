@@ -14,14 +14,28 @@
 
 #include "gematria/datasets/process_and_filter_bbs_lib.h"
 
-#include "X86InstrInfo.h"
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
+
 #include "absl/log/check.h"
+#include "absl/memory/memory.h"
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
 #include "gtest/gtest.h"
+#include "llvm/ADT/SmallString.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/IR/InlineAsm.h"
 #include "llvm/MC/MCCodeEmitter.h"
+#include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCInstPrinter.h"
+#include "llvm/Support/Error.h"
+#include "llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 
 using namespace llvm;
 
@@ -35,13 +49,11 @@ class ProcessFilterBBsTest : public testing::Test {
   BBProcessorFilter BBProcessor;
 
  protected:
-  ProcessFilterBBsTest() : BBProcessor(){};
-
-  void SetUp() override {
-    LLVMArchSupport = LlvmArchitectureSupport::X86_64();
-    LLVMInstPrinter =
-        LLVMArchSupport->CreateMCInstPrinter(InlineAsm::AsmDialect::AD_ATT);
-  }
+  ProcessFilterBBsTest()
+      : LLVMArchSupport(LlvmArchitectureSupport::X86_64()),
+        LLVMInstPrinter(LLVMArchSupport->CreateMCInstPrinter(
+            InlineAsm::AsmDialect::AD_ATT)),
+        BBProcessor(){};
 
   std::vector<DisassembledInstruction> removeRiskyInstructions(
       std::string_view TextualAssembly, bool FilterMemoryAccessingBlocks) {
@@ -86,72 +98,78 @@ class ProcessFilterBBsTest : public testing::Test {
   }
 };
 
-// TODO(boomanaiden154): The formatting of the below removeRiskyInstructions
-// function calls is weird. This appears to be a bug in clang-format that will
-// hopefully be fixed before the next version bump.
-// https://github.com/llvm/llvm-project/issues/100944
+// TODO(boomanaiden154): THe assembly strings were moved out to
+// constexpr local variables to get around formatting issues. When those are
+// fixed (https://github.com/llvm/llvm-project/issues/100944), we should move
+// the assembly back to a direct parameter of the functions.
 
 TEST_F(ProcessFilterBBsTest, RemoveSyscall) {
-  auto ProcessedInstructions = removeRiskyInstructions(R"asm(
+  static constexpr std::string_view Assembly = R"asm(
     movq %r11, %r12
     syscall
-  )asm",
-                                                       false);
+  )asm";
+
+  auto ProcessedInstructions = removeRiskyInstructions(Assembly, false);
 
   EXPECT_EQ(ProcessedInstructions.size(), 1);
   EXPECT_EQ(ProcessedInstructions[0].mc_inst.getOpcode(), X86::MOV64rr);
 }
 
 TEST_F(ProcessFilterBBsTest, RemoveReturn) {
-  auto ProcessedInstructions = removeRiskyInstructions(R"asm(
+  static constexpr std::string_view Assembly = R"asm(
     movq %r11, %r12
     retq
-  )asm",
-                                                       false);
+  )asm";
+
+  auto ProcessedInstructions = removeRiskyInstructions(Assembly, false);
 
   EXPECT_EQ(ProcessedInstructions.size(), 1);
   EXPECT_EQ(ProcessedInstructions[0].mc_inst.getOpcode(), X86::MOV64rr);
 }
 
 TEST_F(ProcessFilterBBsTest, RemoveCall) {
-  auto ProcessedInstructions = removeRiskyInstructions(R"asm(
+  static constexpr std::string_view Assembly = R"asm(
     movq %r11, %r12
     callq *%rax
-  )asm",
-                                                       false);
+  )asm";
+
+  auto ProcessedInstructions = removeRiskyInstructions(Assembly, false);
 
   EXPECT_EQ(ProcessedInstructions.size(), 1);
   EXPECT_EQ(ProcessedInstructions[0].mc_inst.getOpcode(), X86::MOV64rr);
 }
 
 TEST_F(ProcessFilterBBsTest, RemoveBranch) {
-  auto ProcessedInstructions = removeRiskyInstructions(R"asm(
+  static constexpr std::string_view Assembly = R"asm(
     movq %r11, %r12
     je 0x10
-  )asm",
-                                                       false);
+  )asm";
+
+  auto ProcessedInstructions = removeRiskyInstructions(Assembly, false);
 
   EXPECT_EQ(ProcessedInstructions.size(), 1);
   EXPECT_EQ(ProcessedInstructions[0].mc_inst.getOpcode(), X86::MOV64rr);
 }
 
 TEST_F(ProcessFilterBBsTest, RemoveMemoryAccessingInstructions) {
-  auto ProcessedInstructions = removeRiskyInstructions(R"asm(
+  static constexpr std::string_view Assembly = R"asm(
     movq %r11, %r12
     movq (%rax), %rax
-  )asm",
-                                                       true);
+  )asm";
+
+  auto ProcessedInstructions = removeRiskyInstructions(Assembly, true);
 
   EXPECT_EQ(ProcessedInstructions.size(), 1);
   EXPECT_EQ(ProcessedInstructions[0].mc_inst.getOpcode(), X86::MOV64rr);
 }
 
 TEST_F(ProcessFilterBBsTest, PreserveMemoryAccessingInstructions) {
-  auto ProcessedInstructions = removeRiskyInstructions(R"asm(
+  static constexpr std::string_view Assembly = R"asm(
     movq %r11, %r12
     movq (%rax), %rax
-  )asm",
-                                                       false);
+  )asm";
+
+  auto ProcessedInstructions = removeRiskyInstructions(Assembly, false);
 
   EXPECT_EQ(ProcessedInstructions.size(), 2);
   EXPECT_EQ(ProcessedInstructions[0].mc_inst.getOpcode(), X86::MOV64rr);
