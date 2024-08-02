@@ -18,7 +18,6 @@
 #include <system_error>
 #include <vector>
 
-#include "X86InstrInfo.h"
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"

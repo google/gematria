@@ -12,14 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
+#include <string_view>
+
 #include "gematria/datasets/extract_bbs_from_obj_lib.h"
 #include "gematria/llvm/llvm_to_absl.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "pybind11/cast.h"
 #include "pybind11/detail/common.h"
 #include "pybind11/pybind11.h"
-#include "pybind11/stl.h"
+#include "pybind11/pytypes.h"
+#include "pybind11/stl.h"  // IWYU pragma: keep
 #include "pybind11_abseil/import_status_module.h"
-#include "pybind11_abseil/status_casters.h"
+#include "pybind11_abseil/status_casters.h"  // IWYU pragma: keep
 
 namespace gematria {
 
