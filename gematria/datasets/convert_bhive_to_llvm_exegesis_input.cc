@@ -90,17 +90,54 @@ bool WriteJsonFile(llvm::json::Array to_write, size_t json_file_number,
   return true;
 }
 
+llvm::json::Value GetJSONForSnippet(
     const gematria::AnnotatedBlock& annotated_block, std::string_view hex) {
   llvm::json::Object current_snippet;
+
+  llvm::json::Array register_definitions;
+  for (const gematria::RegisterAndValue register_and_value :
+       annotated_block.AccessedAddrs.initial_regs) {
+    llvm::json::Object current_register_definition;
+    current_register_definition["Register"] = register_and_value.register_index;
+    current_register_definition["Value"] = register_and_value.register_value;
+    register_definitions.push_back(std::move(current_register_definition));
+  }
+  current_snippet["RegisterDefinitions"] =
+      llvm::json::Value(std::move(register_definitions));
+
+  // Output the loop register.
+  if (annotated_block.AccessedAddrs.loop_register)
+    current_snippet["LoopRegister"] =
+        *annotated_block.AccessedAddrs.loop_register;
+  else
+    current_snippet["LoopRegister"] = llvm::MCRegister::NoRegister;
+
+  if (annotated_block.AccessedAddrs.accessed_blocks.size() > 0) {
+    llvm::json::Array memory_definitions;
+    llvm::json::Object current_memory_definition;
+    current_memory_definition["Name"] = llvm::json::Value(kMemNamePrefix);
+    current_memory_definition["Size"] =
+        annotated_block.AccessedAddrs.block_size;
+    current_memory_definition["Value"] =
+        annotated_block.AccessedAddrs.block_contents;
+    memory_definitions.push_back(std::move(current_memory_definition));
+    current_snippet["MemoryDefinitions"] =
+        llvm::json::Value(std::move(memory_definitions));
+
+    llvm::json::Array memory_mappings;
+    for (const uintptr_t addr : annotated_block.AccessedAddrs.accessed_blocks) {
+      llvm::json::Object current_memory_mapping;
+      current_memory_mapping["Value"] = llvm::json::Value(kMemNamePrefix);
+      current_memory_mapping["Address"] = addr;
+      memory_mappings.push_back(std::move(current_memory_mapping));
+    }
     current_snippet["MemoryMappings"] =
         llvm::json::Value(std::move(memory_mappings));
   } else {
     current_snippet["MemoryDefinitions"] = llvm::json::Array();
     current_snippet["MemoryMappings"] = llvm::json::Array();
   }
-
   current_snippet["Hex"] = std::string(hex);
-
   return llvm::json::Value(std::move(current_snippet));
 }
 
