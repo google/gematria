@@ -12,29 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <string_view>
+#include <system_error>
+#include <utility>
 #include <vector>
 
-#include "X86RegisterInfo.h"
 #include "X86Subtarget.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
-#include "gematria/datasets/basic_block_utils.h"
-#include "gematria/datasets/bhive_importer.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "gematria/datasets/bhive_to_exegesis.h"
 #include "gematria/datasets/find_accessed_addrs.h"
-#include "gematria/datasets/find_accessed_addrs_exegesis.h"
-#include "gematria/llvm/canonicalizer.h"
-#include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
-#include "gematria/llvm/llvm_to_absl.h"
+#include "gematria/proto/basic_block.pb.h"
 #include "gematria/utils/string.h"
+#include "llvm/ADT/SmallString.h"
+#include "llvm/ADT/Twine.h"
+#include "llvm/MC/MCInstPrinter.h"
+#include "llvm/MC/MCRegister.h"
+#include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
@@ -137,9 +144,7 @@ llvm::json::Value GetJSONForSnippet(
     current_snippet["MemoryDefinitions"] = llvm::json::Array();
     current_snippet["MemoryMappings"] = llvm::json::Array();
   }
-
   current_snippet["Hex"] = std::string(hex);
-
   return llvm::json::Value(std::move(current_snippet));
 }
 

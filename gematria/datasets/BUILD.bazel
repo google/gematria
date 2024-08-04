@@ -107,9 +107,7 @@ cc_binary(
     name = "process_and_filter_bbs",
     srcs = ["process_and_filter_bbs.cc"],
     deps = [
-        "//gematria/llvm:disassembler",
-        "//gematria/llvm:llvm_architecture_support",
-        "//gematria/utils:string",
+        ":process_and_filter_bbs_lib",
         "@llvm-project//llvm:Support",
     ],
 )
@@ -266,5 +264,28 @@ cc_library(
     deps = [
         "@llvm-project//llvm:Object",
         "@llvm-project//llvm:Support",
+    ],
+)
+
+cc_library(
+    name = "process_and_filter_bbs_lib",
+    srcs = ["process_and_filter_bbs_lib.cc"],
+    hdrs = ["process_and_filter_bbs_lib.h"],
+    deps = [
+        "//gematria/llvm:disassembler",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/utils:string",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+cc_test(
+    name = "process_and_filter_bbs_lib_test",
+    srcs = ["process_and_filter_bbs_lib_test.cc"],
+    deps = [
+        ":process_and_filter_bbs_lib",
+        "//gematria/llvm:asm_parser",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
     ],
 )
