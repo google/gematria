@@ -262,3 +262,14 @@ cc_library(
         "@llvm-project//llvm:Support",
     ],
 )
+
+cc_test(
+    name = "process_and_filter_bbs_lib_test",
+    srcs = ["process_and_filter_bbs_lib_test.cc"],
+    deps = [
+        ":process_and_filter_bbs_lib",
+        "//gematria/llvm:asm_parser",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

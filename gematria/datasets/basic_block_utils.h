@@ -17,6 +17,7 @@
 #ifndef THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_BASIC_BLOCK_UTILS_H_
 #define THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_BASIC_BLOCK_UTILS_H_
 
+#include <optional>
 #include <vector>
 
 #include "gematria/llvm/disassembler.h"

@@ -17,24 +17,21 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
-#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/memory/memory.h"
 #include "absl/random/distributions.h"
 #include "absl/random/random.h"
-#include "absl/random/seed_sequences.h"
 #include "absl/strings/str_format.h"
-#include "absl/strings/str_join.h"
 #include "absl/types/span.h"
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/testing/matchers.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/InlineAsm.h"
 #include "llvm/MC/MCAsmInfo.h"
