@@ -14,13 +14,18 @@
 
 #include "gematria/datasets/basic_block_utils.h"
 
+#include <optional>
 #include <set>
+#include <vector>
 
-#include "X86.h"
-#include "X86InstrInfo.h"
-#include "X86RegisterInfo.h"
+#include "gematria/llvm/disassembler.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCRegister.h"
 #include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 
 using namespace llvm;
 

@@ -20,13 +20,31 @@
 
 #include <unistd.h>
 
-#include "X86.h"
-#include "X86InstrInfo.h"
-#include "X86RegisterInfo.h"
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <system_error>
+#include <utility>
+#include <vector>
+
+#include "find_accessed_addrs.h"
 #include "gematria/datasets/basic_block_utils.h"
 #include "gematria/llvm/disassembler.h"
+#include "llvm/ADT/APInt.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/Support/Error.h"
+#include "llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
+#include "llvm/tools/llvm-exegesis/lib/BenchmarkCode.h"
+#include "llvm/tools/llvm-exegesis/lib/BenchmarkResult.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkRunner.h"
+#include "llvm/tools/llvm-exegesis/lib/Error.h"
 #include "llvm/tools/llvm-exegesis/lib/LlvmState.h"
+#include "llvm/tools/llvm-exegesis/lib/PerfHelper.h"
+#include "llvm/tools/llvm-exegesis/lib/RegisterValue.h"
+#include "llvm/tools/llvm-exegesis/lib/SnippetRepetitor.h"
 #include "llvm/tools/llvm-exegesis/lib/Target.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 
@@ -85,7 +103,7 @@ Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::create(
       ExegesisState, std::move(*RunnerOrErr), std::move(SnipRepetitor)));
 }
 
-Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
+Expected<BlockAnnotations> ExegesisAnnotator::findAccessedAddrs(
     ArrayRef<uint8_t> BasicBlock, unsigned MaxAnnotationAttempts) {
   Expected<std::vector<DisassembledInstruction>> DisInstructions =
       DisassembleAllInstructions(*MachineDisassembler, State.getInstrInfo(),
@@ -100,7 +118,7 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
   for (const auto &DisInstruction : *DisInstructions)
     Instructions.push_back(DisInstruction.mc_inst);
 
-  AccessedAddrs MemAnnotations;
+  BlockAnnotations MemAnnotations;
   MemAnnotations.code_location = 0;
   MemAnnotations.block_size = 4096;
 
@@ -200,6 +218,11 @@ Expected<AccessedAddrs> ExegesisAnnotator::findAccessedAddrs(
     MemAnnotations.initial_regs.push_back(
         {.register_index = UsedRegister, .register_value = kInitialRegVal});
   }
+
+  std::optional<unsigned> LoopRegister = gematria::getUnusedGPRegister(
+      *DisInstructions, State.getRegInfo(), State.getInstrInfo());
+
+  MemAnnotations.loop_register = LoopRegister;
 
   MemAnnotations.block_contents = kInitialMemVal;
 
