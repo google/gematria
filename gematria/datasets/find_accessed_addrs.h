@@ -15,9 +15,9 @@
 #ifndef THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_FIND_ACCESSED_ADDRS_H_
 #define THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_FIND_ACCESSED_ADDRS_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <type_traits>
 #include <vector>
 
 #include "absl/status/statusor.h"

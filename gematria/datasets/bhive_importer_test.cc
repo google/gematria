@@ -15,20 +15,25 @@
 #include "gematria/datasets/bhive_importer.h"
 
 #include <memory>
+#include <vector>
 
+#include "absl/status/status.h"
+#include "absl/strings/string_view.h"
 #include "gematria/llvm/canonicalizer.h"
+#include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/testing/matchers.h"
 #include "gematria/utils/string.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "llvm/MC/MCInstPrinter.h"
+#include "llvm/Support/Error.h"
 
 namespace gematria {
 namespace {
 
 class BHiveImporterTest : public ::testing::Test {
  protected:
-  static constexpr absl::string_view kLlvmTriple = "x86_64-unknown-unknown";
   static constexpr absl::string_view kSourceName = "bhive: skl";
 
   static constexpr double kScaling = 1.0 / 100.0;

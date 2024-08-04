@@ -14,9 +14,11 @@
 
 #include <fstream>
 #include <limits>
+#include <string>
 
 #include "gematria/datasets/process_and_filter_bbs_lib.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/Support/Error.h"
 
 using namespace llvm;

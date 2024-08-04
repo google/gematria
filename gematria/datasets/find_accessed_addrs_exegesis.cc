@@ -20,13 +20,31 @@
 
 #include <unistd.h>
 
-#include "X86.h"
-#include "X86InstrInfo.h"
-#include "X86RegisterInfo.h"
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <system_error>
+#include <utility>
+#include <vector>
+
+#include "find_accessed_addrs.h"
 #include "gematria/datasets/basic_block_utils.h"
 #include "gematria/llvm/disassembler.h"
+#include "llvm/ADT/APInt.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/Support/Error.h"
+#include "llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
+#include "llvm/tools/llvm-exegesis/lib/BenchmarkCode.h"
+#include "llvm/tools/llvm-exegesis/lib/BenchmarkResult.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkRunner.h"
+#include "llvm/tools/llvm-exegesis/lib/Error.h"
 #include "llvm/tools/llvm-exegesis/lib/LlvmState.h"
+#include "llvm/tools/llvm-exegesis/lib/PerfHelper.h"
+#include "llvm/tools/llvm-exegesis/lib/RegisterValue.h"
+#include "llvm/tools/llvm-exegesis/lib/SnippetRepetitor.h"
 #include "llvm/tools/llvm-exegesis/lib/Target.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 

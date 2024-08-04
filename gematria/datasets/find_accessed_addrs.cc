@@ -15,9 +15,13 @@
 #include "gematria/datasets/find_accessed_addrs.h"
 
 #include <bits/types/siginfo_t.h>
+#include <sched.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/ptrace.h>
+#include <sys/types.h>
 #include <sys/user.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -32,9 +36,9 @@
 #include <cstring>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "X86.h"
 #include "absl/random/random.h"
 #include "absl/random/uniform_int_distribution.h"
 #include "absl/status/status.h"
@@ -49,8 +53,7 @@
 #include "gematria/llvm/llvm_to_absl.h"
 #include "lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/MC/MCInst.h"
-#include "llvm/MC/MCRegister.h"
+#include "llvm/Support/Error.h"
 
 namespace gematria {
 namespace {
