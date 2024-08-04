@@ -14,13 +14,23 @@
 
 #include "gematria/datasets/bhive_to_exegesis.h"
 
+#include <memory>
+#include <string>
+#include <string_view>
+
 #include "absl/log/check.h"
+#include "absl/memory/memory.h"
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "llvm/ADT/SmallString.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/IR/InlineAsm.h"
 #include "llvm/MC/MCCodeEmitter.h"
+#include "llvm/MC/MCContext.h"
+#include "llvm/Support/Error.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 
 using namespace llvm;
