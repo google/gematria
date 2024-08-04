@@ -22,15 +22,15 @@
 #include <utility>
 #include <vector>
 
-#include "/gematria/external/com_google_absl/absl/status/status.h"
-#include "/gematria/external/com_google_absl/absl/status/statusor.h"
-#include "/gematria/external/com_google_absl/absl/strings/string_view.h"
-#include "/gematria/external/com_google_absl/absl/types/span.h"
-#include "/gematria/gematria/llvm/disassembler.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "gematria/datasets/bhive_importer.h"
 #include "gematria/datasets/find_accessed_addrs.h"
 #include "gematria/datasets/find_accessed_addrs_exegesis.h"
 #include "gematria/llvm/canonicalizer.h"
+#include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/llvm/llvm_to_absl.h"
 #include "gematria/utils/string.h"
