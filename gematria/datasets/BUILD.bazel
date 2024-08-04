@@ -40,6 +40,21 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "bhive_to_exegesis",
+    srcs = ["bhive_to_exegesis.cc"],
+    hdrs = ["bhive_to_exegesis.h"],
+    deps = [
+        ":bhive_importer",
+        ":find_accessed_addrs",
+        ":find_accessed_addrs_exegesis",
+        "//gematria/llvm:canonicalizer",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/proto:basic_block_cc_proto",
+        "@llvm-project//llvm:Exegesis",
+    ],
+)
+
 cc_binary(
     name = "convert_bhive_to_llvm_exegesis_input",
     srcs = ["convert_bhive_to_llvm_exegesis_input.cc"],
@@ -47,6 +62,7 @@ cc_binary(
     deps = [
         ":basic_block_utils",
         ":bhive_importer",
+        ":bhive_to_exegesis",
         ":find_accessed_addrs",
         ":find_accessed_addrs_exegesis",
         "//gematria/llvm:canonicalizer",
