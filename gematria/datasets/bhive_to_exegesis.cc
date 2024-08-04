@@ -14,6 +14,19 @@
 
 #include "gematria/datasets/bhive_to_exegesis.h"
 
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+#include "/gematria/external/com_google_absl/absl/status/status.h"
+#include "/gematria/external/com_google_absl/absl/status/statusor.h"
+#include "/gematria/external/com_google_absl/absl/strings/string_view.h"
+#include "/gematria/external/com_google_absl/absl/types/span.h"
+#include "/gematria/gematria/llvm/disassembler.h"
 #include "gematria/datasets/bhive_importer.h"
 #include "gematria/datasets/find_accessed_addrs.h"
 #include "gematria/datasets/find_accessed_addrs_exegesis.h"
@@ -21,6 +34,10 @@
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/llvm/llvm_to_absl.h"
 #include "gematria/utils/string.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/Twine.h"
+#include "llvm/Support/Error.h"
+#include "llvm/tools/llvm-exegesis/lib/LlvmState.h"
 
 using namespace llvm::exegesis;
 using namespace llvm;
