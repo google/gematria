@@ -12,16 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <iostream>
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "X86.h"
-#include "X86InstrInfo.h"
-#include "X86RegisterInfo.h"
 #include "gematria/llvm/disassembler.h"
 #include "gematria/utils/string.h"
+#include "llvm/ADT/APInt.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/Twine.h"
+#include "llvm/MC/MCInst.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Errc.h"
@@ -29,9 +36,15 @@
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/tools/llvm-exegesis/lib/BenchmarkCode.h"
+#include "llvm/tools/llvm-exegesis/lib/BenchmarkResult.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkRunner.h"
 #include "llvm/tools/llvm-exegesis/lib/LlvmState.h"
+#include "llvm/tools/llvm-exegesis/lib/PerfHelper.h"
+#include "llvm/tools/llvm-exegesis/lib/RegisterValue.h"
 #include "llvm/tools/llvm-exegesis/lib/ResultAggregator.h"
+#include "llvm/tools/llvm-exegesis/lib/SnippetRepetitor.h"
 #include "llvm/tools/llvm-exegesis/lib/Target.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 

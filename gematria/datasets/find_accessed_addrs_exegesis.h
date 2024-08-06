@@ -16,17 +16,21 @@
 #define GEMATRIA_DATASETS_FIND_ACCESSED_ADDRS_EXEGESIS_H_
 
 #include <cstdint>
-#include <vector>
+#include <memory>
 
 // Use the absolute path for headers from llvm-exegesis as there is no
 // canonical include path within LLVM as they are not properly exposed through
 // a library and could potentially be confused with other LLVM includes.
 
 #include "gematria/datasets/find_accessed_addrs.h"
-#include "gematria/llvm/llvm_architecture_support.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCDisassembler/MCDisassembler.h"
+#include "llvm/MC/MCInstPrinter.h"
+#include "llvm/Support/Error.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkRunner.h"
 #include "llvm/tools/llvm-exegesis/lib/LlvmState.h"
+#include "llvm/tools/llvm-exegesis/lib/SnippetRepetitor.h"
 
 using namespace llvm;
 using namespace llvm::exegesis;
@@ -49,8 +53,8 @@ class ExegesisAnnotator {
  public:
   static Expected<std::unique_ptr<ExegesisAnnotator>> create(
       LLVMState &ExegesisState);
-  Expected<AccessedAddrs> findAccessedAddrs(ArrayRef<uint8_t> BasicBlock,
-                                            unsigned MaxAnnotationAttempts);
+  Expected<BlockAnnotations> findAccessedAddrs(ArrayRef<uint8_t> BasicBlock,
+                                               unsigned MaxAnnotationAttempts);
 };
 
 }  // namespace gematria

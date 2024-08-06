@@ -40,6 +40,37 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "bhive_to_exegesis",
+    srcs = ["bhive_to_exegesis.cc"],
+    hdrs = ["bhive_to_exegesis.h"],
+    deps = [
+        ":bhive_importer",
+        ":find_accessed_addrs",
+        ":find_accessed_addrs_exegesis",
+        "//gematria/llvm:canonicalizer",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/proto:basic_block_cc_proto",
+        "@llvm-project//llvm:Exegesis",
+    ],
+)
+
+cc_test(
+    name = "bhive_to_exegesis_test",
+    size = "small",
+    srcs = ["bhive_to_exegesis_test.cc"],
+    deps = [
+        ":bhive_to_exegesis",
+        "//gematria/llvm:asm_parser",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/utils:string",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Exegesis",
+        "@llvm-project//llvm:MC",
+    ],
+)
+
 cc_binary(
     name = "convert_bhive_to_llvm_exegesis_input",
     srcs = ["convert_bhive_to_llvm_exegesis_input.cc"],
@@ -47,6 +78,7 @@ cc_binary(
     deps = [
         ":basic_block_utils",
         ":bhive_importer",
+        ":bhive_to_exegesis",
         ":find_accessed_addrs",
         ":find_accessed_addrs_exegesis",
         "//gematria/llvm:canonicalizer",
@@ -75,9 +107,7 @@ cc_binary(
     name = "process_and_filter_bbs",
     srcs = ["process_and_filter_bbs.cc"],
     deps = [
-        "//gematria/llvm:disassembler",
-        "//gematria/llvm:llvm_architecture_support",
-        "//gematria/utils:string",
+        ":process_and_filter_bbs_lib",
         "@llvm-project//llvm:Support",
     ],
 )
@@ -234,5 +264,29 @@ cc_library(
     deps = [
         "@llvm-project//llvm:Object",
         "@llvm-project//llvm:Support",
+    ],
+)
+
+cc_library(
+    name = "process_and_filter_bbs_lib",
+    srcs = ["process_and_filter_bbs_lib.cc"],
+    hdrs = ["process_and_filter_bbs_lib.h"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/llvm:disassembler",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/utils:string",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+cc_test(
+    name = "process_and_filter_bbs_lib_test",
+    srcs = ["process_and_filter_bbs_lib_test.cc"],
+    deps = [
+        ":process_and_filter_bbs_lib",
+        "//gematria/llvm:asm_parser",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest_main",
     ],
 )

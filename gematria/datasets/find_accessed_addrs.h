@@ -15,9 +15,9 @@
 #ifndef THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_FIND_ACCESSED_ADDRS_H_
 #define THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_FIND_ACCESSED_ADDRS_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <type_traits>
 #include <vector>
 
 #include "absl/status/statusor.h"
@@ -53,18 +53,19 @@ struct RegisterAndValue {
   int64_t register_value;
 };
 
-struct AccessedAddrs {
+struct BlockAnnotations {
   uintptr_t code_location;
   size_t block_size;
   uint64_t block_contents;
   std::vector<uintptr_t> accessed_blocks;
   std::vector<RegisterAndValue> initial_regs;
+  std::optional<unsigned> loop_register;
 };
 
 // Given a basic block of code, attempt to determine what addresses that code
 // accesses. This is done by executing the code in a new process, so the code
 // must match the architecture on which this function is executed.
-absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
+absl::StatusOr<BlockAnnotations> FindAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
     LlvmArchitectureSupport &llvm_arch_support);
 

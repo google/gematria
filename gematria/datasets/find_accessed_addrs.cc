@@ -15,9 +15,13 @@
 #include "gematria/datasets/find_accessed_addrs.h"
 
 #include <bits/types/siginfo_t.h>
+#include <sched.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/ptrace.h>
+#include <sys/types.h>
 #include <sys/user.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -32,9 +36,9 @@
 #include <cstring>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "X86.h"
 #include "absl/random/random.h"
 #include "absl/random/uniform_int_distribution.h"
 #include "absl/status/status.h"
@@ -49,8 +53,7 @@
 #include "gematria/llvm/llvm_to_absl.h"
 #include "lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/MC/MCInst.h"
-#include "llvm/MC/MCRegister.h"
+#include "llvm/Support/Error.h"
 
 namespace gematria {
 namespace {
@@ -238,7 +241,8 @@ std::string DumpRegs(const struct user_regs_struct& regs) {
       regs.r13, regs.r14, regs.r15);
 }
 
-absl::Status ParentProcessInner(int child_pid, AccessedAddrs& accessed_addrs) {
+absl::Status ParentProcessInner(int child_pid,
+                                BlockAnnotations& accessed_addrs) {
   int status;
   waitpid(child_pid, &status, 0);
 
@@ -305,7 +309,7 @@ absl::Status ParentProcessInner(int child_pid, AccessedAddrs& accessed_addrs) {
 }
 
 absl::Status ParentProcess(int child_pid, int pipe_read_fd,
-                           AccessedAddrs& accessed_addrs) {
+                           BlockAnnotations& accessed_addrs) {
   auto result = ParentProcessInner(child_pid, accessed_addrs);
 
   // Regardless of what happened, kill the child with SIGKILL. If we just detach
@@ -371,7 +375,7 @@ constexpr uint64_t kBlockContents = 0x800000008;
 
 [[noreturn]] void ChildProcess(absl::Span<const uint8_t> basic_block,
                                int pipe_write_fd,
-                               const AccessedAddrs& accessed_addrs) {
+                               const BlockAnnotations& accessed_addrs) {
   // Make sure the parent is attached before doing anything that they might want
   // to listen for.
   ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
@@ -469,7 +473,7 @@ constexpr uint64_t kBlockContents = 0x800000008;
 }
 
 absl::Status ForkAndTestAddresses(absl::Span<const uint8_t> basic_block,
-                                  AccessedAddrs& accessed_addrs) {
+                                  BlockAnnotations& accessed_addrs) {
   int pipe_fds[2];
   if (pipe(pipe_fds) != 0) {
     int err = errno;
@@ -499,9 +503,9 @@ absl::Status ForkAndTestAddresses(absl::Span<const uint8_t> basic_block,
   }
 }
 
-absl::StatusOr<std::vector<unsigned>> FindReadRegs(
-    const LlvmArchitectureSupport& llvm_arch_support,
-    absl::Span<const uint8_t> basic_block) {
+absl::StatusOr<std::pair<std::vector<unsigned>, std::optional<unsigned>>>
+FindReadRegsAndLoopReg(const LlvmArchitectureSupport& llvm_arch_support,
+                       absl::Span<const uint8_t> basic_block) {
   llvm::ArrayRef<uint8_t> llvm_array(basic_block.data(), basic_block.size());
   llvm::Expected<std::vector<DisassembledInstruction>> instrs =
       DisassembleAllInstructions(llvm_arch_support.mc_disassembler(),
@@ -513,8 +517,14 @@ absl::StatusOr<std::vector<unsigned>> FindReadRegs(
 
   if (!instrs) return LlvmErrorToStatus(instrs.takeError());
 
-  return getUsedRegisters(*instrs, llvm_arch_support.mc_register_info(),
+  std::vector<unsigned> used_registers =
+      getUsedRegisters(*instrs, llvm_arch_support.mc_register_info(),
+                       llvm_arch_support.mc_instr_info());
+  std::optional<unsigned> loop_register =
+      getUnusedGPRegister(*instrs, llvm_arch_support.mc_register_info(),
                           llvm_arch_support.mc_instr_info());
+
+  return std::make_pair(used_registers, loop_register);
 }
 
 }  // namespace
@@ -531,19 +541,20 @@ absl::StatusOr<std::vector<unsigned>> FindReadRegs(
 //   stating that the code passed in is invalid, with a bad instruction at a
 //   particular offset).
 // * Much more complete testing.
-absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
+absl::StatusOr<BlockAnnotations> FindAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
     LlvmArchitectureSupport& llvm_arch_support) {
-  absl::StatusOr<std::vector<unsigned>> used_regs =
-      FindReadRegs(llvm_arch_support, basic_block);
-  if (!used_regs.ok()) {
-    return used_regs.status();
+  absl::StatusOr<std::pair<std::vector<unsigned>, std::optional<unsigned>>>
+      used_regs_and_loop_reg =
+          FindReadRegsAndLoopReg(llvm_arch_support, basic_block);
+  if (!used_regs_and_loop_reg.ok()) {
+    return used_regs_and_loop_reg.status();
   }
 
   std::vector<RegisterAndValue> initial_regs;
-  initial_regs.reserve(used_regs->size());
+  initial_regs.reserve(used_regs_and_loop_reg->first.size());
 
-  for (unsigned used_reg : *used_regs) {
+  for (unsigned used_reg : used_regs_and_loop_reg->first) {
     // This value is chosen to be almost the lowest address that's able to be
     // mapped. We want it to be low so that even if a register is multiplied or
     // added to another register, it will still be likely to be within an
@@ -556,13 +567,13 @@ absl::StatusOr<AccessedAddrs> FindAccessedAddrs(
 
   absl::BitGen gen;
 
-  AccessedAddrs accessed_addrs = {
+  BlockAnnotations accessed_addrs = {
       .code_location = 0,
       .block_size = static_cast<size_t>(getpagesize()),
       .block_contents = kBlockContents,
       .accessed_blocks = {},
       .initial_regs = initial_regs,
-  };
+      .loop_register = used_regs_and_loop_reg->second};
 
   int n = 0;
   size_t num_accessed_blocks;
