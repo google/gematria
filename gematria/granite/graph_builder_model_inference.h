@@ -90,7 +90,8 @@ class GraphBuilderModelInference {
       std::unique_ptr<BasicBlockGraphBuilder> graph_builder,
       const tflite::FlatBufferModel* tflite_model,
       std::unique_ptr<tflite::Interpreter> interpreter,
-      std::vector<int> input_tensor_to_idx, bool uses_deltas);
+      std::vector<int> input_tensor_to_idx, bool is_seq2seq,
+      bool uses_annotations);
 
   std::unique_ptr<BasicBlockGraphBuilder> graph_builder_;
   const tflite::FlatBufferModel& tflite_model_;
@@ -102,7 +103,8 @@ class GraphBuilderModelInference {
   const std::vector<int> input_tensor_to_idx_;
 
   // Encodes the configuration of input tensors present in the tflite model.
-  const bool uses_deltas_;
+  const bool is_seq2seq_;
+  const bool uses_annotations_;
 };
 
 }  // namespace gematria
