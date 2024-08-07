@@ -44,6 +44,7 @@ cc_library(
     name = "bhive_to_exegesis",
     srcs = ["bhive_to_exegesis.cc"],
     hdrs = ["bhive_to_exegesis.h"],
+    visibility = ["//:internal_users"],
     deps = [
         ":bhive_importer",
         ":find_accessed_addrs",
