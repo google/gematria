@@ -18,6 +18,7 @@
 #ifndef THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_BHIVE_IMPORTER_H_
 #define THIRD_PARTY_GEMATRIA_GEMATRIA_DATASETS_BHIVE_IMPORTER_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string_view>

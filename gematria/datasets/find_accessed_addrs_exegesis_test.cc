@@ -14,15 +14,29 @@
 
 #include "gematria/datasets/find_accessed_addrs_exegesis.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <string_view>
+
 // Use the absolute path for headers from llvm-exegesis as there is no
 // canonical include path within LLVM as they are not properly exposed through
 // a library and could potentially be confused with other LLVM includes.
 
 #include "absl/log/check.h"
+#include "absl/memory/memory.h"
+#include "find_accessed_addrs.h"
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gtest/gtest.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/SmallString.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/IR/InlineAsm.h"
 #include "llvm/MC/MCCodeEmitter.h"
+#include "llvm/MC/MCContext.h"
+#include "llvm/Support/Error.h"
+#include "llvm/tools/llvm-exegesis/lib/LlvmState.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 
 using namespace llvm;
@@ -69,7 +83,7 @@ class FindAccessedAddrsExegesisTest : public testing::Test {
     return std::string(Code);
   }
 
-  llvm::Expected<AccessedAddrs> FindAccessedAddrsExegesis(
+  llvm::Expected<BlockAnnotations> FindAccessedAddrsExegesis(
       std::string_view TextualAssembly) {
     auto Code = Assemble(TextualAssembly);
     auto Annotator = cantFail(ExegesisAnnotator::create(State));
@@ -89,7 +103,7 @@ TEST_F(FindAccessedAddrsExegesisTest, ExegesisNoAccess) {
     movq %r11, %r12
   )asm");
   ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
-  AccessedAddrs Result = *AddrsOrErr;
+  BlockAnnotations Result = *AddrsOrErr;
   EXPECT_EQ(Result.accessed_blocks.size(), 0);
 }
 
@@ -99,7 +113,7 @@ TEST_F(FindAccessedAddrsExegesisTest, ExegesisOneAccess) {
     movq (%rax), %rax
   )asm");
   ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
-  AccessedAddrs Result = *AddrsOrErr;
+  BlockAnnotations Result = *AddrsOrErr;
   EXPECT_EQ(Result.accessed_blocks.size(), 1);
   EXPECT_EQ(Result.accessed_blocks[0], 0x10000);
 }
@@ -110,7 +124,7 @@ TEST_F(FindAccessedAddrsExegesisTest, ExegesisNotPageAligned) {
     movq (%rax), %rax
   )asm");
   ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
-  AccessedAddrs Result = *AddrsOrErr;
+  BlockAnnotations Result = *AddrsOrErr;
   EXPECT_EQ(Result.accessed_blocks.size(), 1);
   EXPECT_EQ(Result.accessed_blocks[0], 0x10000);
 }

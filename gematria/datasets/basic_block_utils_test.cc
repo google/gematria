@@ -14,14 +14,20 @@
 
 #include "gematria/datasets/basic_block_utils.h"
 
-#include "X86.h"
-#include "X86InstrInfo.h"
-#include "X86RegisterInfo.h"
+#include <memory>
+#include <optional>
+#include <string_view>
+#include <vector>
+
+#include "absl/log/check.h"
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
-#include "gematria/testing/matchers.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "llvm/IR/InlineAsm.h"
+#include "llvm/MC/MCInst.h"
+#include "llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 
 using testing::AnyOf;
 using testing::IsEmpty;

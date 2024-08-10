@@ -101,3 +101,23 @@ gematria_py_test(
         "@rules_python//python/runfiles",
     ],
 )
+
+gematria_pybind_extension(
+    name = "process_and_filter_bbs",
+    srcs = ["process_and_filter_bbs.cc"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/datasets:process_and_filter_bbs_lib",
+        "//gematria/llvm:llvm_to_absl",
+        "@pybind11_abseil_repo//pybind11_abseil:status_casters",
+    ],
+)
+
+gematria_py_test(
+    name = "process_and_filter_bbs_test",
+    size = "small",
+    srcs = ["process_and_filter_bbs_test.py"],
+    deps = [
+        ":process_and_filter_bbs",
+    ],
+)
