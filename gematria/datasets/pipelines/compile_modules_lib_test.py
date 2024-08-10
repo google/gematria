@@ -12,27 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from absl.testing import absltest
 import os
+import textwrap
+
+from absl.testing import absltest
+import apache_beam as beam
+from apache_beam.testing.test_pipeline import TestPipeline
+from apache_beam.testing import util as beam_test
 
 from gematria.datasets.pipelines import compile_modules_lib
 from gematria.testing.python import ir_utils
-
-from apache_beam.testing.test_pipeline import TestPipeline
-from apache_beam.testing.util import assert_that
-from apache_beam.testing.util import equal_to
-import apache_beam as beam
 
 
 class CompileModulesTests(absltest.TestCase):
 
   def test_optimize_modules(self):
-    ir_string = """
-define i32 @a() {
-  %a = add i32 3, 5
-  ret i32 %a
-}
-"""
+    ir_string = textwrap.dedent("""\
+    define i32 @a() {
+      %a = add i32 3, 5
+      ret i32 %a
+    }
+    """)
+
     module_optimizer = compile_modules_lib.OptimizeModules(
         ['default<O0>', 'instcombine']
     )
@@ -42,24 +43,26 @@ define i32 @a() {
 
     self.assertLen(optimized_modules, 2)
 
-    optimized_ir_string = """
-define i32 @a() {
-  ret i32 8
-}
-"""
+    optimized_ir_string = textwrap.dedent("""\
+    define i32 @a() {
+      ret i32 8
+    }
+    """)
+
     optimized_modules_text = [
         ir_utils.get_ir_from_bc(module_bc) for module_bc in optimized_modules
     ]
 
-    self.assertTrue(ir_string in optimized_modules_text[0])
-    self.assertTrue(optimized_ir_string in optimized_modules_text[1])
+    self.assertIn(ir_string, optimized_modules_text[0])
+    self.assertIn(optimized_ir_string, optimized_modules_text[1])
 
   def test_lowering_get_bbs(self):
-    ir_string = """
-define i32 @a() {
-  ret i32 0
-}
-"""
+    ir_string = textwrap.dedent("""\
+    define i32 @a() {
+      ret i32 0
+    }
+    """)
+
     ir_string_bc = ir_utils.get_bc_from_ir(ir_string)
 
     module_lower_transform = compile_modules_lib.LowerModulesAsm(['-O0', '-O1'])
@@ -78,19 +81,19 @@ define i32 @a() {
     with TestPipeline() as test_pipeline:
       input = test_pipeline | beam.Create(test_bbs)
       output = input | compile_modules_lib.DeduplicateBBs()
-      assert_that(output, equal_to(['aa', 'ab', 'bc']))
+      beam_test.assert_that(output, beam_test.equal_to(['aa', 'ab', 'bc']))
 
   def test_get_bbs(self):
-    ir_string1 = """
-define i32 @a() {
-  ret i32 1
-}
-"""
-    ir_string2 = """
-define i32 @b() {
-  ret i32 2
-}
-"""
+    ir_string1 = textwrap.dedent("""\
+    define i32 @a() {
+      ret i32 1
+    }
+    """)
+    ir_string2 = textwrap.dedent("""\
+    define i32 @b() {
+      ret i32 2
+    }
+    """)
 
     test_parquet_file = self.create_tempfile()
     output_file_dir = self.create_tempdir()

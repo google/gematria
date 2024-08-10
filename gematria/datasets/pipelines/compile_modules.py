@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from absl import app
-from absl import flags
-from absl import logging
-
 import os
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
+from absl import app
+from absl import flags
 
 from gematria.datasets.pipelines import compile_modules_lib
 
@@ -36,7 +34,7 @@ _OUTPUT_TXT_FILE = flags.DEFINE_string(
 
 
 def main(argv) -> None:
-  del argv
+  del argv  # Unused.
 
   beam_options = PipelineOptions()
 

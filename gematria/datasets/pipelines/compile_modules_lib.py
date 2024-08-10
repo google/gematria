@@ -12,16 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+from collections.abc import Callable, Iterable, Sequence
+import subprocess
+
 import apache_beam as beam
 from rules_python.python.runfiles import runfiles
-import os
-
 from absl import logging
-
-from collections.abc import Iterable
-from collections.abc import Callable
-
-import subprocess
 
 from gematria.datasets.python import extract_bbs_from_obj
 
@@ -35,28 +32,24 @@ def _get_llvm_binary_path(tool_name: str) -> str:
 class OptimizeModules(beam.DoFn):
   """A Beam function that uses LLVM opt to optimize bitcode modules."""
 
-  def __init__(self, optimization_pass_lists: list[str]):
-    self.optimization_pass_lists = optimization_pass_lists
-    self.opt_path = _get_llvm_binary_path('opt')
+  def __init__(self, optimization_pass_lists: Sequence[Sequence[str]]):
+    self._optimization_pass_lists = optimization_pass_lists
+    self._opt_path = _get_llvm_binary_path('opt')
 
   def optimize_module(
       self, input_module: bytes, optimization_pass_list: list[str]
   ) -> bytes:
-    command_vector = [self.opt_path, f'-passes={optimization_pass_list}']
-    with subprocess.Popen(
-        command_vector,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ) as opt_process:
-      (output_bc, stderr) = opt_process.communicate(input=input_module)
-      if opt_process.returncode != 0:
-        logging.error(stderr)
-        raise ValueError('Expected opt to return 0')
-      return output_bc
+    command_vector = [self._opt_path, f'-passes={optimization_pass_list}']
+    result = subprocess.run(
+        command_vector, input=input_module, capture_output=True
+    )
+    if result.returncode != 0:
+      logging.error(result.stderr)
+      raise ValueError('Expected opt to return 0')
+    return result.stdout
 
   def process(self, input_module: bytes) -> Iterable[bytes]:
-    for optimization_pass_list in self.optimization_pass_lists:
+    for optimization_pass_list in self._optimization_pass_lists:
       try:
         yield self.optimize_module(input_module, optimization_pass_list)
       except ValueError:
@@ -64,35 +57,29 @@ class OptimizeModules(beam.DoFn):
 
 
 class LowerModulesAsm(beam.DoFn):
-  """A Beam function that uses LLVM llc to lower bitcode modules to object
-  files.
-  """
+  """A Beam function that lowers bitcode files to object files."""
 
   def __init__(self, optimization_levels: list[str]):
-    self.optimization_levels = optimization_levels
-    self.llc_path = _get_llvm_binary_path('llc')
+    self._optimization_levels = optimization_levels
+    self._llc_path = _get_llvm_binary_path('llc')
 
   def lower_module(self, optimization_level: str, input_module: bytes) -> bytes:
     command_vector = [
-        self.llc_path,
+        self._llc_path,
         optimization_level,
         '-filetype=obj',
         '-basic-block-sections=labels',
     ]
-    with subprocess.Popen(
-        command_vector,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ) as llc_process:
-      (output_obj, stderr) = llc_process.communicate(input=input_module)
-      if llc_process.returncode != 0:
-        logging.error(stderr)
-        raise ValueError('Expected llc to return 0')
-      return output_obj
+    result = subprocess.run(
+        command_vector, input=input_module, capture_output=True
+    )
+    if result.returncode != 0:
+      logging.error(result.stderr)
+      raise ValueError('Expected llc to return 0')
+    return result.stdout
 
   def process(self, input_module: bytes) -> Iterable[bytes]:
-    for optimization_level in self.optimization_levels:
+    for optimization_level in self._optimization_levels:
       try:
         yield self.lower_module(optimization_level, input_module)
       except ValueError:
@@ -112,7 +99,7 @@ class GetBBsFromModule(beam.DoFn):
 class DeduplicateBBs(beam.ptransform.PTransform):
   """A Beam transform to deduplicate string data."""
 
-  def expand(self, pcoll):
+  def expand(self, pcoll: beam.PCollection) -> beam.PCollection:
     return (
         pcoll
         | 'Use Value as Key'
