@@ -18,9 +18,11 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <utility>
 #include <vector>
 
+#include "gematria/datasets/find_accessed_addrs.h"
 #include "gematria/llvm/disassembler.h"
 #include "gematria/utils/string.h"
 #include "llvm/ADT/APInt.h"
@@ -259,6 +261,69 @@ Expected<BenchmarkCode> ExegesisBenchmark::parseJSONBlock(
   }
 
   return BenchCode;
+}
+
+Expected<BenchmarkCode> ExegesisBenchmark::processAnnotatedBlock(
+    std::string_view BlockHex, const BlockAnnotations &Annotations) {
+  std::optional<std::vector<uint8_t>> BytesOr =
+      gematria::ParseHexString(BlockHex);
+
+  if (!BytesOr.has_value())
+    return llvm::make_error<StringError>(
+        errc::invalid_argument,
+        "Malformed basic block: invalid hex value " + BlockHex);
+
+  Expected<std::vector<gematria::DisassembledInstruction>> InstructionsOrErr =
+      gematria::DisassembleAllInstructions(
+          *LLVMMCDisassembler, ExegesisState.getInstrInfo(),
+          ExegesisState.getRegInfo(), ExegesisState.getSubtargetInfo(),
+          *LLVMMCInstPrinter, 0, *BytesOr);
+
+  if (!InstructionsOrErr) return InstructionsOrErr.takeError();
+
+  BenchmarkCode BenchmarkConfiguration;
+
+  std::vector<MCInst> Instructions;
+  Instructions.reserve(InstructionsOrErr->size());
+
+  for (const gematria::DisassembledInstruction &Instruction :
+       *InstructionsOrErr)
+    Instructions.push_back(Instruction.mc_inst);
+
+  BenchmarkConfiguration.Key.Instructions = std::move(Instructions);
+
+  BenchmarkConfiguration.Key.RegisterInitialValues.reserve(
+      Annotations.initial_regs.size());
+
+  for (const RegisterAndValue &RegisterValue : Annotations.initial_regs) {
+    struct RegisterValue ValueToAdd = {
+        .Register = RegisterValue.register_index,
+        .Value = APInt(64, RegisterValue.register_value)};
+
+    BenchmarkConfiguration.Key.RegisterInitialValues.push_back(
+        std::move(ValueToAdd));
+  }
+
+  MemoryValue MemVal = {.Value = APInt(64, Annotations.block_contents),
+                        .SizeBytes = Annotations.block_size,
+                        .Index = 0};
+  BenchmarkConfiguration.Key.MemoryValues["MEM"] = std::move(MemVal);
+
+  for (const uintptr_t AccessedBlock : Annotations.accessed_blocks) {
+    MemoryMapping MemMap = {.Address = AccessedBlock, .MemoryValueName = "MEM"};
+
+    BenchmarkConfiguration.Key.MemoryMappings.push_back(std::move(MemMap));
+  }
+
+  BenchmarkConfiguration.Key.SnippetAddress = Annotations.code_location;
+
+  if (Annotations.loop_register.has_value()) {
+    BenchmarkConfiguration.Key.LoopRegister = *Annotations.loop_register;
+  } else {
+    BenchmarkConfiguration.Key.LoopRegister = MCRegister::NoRegister;
+  }
+
+  return BenchmarkConfiguration;
 }
 
 Expected<double> ExegesisBenchmark::benchmarkBasicBlock(
