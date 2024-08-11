@@ -33,7 +33,7 @@ jobs:
     name: Python Formatting Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Python
         uses: actions/setup-python@v4
         with:
@@ -46,7 +46,7 @@ jobs:
     name: C++ Formatting Check
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Check c++ formatting
       uses: jidicula/clang-format-action@v4.11.0
       with:
@@ -56,7 +56,7 @@ jobs:
     name: Bazel Formatting Check
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: thompsonja/bazel-buildifier@v0.4.0
       with:
         buildifier_version: v6.1.2
@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: hendrikmuhs/ccache-action@v1.2.10
+      - uses: hendrikmuhs/ccache-action@v1.2.14
       - uses: ConorMacBride/install-package@v1.1.0
         with:
           apt: cmake ninja-build libpthreadpool-dev
@@ -107,7 +107,7 @@ jobs:
       matrix:
         build-config: [fastbuild, opt]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup environment variables
       run: echo "CURRENT_DAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
     - name: Cache Bazel
