@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from pybind11_abseil import status
+
 from gematria.datasets.python import bhive_to_exegesis
 from gematria.llvm.python import llvm_architecture_support
 
@@ -35,6 +37,12 @@ class BHiveToExegesisTests(absltest.TestCase):
     )
 
     self.assertIsInstance(block_annotations, bhive_to_exegesis.AnnotatedBlock)
+
+  def test_invalid_block(self):
+    with self.assertRaises(status.StatusNotOk):
+      _ = self.bhive_to_exegesis.annotate_basic_block(
+          "INVALID_HEX", bhive_to_exegesis.AnnotatorType.fast, 50
+      )
 
 
 if __name__ == "__main__":

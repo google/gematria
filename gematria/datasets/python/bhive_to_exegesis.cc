@@ -20,6 +20,7 @@
 #include "gematria/llvm/llvm_to_absl.h"
 #include "llvm-c/Target.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
+#include "pybind11/cast.h"
 #include "pybind11/detail/common.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"  // IWYU pragma: keep
@@ -57,14 +58,35 @@ PYBIND11_MODULE(bhive_to_exegesis, m) {
              return LlvmExpectedToStatusOr(
                  BHiveToExegesis::create(ArchitectureSupport));
            })
-      .def("annotate_basic_block",
-           [](BHiveToExegesis& Self, std::string BasicBlockHex,
-              BHiveToExegesis::AnnotatorType AnnotatorType,
-              unsigned MaxAnnotationAttempts) {
-             return Self
-                 .annotateBasicBlock(BasicBlockHex, AnnotatorType,
-                                     MaxAnnotationAttempts);
-           });
+      .def(
+          "annotate_basic_block",
+          [](BHiveToExegesis& Self, std::string BasicBlockHex,
+             BHiveToExegesis::AnnotatorType AnnotatorType,
+             unsigned MaxAnnotationAttempts) {
+            return Self.annotateBasicBlock(BasicBlockHex, AnnotatorType,
+                                           MaxAnnotationAttempts);
+          },
+          py::arg("basic_block_hex"), py::arg("annotator_type"),
+          py::arg("max_annotation_attempts"),
+          R"(Annotates a basic block, providing memory and register info.
+
+          Takes a single basic block and annotates it, providing information
+          on initial register values and the memory setup that should be used
+          in order to execute the block.
+
+          Args:
+            basic_block_hex: The basic block in hexadecimal format.
+            annotator_type: The annotator to use.
+            max_annotation_attempts: The maximum number of times to try
+              to find an appropriate memory setup for the block before
+              giving up.
+            
+          Returns:
+            An AnnotatedBlock that can then be used for benchmarking.
+
+          Raises:
+            StatusNotOk: When annotating the block fails.
+          )");
 }
 
 }  // namespace gematria
