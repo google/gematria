@@ -32,7 +32,7 @@ namespace gematria {
 namespace py = ::pybind11;
 
 PYBIND11_MODULE(bhive_to_exegesis, m) {
-  m.doc() = "Code for annotating baisc blocks.";
+  m.doc() = "Code for annotating basic blocks.";
 
   py::google::ImportStatusModule();
 
@@ -45,19 +45,36 @@ PYBIND11_MODULE(bhive_to_exegesis, m) {
   py::class_<AnnotatedBlock>(m, "AnnotatedBlock");
 
   py::class_<BHiveToExegesis>(m, "BHiveToExegesis")
-      .def("create",
-           [](LlvmArchitectureSupport& ArchitectureSupport) {
-             LLVMInitializeX86Target();
-             LLVMInitializeX86TargetInfo();
-             LLVMInitializeX86TargetMC();
-             LLVMInitializeX86AsmPrinter();
-             LLVMInitializeX86AsmParser();
-             LLVMInitializeX86Disassembler();
-             InitializeX86ExegesisTarget();
+      .def_static(
+          "create",
+          [](LlvmArchitectureSupport& ArchitectureSupport) {
+            LLVMInitializeX86Target();
+            LLVMInitializeX86TargetInfo();
+            LLVMInitializeX86TargetMC();
+            LLVMInitializeX86AsmPrinter();
+            LLVMInitializeX86AsmParser();
+            LLVMInitializeX86Disassembler();
+            InitializeX86ExegesisTarget();
 
-             return LlvmExpectedToStatusOr(
-                 BHiveToExegesis::create(ArchitectureSupport));
-           })
+            return LlvmExpectedToStatusOr(
+                BHiveToExegesis::create(ArchitectureSupport));
+          },
+          py::arg("architecture_support"),
+          R"(Creates a BHiveToExegesis Instance.
+
+          Performs the relevant LLVM setup and creates a BHiveToExegesis
+          instance that can then be used to annotate basic blocks.
+
+          Args:
+            architecture_support: An LLVMArchitectureSupport instance
+              containing the relevant helper classes.
+           
+          Returns:
+            A BHiveToExegsis Instance.
+          
+          Raises:
+            StatusNotOk: When creating the BHiveToExegesis instance fails.
+          )")
       .def(
           "annotate_basic_block",
           [](BHiveToExegesis& Self, std::string BasicBlockHex,
