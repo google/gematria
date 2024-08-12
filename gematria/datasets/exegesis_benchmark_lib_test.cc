@@ -15,8 +15,10 @@
 #include "gematria/datasets/exegesis_benchmark_lib.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 
+#include "gematria/datasets/find_accessed_addrs.h"
 #include "gematria/testing/llvm.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -379,6 +381,56 @@ TEST_F(ExegesisBenchmarkTest, TestBenchmarkAdd) {
   }
   )json");
 
+  EXPECT_LT(*BenchmarkResult, 10);
+}
+
+TEST_F(ExegesisBenchmarkTest, TestProcessAnnotatedBlock) {
+  BlockAnnotations Annotations = {
+      .code_location = 0xff,
+      .block_size = 4096,
+      .block_contents = 0xff,
+      .accessed_blocks = {0xaa, 0xbb},
+      .initial_regs = {{.register_index = 0, .register_value = 5},
+                       {.register_index = 1, .register_value = 17}},
+      .loop_register = std::nullopt};
+
+  Expected<BenchmarkCode> BenchmarkConfiguration =
+      Benchmark->processAnnotatedBlock("3b31", Annotations);
+  ASSERT_TRUE(static_cast<bool>(BenchmarkConfiguration));
+
+  EXPECT_THAT(BenchmarkConfiguration->Key.Instructions,
+              UnorderedElementsAre(IsMCInst(X86::CMP32rm, _)));
+
+  EXPECT_THAT(BenchmarkConfiguration->Key.RegisterInitialValues,
+              UnorderedElementsAre(FieldsAre(0, 5), FieldsAre(1, 17)));
+
+  EXPECT_THAT(BenchmarkConfiguration->Key.MemoryValues,
+              UnorderedElementsAre(Pair("MEM", FieldsAre(0xff, 4096, 0))));
+
+  EXPECT_THAT(
+      BenchmarkConfiguration->Key.MemoryMappings,
+      UnorderedElementsAre(FieldsAre(0xaa, "MEM"), FieldsAre(0xbb, "MEM")));
+
+  EXPECT_EQ(BenchmarkConfiguration->Key.SnippetAddress, 0xff);
+  EXPECT_EQ(BenchmarkConfiguration->Key.LoopRegister, MCRegister::NoRegister);
+}
+
+TEST_F(ExegesisBenchmarkTest, TestBenchmarkFromAnnotatedBlock) {
+  BlockAnnotations Annotations = {
+      .code_location = 0,
+      .block_size = 4096,
+      .block_contents = 34359738376,
+      .accessed_blocks = {86016},
+      .initial_regs = {{.register_index = X86::RCX, .register_value = 86016},
+                       {.register_index = X86::RSI, .register_value = 86016}},
+      .loop_register = X86::RAX};
+
+  Expected<BenchmarkCode> BenchmarkConfiguration =
+      Benchmark->processAnnotatedBlock("3b31", Annotations);
+  ASSERT_TRUE(static_cast<bool>(BenchmarkConfiguration));
+
+  Expected<double> BenchmarkResult =
+      Benchmark->benchmarkBasicBlock(*BenchmarkConfiguration);
   EXPECT_LT(*BenchmarkResult, 10);
 }
 

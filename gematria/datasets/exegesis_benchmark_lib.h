@@ -14,7 +14,9 @@
 
 #include <cstddef>
 #include <memory>
+#include <string_view>
 
+#include "gematria/datasets/find_accessed_addrs.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCDisassembler/MCDisassembler.h"
 #include "llvm/MC/MCInst.h"
@@ -39,6 +41,9 @@ class ExegesisBenchmark {
 
   llvm::Expected<llvm::exegesis::BenchmarkCode> parseJSONBlock(
       const llvm::json::Object &BasicBlockJSON, size_t BlockIndex);
+
+  llvm::Expected<llvm::exegesis::BenchmarkCode> processAnnotatedBlock(
+      std::string_view BlockHex, const BlockAnnotations &Annotations);
 
   llvm::Expected<double> benchmarkBasicBlock(
       const llvm::exegesis::BenchmarkCode &BenchCode);
