@@ -90,17 +90,28 @@ cc_binary(
     ],
 )
 
+cc_library(
+    name = "exegesis_benchmark_lib",
+    srcs = ["exegesis_benchmark_lib.cc"],
+    hdrs = ["exegesis_benchmark_lib.h"],
+    deps = [
+        "//gematria/llvm:disassembler",
+        "//gematria/utils:string",
+        "@llvm-project//llvm:Exegesis",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:X86Disassembler",
+    ],
+)
+
 cc_binary(
     name = "exegesis_benchmark",
     srcs = ["exegesis_benchmark.cc"],
     deps = [
-        "//gematria/llvm:disassembler",
-        "//gematria/utils:string",
+        ":exegesis_benchmark_lib",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
         "@llvm-project//llvm:Exegesis",
         "@llvm-project//llvm:Support",
-        "@llvm-project//llvm:X86Disassembler",
     ],
 )
 
