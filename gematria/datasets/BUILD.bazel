@@ -103,6 +103,27 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "exegesis_benchmark_lib_test",
+    size = "small",
+    srcs = ["exegesis_benchmark_lib_test.cc"],
+    # The llvm-exegesis features used for benchmarking are currently only
+    # supported on X86_64.
+    tags = [
+        "not_build:arm",
+        "perf_counters",
+    ],
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+    ],
+    deps = [
+        ":exegesis_benchmark_lib",
+        "//gematria/testing:llvm",
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:X86UtilsAndDesc",
+    ],
+)
+
 cc_binary(
     name = "exegesis_benchmark",
     srcs = ["exegesis_benchmark.cc"],
