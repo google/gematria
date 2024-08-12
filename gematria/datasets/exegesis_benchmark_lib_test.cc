@@ -398,29 +398,18 @@ TEST_F(ExegesisBenchmarkTest, TestProcessAnnotatedBlock) {
       Benchmark->processAnnotatedBlock("3b31", Annotations);
   ASSERT_TRUE(static_cast<bool>(BenchmarkConfiguration));
 
-  ASSERT_THAT(BenchmarkConfiguration->Key.Instructions, testing::SizeIs(1));
-  EXPECT_EQ(BenchmarkConfiguration->Key.Instructions[0].getOpcode(),
-            X86::CMP32rm);
+  EXPECT_THAT(BenchmarkConfiguration->Key.Instructions,
+              UnorderedElementsAre(IsMCInst(X86::CMP32rm, _)));
 
-  ASSERT_THAT(BenchmarkConfiguration->Key.RegisterInitialValues,
-              testing::SizeIs(2));
-  EXPECT_EQ(BenchmarkConfiguration->Key.RegisterInitialValues[0].Register, 0);
-  EXPECT_EQ(BenchmarkConfiguration->Key.RegisterInitialValues[0].Value, 5);
-  EXPECT_EQ(BenchmarkConfiguration->Key.RegisterInitialValues[1].Register, 1);
-  EXPECT_EQ(BenchmarkConfiguration->Key.RegisterInitialValues[1].Value, 17);
+  EXPECT_THAT(BenchmarkConfiguration->Key.RegisterInitialValues,
+              UnorderedElementsAre(FieldsAre(0, 5), FieldsAre(1, 17)));
 
-  ASSERT_THAT(BenchmarkConfiguration->Key.MemoryValues, testing::SizeIs(1));
-  EXPECT_EQ(BenchmarkConfiguration->Key.MemoryValues["MEM"].SizeBytes, 4096);
-  EXPECT_EQ(BenchmarkConfiguration->Key.MemoryValues["MEM"].Index, 0);
-  EXPECT_EQ(BenchmarkConfiguration->Key.MemoryValues["MEM"].Value, 0xff);
+  EXPECT_THAT(BenchmarkConfiguration->Key.MemoryValues,
+              UnorderedElementsAre(Pair("MEM", FieldsAre(0xff, 4096, 0))));
 
-  ASSERT_THAT(BenchmarkConfiguration->Key.MemoryMappings, testing::SizeIs(2));
-  EXPECT_EQ(BenchmarkConfiguration->Key.MemoryMappings[0].MemoryValueName,
-            "MEM");
-  EXPECT_EQ(BenchmarkConfiguration->Key.MemoryMappings[0].Address, 0xaa);
-  EXPECT_EQ(BenchmarkConfiguration->Key.MemoryMappings[1].MemoryValueName,
-            "MEM");
-  EXPECT_EQ(BenchmarkConfiguration->Key.MemoryMappings[1].Address, 0xbb);
+  EXPECT_THAT(
+      BenchmarkConfiguration->Key.MemoryMappings,
+      UnorderedElementsAre(FieldsAre(0xaa, "MEM"), FieldsAre(0xbb, "MEM")));
 
   EXPECT_EQ(BenchmarkConfiguration->Key.SnippetAddress, 0xff);
   EXPECT_EQ(BenchmarkConfiguration->Key.LoopRegister, MCRegister::NoRegister);
