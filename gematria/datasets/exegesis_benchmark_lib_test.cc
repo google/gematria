@@ -19,6 +19,7 @@
 #include <string>
 
 #include "gematria/datasets/find_accessed_addrs.h"
+#include "gematria/testing/llvm.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "llvm/ADT/StringRef.h"
@@ -36,6 +37,11 @@ namespace {
 
 using namespace llvm;
 using namespace llvm::exegesis;
+
+using ::testing::_;
+using ::testing::FieldsAre;
+using ::testing::Pair;
+using ::testing::UnorderedElementsAre;
 
 class ExegesisBenchmarkTest : public testing::Test {
  protected:
@@ -126,26 +132,20 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONBlock) {
   Expected<BenchmarkCode> BenchCode =
       Benchmark->parseJSONBlock(*BlockValue->getAsObject(), 1);
 
-  ASSERT_THAT(BenchCode->Key.Instructions, testing::SizeIs(1));
-  EXPECT_EQ(BenchCode->Key.Instructions[0].getOpcode(), X86::CMP32rm);
+  EXPECT_THAT(BenchCode->Key.Instructions,
+              UnorderedElementsAre(IsMCInst(X86::CMP32rm, _)));
 
   EXPECT_EQ(BenchCode->Key.LoopRegister, 51);
 
-  ASSERT_THAT(BenchCode->Key.MemoryValues, testing::SizeIs(1));
-  EXPECT_EQ(BenchCode->Key.MemoryValues["MEM"].SizeBytes, 4096);
-  EXPECT_EQ(BenchCode->Key.MemoryValues["MEM"].Value, 1);
+  EXPECT_THAT(BenchCode->Key.MemoryValues,
+              UnorderedElementsAre(Pair("MEM", FieldsAre(1, 4096, 0))));
 
-  ASSERT_THAT(BenchCode->Key.RegisterInitialValues, testing::SizeIs(2));
-  EXPECT_EQ(BenchCode->Key.RegisterInitialValues[0].Register, 54);
-  EXPECT_EQ(BenchCode->Key.RegisterInitialValues[0].Value, 86016);
-  EXPECT_EQ(BenchCode->Key.RegisterInitialValues[1].Register, 60);
-  EXPECT_EQ(BenchCode->Key.RegisterInitialValues[1].Value, 86016);
+  EXPECT_THAT(BenchCode->Key.RegisterInitialValues,
+              UnorderedElementsAre(FieldsAre(54, 86016), FieldsAre(60, 86016)));
 }
 
 TEST_F(ExegesisBenchmarkTest, TestParseJSONNoHex) {
-  Expected<std::string> ErrorMessage = getErrorMessage(R"json(
-  {}
-  )json");
+  Expected<std::string> ErrorMessage = getErrorMessage("{}");
   ASSERT_TRUE(static_cast<bool>(ErrorMessage));
 
   EXPECT_EQ(*ErrorMessage,

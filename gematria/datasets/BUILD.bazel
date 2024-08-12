@@ -44,6 +44,7 @@ cc_library(
     name = "bhive_to_exegesis",
     srcs = ["bhive_to_exegesis.cc"],
     hdrs = ["bhive_to_exegesis.h"],
+    visibility = ["//:internal_users"],
     deps = [
         ":bhive_importer",
         ":find_accessed_addrs",
@@ -94,7 +95,10 @@ cc_library(
     srcs = ["exegesis_benchmark_lib.cc"],
     hdrs = ["exegesis_benchmark_lib.h"],
     deps = [
+<<<<<<< HEAD
         ":find_accessed_addrs",
+=======
+>>>>>>> main
         "//gematria/llvm:disassembler",
         "//gematria/utils:string",
         "@llvm-project//llvm:Exegesis",
@@ -118,6 +122,10 @@ cc_test(
     ],
     deps = [
         ":exegesis_benchmark_lib",
+<<<<<<< HEAD
+=======
+        "//gematria/testing:llvm",
+>>>>>>> main
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:X86UtilsAndDesc",
     ],
