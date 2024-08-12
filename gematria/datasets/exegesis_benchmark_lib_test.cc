@@ -36,6 +36,9 @@ namespace {
 using namespace llvm;
 using namespace llvm::exegesis;
 
+using ::testing::_;
+using ::testing::FieldsAre;
+using ::testing::Pair;
 using ::testing::UnorderedElementsAre;
 
 class ExegesisBenchmarkTest : public testing::Test {
@@ -128,19 +131,15 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONBlock) {
       Benchmark->parseJSONBlock(*BlockValue->getAsObject(), 1);
 
   EXPECT_THAT(BenchCode->Key.Instructions,
-              UnorderedElementsAre(IsMCInst(X86::CMP32rm, testing::_)));
+              UnorderedElementsAre(IsMCInst(X86::CMP32rm, _)));
 
   EXPECT_EQ(BenchCode->Key.LoopRegister, 51);
 
   EXPECT_THAT(BenchCode->Key.MemoryValues,
-              UnorderedElementsAre(
-                  testing::Pair("MEM", testing::FieldsAre(1, 4096, 0))));
+              UnorderedElementsAre(Pair("MEM", FieldsAre(1, 4096, 0))));
 
   EXPECT_THAT(BenchCode->Key.RegisterInitialValues,
-              UnorderedElementsAre(testing::FieldsAre(54, 86016),
-                                   testing::FieldsAre(60, 86016)));
-
-  ASSERT_THAT(BenchCode->Key.RegisterInitialValues, testing::SizeIs(2));
+              UnorderedElementsAre(FieldsAre(54, 86016), FieldsAre(60, 86016)));
 }
 
 TEST_F(ExegesisBenchmarkTest, TestParseJSONNoHex) {
