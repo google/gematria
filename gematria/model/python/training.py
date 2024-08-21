@@ -356,6 +356,7 @@ def partially_restore_from_checkpoint(
     logging.info('Restoring %s', variable_name)
     variable.load(reader.get_tensor(variable_name), sess)
 
+
 def _as_list(values: Sequence[float]) -> list[float]:
   """Converts `values` to a list."""
   if isinstance(values, np.ndarray):
