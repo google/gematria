@@ -204,11 +204,11 @@ class TrainingEpochStats:
       percentiles: Sequence[Sequence[float]],
   ) -> str:
     """Returns a human-readable loss information for use in logs."""
-    parts = [f'{name} mse: {list(mse)}']
+    parts = [f'{name} mse: {_as_list(mse)}']
     if mae is not None:
-      parts.append(f', mae: {list(mae)}')
+      parts.append(f', mae: {_as_list(mae)}')
     for i, rank in enumerate(self.percentile_ranks):
-      parts.append(f', {rank}%: {list(percentiles[i])}')
+      parts.append(f', {rank}%: {_as_list(percentiles[i])}')
     return ''.join(parts)
 
 
@@ -355,3 +355,10 @@ def partially_restore_from_checkpoint(
       continue
     logging.info('Restoring %s', variable_name)
     variable.load(reader.get_tensor(variable_name), sess)
+
+
+def _as_list(values: Sequence[float]) -> list[float]:
+  """Converts `values` to a list."""
+  if isinstance(values, np.ndarray):
+    return values.tolist()
+  return list(values)
