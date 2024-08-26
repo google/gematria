@@ -45,8 +45,7 @@ void InitializeForExegesisOnce() {
     // Exegesis Setup
     InitializeX86ExegesisTarget();
 
-    if (pfm::pfmInitialize())
-      return false;
+    if (pfm::pfmInitialize()) return false;
 
     return true;
   }();
@@ -70,7 +69,7 @@ PYBIND11_MODULE(exegesis_benchmark, m) {
   py::class_<ExegesisBenchmark>(m, "ExegesisBenchmark")
       .def("create",
            []() -> absl::StatusOr<std::unique_ptr<ExegesisBenchmark>> {
-            InitializeForExegesisOnce();
+             InitializeForExegesisOnce();
 
              return LlvmExpectedToStatusOr(ExegesisBenchmark::create());
            })
