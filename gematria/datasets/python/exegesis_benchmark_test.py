@@ -16,11 +16,37 @@ from absl.testing import absltest
 
 from gematria.datasets.python import bhive_to_exegesis
 from gematria.datasets.python import exegesis_benchmark
+from gematria.llvm.python import llvm_architecture_support
+
 
 class ExegesisBenchmarkTests(absltest.TestCase):
-  
-  def test_test(self):
-    self.assertTrue(True)
-  
+
+  def setUp(self):
+    super().setUp()
+
+    self._x86_llvm = llvm_architecture_support.LlvmArchitectureSupport.x86_64()
+    self.bhive_to_exegesis = bhive_to_exegesis.BHiveToExegesis.create(
+        self._x86_llvm
+    )
+    self.exegesis_benchmark = exegesis_benchmark.ExegesisBenchmark.create()
+
+  def test_benchmarking(self):
+    block_annotations = self.bhive_to_exegesis.annotate_basic_block(
+        "4829d38b44246c8b54246848c1fb034829d04839c3",
+        bhive_to_exegesis.AnnotatorType.fast,
+        50,
+    )
+
+    benchmark_code = self.exegesis_benchmark.process_annotated_block(
+        "4829d38b44246c8b54246848c1fb034829d04839c3", block_annotations
+    )
+
+    block_measurement = self.exegesis_benchmark.benchmark_basic_block(
+        benchmark_code
+    )
+
+    self.assertLess(block_measurement, 10)
+
+
 if __name__ == "__main__":
   absltest.main()

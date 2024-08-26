@@ -151,6 +151,7 @@ gematria_pybind_extension(
         "//gematria/datasets:exegesis_benchmark_lib",
         "//gematria/llvm:llvm_to_absl",
         "@pybind11_abseil_repo//pybind11_abseil:status_casters",
+        "//gematria/datasets:bhive_to_exegesis",
     ],
 )
 
@@ -161,5 +162,6 @@ gematria_py_test(
     deps = [
         ":bhive_to_exegesis",
         ":exegesis_benchmark",
+        "//gematria/llvm/python:llvm_architecture_support",
     ],
 )

@@ -17,10 +17,11 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "gematria/datasets/bhive_to_exegesis.h"
 #include "gematria/datasets/exegesis_benchmark_lib.h"
-#include "gematria/datasets/find_accessed_addrs.h"
 #include "gematria/llvm/llvm_to_absl.h"
 #include "llvm-c/Target.h"
+#include "llvm/tools/llvm-exegesis/lib/BenchmarkCode.h"
 #include "llvm/tools/llvm-exegesis/lib/PerfHelper.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 #include "pybind11/detail/common.h"
@@ -29,6 +30,30 @@
 #include "pybind11_abseil/status_casters.h"  // IWYU pragma: keep
 
 namespace gematria {
+namespace {
+
+void InitializeForExegesisOnce() {
+  static bool initialize_internals = []() {
+    // LLVM Setup
+    LLVMInitializeX86TargetInfo();
+    LLVMInitializeX86TargetMC();
+    LLVMInitializeX86Target();
+    LLVMInitializeX86AsmPrinter();
+    LLVMInitializeX86AsmParser();
+    LLVMInitializeX86Disassembler();
+
+    // Exegesis Setup
+    InitializeX86ExegesisTarget();
+
+    if (pfm::pfmInitialize())
+      return false;
+
+    return true;
+  }();
+  (void)initialize_internals;
+}
+
+}  // namespace
 
 namespace py = ::pybind11;
 
@@ -40,31 +65,25 @@ PYBIND11_MODULE(exegesis_benchmark, m) {
 
   py::google::ImportStatusModule();
 
+  py::class_<BenchmarkCode>(m, "BenchmarkCode");
+
   py::class_<ExegesisBenchmark>(m, "ExegesisBenchmark")
       .def("create",
            []() -> absl::StatusOr<std::unique_ptr<ExegesisBenchmark>> {
-             // LLVM Setup
-             LLVMInitializeX86TargetInfo();
-             LLVMInitializeX86TargetMC();
-             LLVMInitializeX86Target();
-             LLVMInitializeX86AsmPrinter();
-             LLVMInitializeX86AsmParser();
-             LLVMInitializeX86Disassembler();
-
-             // Exegesis Setup
-             InitializeX86ExegesisTarget();
-
-             if (pfm::pfmInitialize())
-               return absl::InternalError("Failed to initialize PFM");
+            InitializeForExegesisOnce();
 
              return LlvmExpectedToStatusOr(ExegesisBenchmark::create());
            })
       .def("process_annotated_block",
            [](ExegesisBenchmark& Self, std::string_view BlockHex,
-              const BlockAnnotations& Annotations) {
-             return LlvmExpectedToStatusOr(
-                 Self.processAnnotatedBlock(BlockHex, Annotations));
-           });
+              const AnnotatedBlock& Annotations) {
+             return LlvmExpectedToStatusOr(Self.processAnnotatedBlock(
+                 BlockHex, Annotations.AccessedAddrs));
+           })
+      .def("benchmark_basic_block", [](ExegesisBenchmark& Self,
+                                       const BenchmarkCode& InputBenchmark) {
+        return LlvmExpectedToStatusOr(Self.benchmarkBasicBlock(InputBenchmark));
+      });
 }
 
 }  // namespace gematria
