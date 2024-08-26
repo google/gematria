@@ -17,7 +17,7 @@ import textwrap
 
 from absl.testing import absltest
 import apache_beam as beam
-from apache_beam.testing.test_pipeline import TestPipeline
+from apache_beam.testing import test_pipeline
 from apache_beam.testing import util as beam_test
 
 from gematria.datasets.pipelines import compile_modules_lib
@@ -28,10 +28,10 @@ class CompileModulesTests(absltest.TestCase):
 
   def test_optimize_modules(self):
     ir_string = textwrap.dedent("""\
-    define i32 @a() {
-      %a = add i32 3, 5
-      ret i32 %a
-    }
+      define i32 @a() {
+        %a = add i32 3, 5
+        ret i32 %a
+      }
     """)
 
     module_optimizer = compile_modules_lib.OptimizeModules(
@@ -44,9 +44,9 @@ class CompileModulesTests(absltest.TestCase):
     self.assertLen(optimized_modules, 2)
 
     optimized_ir_string = textwrap.dedent("""\
-    define i32 @a() {
-      ret i32 8
-    }
+      define i32 @a() {
+        ret i32 8
+      }
     """)
 
     optimized_modules_text = [
@@ -58,9 +58,9 @@ class CompileModulesTests(absltest.TestCase):
 
   def test_lowering_get_bbs(self):
     ir_string = textwrap.dedent("""\
-    define i32 @a() {
-      ret i32 0
-    }
+      define i32 @a() {
+        ret i32 0
+      }
     """)
 
     ir_string_bc = ir_utils.get_bc_from_ir(ir_string)
@@ -78,21 +78,21 @@ class CompileModulesTests(absltest.TestCase):
   def test_deduplicate_bbs(self):
     test_bbs = ['aa', 'aa', 'ab', 'ab', 'bc']
 
-    with TestPipeline() as test_pipeline:
-      input = test_pipeline | beam.Create(test_bbs)
+    with test_pipeline.TestPipeline() as pipeline_under_test:
+      input = pipeline_under_test | beam.Create(test_bbs)
       output = input | compile_modules_lib.DeduplicateBBs()
       beam_test.assert_that(output, beam_test.equal_to(['aa', 'ab', 'bc']))
 
   def test_get_bbs(self):
     ir_string1 = textwrap.dedent("""\
-    define i32 @a() {
-      ret i32 1
-    }
+      define i32 @a() {
+        ret i32 1
+      }
     """)
     ir_string2 = textwrap.dedent("""\
-    define i32 @b() {
-      ret i32 2
-    }
+      define i32 @b() {
+        ret i32 2
+      }
     """)
 
     test_parquet_file = self.create_tempfile()
@@ -107,8 +107,8 @@ class CompileModulesTests(absltest.TestCase):
         test_parquet_file.full_path, output_file_pattern
     )
 
-    with TestPipeline() as test_pipeline:
-      pipeline_constructor(test_pipeline)
+    with test_pipeline.TestPipeline() as pipeline_under_test:
+      pipeline_constructor(pipeline_under_test)
 
     with open(output_file_pattern + '-00000-of-00001') as output_file:
       output_file_lines_raw = output_file.readlines()

@@ -26,7 +26,7 @@ from gematria.datasets.python import extract_bbs_from_obj
 def _get_llvm_binary_path(tool_name: str) -> str:
   runfiles_env = runfiles.Create(os.environ)
   assert runfiles_env is not None
-  return runfiles_env.Rlocation('llvm-project/llvm/' + tool_name)
+  return runfiles_env.Rlocation(os.path.join('llvm-project/llvm', tool_name))
 
 
 class OptimizeModules(beam.DoFn):
@@ -41,18 +41,16 @@ class OptimizeModules(beam.DoFn):
   ) -> bytes:
     command_vector = [self._opt_path, f'-passes={optimization_pass_list}']
     result = subprocess.run(
-        command_vector, input=input_module, capture_output=True
+        command_vector, input=input_module, capture_output=True, check=True
     )
-    if result.returncode != 0:
-      logging.error(result.stderr)
-      raise ValueError('Expected opt to return 0')
     return result.stdout
 
   def process(self, input_module: bytes) -> Iterable[bytes]:
     for optimization_pass_list in self._optimization_pass_lists:
       try:
         yield self.optimize_module(input_module, optimization_pass_list)
-      except ValueError:
+      except subprocess.CalledProcessError as process_error:
+        logging.error(process_error)
         continue
 
 
@@ -71,18 +69,16 @@ class LowerModulesAsm(beam.DoFn):
         '-basic-block-sections=labels',
     ]
     result = subprocess.run(
-        command_vector, input=input_module, capture_output=True
+        command_vector, input=input_module, capture_output=True, check=True
     )
-    if result.returncode != 0:
-      logging.error(result.stderr)
-      raise ValueError('Expected llc to return 0')
     return result.stdout
 
   def process(self, input_module: bytes) -> Iterable[bytes]:
     for optimization_level in self._optimization_levels:
       try:
         yield self.lower_module(optimization_level, input_module)
-      except ValueError:
+      except subprocess.CalledProcessError as process_error:
+        logging.error(process_error)
         continue
 
 

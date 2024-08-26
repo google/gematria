@@ -15,7 +15,7 @@
 import os
 
 import apache_beam as beam
-from apache_beam.options.pipeline_options import PipelineOptions
+from apache_beam.options import pipeline_options
 from absl import app
 from absl import flags
 
@@ -36,7 +36,7 @@ _OUTPUT_TXT_FILE = flags.DEFINE_string(
 def main(argv) -> None:
   del argv  # Unused.
 
-  beam_options = PipelineOptions()
+  beam_options = pipeline_options.PipelineOptions()
 
   pipeline_constructor = compile_modules_lib.get_bbs(
       os.path.join(_PARQUET_FOLDER.value, '*.parquet'), _OUTPUT_TXT_FILE.value
