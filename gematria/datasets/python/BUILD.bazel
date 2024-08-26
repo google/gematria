@@ -153,3 +153,13 @@ gematria_pybind_extension(
         "@pybind11_abseil_repo//pybind11_abseil:status_casters",
     ],
 )
+
+gematria_py_test(
+    name = "exegesis_benchmark_test",
+    size = "small",
+    srcs = ["exegesis_benchmark_test.py"],
+    deps = [
+        ":bhive_to_exegesis",
+        ":exegesis_benchmark",
+    ],
+)
