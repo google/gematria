@@ -265,29 +265,29 @@ Expected<BenchmarkCode> ExegesisBenchmark::parseJSONBlock(
 
 Expected<BenchmarkCode> ExegesisBenchmark::processAnnotatedBlock(
     std::string_view BlockHex, const BlockAnnotations &Annotations) {
-  std::optional<std::vector<uint8_t>> BytesOr =
+  std::optional<std::vector<uint8_t>> Bytes =
       gematria::ParseHexString(BlockHex);
 
-  if (!BytesOr.has_value())
+  if (!Bytes.has_value())
     return llvm::make_error<StringError>(
         errc::invalid_argument,
         "Malformed basic block: invalid hex value " + BlockHex);
 
-  Expected<std::vector<gematria::DisassembledInstruction>> InstructionsOrErr =
-      gematria::DisassembleAllInstructions(
+  Expected<std::vector<gematria::DisassembledInstruction>>
+      DisassembledInstructions = gematria::DisassembleAllInstructions(
           *LLVMMCDisassembler, ExegesisState.getInstrInfo(),
           ExegesisState.getRegInfo(), ExegesisState.getSubtargetInfo(),
-          *LLVMMCInstPrinter, 0, *BytesOr);
+          *LLVMMCInstPrinter, 0, *Bytes);
 
-  if (!InstructionsOrErr) return InstructionsOrErr.takeError();
+  if (!DisassembledInstructions) return DisassembledInstructions.takeError();
 
   BenchmarkCode BenchmarkConfiguration;
 
   std::vector<MCInst> Instructions;
-  Instructions.reserve(InstructionsOrErr->size());
+  Instructions.reserve(DisassembledInstructions->size());
 
   for (const gematria::DisassembledInstruction &Instruction :
-       *InstructionsOrErr)
+       *DisassembledInstructions)
     Instructions.push_back(Instruction.mc_inst);
 
   BenchmarkConfiguration.Key.Instructions = std::move(Instructions);
@@ -309,8 +309,14 @@ Expected<BenchmarkCode> ExegesisBenchmark::processAnnotatedBlock(
                         .Index = 0};
   BenchmarkConfiguration.Key.MemoryValues["MEM"] = std::move(MemVal);
 
+  BenchmarkConfiguration.Key.MemoryMappings.reserve(
+      Annotations.accessed_blocks.size());
+
   for (const uintptr_t AccessedBlock : Annotations.accessed_blocks) {
-    MemoryMapping MemMap = {.Address = AccessedBlock, .MemoryValueName = "MEM"};
+    // TODO(boomanaiden154): We should remove this static cast once
+    // upstream llvm-exegesis has transitioned to using uintptr_t.
+    MemoryMapping MemMap = {.Address = static_cast<intptr_t>(AccessedBlock),
+                            .MemoryValueName = "MEM"};
 
     BenchmarkConfiguration.Key.MemoryMappings.push_back(std::move(MemMap));
   }

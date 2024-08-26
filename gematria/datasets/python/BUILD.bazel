@@ -123,6 +123,27 @@ gematria_py_test(
 )
 
 gematria_pybind_extension(
+    name = "bhive_to_exegesis",
+    srcs = ["bhive_to_exegesis.cc"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/datasets:bhive_to_exegesis",
+        "//gematria/llvm:llvm_to_absl",
+        "@pybind11_abseil_repo//pybind11_abseil:status_casters",
+    ],
+)
+
+gematria_py_test(
+    name = "bhive_to_exegesis_test",
+    size = "small",
+    srcs = ["bhive_to_exegesis_test.py"],
+    deps = [
+        ":bhive_to_exegesis",
+        "//gematria/llvm/python:llvm_architecture_support",
+    ],
+)
+
+gematria_pybind_extension(
     name = "exegesis_benchmark",
     srcs = ["exegesis_benchmark.cc"],
     visibility = ["//:internal_users"],

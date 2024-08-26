@@ -19,6 +19,7 @@
 #include <string>
 
 #include "gematria/datasets/find_accessed_addrs.h"
+#include "gematria/testing/llvm.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "llvm/ADT/StringRef.h"
@@ -36,6 +37,11 @@ namespace {
 
 using namespace llvm;
 using namespace llvm::exegesis;
+
+using ::testing::_;
+using ::testing::FieldsAre;
+using ::testing::Pair;
+using ::testing::UnorderedElementsAre;
 
 class ExegesisBenchmarkTest : public testing::Test {
  protected:
@@ -126,26 +132,20 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONBlock) {
   Expected<BenchmarkCode> BenchCode =
       Benchmark->parseJSONBlock(*BlockValue->getAsObject(), 1);
 
-  ASSERT_THAT(BenchCode->Key.Instructions, testing::SizeIs(1));
-  EXPECT_EQ(BenchCode->Key.Instructions[0].getOpcode(), X86::CMP32rm);
+  EXPECT_THAT(BenchCode->Key.Instructions,
+              UnorderedElementsAre(IsMCInst(X86::CMP32rm, _)));
 
   EXPECT_EQ(BenchCode->Key.LoopRegister, 51);
 
-  ASSERT_THAT(BenchCode->Key.MemoryValues, testing::SizeIs(1));
-  EXPECT_EQ(BenchCode->Key.MemoryValues["MEM"].SizeBytes, 4096);
-  EXPECT_EQ(BenchCode->Key.MemoryValues["MEM"].Value, 1);
+  EXPECT_THAT(BenchCode->Key.MemoryValues,
+              UnorderedElementsAre(Pair("MEM", FieldsAre(1, 4096, 0))));
 
-  ASSERT_THAT(BenchCode->Key.RegisterInitialValues, testing::SizeIs(2));
-  EXPECT_EQ(BenchCode->Key.RegisterInitialValues[0].Register, 54);
-  EXPECT_EQ(BenchCode->Key.RegisterInitialValues[0].Value, 86016);
-  EXPECT_EQ(BenchCode->Key.RegisterInitialValues[1].Register, 60);
-  EXPECT_EQ(BenchCode->Key.RegisterInitialValues[1].Value, 86016);
+  EXPECT_THAT(BenchCode->Key.RegisterInitialValues,
+              UnorderedElementsAre(FieldsAre(54, 86016), FieldsAre(60, 86016)));
 }
 
 TEST_F(ExegesisBenchmarkTest, TestParseJSONNoHex) {
-  Expected<std::string> ErrorMessage = getErrorMessage(R"json(
-  {}
-  )json");
+  Expected<std::string> ErrorMessage = getErrorMessage("{}");
   ASSERT_TRUE(static_cast<bool>(ErrorMessage));
 
   EXPECT_EQ(*ErrorMessage,
@@ -398,29 +398,18 @@ TEST_F(ExegesisBenchmarkTest, TestProcessAnnotatedBlock) {
       Benchmark->processAnnotatedBlock("3b31", Annotations);
   ASSERT_TRUE(static_cast<bool>(BenchmarkConfiguration));
 
-  ASSERT_THAT(BenchmarkConfiguration->Key.Instructions, testing::SizeIs(1));
-  EXPECT_EQ(BenchmarkConfiguration->Key.Instructions[0].getOpcode(),
-            X86::CMP32rm);
+  EXPECT_THAT(BenchmarkConfiguration->Key.Instructions,
+              UnorderedElementsAre(IsMCInst(X86::CMP32rm, _)));
 
-  ASSERT_THAT(BenchmarkConfiguration->Key.RegisterInitialValues,
-              testing::SizeIs(2));
-  EXPECT_EQ(BenchmarkConfiguration->Key.RegisterInitialValues[0].Register, 0);
-  EXPECT_EQ(BenchmarkConfiguration->Key.RegisterInitialValues[0].Value, 5);
-  EXPECT_EQ(BenchmarkConfiguration->Key.RegisterInitialValues[1].Register, 1);
-  EXPECT_EQ(BenchmarkConfiguration->Key.RegisterInitialValues[1].Value, 17);
+  EXPECT_THAT(BenchmarkConfiguration->Key.RegisterInitialValues,
+              UnorderedElementsAre(FieldsAre(0, 5), FieldsAre(1, 17)));
 
-  ASSERT_THAT(BenchmarkConfiguration->Key.MemoryValues, testing::SizeIs(1));
-  EXPECT_EQ(BenchmarkConfiguration->Key.MemoryValues["MEM"].SizeBytes, 4096);
-  EXPECT_EQ(BenchmarkConfiguration->Key.MemoryValues["MEM"].Index, 0);
-  EXPECT_EQ(BenchmarkConfiguration->Key.MemoryValues["MEM"].Value, 0xff);
+  EXPECT_THAT(BenchmarkConfiguration->Key.MemoryValues,
+              UnorderedElementsAre(Pair("MEM", FieldsAre(0xff, 4096, 0))));
 
-  ASSERT_THAT(BenchmarkConfiguration->Key.MemoryMappings, testing::SizeIs(2));
-  EXPECT_EQ(BenchmarkConfiguration->Key.MemoryMappings[0].MemoryValueName,
-            "MEM");
-  EXPECT_EQ(BenchmarkConfiguration->Key.MemoryMappings[0].Address, 0xaa);
-  EXPECT_EQ(BenchmarkConfiguration->Key.MemoryMappings[1].MemoryValueName,
-            "MEM");
-  EXPECT_EQ(BenchmarkConfiguration->Key.MemoryMappings[1].Address, 0xbb);
+  EXPECT_THAT(
+      BenchmarkConfiguration->Key.MemoryMappings,
+      UnorderedElementsAre(FieldsAre(0xaa, "MEM"), FieldsAre(0xbb, "MEM")));
 
   EXPECT_EQ(BenchmarkConfiguration->Key.SnippetAddress, 0xff);
   EXPECT_EQ(BenchmarkConfiguration->Key.LoopRegister, MCRegister::NoRegister);
