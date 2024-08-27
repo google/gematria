@@ -46,8 +46,8 @@ cc_library(
     hdrs = ["annotating_importer.h"],
     visibility = ["//:internal_users"],
     deps = [
+        ":bhive_importer",
         "//gematria/basic_block:basic_block_protos",
-        "//gematria/datasets:bhive_importer",
         "//gematria/llvm:canonicalizer",
         "//gematria/llvm:llvm_to_absl",
         "//gematria/proto:basic_block_cc_proto",
@@ -61,11 +61,29 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "annotating_importer_test",
+    srcs = ["annotating_importer_test.cc"],
+    data = [
+        "//gematria/testing/testdata:simple_x86_elf_object",
+        "//gematria/testing/testdata:simple_x86_elf_object.perf.data",
+    ],
+    deps = [
+        ":annotating_importer",
+        "//gematria/llvm:canonicalizer",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/proto:throughput_cc_proto",
+        "//gematria/testing:matchers",
+        "@bazel_tools//tools/cpp/runfiles",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "bhive_to_exegesis",
     srcs = ["bhive_to_exegesis.cc"],
     hdrs = ["bhive_to_exegesis.h"],
-    visibility = ["//:internal_users"],
     deps = [
         ":bhive_importer",
         ":find_accessed_addrs",

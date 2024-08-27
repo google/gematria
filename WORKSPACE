@@ -79,11 +79,14 @@ git_repository(
     tag = "5.3.0-21.7",
 )
 
-# We use `perf_data_converter` with a patch to make it more usable as a library.
+# We only take the `quipper` sub-package from the `perf_data_converter`
+# repository to keep things cleaner.
 git_repository(
     name = "com_google_perf_data_converter",
     commit = "442981cd4071fa9b1057b2609406db027e6d6263",
     patch_args = ["-p1"],
+    # `strip_prefix` would also work, but this makes generating the patch
+    # easier, since `patch_cmds` are applied after the patch itself.
     patch_cmds = [
         "mv ./src/quipper .",
         "rm -rf ./src",
@@ -92,7 +95,8 @@ git_repository(
     remote = "https://github.com/google/perf_data_converter.git",
 )
 
-# Dependencies for `perf_data_converter`
+# `libelf` from `elfutils` and `boringssl` are dependencies for
+# `quipper` from `perf_data_converter`.
 http_archive(
     name = "elfutils",
     build_file = "//:elfutils.BUILD",
