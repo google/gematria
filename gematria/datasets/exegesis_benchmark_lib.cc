@@ -313,8 +313,7 @@ Expected<BenchmarkCode> ExegesisBenchmark::processAnnotatedBlock(
       Annotations.accessed_blocks.size());
 
   for (const uintptr_t AccessedBlock : Annotations.accessed_blocks) {
-    MemoryMapping MemMap = {.Address = AccessedBlock,
-                            .MemoryValueName = "MEM"};
+    MemoryMapping MemMap = {.Address = AccessedBlock, .MemoryValueName = "MEM"};
 
     BenchmarkConfiguration.Key.MemoryMappings.push_back(std::move(MemMap));
   }
