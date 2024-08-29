@@ -348,42 +348,6 @@ AnnotatingImporter::GetLBRBlocksWithLatency() {
   return blocks;
 }
 
-absl::StatusOr<
-    std::unordered_map<uint64_t, std::pair<uint64_t, std::vector<uint32_t>>>>
-AnnotatingImporter::GetLBRData() {
-  const quipper::PerfDataProto &perf_data_proto = perf_reader_.proto();
-
-  std::unordered_map<uint64_t, std::pair<uint64_t, std::vector<uint32_t>>>
-      lbr_data;
-  for (const auto &event : perf_data_proto.events()) {
-    if (!event.has_sample_event() ||
-        !event.sample_event().branch_stack_size()) {
-      continue;
-    }
-    const auto &branch_stack = event.sample_event().branch_stack();
-    for (int branch_idx = 0; branch_idx + 1 < branch_stack.size();
-         ++branch_idx) {
-      const auto &next_branch_entry = branch_stack[branch_idx];
-      const auto &branch_entry = branch_stack.at(branch_idx + 1);
-      if (lbr_data.count(branch_entry.to_ip())) {
-        auto &[run_end, cycles_values] = lbr_data[branch_entry.to_ip()];
-        if (next_branch_entry.from_ip() == run_end) {
-          cycles_values.push_back(next_branch_entry.cycles());
-        } else if (next_branch_entry.from_ip() < run_end) {
-          run_end = next_branch_entry.from_ip();
-          cycles_values = std::vector<uint32_t>{next_branch_entry.cycles()};
-        }
-      } else {
-        lbr_data[branch_entry.to_ip()] =
-            std::make_pair(next_branch_entry.from_ip(),
-                           std::vector<uint32_t>{next_branch_entry.cycles()});
-      }
-    }
-  }
-
-  return lbr_data;
-}
-
 absl::StatusOr<std::vector<BasicBlockWithThroughputProto>>
 AnnotatingImporter::GetAnnotatedBasicBlockProtos(
     std::string_view elf_file_name, std::string_view perf_data_file_name,

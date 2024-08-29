@@ -61,6 +61,8 @@ class AnnotatingImporter {
   absl::Status LoadBinary(const std::string_view file_name);
 
   // Returns a pointer inside the loaded binary casted down to an ELF object.
+  // The pointer is owned by this instance of `AnnotatingImporter` and may only
+  // be accessed while this is alive.
   absl::StatusOr<llvm::object::ELF64LEObjectFile*> GetELFFromBinary();
 
   // Returns the file offset of the passed ELF object.
@@ -90,15 +92,6 @@ class AnnotatingImporter {
   absl::StatusOr<std::pair<std::vector<std::string>,
                            std::unordered_map<uint64_t, std::vector<int>>>>
   GetSamples();
-
-  // Extracts start and end pairs, as well as lengths in cycles, of sequences of
-  // straight-run code from branch stacks. Returns an unordered_map:
-  // `start_addr` -> {`end_addr`, [`cycles_measurements`, ...]}.
-  // LBR data is extracted from the `perf.data`-like file loaded using
-  // `LoadPerfData`.
-  absl::StatusOr<
-      std::unordered_map<uint64_t, std::pair<uint64_t, std::vector<uint32_t>>>>
-  GetLBRData();
 
   // Extracts start and end pairs, as well as latencies in cycles, of sequences
   // of straight-run code from branch stacks.
