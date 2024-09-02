@@ -1,0 +1,62 @@
+diff --git a/elfutils.BUILD b/elfutils.BUILD
+new file mode 100644
+index 0000000..b69293f
+--- /dev/null
++++ b/elfutils.BUILD
+@@ -0,0 +1,22 @@
++load("@rules_foreign_cc//foreign_cc:defs.bzl", "configure_make")
++
++filegroup(
++    name = "all_files",
++    srcs = glob(["**"]),
++)
++
++configure_make(
++    name = "libelf",
++    configure_options = [
++        "--disable-debuginfod",
++        "--disable-libdebuginfod",
++    ],
++    lib_source = ":all_files",
++    out_binaries = ["libelf"],
++    targets = [
++        "PREFIX=$$INSTALLDIR$$ " +
++        "WARNINGS=\"-Wall\" " +
++        "install",
++    ],
++    visibility = ["//visibility:public"],
++)
+diff --git a/src/quipper/BUILD b/src/quipper/BUILD
+index b15eb00..9a2af64 100644
+--- a/src/quipper/BUILD
++++ b/src/quipper/BUILD
+@@ -114,8 +114,8 @@ cc_library(
+         ":data_reader",
+         ":file_reader",
+         ":base",
++        "@elfutils//:libelf",
+     ],
+-    linkopts = ["-lelf"],
+ )
+ 
+ cc_library(
+@@ -126,8 +126,8 @@ cc_library(
+     deps = [
+         ":binary_data_utils",
+         ":base",
++        "@elfutils//:libelf",
+     ],
+-    linkopts = ["-lelf"],
+ )
+ 
+ cc_library(
+@@ -605,8 +605,8 @@ cc_test(
+         ":scoped_temp_path",
+         ":test_runner",
+         ":base",
++        "@elfutils//:libelf",
+     ],
+-    linkopts = ["-lelf"],
+ )
+ 
+ cc_test(

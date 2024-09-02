@@ -3,6 +3,20 @@ package(
 )
 
 exports_files(
-    srcs = ["basic_blocks_with_throughput.pbtxt"],
+    srcs = [
+        "annotated_basic_blocks_with_throughput.pbtxt",
+        "basic_blocks_with_throughput.pbtxt",
+        "simple_x86_elf_object",
+        "simple_x86_elf_object.perf.data",
+    ],
+    visibility = ["//:internal_users"],
+)
+
+cc_binary(
+    name = "simple_x86_elf_object_source",
+    srcs = ["simple_x86_elf_object_source.c"],
+    copts = [
+        "-fbasic-block-sections=labels",
+    ],
     visibility = ["//:internal_users"],
 )

@@ -52,6 +52,11 @@ class BHiveImporter {
       llvm::ArrayRef<DisassembledInstruction> disassembled_instructions,
       uint64_t base_address = 0);
 
+  //
+  absl::StatusOr<std::vector<DisassembledInstruction> >
+  DisassembledInstructionsFromMachineCode(llvm::ArrayRef<uint8_t> machine_code,
+                                          uint64_t base_address = 0);
+
   // A version of BasicBlockProtoFromInstructions. Creates a basic block from
   // the given block of machine code. `machine_code` must contain machine code
   // of the instructions to include in the basic block. Expects that the
