@@ -142,3 +142,29 @@ gematria_py_test(
         "//gematria/llvm/python:llvm_architecture_support",
     ],
 )
+
+gematria_pybind_extension(
+    name = "exegesis_benchmark",
+    srcs = ["exegesis_benchmark.cc"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/datasets:bhive_to_exegesis",
+        "//gematria/datasets:exegesis_benchmark_lib",
+        "//gematria/llvm:llvm_to_absl",
+        "@pybind11_abseil_repo//pybind11_abseil:status_casters",
+    ],
+)
+
+gematria_py_test(
+    name = "exegesis_benchmark_test",
+    size = "small",
+    srcs = ["exegesis_benchmark_test.py"],
+    tags = [
+        "perf_counters",
+    ],
+    deps = [
+        ":bhive_to_exegesis",
+        ":exegesis_benchmark",
+        "//gematria/llvm/python:llvm_architecture_support",
+    ],
+)
