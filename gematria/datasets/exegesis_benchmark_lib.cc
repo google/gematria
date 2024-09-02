@@ -313,10 +313,7 @@ Expected<BenchmarkCode> ExegesisBenchmark::processAnnotatedBlock(
       Annotations.accessed_blocks.size());
 
   for (const uintptr_t AccessedBlock : Annotations.accessed_blocks) {
-    // TODO(boomanaiden154): We should remove this static cast once
-    // upstream llvm-exegesis has transitioned to using uintptr_t.
-    MemoryMapping MemMap = {.Address = static_cast<intptr_t>(AccessedBlock),
-                            .MemoryValueName = "MEM"};
+    MemoryMapping MemMap = {.Address = AccessedBlock, .MemoryValueName = "MEM"};
 
     BenchmarkConfiguration.Key.MemoryMappings.push_back(std::move(MemMap));
   }

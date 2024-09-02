@@ -8,6 +8,7 @@ tensorflow-probability>=0.24.0
 tensorflow>=2.16.0; sys_platform=='linux'
 tensorflow-macos>=2.16.0; sys_platform=='darwin'
 tf-keras>=2.16
+tf-slim>=1.1.0
 lit>=17.0.6
 pandas>=2.2.2
 pyarrow>=16.0.0

@@ -94,6 +94,7 @@ cc_library(
     name = "exegesis_benchmark_lib",
     srcs = ["exegesis_benchmark_lib.cc"],
     hdrs = ["exegesis_benchmark_lib.h"],
+    visibility = ["//:internal_users"],
     deps = [
         ":find_accessed_addrs",
         "//gematria/llvm:disassembler",
