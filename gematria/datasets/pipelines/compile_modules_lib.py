@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from collections.abc import Callable, Iterable, Sequence
+import os
 import subprocess
 
+from absl import logging
 import apache_beam as beam
 from rules_python.python.runfiles import runfiles
-from absl import logging
 
 from gematria.datasets.python import extract_bbs_from_obj
 
@@ -37,7 +37,7 @@ class OptimizeModules(beam.DoFn):
     self._opt_path = _get_llvm_binary_path('opt')
 
   def optimize_module(
-      self, input_module: bytes, optimization_pass_list: list[str]
+      self, input_module: bytes, optimization_pass_list: Sequence[str]
   ) -> bytes:
     command_vector = [self._opt_path, f'-passes={optimization_pass_list}']
     result = subprocess.run(
@@ -57,7 +57,7 @@ class OptimizeModules(beam.DoFn):
 class LowerModulesAsm(beam.DoFn):
   """A Beam function that lowers bitcode files to object files."""
 
-  def __init__(self, optimization_levels: list[str]):
+  def __init__(self, optimization_levels: Sequence[str]):
     self._optimization_levels = optimization_levels
     self._llc_path = _get_llvm_binary_path('llc')
 

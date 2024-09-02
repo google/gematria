@@ -14,10 +14,10 @@
 
 import os
 
-import apache_beam as beam
-from apache_beam.options import pipeline_options
 from absl import app
 from absl import flags
+import apache_beam as beam
+from apache_beam.options import pipeline_options
 
 from gematria.datasets.pipelines import compile_modules_lib
 
