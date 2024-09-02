@@ -32,23 +32,23 @@ def _get_llvm_binary_path(tool_name: str) -> str:
 class OptimizeModules(beam.DoFn):
   """A Beam function that uses LLVM opt to optimize bitcode modules."""
 
-  def __init__(self, optimization_pass_lists: Sequence[Sequence[str]]):
-    self._optimization_pass_lists = optimization_pass_lists
+  def __init__(self, optimization_pipelines: Sequence[str]):
+    self._optimization_pipelines = optimization_pipelines
     self._opt_path = _get_llvm_binary_path('opt')
 
   def optimize_module(
-      self, input_module: bytes, optimization_pass_list: Sequence[str]
+      self, input_module: bytes, optimization_pipeline: str
   ) -> bytes:
-    command_vector = [self._opt_path, f'-passes={optimization_pass_list}']
+    command_vector = [self._opt_path, f'-passes={optimization_pipeline}']
     result = subprocess.run(
         command_vector, input=input_module, capture_output=True, check=True
     )
     return result.stdout
 
   def process(self, input_module: bytes) -> Iterable[bytes]:
-    for optimization_pass_list in self._optimization_pass_lists:
+    for optimization_pipeline in self._optimization_pipelines:
       try:
-        yield self.optimize_module(input_module, optimization_pass_list)
+        yield self.optimize_module(input_module, optimization_pipeline)
       except subprocess.CalledProcessError as process_error:
         logging.error(process_error)
         continue
