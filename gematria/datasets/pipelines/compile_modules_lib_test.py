@@ -83,6 +83,28 @@ class CompileModulesTests(absltest.TestCase):
       output = input | compile_modules_lib.DeduplicateBBs()
       beam_test.assert_that(output, beam_test.equal_to(['aa', 'ab', 'bc']))
 
+  def test_process_and_filter_bbs(self):
+    bb_hex = 'B801000000C3'
+
+    process_and_filter_transform = compile_modules_lib.ProcessAndFilterBBs(
+        False
+    )
+    process_and_filter_transform.setup()
+
+    filtered_bbs = process_and_filter_transform.process(bb_hex)
+
+    self.assertLen(filtered_bbs, 1)
+    self.assertEqual(filtered_bbs[0], 'B801000000')
+
+    # Check that we return an empty list if we have a BB that contains only
+    # instructions that should get filtered.
+
+    bb_hex = 'C3'
+
+    filtered_bbs = process_and_filter_transform.process(bb_hex)
+
+    self.assertLen(filtered_bbs, 0)
+
   def test_get_bbs(self):
     ir_string1 = textwrap.dedent("""\
       define i32 @a() {
@@ -104,7 +126,7 @@ class CompileModulesTests(absltest.TestCase):
     )
 
     pipeline_constructor = compile_modules_lib.get_bbs(
-        test_parquet_file.full_path, output_file_pattern
+        test_parquet_file.full_path, output_file_pattern, False
     )
 
     with test_pipeline.TestPipeline() as pipeline_under_test:
@@ -116,9 +138,7 @@ class CompileModulesTests(absltest.TestCase):
     output_file_lines = [raw_line.strip() for raw_line in output_file_lines_raw]
 
     self.assertLen(output_file_lines, 2)
-    self.assertContainsSubset(
-        ['B801000000C3', 'B802000000C3'], output_file_lines
-    )
+    self.assertContainsSubset(['B801000000', 'B802000000'], output_file_lines)
 
 
 if __name__ == '__main__':

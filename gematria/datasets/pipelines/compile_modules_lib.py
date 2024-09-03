@@ -21,6 +21,7 @@ import apache_beam as beam
 from rules_python.python.runfiles import runfiles
 
 from gematria.datasets.python import extract_bbs_from_obj
+from gematria.datasets.python import process_and_filter_bbs
 
 
 def _get_llvm_binary_path(tool_name: str) -> str:
@@ -106,8 +107,31 @@ class DeduplicateBBs(beam.ptransform.PTransform):
     )
 
 
+class ProcessAndFilterBBs(beam.DoFn):
+  """A Beam transform to process and filter BBs."""
+
+  def __init__(self, remove_memory_accessing_instructions: bool):
+    self._remove_memory_accessing_instructions = (
+        remove_memory_accessing_instructions
+    )
+
+  def setup(self):
+    self._bb_processor_filter = process_and_filter_bbs.BBProcessorFilter()
+
+  def process(self, bb_hex: str) -> Iterable[str]:
+    output_block = self._bb_processor_filter.remove_risky_instructions(
+        bb_hex, bb_hex, self._remove_memory_accessing_instructions
+    )
+    if output_block == '':
+      return []
+
+    return [output_block]
+
+
 def get_bbs(
-    input_file_pattern: str, output_file: str
+    input_file_pattern: str,
+    output_file: str,
+    remove_memory_accessing_instructions: bool,
 ) -> Callable[[beam.Pipeline], None]:
   def pipeline(root: beam.Pipeline) -> None:
     parquet_data = root | 'Read' >> beam.io.ReadFromParquet(
@@ -131,8 +155,16 @@ def get_bbs(
     bb_hex_values_deduplicated = (
         bb_hex_values | 'Deduplicate' >> DeduplicateBBs()
     )
+    processed_filtered_bbs = (
+        bb_hex_values_deduplicated
+        | 'Filter'
+        >> beam.ParDo(ProcessAndFilterBBs(remove_memory_accessing_instructions))
+    )
+    processed_bbs_deduplicated = (
+        processed_filtered_bbs | 'Deduplicate Processed BBs' >> DeduplicateBBs()
+    )
 
-    _ = bb_hex_values_deduplicated | 'WriteToText' >> beam.io.WriteToText(
+    _ = processed_bbs_deduplicated | 'WriteToText' >> beam.io.WriteToText(
         output_file
     )
 
