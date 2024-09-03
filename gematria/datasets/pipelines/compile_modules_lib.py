@@ -110,7 +110,7 @@ def get_bbs(
     input_file_pattern: str, output_file: str
 ) -> Callable[[beam.Pipeline], None]:
   """Creates a pipeline to process BBs from IR modules.
-  
+
   This function returns a function that builds a beam pipeline to automatically
   load ir files from a ComPile style parquet file, process them into assembly
   basic blocks, deduplicate them, and then write them to a text file.
@@ -123,8 +123,9 @@ def get_bbs(
 
   Returns:
     A function that accepts a beam pipeline and adds on all the steps needed
-    to process the input IR modules.  
+    to process the input IR modules.
   """
+
   def pipeline(root: beam.Pipeline) -> None:
     parquet_data = root | 'Read' >> beam.io.ReadFromParquet(
         input_file_pattern, columns=['content']
