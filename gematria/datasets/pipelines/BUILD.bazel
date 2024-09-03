@@ -9,7 +9,7 @@ gematria_py_library(
     ],
     deps = [
         "//gematria/datasets/python:extract_bbs_from_obj",
-        "@rules_python//python/runfiles",
+        "//gematria/utils/python:runfiles",
     ],
 )
 

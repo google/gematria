@@ -67,7 +67,7 @@ gematria_py_library(
     ],
     visibility = ["//:internal_users"],
     deps = [
-        "@rules_python//python/runfiles",
+        "//gematria/utils/python:runfiles",
     ],
 )
 

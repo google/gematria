@@ -45,3 +45,12 @@ gematria_py_library(
     ],
     visibility = ["//:internal_users"],
 )
+
+gematria_py_library(
+    name = "runfiles",
+    srcs = ["runfiles.py"],
+    visibility = ["//:internal_users"],
+    deps = [
+        "@rules_python//python/runfiles",
+    ],
+)
