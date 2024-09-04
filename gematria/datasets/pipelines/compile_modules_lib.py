@@ -20,6 +20,7 @@ from absl import logging
 import apache_beam as beam
 
 from gematria.datasets.python import extract_bbs_from_obj
+from gematria.datasets.python import process_and_filter_bbs
 import gematria.llvm.python.runfiles
 
 
