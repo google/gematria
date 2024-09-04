@@ -122,10 +122,15 @@ class ProcessAndFilterBBs(beam.DoFn):
     output_block = self._bb_processor_filter.remove_risky_instructions(
         bb_hex, bb_hex, self._remove_memory_accessing_instructions
     )
+<<<<<<< HEAD
     if output_block == '':
       return []
 
     return [output_block]
+=======
+    if output_block != '':
+      yield output_block
+>>>>>>> main
 
 
 def get_bbs(
@@ -133,6 +138,23 @@ def get_bbs(
     output_file: str,
     remove_memory_accessing_instructions: bool,
 ) -> Callable[[beam.Pipeline], None]:
+  """Creates a pipeline to process BBs from IR modules.
+
+  This function returns a function that builds a beam pipeline to automatically
+  load IR files from a ComPile style Parquet file, process them into assembly
+  basic blocks, deduplicate them, and then write them to a text file.
+
+  Args:
+    input_file_pattern: A grep-like pattern to use to search for the Parquet
+      files to process.
+    output_file: The output file pattern to use when writing the basic blocks
+      to disk.
+
+  Returns:
+    A function that accepts a beam pipeline and adds on all the steps needed
+    to process the input IR modules.
+  """
+
   def pipeline(root: beam.Pipeline) -> None:
     parquet_data = root | 'Read' >> beam.io.ReadFromParquet(
         input_file_pattern, columns=['content']

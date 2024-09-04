@@ -91,18 +91,15 @@ class CompileModulesTests(absltest.TestCase):
     )
     process_and_filter_transform.setup()
 
-    filtered_bbs = process_and_filter_transform.process(bb_hex)
+    filtered_bbs = list(process_and_filter_transform.process(bb_hex))
 
     self.assertLen(filtered_bbs, 1)
     self.assertEqual(filtered_bbs[0], 'B801000000')
 
     # Check that we return an empty list if we have a BB that contains only
     # instructions that should get filtered.
-
     bb_hex = 'C3'
-
-    filtered_bbs = process_and_filter_transform.process(bb_hex)
-
+    filtered_bbs = list(process_and_filter_transform.process(bb_hex))
     self.assertLen(filtered_bbs, 0)
 
   def test_get_bbs(self):
