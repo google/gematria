@@ -5,6 +5,7 @@ gematria_py_library(
     srcs = ["compile_modules_lib.py"],
     deps = [
         "//gematria/datasets/python:extract_bbs_from_obj",
+        "//gematria/datasets/python:process_and_filter_bbs",
         "//gematria/llvm/python:runfiles",
     ],
 )
