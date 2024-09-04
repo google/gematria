@@ -112,11 +112,11 @@ def get_bbs(
   """Creates a pipeline to process BBs from IR modules.
 
   This function returns a function that builds a beam pipeline to automatically
-  load ir files from a ComPile style parquet file, process them into assembly
+  load IR files from a ComPile style Parquet file, process them into assembly
   basic blocks, deduplicate them, and then write them to a text file.
 
   Args:
-    input_file_pattern: A grep-like pattern to use to search for the parquet
+    input_file_pattern: A grep-like pattern to use to search for the Parquet
       files to process.
     output_file: The output file pattern to use when writing the basic blocks
       to disk.
