@@ -122,10 +122,8 @@ class ProcessAndFilterBBs(beam.DoFn):
     output_block = self._bb_processor_filter.remove_risky_instructions(
         bb_hex, bb_hex, self._remove_memory_accessing_instructions
     )
-    if output_block == '':
-      return []
-
-    return [output_block]
+    if output_block != '':
+      yield output_block
 
 
 def get_bbs(
