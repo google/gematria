@@ -95,9 +95,9 @@ TEST_F(BHiveToExegesisTest, SimpleBlock) {
 
   EXPECT_EQ(BlockAnnotations->BasicBlockProto.machine_instructions_size(), 1);
 
-  EXPECT_THAT(BlockAnnotations->AccessedAddrs.accessed_blocks, SizeIs(0));
-  EXPECT_THAT(BlockAnnotations->AccessedAddrs.initial_regs, SizeIs(1));
-  EXPECT_TRUE(BlockAnnotations->AccessedAddrs.loop_register.has_value());
+  EXPECT_THAT(BlockAnnotations->AccessedAddrs.accessed_blocks(), SizeIs(0));
+  EXPECT_THAT(BlockAnnotations->AccessedAddrs.initial_registers(), SizeIs(1));
+  EXPECT_TRUE(BlockAnnotations->AccessedAddrs.has_loop_register());
 }
 
 }  // namespace

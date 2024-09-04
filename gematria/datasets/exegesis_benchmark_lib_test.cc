@@ -15,10 +15,9 @@
 #include "gematria/datasets/exegesis_benchmark_lib.h"
 
 #include <memory>
-#include <optional>
 #include <string>
 
-#include "gematria/datasets/find_accessed_addrs.h"
+#include "gematria/proto/execution_annotation.pb.h"
 #include "gematria/testing/llvm.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -385,14 +384,18 @@ TEST_F(ExegesisBenchmarkTest, TestBenchmarkAdd) {
 }
 
 TEST_F(ExegesisBenchmarkTest, TestProcessAnnotatedBlock) {
-  BlockAnnotations Annotations = {
-      .code_location = 0xff,
-      .block_size = 4096,
-      .block_contents = 0xff,
-      .accessed_blocks = {0xaa, 0xbb},
-      .initial_regs = {{.register_index = 0, .register_value = 5},
-                       {.register_index = 1, .register_value = 17}},
-      .loop_register = std::nullopt};
+  ExecutionAnnotations Annotations;
+  Annotations.set_code_location(0xff);
+  Annotations.set_block_size(4096);
+  Annotations.set_block_contents(0xff);
+  Annotations.add_accessed_blocks(0xaa);
+  Annotations.add_accessed_blocks(0xbb);
+  RegisterAndValue *register_a = Annotations.add_initial_registers();
+  register_a->set_register_index(0);
+  register_a->set_register_value(5);
+  RegisterAndValue *register_b = Annotations.add_initial_registers();
+  register_b->set_register_index(1);
+  register_b->set_register_value(17);
 
   Expected<BenchmarkCode> BenchmarkConfiguration =
       Benchmark->processAnnotatedBlock("3b31", Annotations);
@@ -416,14 +419,18 @@ TEST_F(ExegesisBenchmarkTest, TestProcessAnnotatedBlock) {
 }
 
 TEST_F(ExegesisBenchmarkTest, TestBenchmarkFromAnnotatedBlock) {
-  BlockAnnotations Annotations = {
-      .code_location = 0,
-      .block_size = 4096,
-      .block_contents = 34359738376,
-      .accessed_blocks = {86016},
-      .initial_regs = {{.register_index = X86::RCX, .register_value = 86016},
-                       {.register_index = X86::RSI, .register_value = 86016}},
-      .loop_register = X86::RAX};
+  ExecutionAnnotations Annotations;
+  Annotations.set_code_location(0);
+  Annotations.set_block_size(4096);
+  Annotations.set_block_contents(34359738376);
+  Annotations.add_accessed_blocks(86016);
+  RegisterAndValue *register_a = Annotations.add_initial_registers();
+  register_a->set_register_index(X86::RCX);
+  register_a->set_register_value(86016);
+  RegisterAndValue *register_b = Annotations.add_initial_registers();
+  register_b->set_register_index(X86::RSI);
+  register_b->set_register_value(86016);
+  Annotations.set_loop_register(X86::RAX);
 
   Expected<BenchmarkCode> BenchmarkConfiguration =
       Benchmark->processAnnotatedBlock("3b31", Annotations);

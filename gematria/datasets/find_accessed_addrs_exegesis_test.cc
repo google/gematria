@@ -25,9 +25,9 @@
 
 #include "absl/log/check.h"
 #include "absl/memory/memory.h"
-#include "find_accessed_addrs.h"
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/llvm_architecture_support.h"
+#include "gematria/proto/execution_annotation.pb.h"
 #include "gtest/gtest.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallString.h"
@@ -83,7 +83,7 @@ class FindAccessedAddrsExegesisTest : public testing::Test {
     return std::string(Code);
   }
 
-  llvm::Expected<BlockAnnotations> FindAccessedAddrsExegesis(
+  llvm::Expected<ExecutionAnnotations> FindAccessedAddrsExegesis(
       std::string_view TextualAssembly) {
     auto Code = Assemble(TextualAssembly);
     auto Annotator = cantFail(ExegesisAnnotator::create(State));
@@ -103,8 +103,8 @@ TEST_F(FindAccessedAddrsExegesisTest, ExegesisNoAccess) {
     movq %r11, %r12
   )asm");
   ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
-  BlockAnnotations Result = *AddrsOrErr;
-  EXPECT_EQ(Result.accessed_blocks.size(), 0);
+  ExecutionAnnotations Result = *AddrsOrErr;
+  EXPECT_EQ(Result.accessed_blocks_size(), 0);
 }
 
 TEST_F(FindAccessedAddrsExegesisTest, ExegesisOneAccess) {
@@ -113,9 +113,9 @@ TEST_F(FindAccessedAddrsExegesisTest, ExegesisOneAccess) {
     movq (%rax), %rax
   )asm");
   ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
-  BlockAnnotations Result = *AddrsOrErr;
-  EXPECT_EQ(Result.accessed_blocks.size(), 1);
-  EXPECT_EQ(Result.accessed_blocks[0], 0x10000);
+  ExecutionAnnotations Result = *AddrsOrErr;
+  EXPECT_EQ(Result.accessed_blocks_size(), 1);
+  EXPECT_EQ(Result.accessed_blocks()[0], 0x10000);
 }
 
 TEST_F(FindAccessedAddrsExegesisTest, ExegesisNotPageAligned) {
@@ -124,9 +124,9 @@ TEST_F(FindAccessedAddrsExegesisTest, ExegesisNotPageAligned) {
     movq (%rax), %rax
   )asm");
   ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
-  BlockAnnotations Result = *AddrsOrErr;
-  EXPECT_EQ(Result.accessed_blocks.size(), 1);
-  EXPECT_EQ(Result.accessed_blocks[0], 0x10000);
+  ExecutionAnnotations Result = *AddrsOrErr;
+  EXPECT_EQ(Result.accessed_blocks_size(), 1);
+  EXPECT_EQ(Result.accessed_blocks()[0], 0x10000);
 }
 
 TEST_F(FindAccessedAddrsExegesisTest, ExegesisZeroAddressError) {

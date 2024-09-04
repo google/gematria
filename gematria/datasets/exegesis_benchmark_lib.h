@@ -16,7 +16,7 @@
 #include <memory>
 #include <string_view>
 
-#include "gematria/datasets/find_accessed_addrs.h"
+#include "gematria/proto/execution_annotation.pb.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCDisassembler/MCDisassembler.h"
 #include "llvm/MC/MCInst.h"
@@ -43,7 +43,7 @@ class ExegesisBenchmark {
       const llvm::json::Object &BasicBlockJSON, size_t BlockIndex);
 
   llvm::Expected<llvm::exegesis::BenchmarkCode> processAnnotatedBlock(
-      std::string_view BlockHex, const BlockAnnotations &Annotations);
+      std::string_view BlockHex, const ExecutionAnnotations &Annotations);
 
   llvm::Expected<double> benchmarkBasicBlock(
       const llvm::exegesis::BenchmarkCode &BenchCode);
