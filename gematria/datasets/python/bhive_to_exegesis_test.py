@@ -17,6 +17,7 @@ from pybind11_abseil import status
 
 from gematria.datasets.python import bhive_to_exegesis
 from gematria.llvm.python import llvm_architecture_support
+from gematria.proto import execution_annotation_pb2
 
 
 class BHiveToExegesisTests(absltest.TestCase):
@@ -36,7 +37,9 @@ class BHiveToExegesisTests(absltest.TestCase):
         50,
     )
 
-    self.assertIsInstance(block_annotations, bhive_to_exegesis.AnnotatedBlock)
+    self.assertIsInstance(
+        block_annotations, execution_annotation_pb2.ExecutionAnnotations
+    )
 
   def test_invalid_block(self):
     with self.assertRaises(status.StatusNotOk):

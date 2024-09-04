@@ -13,13 +13,12 @@
 // limitations under the License.
 
 #include <memory>
-#include <string_view>
 
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "gematria/datasets/bhive_to_exegesis.h"
 #include "gematria/datasets/exegesis_benchmark_lib.h"
 #include "gematria/llvm/llvm_to_absl.h"
+#include "gematria/proto/execution_annotation.pb.h"
 #include "llvm-c/Target.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkCode.h"
 #include "llvm/tools/llvm-exegesis/lib/PerfHelper.h"
@@ -27,7 +26,8 @@
 #include "pybind11/detail/common.h"
 #include "pybind11/pybind11.h"
 #include "pybind11_abseil/import_status_module.h"
-#include "pybind11_abseil/status_casters.h"  // IWYU pragma: keep
+#include "pybind11_abseil/status_casters.h"         // IWYU pragma: keep
+#include "pybind11_protobuf/native_proto_caster.h"  // IWYU pragma: keep
 
 namespace gematria {
 namespace {
@@ -74,10 +74,10 @@ PYBIND11_MODULE(exegesis_benchmark, m) {
              return LlvmExpectedToStatusOr(ExegesisBenchmark::create());
            })
       .def("process_annotated_block",
-           [](ExegesisBenchmark& Self, std::string_view BlockHex,
-              const AnnotatedBlock& Annotations) {
+           [](ExegesisBenchmark& Self,
+              const BlockWithExecutionAnnotations& Annotations) {
              return LlvmExpectedToStatusOr(Self.processAnnotatedBlock(
-                 BlockHex, Annotations.AccessedAddrs));
+                 Annotations.block_hex(), Annotations.execution_annotations()));
            })
       .def("benchmark_basic_block", [](ExegesisBenchmark& Self,
                                        const BenchmarkCode& InputBenchmark) {

@@ -17,6 +17,7 @@ from absl.testing import absltest
 from gematria.datasets.python import bhive_to_exegesis
 from gematria.datasets.python import exegesis_benchmark
 from gematria.llvm.python import llvm_architecture_support
+from gematria.proto import execution_annotation_pb2
 
 
 class ExegesisBenchmarkTests(absltest.TestCase):
@@ -31,14 +32,21 @@ class ExegesisBenchmarkTests(absltest.TestCase):
     self.exegesis_benchmark = exegesis_benchmark.ExegesisBenchmark.create()
 
   def test_benchmarking(self):
-    block_annotations = self.bhive_to_exegesis.annotate_basic_block(
+    execution_annotations = self.bhive_to_exegesis.annotate_basic_block(
         "4829d38b44246c8b54246848c1fb034829d04839c3",
         bhive_to_exegesis.AnnotatorType.fast,
         50,
     )
 
+    block_with_annotations = (
+        execution_annotation_pb2.BlockWithExecutionAnnotations(
+            block_hex="4829d38b44246c8b54246848c1fb034829d04839c3",
+            execution_annotations=execution_annotations,
+        )
+    )
+
     benchmark_code = self.exegesis_benchmark.process_annotated_block(
-        "4829d38b44246c8b54246848c1fb034829d04839c3", block_annotations
+        block_with_annotations
     )
 
     block_measurement = self.exegesis_benchmark.benchmark_basic_block(
