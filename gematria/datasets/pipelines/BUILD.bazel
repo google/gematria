@@ -3,13 +3,9 @@ load("//:python.bzl", "gematria_py_binary", "gematria_py_library", "gematria_py_
 gematria_py_library(
     name = "compile_modules_lib",
     srcs = ["compile_modules_lib.py"],
-    data = [
-        "@llvm-project//llvm:llc",
-        "@llvm-project//llvm:opt",
-    ],
     deps = [
         "//gematria/datasets/python:extract_bbs_from_obj",
-        "//gematria/utils/python:runfiles",
+        "//gematria/llvm/python:runfiles",
     ],
 )
 

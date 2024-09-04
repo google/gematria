@@ -27,7 +27,7 @@ import pandas
 import pyarrow
 from pyarrow import parquet
 
-import gematria.utils.python.runfiles
+import gematria.llvm.python.runfiles
 
 
 def get_bc_from_ir(ir: str) -> bytes:
@@ -45,7 +45,7 @@ def get_bc_from_ir(ir: str) -> bytes:
   Raises:
     CalledProcessError: If running llvm-as fails.
   """
-  llvm_as_path = gematria.utils.python.runfiles.get_llvm_binary_path('llvm-as')
+  llvm_as_path = gematria.llvm.python.runfiles.get_llvm_binary_path('llvm-as')
   return subprocess.run(
       [llvm_as_path], input=ir.encode('utf-8'), capture_output=True, check=True
   ).stdout
@@ -65,9 +65,7 @@ def get_ir_from_bc(bc: bytes) -> str:
   Raises:
     CalledProcessError: If running llvm-dis fails.
   """
-  llvm_dis_path = gematria.utils.python.runfiles.get_llvm_binary_path(
-      'llvm-dis'
-  )
+  llvm_dis_path = gematria.llvm.python.runfiles.get_llvm_binary_path('llvm-dis')
   return subprocess.run(
       [llvm_dis_path], input=bc, capture_output=True, check=True
   ).stdout.decode('utf-8')
