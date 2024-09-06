@@ -23,6 +23,7 @@
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkCode.h"
 #include "llvm/tools/llvm-exegesis/lib/PerfHelper.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
+#include "pybind11/cast.h"
 #include "pybind11/detail/common.h"
 #include "pybind11/pybind11.h"
 #include "pybind11_abseil/import_status_module.h"
@@ -67,22 +68,73 @@ PYBIND11_MODULE(exegesis_benchmark, m) {
   py::class_<BenchmarkCode>(m, "BenchmarkCode");
 
   py::class_<ExegesisBenchmark>(m, "ExegesisBenchmark")
-      .def("create",
-           []() -> absl::StatusOr<std::unique_ptr<ExegesisBenchmark>> {
-             InitializeForExegesisOnce();
+      .def(
+          "create",
+          []() -> absl::StatusOr<std::unique_ptr<ExegesisBenchmark>> {
+            InitializeForExegesisOnce();
 
-             return LlvmExpectedToStatusOr(ExegesisBenchmark::create());
-           })
-      .def("process_annotated_block",
-           [](ExegesisBenchmark& Self,
-              const BlockWithExecutionAnnotations& Annotations) {
-             return LlvmExpectedToStatusOr(Self.processAnnotatedBlock(
-                 Annotations.block_hex(), Annotations.execution_annotations()));
-           })
-      .def("benchmark_basic_block", [](ExegesisBenchmark& Self,
-                                       const BenchmarkCode& InputBenchmark) {
-        return LlvmExpectedToStatusOr(Self.benchmarkBasicBlock(InputBenchmark));
-      });
+            return LlvmExpectedToStatusOr(ExegesisBenchmark::create());
+          },
+          R"(Creates a ExegesisBenchmark Instance.
+
+          Does the necessary initialization to run Exegesis and then creates
+          a ExegesisBenchmark that can then be used to execute annotated
+          blocks.
+
+          Returns:
+            A ExegesisBenchmark Instance.
+           
+          Raises:
+            StatusNotOk: When creating the ExegesisBenchmark instance fails.
+          )")
+      .def(
+          "process_annotated_block",
+          [](ExegesisBenchmark& Self,
+             const BlockWithExecutionAnnotations& BlockAndAnnotations) {
+            return LlvmExpectedToStatusOr(Self.processAnnotatedBlock(
+                BlockAndAnnotations.block_hex(),
+                BlockAndAnnotations.execution_annotations()));
+          },
+          py::arg("block_and_annotations"),
+          R"(Processes an annotated block into an executable form.
+
+          Takes a BlockWithExecutionAnnotations proto and converts it into a
+          BenchmarkCode instance, which can be understood by Exegesis and thus
+          executed/benchmarked.
+
+          Args:
+            block_and_annotations: A BlockWithExecutionAnnotations proto
+              containing the block of interest and associated annotations.
+          
+          Returns:
+            A BenchmarkCode instance.
+          
+          Raises:
+            StatusNotOk: When converting the block to a BenchmarkCode instance
+              fails.
+          )")
+      .def(
+          "benchmark_basic_block",
+          [](ExegesisBenchmark& Self, const BenchmarkCode& InputBenchmark) {
+            return LlvmExpectedToStatusOr(
+                Self.benchmarkBasicBlock(InputBenchmark));
+          },
+          py::arg("input_benchmark"),
+          R"(Benchmarks a block in the form of a BenchmarkCode instance.
+
+          Takes a BenchmarkCode instance and then executes it, collecting
+          performance information at the same time.
+
+          Args:
+            input_benchmark: The BenchmarkCode instance formed from the block and
+              annotations of interest that should be benchmarked.
+          
+          Returns:
+            A floating point value represnting the inverse throughput of the block.
+          
+          Raises:
+            StatusNotOk: When benchmarking the block fails.
+          )");
 }
 
 }  // namespace gematria
