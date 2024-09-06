@@ -20,16 +20,20 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
-#include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "gematria/datasets/bhive_importer.h"
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/disassembler.h"
+#include "gematria/proto/throughput.pb.h"
 #include "llvm/Object/Binary.h"
 #include "llvm/Object/ELFObjectFile.h"
+#include "llvm/Object/ELFTypes.h"
+#include "quipper/perf_data.pb.h"
 #include "quipper/perf_parser.h"
 #include "quipper/perf_reader.h"
 
