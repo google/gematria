@@ -1,14 +1,14 @@
 FROM ubuntu:22.04
 RUN apt-get update && \
-    apt-get install -y \
+apt-get install -y \
     clang \
-    python3 \
-    python3-pip \
-    git \
     curl \
+    git \
+    libelf-dev \
     lld \
     m4 \
-    libelf-dev
+    python3 \
+    python3-pip
 ARG bazelisk_version=1.19.0
 RUN curl -L https://github.com/bazelbuild/bazelisk/releases/download/v${bazelisk_version}/bazelisk-linux-amd64 > /usr/bin/bazelisk && chmod +x /usr/bin/bazelisk && ln -s /usr/bin/bazelisk /usr/bin/bazel
 WORKDIR /gematria
