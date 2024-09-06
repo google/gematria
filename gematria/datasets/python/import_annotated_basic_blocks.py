@@ -79,7 +79,7 @@ def main(argv: Sequence[str]) -> None:
     exit(1)
 
   # TODO(ondrasej): Update this so that the canonicalizer is created using the
-  # LLVM triple. As of 2023-05, this is OK, because we support only x86-64
+  # LLVM triple. As of 2024-08, this is OK, because we support only x86-64
   # anyway.
   canonicalizer_obj = canonicalizer.Canonicalizer.x86_64(llvm)
   importer = annotating_importer.AnnotatingImporter(canonicalizer_obj)

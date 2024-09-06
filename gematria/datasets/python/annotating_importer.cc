@@ -44,7 +44,7 @@ PYBIND11_MODULE(annotating_importer, m) {
   py::class_<AnnotatingImporter>(m, "AnnotatingImporter")
       .def(  //
           py::init<const Canonicalizer* /* canonicalizer */>(),
-          py::arg("canonicalizer"),
+          py::arg("canonicalizer"), py::keep_alive<1, 2>(),
           R"(Initializes a new annotation collector for a given architecture.
            
           Args:
@@ -67,6 +67,8 @@ PYBIND11_MODULE(annotating_importer, m) {
               are to be extracted.
             perf_data_file_name: The path to the `perf.data`-like file from
               which samples are to be extracted along with LBR data.
+            source_name: The source name the timing data in the annotated
+              `BasicBlockProto`s should be attributed to.
               
           Returns:
             A list of annotated `BasicBlockProto`s.
