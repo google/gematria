@@ -14,11 +14,14 @@
 
 #include "gematria/datasets/annotating_importer.h"
 
+#include <cassert>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/proto/throughput.pb.h"
@@ -29,8 +32,6 @@
 
 namespace gematria {
 namespace {
-
-using ::testing::ElementsAre;
 
 // TODO(virajbshah): Consider adding a test that builds a binary from source,
 // runs a `perf record` on it, and then runs `GetAnnotatedBasicBlockProtos`
