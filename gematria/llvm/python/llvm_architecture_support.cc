@@ -14,13 +14,16 @@
 
 #include "gematria/llvm/llvm_architecture_support.h"
 
+#include <string>
+#include <string_view>
+
 #include "gematria/llvm/llvm_to_absl.h"
+#include "pybind11/cast.h"
 #include "pybind11/detail/common.h"
 #include "pybind11/pybind11.h"
-#include "pybind11/stl.h"
-#include "pybind11/stl_bind.h"
+#include "pybind11/stl.h"  // IWYU pragma: keep
 #include "pybind11_abseil/import_status_module.h"
-#include "pybind11_abseil/status_casters.h"
+#include "pybind11_abseil/status_casters.h"  // IWYU pragma: keep
 
 namespace gematria {
 
@@ -38,7 +41,7 @@ PYBIND11_MODULE(llvm_architecture_support, m) {
       This class does not have any public methods or attributes in Python. It is
       only meant to be used as a token passed to Gematria C++ classes and
       functions that use LLVM APIs and expect LLVM objects as their inputs.)")
-      .def_static(  //
+      .def_static(
           "from_triple",
           [](std::string_view llvm_triple, std::string_view cpu,
              std::string_view cpu_features) {

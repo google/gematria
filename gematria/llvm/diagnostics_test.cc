@@ -15,6 +15,7 @@
 #include "gematria/llvm/diagnostics.h"
 
 #include <memory>
+#include <string_view>
 
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gmock/gmock.h"

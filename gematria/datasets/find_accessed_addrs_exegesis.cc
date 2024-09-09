@@ -120,7 +120,7 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
     Instructions.push_back(DisInstruction.mc_inst);
 
   ExecutionAnnotations MemAnnotations;
-  MemAnnotations.set_code_location(0);
+  MemAnnotations.set_code_start_address(0);
   MemAnnotations.set_block_size(4096);
 
   BenchmarkCode BenchCode;
@@ -219,8 +219,8 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
   for (const unsigned UsedRegister : UsedRegisters) {
     RegisterAndValue *new_register_value =
         MemAnnotations.add_initial_registers();
-    ;
-    new_register_value->set_register_index(UsedRegister);
+    new_register_value->set_register_name(
+        State.getRegInfo().getName(UsedRegister));
     new_register_value->set_register_value(kInitialRegVal);
   }
 
@@ -228,7 +228,7 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
       *DisInstructions, State.getRegInfo(), State.getInstrInfo());
 
   if (LoopRegister.has_value()) {
-    MemAnnotations.set_loop_register(*LoopRegister);
+    MemAnnotations.set_loop_register(State.getRegInfo().getName(*LoopRegister));
   }
 
   MemAnnotations.set_block_contents(kInitialMemVal);

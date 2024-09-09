@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <memory>
 #include <string_view>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "gematria/llvm/canonicalizer.h"
@@ -52,7 +53,9 @@ class BHiveImporter {
       llvm::ArrayRef<DisassembledInstruction> disassembled_instructions,
       uint64_t base_address = 0);
 
-  //
+  // Converts machine code in the form of an array of bytes into gematria
+  // DisassembledInstructions that can more easily be used by downstream
+  // tooling.
   absl::StatusOr<std::vector<DisassembledInstruction> >
   DisassembledInstructionsFromMachineCode(llvm::ArrayRef<uint8_t> machine_code,
                                           uint64_t base_address = 0);

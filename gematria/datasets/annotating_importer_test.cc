@@ -14,11 +14,13 @@
 
 #include "gematria/datasets/annotating_importer.h"
 
+#include <cassert>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "absl/status/statusor.h"
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/proto/throughput.pb.h"
@@ -29,8 +31,6 @@
 
 namespace gematria {
 namespace {
-
-using ::testing::ElementsAre;
 
 // TODO(virajbshah): Consider adding a test that builds a binary from source,
 // runs a `perf record` on it, and then runs `GetAnnotatedBasicBlockProtos`
@@ -44,7 +44,7 @@ class AnnotatingImporterTest : public ::testing::Test {
   static constexpr std::string_view kPerfDataFilepath =
       "com_google_gematria/gematria/testing/testdata/"
       "simple_x86_elf_object.perf.data";
-  static constexpr absl::string_view kSourceName = "test: skl";
+  static constexpr std::string_view kSourceName = "test: skl";
 
   std::unique_ptr<bazel::tools::cpp::runfiles::Runfiles> runfiles_;
 

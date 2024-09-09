@@ -16,20 +16,21 @@ syntax = "proto3";
 
 package gematria;
 
-// Contains a register index (the LLVM register number) and the value that
-// the register should contain when setting up the block for benchmarking.
+// Contains a register identified by name and the value that the register
+// should contain when setting up the block for benchmarking.
 message RegisterAndValue {
-  // The LLVM register number that refers to the register in question.
-  uint32 register_index = 1;
+  // The name of the register in question.
+  string register_name = 1;
 
   // The value that the register should be filled with.
-  int64 register_value = 2;
+  uint64 register_value = 2;
 }
 
 // Contains the necessary annotations needed to execute a basic block.
 message ExecutionAnnotations {
-  // The location in memory where the benchmark code should be loaded in.
-  uint64 code_location = 1;
+  // The location in memory where the benchmark code should be loaded in. A
+  // value of zero implies that the block is position independent.
+  uint64 code_start_address = 1;
 
   // The size of the memory blocks that should be allocated by the execution
   // runtime prior to benchmarking.
@@ -46,7 +47,7 @@ message ExecutionAnnotations {
   repeated RegisterAndValue initial_registers = 5;
 
   // A free register that can be used to hold a loop counter.
-  optional uint32 loop_register = 6;
+  optional string loop_register = 6;
 }
 
 // Contains the block code in hexadecimal form and the annotations needed
