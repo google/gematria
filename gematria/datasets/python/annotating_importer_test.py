@@ -99,7 +99,6 @@ _EXPECTED_BASIC_BLOCK_PROTO = basic_block_pb2.BasicBlockProto(
 
 
 class AnnotatingImporterTest(absltest.TestCase):
-
   _ELF_OBJECT_FILEPATH = (
       r"com_google_gematria/gematria/testing/testdata/simple_x86_elf_object"
   )
@@ -115,17 +114,18 @@ class AnnotatingImporterTest(absltest.TestCase):
     self._x86_llvm = llvm_architecture_support.LlvmArchitectureSupport.x86_64()
     self._x86_canonicalizer = canonicalizer.Canonicalizer.x86_64(self._x86_llvm)
 
-    self._runfiles = runfiles.Create(
-        {"RUNFILES_DIR": os.environ.get("PYTHON_RUNFILES")}
-    )
-    assert self._runfiles is not None
+    self._runfiles_dir = os.environ.get("PYTHON_RUNFILES")
+    self._runfiles_env = runfiles.Create({"RUNFILES_DIR": self._runfiles_dir})
+    assert self._runfiles_env is not None
 
   def test_x86_basic_block_proto_from_binary_and_profile(self):
     source_name = "test: skl"
     importer = annotating_importer.AnnotatingImporter(self._x86_canonicalizer)
     block_protos = importer.get_annotated_basic_block_protos(
-        elf_file_name=self._runfiles.Rlocation(self._ELF_OBJECT_FILEPATH),
-        perf_data_file_name=self._runfiles.Rlocation(self._PERF_DATA_FILEPATH),
+        elf_file_name=self._runfiles_env.Rlocation(self._ELF_OBJECT_FILEPATH),
+        perf_data_file_name=self._runfiles_env.Rlocation(
+            self._PERF_DATA_FILEPATH
+        ),
         source_name=self._SOURCE_NAME,
     )
     self.assertEqual(len(block_protos), 1)
