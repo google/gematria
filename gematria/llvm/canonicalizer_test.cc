@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include "gematria/basic_block/basic_block.h"
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gmock/gmock.h"

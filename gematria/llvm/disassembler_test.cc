@@ -15,7 +15,6 @@
 #include "gematria/llvm/disassembler.h"
 
 #include <cstdint>
-#include <iterator>
 #include <memory>
 
 #include "absl/status/status.h"
@@ -34,7 +33,6 @@
 namespace gematria {
 namespace {
 
-using ::testing::_;
 using ::testing::AllOf;
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
