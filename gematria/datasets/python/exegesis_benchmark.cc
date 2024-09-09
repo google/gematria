@@ -77,12 +77,13 @@ PYBIND11_MODULE(exegesis_benchmark, m) {
           },
           R"(Creates a ExegesisBenchmark Instance.
 
-          Does the necessary initialization to run Exegesis and then creates
-          a ExegesisBenchmark that can then be used to execute annotated
-          blocks.
+          Does the necessary initialization to run Exegesis and creates a
+          ExegesisBenchmark that can be used to execute annotated blocks. This
+          will only perform initialization once even if called multiple times,
+          but it is reccomended to only create one instance per thread/worker.
 
           Returns:
-            A ExegesisBenchmark Instance.
+            An ExegesisBenchmark Instance.
            
           Raises:
             StatusNotOk: When creating the ExegesisBenchmark instance fails.
@@ -130,7 +131,9 @@ PYBIND11_MODULE(exegesis_benchmark, m) {
               annotations of interest that should be benchmarked.
           
           Returns:
-            A floating point value represnting the inverse throughput of the block.
+            A floating point value representing the inverse throughput (i.e.,
+            the number of cycles needed to execute the block in steady state)
+            of the block.
           
           Raises:
             StatusNotOk: When benchmarking the block fails.
