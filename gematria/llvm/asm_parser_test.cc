@@ -14,10 +14,8 @@
 
 #include "gematria/llvm/asm_parser.h"
 
-#include <cstdint>
 #include <memory>
-#include <tuple>
-#include <type_traits>
+#include <string_view>
 
 #include "absl/status/status.h"
 #include "gematria/llvm/llvm_architecture_support.h"
@@ -25,10 +23,8 @@
 #include "gematria/testing/matchers.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "lib/Target/X86/MCTargetDesc/X86BaseInfo.h"  //// IWYU pragma: keep (for opcodes).
 #include "lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 #include "llvm/IR/InlineAsm.h"
-#include "llvm/MC/MCInst.h"
 
 namespace gematria {
 namespace {
@@ -41,10 +37,6 @@ class AsmParserTest : public testing::Test {
 
   std::unique_ptr<LlvmArchitectureSupport> llvm_x86_;
 };
-
-auto HasOpcode(int opcode) {
-  return testing::Property(&llvm::MCInst::getOpcode, opcode);
-}
 
 TEST_F(AsmParserTest, IntelAssembly) {
   static constexpr std::string_view kAssembly = R"asm(

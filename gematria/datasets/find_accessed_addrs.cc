@@ -177,55 +177,38 @@ RawX64Regs ToRawRegs(
   RawX64Regs raw_regs;
 
   for (const RegisterAndValue& reg_and_value : regs) {
-    switch (reg_and_value.register_index()) {
-      case X86::RAX:
-        raw_regs.rax = reg_and_value.register_value();
-        break;
-      case X86::RBX:
-        raw_regs.rbx = reg_and_value.register_value();
-        break;
-      case X86::RCX:
-        raw_regs.rcx = reg_and_value.register_value();
-        break;
-      case X86::RDX:
-        raw_regs.rdx = reg_and_value.register_value();
-        break;
-      case X86::RSI:
-        raw_regs.rsi = reg_and_value.register_value();
-        break;
-      case X86::RDI:
-        raw_regs.rdi = reg_and_value.register_value();
-        break;
-      case X86::RSP:
-        raw_regs.rsp = reg_and_value.register_value();
-        break;
-      case X86::RBP:
-        raw_regs.rbp = reg_and_value.register_value();
-        break;
-      case X86::R8:
-        raw_regs.r8 = reg_and_value.register_value();
-        break;
-      case X86::R9:
-        raw_regs.r9 = reg_and_value.register_value();
-        break;
-      case X86::R10:
-        raw_regs.r10 = reg_and_value.register_value();
-        break;
-      case X86::R11:
-        raw_regs.r11 = reg_and_value.register_value();
-        break;
-      case X86::R12:
-        raw_regs.r12 = reg_and_value.register_value();
-        break;
-      case X86::R13:
-        raw_regs.r13 = reg_and_value.register_value();
-        break;
-      case X86::R14:
-        raw_regs.r14 = reg_and_value.register_value();
-        break;
-      case X86::R15:
-        raw_regs.r15 = reg_and_value.register_value();
-        break;
+    if (reg_and_value.register_name() == "RAX") {
+      raw_regs.rax = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "RBX") {
+      raw_regs.rbx = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "RCX") {
+      raw_regs.rcx = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "RDX") {
+      raw_regs.rdx = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "RSI") {
+      raw_regs.rsi = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "RDI") {
+      raw_regs.rdi = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "RSP") {
+      raw_regs.rsp = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "RBP") {
+      raw_regs.rbp = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R8") {
+      raw_regs.r8 = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R9") {
+      raw_regs.r9 = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R10") {
+      raw_regs.r10 = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R11") {
+      raw_regs.r11 = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R12") {
+      raw_regs.r12 = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R13") {
+      raw_regs.r13 = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R14") {
+      raw_regs.r14 = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R15") {
+      raw_regs.r15 = reg_and_value.register_value();
     }
   }
 
@@ -345,7 +328,7 @@ absl::Status ParentProcess(int child_pid, int pipe_read_fd,
     return absl::Status(pipe_data->status_code, pipe_data->status_message);
   }
 
-  accessed_addrs.set_code_location(pipe_data.value().code_address);
+  accessed_addrs.set_code_start_address(pipe_data.value().code_address);
 
   return absl::OkStatus();
 }
@@ -437,7 +420,7 @@ constexpr uint64_t kBlockContents = 0x800000008;
   const auto total_block_size =
       before_block.size() + basic_block.size() + after_block.size();
 
-  uintptr_t desired_code_location = accessed_addrs.code_location();
+  uintptr_t desired_code_location = accessed_addrs.code_start_address();
   if (desired_code_location == 0) {
     desired_code_location = kDefaultCodeLocation;
   }
@@ -556,11 +539,13 @@ absl::StatusOr<ExecutionAnnotations> FindAccessedAddrs(
   }
 
   ExecutionAnnotations accessed_addrs;
-  accessed_addrs.set_code_location(0);
+  accessed_addrs.set_code_start_address(0);
   accessed_addrs.set_block_size(static_cast<size_t>(getpagesize()));
   accessed_addrs.set_block_contents(kBlockContents);
   if (used_regs_and_loop_reg->second.has_value()) {
-    accessed_addrs.set_loop_register(*used_regs_and_loop_reg->second);
+    accessed_addrs.set_loop_register(
+        llvm_arch_support.mc_register_info().getName(
+            *used_regs_and_loop_reg->second));
   }
   accessed_addrs.mutable_initial_registers()->Reserve(
       used_regs_and_loop_reg->first.size());
@@ -573,7 +558,8 @@ absl::StatusOr<ExecutionAnnotations> FindAccessedAddrs(
     // offsets from a register as a memory address, so we want to leave some
     // space below so that such addresses will still be accessible.
     RegisterAndValue* used_reg_proto = accessed_addrs.add_initial_registers();
-    used_reg_proto->set_register_index(used_reg);
+    used_reg_proto->set_register_name(
+        llvm_arch_support.mc_register_info().getName(used_reg));
     used_reg_proto->set_register_value(0x15000);
   }
 
