@@ -107,7 +107,7 @@ llvm::json::Value GetJSONForSnippet(
        annotated_block.AccessedAddrs.initial_registers()) {
     llvm::json::Object current_register_definition;
     current_register_definition["Register"] =
-        register_and_value.register_index();
+        register_and_value.register_name();
     current_register_definition["Value"] = register_and_value.register_value();
     register_definitions.push_back(std::move(current_register_definition));
   }
@@ -175,8 +175,7 @@ absl::Status WriteAsmOutput(const gematria::AnnotatedBlock& annotated_block,
        annotated_block.AccessedAddrs.initial_registers()) {
     std::string register_value_string =
         gematria::ConvertHexToString(register_and_value.register_value());
-    output_file << kRegDefPrefix
-                << reg_info.getName(register_and_value.register_index()) << " "
+    output_file << kRegDefPrefix << register_and_value.register_name() << " "
                 << register_value_string << "\n";
   }
 
@@ -198,9 +197,7 @@ absl::Status WriteAsmOutput(const gematria::AnnotatedBlock& annotated_block,
   // Write the loop register annotation, assuming we were able to find one.
   if (annotated_block.AccessedAddrs.has_loop_register()) {
     output_file << kLoopRegisterPrefix
-                << reg_info.getName(
-                       annotated_block.AccessedAddrs.loop_register())
-                << "\n";
+                << annotated_block.AccessedAddrs.loop_register() << "\n";
   }
 
   // Append disassembled instructions.

@@ -159,16 +159,19 @@ Expected<BenchmarkCode> ExegesisBenchmark::parseJSONBlock(
         (*RegisterDefinitions)[RegisterLoopIndex].getAsObject();
 
     RegisterValue RegVal;
-    std::optional<int64_t> RegisterIndex =
-        RegisterDefinitionObject->getInteger("Register");
+    std::optional<StringRef> RegisterName =
+        RegisterDefinitionObject->getString("Register");
     std::optional<int64_t> RegisterValue =
         RegisterDefinitionObject->getInteger("Value");
-    if (!RegisterIndex.has_value() || !RegisterValue.has_value())
+    if (!RegisterName.has_value() || !RegisterValue.has_value())
       return llvm::make_error<StringError>(
           errc::invalid_argument,
           "Malformed register definition: " + BasicBlockAtIndex +
               " is missing a register number or value for register at index " +
               Twine(RegisterLoopIndex));
+
+    Expected<MCRegister> RegisterIndex = getRegisterFromName(*RegisterName);
+    if (!RegisterIndex) return RegisterIndex.takeError();
 
     RegVal.Register = *RegisterIndex;
     RegVal.Value = APInt(64, *RegisterValue);
@@ -297,8 +300,12 @@ Expected<BenchmarkCode> ExegesisBenchmark::processAnnotatedBlock(
 
   for (const RegisterAndValue &RegisterValue :
        Annotations.initial_registers()) {
+    llvm::Expected<MCRegister> RegisterIndex =
+        getRegisterFromName(RegisterValue.register_name());
+    if (!RegisterIndex) return RegisterIndex.takeError();
+
     struct RegisterValue ValueToAdd = {
-        .Register = RegisterValue.register_index(),
+        .Register = *RegisterIndex,
         .Value = APInt(64, RegisterValue.register_value())};
 
     BenchmarkConfiguration.Key.RegisterInitialValues.push_back(
@@ -319,10 +326,13 @@ Expected<BenchmarkCode> ExegesisBenchmark::processAnnotatedBlock(
     BenchmarkConfiguration.Key.MemoryMappings.push_back(std::move(MemMap));
   }
 
-  BenchmarkConfiguration.Key.SnippetAddress = Annotations.code_location();
+  BenchmarkConfiguration.Key.SnippetAddress = Annotations.code_start_address();
 
   if (Annotations.has_loop_register()) {
-    BenchmarkConfiguration.Key.LoopRegister = Annotations.loop_register();
+    Expected<MCRegister> LoopRegisterIndex =
+        getRegisterFromName(Annotations.loop_register());
+    if (!LoopRegisterIndex) return LoopRegisterIndex.takeError();
+    BenchmarkConfiguration.Key.LoopRegister = *LoopRegisterIndex;
   } else {
     BenchmarkConfiguration.Key.LoopRegister = MCRegister::NoRegister;
   }
@@ -370,6 +380,17 @@ Expected<double> ExegesisBenchmark::benchmarkBasicBlock(
                               ArrayRef<Benchmark>(AllResults).drop_front());
 
   return Result.Measurements[0].PerSnippetValue;
+}
+
+Expected<MCRegister> ExegesisBenchmark::getRegisterFromName(
+    StringRef RegisterName) {
+  auto RegIterator =
+      ExegesisState.getRegNameToRegNoMapping().find(RegisterName);
+  if (RegIterator == ExegesisState.getRegNameToRegNoMapping().end())
+    return llvm::make_error<StringError>(
+        errc::invalid_argument,
+        "Invalid register name for target: " + RegisterName);
+  return RegIterator->second;
 }
 
 }  // namespace gematria

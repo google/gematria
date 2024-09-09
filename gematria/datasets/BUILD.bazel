@@ -162,6 +162,7 @@ cc_test(
         ":exegesis_benchmark_lib",
         "//gematria/proto:execution_annotation_cc_proto",
         "//gematria/testing:llvm",
+        "//gematria/testing:parse_proto",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:X86UtilsAndDesc",
     ],

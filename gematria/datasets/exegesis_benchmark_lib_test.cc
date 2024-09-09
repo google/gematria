@@ -19,6 +19,7 @@
 
 #include "gematria/proto/execution_annotation.pb.h"
 #include "gematria/testing/llvm.h"
+#include "gematria/testing/parse_proto.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "llvm/ADT/StringRef.h"
@@ -115,11 +116,11 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONBlock) {
     ],
     "RegisterDefinitions": [
       {
-        "Register": 54,
+        "Register": "RCX",
         "Value": 86016
       },
       {
-        "Register": 60,
+        "Register": "RSI",
         "Value": 86016
       }
     ]
@@ -218,7 +219,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONMissingMemoryDefinitions) {
     "LoopRegister": 51,
     "RegisterDefinitions": [
       {
-        "Register": 54,
+        "Register": "RCX",
         "Value": 86016
       }
     ]
@@ -238,7 +239,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONMemoryDefinitionNotObject) {
     "LoopRegister": 51,
     "RegisterDefinitions": [
       {
-        "Register": 54,
+        "Register": "RCX",
         "Value": 86016
       }
     ],
@@ -259,7 +260,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONMemoryDefinitionMissingField) {
     "LoopRegister": 51,
     "RegisterDefinitions": [
       {
-        "Register": 54,
+        "Register": "RCX",
         "Value": 86016
       }
     ],
@@ -284,7 +285,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONMissingMemoryMappings) {
     "LoopRegister": 51,
     "RegisterDefinitions": [
       {
-        "Register": 54,
+        "Register": "RCX",
         "Value": 86016
       }
     ],
@@ -311,7 +312,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONMemoryMappingNonObject) {
     "LoopRegister": 51,
     "RegisterDefinitions": [
       {
-        "Register": 54,
+        "Register": "RCX",
         "Value": 86016
       }
     ],
@@ -339,7 +340,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONMemoryMappingMissingField) {
     "LoopRegister": 51,
     "RegisterDefinitions": [
       {
-        "Register": 54,
+        "Register": "RCX",
         "Value": 86016
       }
     ],
@@ -371,7 +372,7 @@ TEST_F(ExegesisBenchmarkTest, TestBenchmarkAdd) {
     "LoopRegister": 51,
     "RegisterDefinitions": [
       {
-        "Register": 47,
+        "Register": "HSI",
         "Value": 1
       }
     ],
@@ -384,18 +385,26 @@ TEST_F(ExegesisBenchmarkTest, TestBenchmarkAdd) {
 }
 
 TEST_F(ExegesisBenchmarkTest, TestProcessAnnotatedBlock) {
-  ExecutionAnnotations Annotations;
-  Annotations.set_code_location(0xff);
-  Annotations.set_block_size(4096);
-  Annotations.set_block_contents(0xff);
-  Annotations.add_accessed_blocks(0xaa);
-  Annotations.add_accessed_blocks(0xbb);
-  RegisterAndValue *register_a = Annotations.add_initial_registers();
-  register_a->set_register_index(0);
-  register_a->set_register_value(5);
-  RegisterAndValue *register_b = Annotations.add_initial_registers();
-  register_b->set_register_index(1);
-  register_b->set_register_value(17);
+  // Turn formatting off here so that clang-format does not clobber the
+  // textual protobuf formatting below.
+  // clang-format off
+  const ExecutionAnnotations Annotations = ParseTextProto(R"pb(
+    code_start_address: 0xff
+    block_size: 4096
+    block_contents: 0xff
+    accessed_blocks: [0xaa, 0xbb]
+    initial_registers [
+      {
+        register_name: "RAX"
+        register_value: 5
+      },
+      {
+        register_name: "RCX"
+        register_value: 17
+      }
+    ]
+  )pb");
+  // clang-format on
 
   Expected<BenchmarkCode> BenchmarkConfiguration =
       Benchmark->processAnnotatedBlock("3b31", Annotations);
@@ -404,8 +413,9 @@ TEST_F(ExegesisBenchmarkTest, TestProcessAnnotatedBlock) {
   EXPECT_THAT(BenchmarkConfiguration->Key.Instructions,
               UnorderedElementsAre(IsMCInst(X86::CMP32rm, _)));
 
-  EXPECT_THAT(BenchmarkConfiguration->Key.RegisterInitialValues,
-              UnorderedElementsAre(FieldsAre(0, 5), FieldsAre(1, 17)));
+  EXPECT_THAT(
+      BenchmarkConfiguration->Key.RegisterInitialValues,
+      UnorderedElementsAre(FieldsAre(X86::RAX, 5), FieldsAre(X86::RCX, 17)));
 
   EXPECT_THAT(BenchmarkConfiguration->Key.MemoryValues,
               UnorderedElementsAre(Pair("MEM", FieldsAre(0xff, 4096, 0))));
@@ -419,18 +429,25 @@ TEST_F(ExegesisBenchmarkTest, TestProcessAnnotatedBlock) {
 }
 
 TEST_F(ExegesisBenchmarkTest, TestBenchmarkFromAnnotatedBlock) {
-  ExecutionAnnotations Annotations;
-  Annotations.set_code_location(0);
-  Annotations.set_block_size(4096);
-  Annotations.set_block_contents(34359738376);
-  Annotations.add_accessed_blocks(86016);
-  RegisterAndValue *register_a = Annotations.add_initial_registers();
-  register_a->set_register_index(X86::RCX);
-  register_a->set_register_value(86016);
-  RegisterAndValue *register_b = Annotations.add_initial_registers();
-  register_b->set_register_index(X86::RSI);
-  register_b->set_register_value(86016);
-  Annotations.set_loop_register(X86::RAX);
+  // clang-format off
+  const ExecutionAnnotations Annotations = ParseTextProto(R"pb(
+    code_start_address: 0
+    block_size: 4096
+    block_contents: 34359738376
+    accessed_blocks: 86016
+    initial_registers: [
+      {
+        register_name: "RCX"
+        register_value: 86016
+      },
+      {
+        register_name: "RSI"
+        register_value: 86016
+      }
+    ]
+    loop_register: "RAX"
+  )pb");
+  // clang-format on
 
   Expected<BenchmarkCode> BenchmarkConfiguration =
       Benchmark->processAnnotatedBlock("3b31", Annotations);

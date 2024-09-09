@@ -49,6 +49,12 @@ class ExegesisBenchmark {
       const llvm::exegesis::BenchmarkCode &BenchCode);
 
  private:
+  // TODO(boomanaiden154): This is duplicated with code from Exegesis for
+  // snippet file parsing. That code should be moved to LLVMState so that we
+  // can reuse it here.
+  llvm::Expected<llvm::MCRegister> getRegisterFromName(
+      llvm::StringRef RegisterName);
+
   std::unique_ptr<llvm::MCContext> LLVMMCContext;
   std::unique_ptr<llvm::MCDisassembler> LLVMMCDisassembler;
   std::unique_ptr<llvm::MCInstPrinter> LLVMMCInstPrinter;
