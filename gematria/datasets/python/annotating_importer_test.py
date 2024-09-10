@@ -128,7 +128,7 @@ class AnnotatingImporterTest(absltest.TestCase):
         ),
         source_name=self._SOURCE_NAME,
     )
-    self.assertEqual(len(block_protos), 1)
+    self.assertLen(block_protos, 1)
     self.assertEqual(
         block_protos[0],
         throughput_pb2.BasicBlockWithThroughputProto(
