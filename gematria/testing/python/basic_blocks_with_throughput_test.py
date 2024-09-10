@@ -55,6 +55,22 @@ class BasicBlocksWithThroughputTest(absltest.TestCase):
 
     self.assertLen(blocks, num_blocks)
 
+  def test_get_annotated_blocks(self):
+    """Checks that annotated blocks are returned when requested."""
+    num_blocks = 3
+    blocks = basic_blocks_with_throughput.get_basic_blocks(
+        num_blocks, get_annotated_blocks=True
+    )
+
+    self.assertLen(blocks, num_blocks)
+    has_annotations = False
+    for block in blocks:
+      for instruction in block.basic_block.canonicalized_instructions:
+        if len(instruction.instruction_annotations):
+          has_annotations = True
+          break
+    self.assertTrue(has_annotations)
+
   def test_cleanup(self):
     num_blocks = 10
 

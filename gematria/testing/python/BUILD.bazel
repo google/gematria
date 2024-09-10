@@ -8,7 +8,10 @@ gematria_py_library(
     name = "basic_blocks_with_throughput",
     testonly = True,
     srcs = ["basic_blocks_with_throughput.py"],
-    data = ["//gematria/testing/testdata:basic_blocks_with_throughput.pbtxt"],
+    data = [
+        "//gematria/testing/testdata:annotated_basic_blocks_with_throughput.pbtxt",
+        "//gematria/testing/testdata:basic_blocks_with_throughput.pbtxt",
+    ],
     visibility = ["//:internal_users"],
     deps = [
         "//gematria/basic_block/python:basic_block",
