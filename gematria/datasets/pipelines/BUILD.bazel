@@ -40,3 +40,36 @@ gematria_py_test(
         "//gematria/testing/python:ir_utils",
     ],
 )
+
+gematria_py_binary(
+    name = "benchmark_bbs_lib",
+    srcs = ["benchmark_bbs_lib.py"],
+    deps = [
+        "//gematria/datasets/python:exegesis_benchmark",
+        "//gematria/proto:execution_annotation_py_pb2",
+    ],
+)
+
+gematria_py_binary(
+    name = "benchmark_bbs",
+    srcs = ["benchmark_bbs.py"],
+    deps = [
+        ":benchmark_bbs_lib",
+    ],
+)
+
+gematria_py_test(
+    name = "benchmark_bbs_lib_test",
+    srcs = ["benchmark_bbs_lib_test.py"],
+    env = {
+        "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": "python",
+    },
+    tags = [
+        "perf_counters",
+    ],
+    deps = [
+        ":benchmark_bbs_lib",
+        "//gematria/io/python:tfrecord",
+        "//gematria/proto:execution_annotation_py_pb2",
+    ],
+)
