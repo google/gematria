@@ -20,6 +20,7 @@ import apache_beam as beam
 from apache_beam.options import pipeline_options
 
 from gematria.datasets.pipelines import compile_modules_lib
+from gematria.datasets.python import bhive_to_exegesis
 
 _PARQUET_FOLDER = flags.DEFINE_string(
     'parquet_folder',
@@ -28,8 +29,8 @@ _PARQUET_FOLDER = flags.DEFINE_string(
     required=True,
 )
 
-_OUTPUT_TXT_FILE = flags.DEFINE_string(
-    'output_txt_file', None, 'The path to the output txt file', required=True
+_OUTPUT_FILE = flags.DEFINE_string(
+    'output_file', None, 'The path to the output tfrecord file.', required=True
 )
 
 _REMOVE_MEMORY_ACCESSING_INSTRUCTIONS = flags.DEFINE_bool(
@@ -37,6 +38,20 @@ _REMOVE_MEMORY_ACCESSING_INSTRUCTIONS = flags.DEFINE_bool(
     False,
     'Whether to remove memory accessing instructions from the basic blocks.',
 )
+
+_ANNOTATOR_TYPE = flags.DEFINE_enum(
+    'annotator_type', 'fast', ['fast'], 'The type of annotator to use.'
+)
+
+_MAX_ANNOTATION_ATTEMPTS = flags.DEFINE_integer(
+    'max_annotation_attempts',
+    50,
+    'The maximum number of times to try annotating a block before giving up',
+)
+
+# TODO(boomanaiden154): Currently, only the fast annotator works. Eventually
+# this should be fixed so we can use the exegesis annotator too.
+ANNOTATOR_MAPPING = {'fast': bhive_to_exegesis.AnnotatorType.fast}
 
 
 def main(argv) -> None:
@@ -46,8 +61,10 @@ def main(argv) -> None:
 
   pipeline_constructor = compile_modules_lib.get_bbs(
       os.path.join(_PARQUET_FOLDER.value, '*.parquet'),
-      _OUTPUT_TXT_FILE.value,
+      _OUTPUT_FILE.value,
       _REMOVE_MEMORY_ACCESSING_INSTRUCTIONS.value,
+      ANNOTATOR_MAPPING[_ANNOTATOR_TYPE.value],
+      _MAX_ANNOTATION_ATTEMPTS.value,
   )
 
   with beam.Pipeline(options=beam_options) as pipeline:

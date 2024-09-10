@@ -19,9 +19,13 @@ import subprocess
 from absl import logging
 import apache_beam as beam
 from rules_python.python.runfiles import runfiles
+from pybind11_abseil import status
 
 from gematria.datasets.python import extract_bbs_from_obj
 from gematria.datasets.python import process_and_filter_bbs
+from gematria.datasets.python import bhive_to_exegesis
+from gematria.llvm.python import llvm_architecture_support
+from gematria.proto import execution_annotation_pb2
 
 
 def _get_llvm_binary_path(tool_name: str) -> str:
@@ -126,10 +130,48 @@ class ProcessAndFilterBBs(beam.DoFn):
       yield output_block
 
 
+class AnnotateBBs(beam.DoFn):
+
+  def __init__(
+      self,
+      annotator_type: bhive_to_exegesis.AnnotatorType,
+      max_annotation_attempts: int,
+  ):
+    self._annotator_type = annotator_type
+    self._max_annotation_attempts = max_annotation_attempts
+
+  def setup(self):
+    self._x86_llvm = llvm_architecture_support.LlvmArchitectureSupport.x86_64()
+    self._bhive_to_exegesis = bhive_to_exegesis.BHiveToExegesis.create(
+        self._x86_llvm
+    )
+
+  def process(
+      self, bb_hex: str
+  ) -> Iterable[execution_annotation_pb2.BlockWithExecutionAnnotations]:
+    # Do a dummy write. Otherwise some interaction with beam prevents us from
+    # writing to file descriptors within the annotator subprocess.
+    # TODO(boomanaiden154): This should be investigated and fixed properly.
+    with open('/dev/null', 'w') as dummy_file:
+      print('', file=dummy_file)
+
+    try:
+      yield execution_annotation_pb2.BlockWithExecutionAnnotations(
+          execution_annotations=self._bhive_to_exegesis.annotate_basic_block(
+              bb_hex, self._annotator_type, self._max_annotation_attempts
+          ),
+          block_hex=bb_hex,
+      )
+    except status.StatusNotOk:
+      pass
+
+
 def get_bbs(
     input_file_pattern: str,
     output_file: str,
     remove_memory_accessing_instructions: bool,
+    annotator_type: bhive_to_exegesis.AnnotatorType,
+    max_annotation_attempts: int,
 ) -> Callable[[beam.Pipeline], None]:
   """Creates a pipeline to process BBs from IR modules.
 
@@ -178,9 +220,15 @@ def get_bbs(
     processed_bbs_deduplicated = (
         processed_filtered_bbs | 'Deduplicate Processed BBs' >> DeduplicateBBs()
     )
+    annotated_bbs = processed_bbs_deduplicated | 'Annotate BBs' >> beam.ParDo(
+        AnnotateBBs(annotator_type, max_annotation_attempts)
+    )
 
-    _ = processed_bbs_deduplicated | 'WriteToText' >> beam.io.WriteToText(
-        output_file
+    _ = annotated_bbs | 'Write annotated blocks' >> beam.io.WriteToTFRecord(
+        output_file,
+        coder=beam.coders.ProtoCoder(
+            execution_annotation_pb2.BlockWithExecutionAnnotations().__class__
+        ),
     )
 
   return pipeline
