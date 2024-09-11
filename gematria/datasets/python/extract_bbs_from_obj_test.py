@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from rules_python.python.runfiles import runfiles
+from runfiles import runfiles
 import os
 from gematria.datasets.python import extract_bbs_from_obj
 

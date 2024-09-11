@@ -10,7 +10,6 @@ gematria_py_library(
     deps = [
         "//gematria/datasets/python:extract_bbs_from_obj",
         "//gematria/datasets/python:process_and_filter_bbs",
-        "@rules_python//python/runfiles",
     ],
 )
 
