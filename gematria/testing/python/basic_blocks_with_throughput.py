@@ -25,7 +25,7 @@ from gematria.basic_block.python import throughput_protos
 from gematria.basic_block.python import tokens
 from gematria.proto import throughput_pb2
 from google.protobuf import text_format
-from rules_python.python.runfiles import runfiles
+from runfiles import runfiles
 
 # The path to the basic blocks in text format in the resources of the test.
 _ROOT_PATH = 'com_google_gematria'

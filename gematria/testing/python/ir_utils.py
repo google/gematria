@@ -26,7 +26,7 @@ from collections.abc import Sequence
 import pandas
 import pyarrow
 from pyarrow import parquet
-from rules_python.python.runfiles import runfiles
+from runfiles import runfiles
 
 
 def _get_llvm_binary_path(tool_name: str) -> str:

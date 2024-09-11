@@ -18,7 +18,7 @@ import subprocess
 
 from absl import logging
 import apache_beam as beam
-from rules_python.python.runfiles import runfiles
+from runfiles import runfiles
 
 from gematria.datasets.python import extract_bbs_from_obj
 from gematria.datasets.python import process_and_filter_bbs
