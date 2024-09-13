@@ -28,6 +28,7 @@
 #include "absl/types/span.h"
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/llvm_architecture_support.h"
+#include "gematria/proto/execution_annotation.pb.h"
 #include "gematria/testing/matchers.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -46,8 +47,6 @@ namespace gematria {
 namespace {
 
 using testing::ElementsAre;
-using testing::Field;
-using testing::IsEmpty;
 
 uintptr_t AlignDown(uintptr_t x, size_t align) { return x - (x % align); }
 
@@ -97,7 +96,7 @@ class FindAccessedAddrsTest : public testing::Test {
     return std::string(code);
   }
 
-  absl::StatusOr<BlockAnnotations> FindAccessedAddrsAsm(
+  absl::StatusOr<ExecutionAnnotations> FindAccessedAddrsAsm(
       std::string_view textual_assembly) {
     auto code = Assemble(textual_assembly);
     auto span = absl::MakeConstSpan(
@@ -108,8 +107,7 @@ class FindAccessedAddrsTest : public testing::Test {
 
 TEST_F(FindAccessedAddrsTest, BasicMov) {
   EXPECT_THAT(FindAccessedAddrsAsm("mov [0x10000], eax"),
-              IsOkAndHolds(Field(&BlockAnnotations::accessed_blocks,
-                                 ElementsAre(0x10000))));
+              IsOkAndHolds(Partially(EqualsProto("accessed_blocks: 0x10000"))));
 }
 
 TEST_F(FindAccessedAddrsTest, DISABLED_SingleAddressRandomTests) {
@@ -139,20 +137,20 @@ TEST_F(FindAccessedAddrsTest, DISABLED_SingleAddressRandomTests) {
       mov ebx, [rax]
     )asm",
                                 addr);
-    const absl::StatusOr<BlockAnnotations> result = FindAccessedAddrsAsm(code);
+    const absl::StatusOr<ExecutionAnnotations> result =
+        FindAccessedAddrsAsm(code);
     ASSERT_OK(result.status());
 
-    EXPECT_THAT(result->accessed_blocks,
-                ElementsAre(AlignDown(addr, result->block_size)));
-    EXPECT_GT(result->code_location, 0);
-    EXPECT_LT(result->code_location, kMaxUserModeAddress);
+    EXPECT_THAT(result->accessed_blocks(),
+                ElementsAre(AlignDown(addr, result->block_size())));
+    EXPECT_GT(result->code_start_address(), 0);
+    EXPECT_LT(result->code_start_address(), kMaxUserModeAddress);
   }
 }
 
 TEST_F(FindAccessedAddrsTest, NoMemoryAccesses) {
-  EXPECT_THAT(
-      FindAccessedAddrsAsm("mov eax, ebx"),
-      IsOkAndHolds(Field(&BlockAnnotations::accessed_blocks, IsEmpty())));
+  EXPECT_THAT(FindAccessedAddrsAsm("mov eax, ebx"),
+              IsOkAndHolds(Partially(EqualsProto("accessed_blocks: []"))));
 }
 
 TEST_F(FindAccessedAddrsTest, MultipleAccesses) {
@@ -160,8 +158,8 @@ TEST_F(FindAccessedAddrsTest, MultipleAccesses) {
     mov [0x10000], eax
     mov [0x20000], eax
   )asm"),
-              IsOkAndHolds(Field(&BlockAnnotations::accessed_blocks,
-                                 ElementsAre(0x10000, 0x20000))));
+              IsOkAndHolds(Partially(
+                  EqualsProto("accessed_blocks: [0x10000, 0x20000]"))));
 }
 
 TEST_F(FindAccessedAddrsTest, AccessFromRegister) {
@@ -169,8 +167,8 @@ TEST_F(FindAccessedAddrsTest, AccessFromRegister) {
     mov [eax], eax
     mov [r11+r12], eax
   )asm"),
-              IsOkAndHolds(Field(&BlockAnnotations::accessed_blocks,
-                                 ElementsAre(0x15000, 0x2a000))));
+              IsOkAndHolds(Partially(
+                  EqualsProto("accessed_blocks: [0x15000, 0x2a000]"))));
 }
 
 TEST_F(FindAccessedAddrsTest, DoubleIndirection) {
@@ -178,8 +176,8 @@ TEST_F(FindAccessedAddrsTest, DoubleIndirection) {
     mov rax, [0x10000]
     mov rbx, [rax]
   )asm"),
-              IsOkAndHolds(Field(&BlockAnnotations::accessed_blocks,
-                                 ElementsAre(0x10000, 0x0000000800000000))));
+              IsOkAndHolds(Partially(EqualsProto(
+                  "accessed_blocks: [0x10000, 0x0000000800000000]"))));
 }
 
 TEST_F(FindAccessedAddrsTest, DivideByPointee) {
@@ -191,8 +189,7 @@ TEST_F(FindAccessedAddrsTest, DivideByPointee) {
     mov ebx, [rcx]
     idiv ebx
   )asm"),
-              IsOkAndHolds(Field(&BlockAnnotations::accessed_blocks,
-                                 ElementsAre(0x15000))));
+              IsOkAndHolds(Partially(EqualsProto("accessed_blocks: 0x15000"))));
 }
 
 }  // namespace

@@ -27,14 +27,15 @@
 #include <utility>
 #include <vector>
 
-#include "find_accessed_addrs.h"
 #include "gematria/datasets/basic_block_utils.h"
 #include "gematria/llvm/disassembler.h"
+#include "gematria/proto/execution_annotation.pb.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCRegisterInfo.h"
+#include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Error.h"
 #include "llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkCode.h"
@@ -103,7 +104,7 @@ Expected<std::unique_ptr<ExegesisAnnotator>> ExegesisAnnotator::create(
       ExegesisState, std::move(*RunnerOrErr), std::move(SnipRepetitor)));
 }
 
-Expected<BlockAnnotations> ExegesisAnnotator::findAccessedAddrs(
+Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
     ArrayRef<uint8_t> BasicBlock, unsigned MaxAnnotationAttempts) {
   Expected<std::vector<DisassembledInstruction>> DisInstructions =
       DisassembleAllInstructions(*MachineDisassembler, State.getInstrInfo(),
@@ -118,9 +119,9 @@ Expected<BlockAnnotations> ExegesisAnnotator::findAccessedAddrs(
   for (const auto &DisInstruction : *DisInstructions)
     Instructions.push_back(DisInstruction.mc_inst);
 
-  BlockAnnotations MemAnnotations;
-  MemAnnotations.code_location = 0;
-  MemAnnotations.block_size = 4096;
+  ExecutionAnnotations MemAnnotations;
+  MemAnnotations.set_code_start_address(0);
+  MemAnnotations.set_block_size(4096);
 
   BenchmarkCode BenchCode;
   BenchCode.Key.Instructions = Instructions;
@@ -203,28 +204,34 @@ Expected<BlockAnnotations> ExegesisAnnotator::findAccessedAddrs(
     if (AnnotationError) return std::move(AnnotationError);
   }
 
-  MemAnnotations.accessed_blocks.reserve(BenchCode.Key.MemoryMappings.size());
+  MemAnnotations.mutable_accessed_blocks()->Reserve(
+      BenchCode.Key.MemoryMappings.size());
 
   for (const MemoryMapping &Mapping : BenchCode.Key.MemoryMappings) {
-    MemAnnotations.accessed_blocks.push_back(Mapping.Address);
+    MemAnnotations.add_accessed_blocks(Mapping.Address);
   }
 
   std::vector<unsigned> UsedRegisters = gematria::getUsedRegisters(
       *DisInstructions, State.getRegInfo(), State.getInstrInfo());
 
-  MemAnnotations.initial_regs.reserve(UsedRegisters.size());
+  MemAnnotations.mutable_initial_registers()->Reserve(UsedRegisters.size());
 
   for (const unsigned UsedRegister : UsedRegisters) {
-    MemAnnotations.initial_regs.push_back(
-        {.register_index = UsedRegister, .register_value = kInitialRegVal});
+    RegisterAndValue *new_register_value =
+        MemAnnotations.add_initial_registers();
+    new_register_value->set_register_name(
+        State.getRegInfo().getName(UsedRegister));
+    new_register_value->set_register_value(kInitialRegVal);
   }
 
   std::optional<unsigned> LoopRegister = gematria::getUnusedGPRegister(
       *DisInstructions, State.getRegInfo(), State.getInstrInfo());
 
-  MemAnnotations.loop_register = LoopRegister;
+  if (LoopRegister.has_value()) {
+    MemAnnotations.set_loop_register(State.getRegInfo().getName(*LoopRegister));
+  }
 
-  MemAnnotations.block_contents = kInitialMemVal;
+  MemAnnotations.set_block_contents(kInitialMemVal);
 
   return MemAnnotations;
 }

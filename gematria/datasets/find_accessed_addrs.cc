@@ -51,6 +51,8 @@
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/llvm/llvm_to_absl.h"
+#include "gematria/proto/execution_annotation.pb.h"
+#include "google/protobuf/repeated_ptr_field.h"
 #include "lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Error.h"
@@ -156,7 +158,8 @@ absl::StatusOr<PipedData> ReadAll(int fd) {
 
 uintptr_t AlignDown(uintptr_t x, size_t align) { return x - (x % align); }
 
-void RandomiseRegs(absl::BitGen& gen, std::vector<RegisterAndValue>& regs) {
+void RandomiseRegs(absl::BitGen& gen,
+                   google::protobuf::RepeatedPtrField<RegisterAndValue>& regs) {
   for (size_t i = 0; i < regs.size(); ++i) {
     // Pick between three values: 0, a low address, and a high address. These
     // are picked to try to maximise the chance that some combination will
@@ -165,63 +168,47 @@ void RandomiseRegs(absl::BitGen& gen, std::vector<RegisterAndValue>& regs) {
     // here.
     constexpr int64_t kValues[] = {0, 0x15000, 0x1000000};
     absl::uniform_int_distribution<int> dist(0, std::size(kValues) - 1);
-    regs[i].register_value = kValues[dist(gen)];
+    regs[i].set_register_value(kValues[dist(gen)]);
   }
 }
 
-RawX64Regs ToRawRegs(const std::vector<RegisterAndValue> regs) {
+RawX64Regs ToRawRegs(
+    const google::protobuf::RepeatedPtrField<RegisterAndValue>& regs) {
   RawX64Regs raw_regs;
 
-  for (const RegisterAndValue reg_and_value : regs) {
-    switch (reg_and_value.register_index) {
-      case X86::RAX:
-        raw_regs.rax = reg_and_value.register_value;
-        break;
-      case X86::RBX:
-        raw_regs.rbx = reg_and_value.register_value;
-        break;
-      case X86::RCX:
-        raw_regs.rcx = reg_and_value.register_value;
-        break;
-      case X86::RDX:
-        raw_regs.rdx = reg_and_value.register_value;
-        break;
-      case X86::RSI:
-        raw_regs.rsi = reg_and_value.register_value;
-        break;
-      case X86::RDI:
-        raw_regs.rdi = reg_and_value.register_value;
-        break;
-      case X86::RSP:
-        raw_regs.rsp = reg_and_value.register_value;
-        break;
-      case X86::RBP:
-        raw_regs.rbp = reg_and_value.register_value;
-        break;
-      case X86::R8:
-        raw_regs.r8 = reg_and_value.register_value;
-        break;
-      case X86::R9:
-        raw_regs.r9 = reg_and_value.register_value;
-        break;
-      case X86::R10:
-        raw_regs.r10 = reg_and_value.register_value;
-        break;
-      case X86::R11:
-        raw_regs.r11 = reg_and_value.register_value;
-        break;
-      case X86::R12:
-        raw_regs.r12 = reg_and_value.register_value;
-        break;
-      case X86::R13:
-        raw_regs.r13 = reg_and_value.register_value;
-        break;
-      case X86::R14:
-        raw_regs.r14 = reg_and_value.register_value;
-        break;
-      case X86::R15:
-        raw_regs.r15 = reg_and_value.register_value;
-        break;
+  for (const RegisterAndValue& reg_and_value : regs) {
+    if (reg_and_value.register_name() == "RAX") {
+      raw_regs.rax = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "RBX") {
+      raw_regs.rbx = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "RCX") {
+      raw_regs.rcx = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "RDX") {
+      raw_regs.rdx = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "RSI") {
+      raw_regs.rsi = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "RDI") {
+      raw_regs.rdi = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "RSP") {
+      raw_regs.rsp = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "RBP") {
+      raw_regs.rbp = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R8") {
+      raw_regs.r8 = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R9") {
+      raw_regs.r9 = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R10") {
+      raw_regs.r10 = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R11") {
+      raw_regs.r11 = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R12") {
+      raw_regs.r12 = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R13") {
+      raw_regs.r13 = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R14") {
+      raw_regs.r14 = reg_and_value.register_value();
+    } else if (reg_and_value.register_name() == "R15") {
+      raw_regs.r15 = reg_and_value.register_value();
     }
   }
 
@@ -242,7 +229,7 @@ std::string DumpRegs(const struct user_regs_struct& regs) {
 }
 
 absl::Status ParentProcessInner(int child_pid,
-                                BlockAnnotations& accessed_addrs) {
+                                ExecutionAnnotations& accessed_addrs) {
   int status;
   waitpid(child_pid, &status, 0);
 
@@ -270,12 +257,12 @@ absl::Status ParentProcessInner(int child_pid,
     siginfo_t siginfo;
     ptrace(PTRACE_GETSIGINFO, child_pid, 0, &siginfo);
     uintptr_t addr = AlignDown(reinterpret_cast<uintptr_t>(siginfo.si_addr),
-                               accessed_addrs.block_size);
+                               accessed_addrs.block_size());
 
-    if (std::find(accessed_addrs.accessed_blocks.begin(),
-                  accessed_addrs.accessed_blocks.end(),
-                  addr) == accessed_addrs.accessed_blocks.end()) {
-      accessed_addrs.accessed_blocks.push_back(addr);
+    if (std::find(accessed_addrs.accessed_blocks().begin(),
+                  accessed_addrs.accessed_blocks().end(),
+                  addr) == accessed_addrs.accessed_blocks().end()) {
+      accessed_addrs.add_accessed_blocks(addr);
     }
     return absl::OkStatus();
   }
@@ -309,7 +296,7 @@ absl::Status ParentProcessInner(int child_pid,
 }
 
 absl::Status ParentProcess(int child_pid, int pipe_read_fd,
-                           BlockAnnotations& accessed_addrs) {
+                           ExecutionAnnotations& accessed_addrs) {
   auto result = ParentProcessInner(child_pid, accessed_addrs);
 
   // Regardless of what happened, kill the child with SIGKILL. If we just detach
@@ -341,7 +328,7 @@ absl::Status ParentProcess(int child_pid, int pipe_read_fd,
     return absl::Status(pipe_data->status_code, pipe_data->status_message);
   }
 
-  accessed_addrs.code_location = pipe_data.value().code_address;
+  accessed_addrs.set_code_start_address(pipe_data.value().code_address);
 
   return absl::OkStatus();
 }
@@ -375,7 +362,7 @@ constexpr uint64_t kBlockContents = 0x800000008;
 
 [[noreturn]] void ChildProcess(absl::Span<const uint8_t> basic_block,
                                int pipe_write_fd,
-                               const BlockAnnotations& accessed_addrs) {
+                               const ExecutionAnnotations& accessed_addrs) {
   // Make sure the parent is attached before doing anything that they might want
   // to listen for.
   ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
@@ -388,10 +375,10 @@ constexpr uint64_t kBlockContents = 0x800000008;
   munmap(reinterpret_cast<void*>(0x800000000), 0x10000);
 
   // Map all the locations we've previously discovered this code accesses.
-  for (uintptr_t accessed_location : accessed_addrs.accessed_blocks) {
+  for (uint64_t accessed_location : accessed_addrs.accessed_blocks()) {
     auto location_ptr = reinterpret_cast<void*>(accessed_location);
     void* mapped_address =
-        mmap(location_ptr, accessed_addrs.block_size, PROT_READ | PROT_WRITE,
+        mmap(location_ptr, accessed_addrs.block_size(), PROT_READ | PROT_WRITE,
              MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
     if (mapped_address == MAP_FAILED) {
@@ -419,7 +406,7 @@ constexpr uint64_t kBlockContents = 0x800000008;
     // is a mappable address, and every 4-byte chunk will contain 0x8, which is
     // a non-zero value which won't give SIGFPE if used with div.
     uint8_t* block = reinterpret_cast<uint8_t*>(mapped_address);
-    for (int i = 0; i < accessed_addrs.block_size; i += 4) {
+    for (int i = 0; i < accessed_addrs.block_size(); i += 4) {
       block[i] = 8;
     }
   }
@@ -433,7 +420,7 @@ constexpr uint64_t kBlockContents = 0x800000008;
   const auto total_block_size =
       before_block.size() + basic_block.size() + after_block.size();
 
-  uintptr_t desired_code_location = accessed_addrs.code_location;
+  uintptr_t desired_code_location = accessed_addrs.code_start_address();
   if (desired_code_location == 0) {
     desired_code_location = kDefaultCodeLocation;
   }
@@ -464,7 +451,7 @@ constexpr uint64_t kBlockContents = 0x800000008;
 
   auto mapped_func = reinterpret_cast<void (*)(const RawX64Regs* initial_regs)>(
       mapped_address);
-  auto raw_regs = ToRawRegs(accessed_addrs.initial_regs);
+  auto raw_regs = ToRawRegs(accessed_addrs.initial_registers());
   mapped_func(&raw_regs);
 
   // mapped_func should never return, but we can't put [[noreturn]] on a
@@ -473,7 +460,7 @@ constexpr uint64_t kBlockContents = 0x800000008;
 }
 
 absl::Status ForkAndTestAddresses(absl::Span<const uint8_t> basic_block,
-                                  BlockAnnotations& accessed_addrs) {
+                                  ExecutionAnnotations& accessed_addrs) {
   int pipe_fds[2];
   if (pipe(pipe_fds) != 0) {
     int err = errno;
@@ -541,7 +528,7 @@ FindReadRegsAndLoopReg(const LlvmArchitectureSupport& llvm_arch_support,
 //   stating that the code passed in is invalid, with a bad instruction at a
 //   particular offset).
 // * Much more complete testing.
-absl::StatusOr<BlockAnnotations> FindAccessedAddrs(
+absl::StatusOr<ExecutionAnnotations> FindAccessedAddrs(
     absl::Span<const uint8_t> basic_block,
     LlvmArchitectureSupport& llvm_arch_support) {
   absl::StatusOr<std::pair<std::vector<unsigned>, std::optional<unsigned>>>
@@ -551,8 +538,17 @@ absl::StatusOr<BlockAnnotations> FindAccessedAddrs(
     return used_regs_and_loop_reg.status();
   }
 
-  std::vector<RegisterAndValue> initial_regs;
-  initial_regs.reserve(used_regs_and_loop_reg->first.size());
+  ExecutionAnnotations accessed_addrs;
+  accessed_addrs.set_code_start_address(0);
+  accessed_addrs.set_block_size(static_cast<size_t>(getpagesize()));
+  accessed_addrs.set_block_contents(kBlockContents);
+  if (used_regs_and_loop_reg->second.has_value()) {
+    accessed_addrs.set_loop_register(
+        llvm_arch_support.mc_register_info().getName(
+            *used_regs_and_loop_reg->second));
+  }
+  accessed_addrs.mutable_initial_registers()->Reserve(
+      used_regs_and_loop_reg->first.size());
 
   for (unsigned used_reg : used_regs_and_loop_reg->first) {
     // This value is chosen to be almost the lowest address that's able to be
@@ -561,38 +557,32 @@ absl::StatusOr<BlockAnnotations> FindAccessedAddrs(
     // accessible region of memory. But it's very common to take small negative
     // offsets from a register as a memory address, so we want to leave some
     // space below so that such addresses will still be accessible.
-    initial_regs.push_back(
-        {.register_index = used_reg, .register_value = 0x15000});
+    RegisterAndValue* used_reg_proto = accessed_addrs.add_initial_registers();
+    used_reg_proto->set_register_name(
+        llvm_arch_support.mc_register_info().getName(used_reg));
+    used_reg_proto->set_register_value(0x15000);
   }
 
   absl::BitGen gen;
 
-  BlockAnnotations accessed_addrs = {
-      .code_location = 0,
-      .block_size = static_cast<size_t>(getpagesize()),
-      .block_contents = kBlockContents,
-      .accessed_blocks = {},
-      .initial_regs = initial_regs,
-      .loop_register = used_regs_and_loop_reg->second};
-
   int n = 0;
   size_t num_accessed_blocks;
   do {
-    num_accessed_blocks = accessed_addrs.accessed_blocks.size();
+    num_accessed_blocks = accessed_addrs.accessed_blocks_size();
     auto status = ForkAndTestAddresses(basic_block, accessed_addrs);
     if (absl::IsInvalidArgument(status)) {
       if (n > 100) {
         return status;
       }
 
-      accessed_addrs.accessed_blocks.clear();
-      RandomiseRegs(gen, accessed_addrs.initial_regs);
+      accessed_addrs.clear_accessed_blocks();
+      RandomiseRegs(gen, *accessed_addrs.mutable_initial_registers());
     } else if (!status.ok()) {
       return status;
     }
 
     n++;
-  } while (accessed_addrs.accessed_blocks.size() != num_accessed_blocks);
+  } while (accessed_addrs.accessed_blocks_size() != num_accessed_blocks);
 
   return accessed_addrs;
 }

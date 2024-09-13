@@ -15,6 +15,7 @@
 #include "gematria/llvm/llvm_architecture_support.h"
 
 #include <memory>
+#include <utility>
 
 #include "absl/status/status.h"
 #include "gematria/llvm/llvm_to_absl.h"

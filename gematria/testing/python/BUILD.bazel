@@ -16,7 +16,6 @@ gematria_py_library(
         "//gematria/basic_block/python:throughput_protos",
         "//gematria/basic_block/python:tokens",
         "//gematria/proto:throughput_py_pb2",
-        "@rules_python//python/runfiles",
     ],
 )
 

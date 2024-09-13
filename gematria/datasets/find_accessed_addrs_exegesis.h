@@ -22,7 +22,7 @@
 // canonical include path within LLVM as they are not properly exposed through
 // a library and could potentially be confused with other LLVM includes.
 
-#include "gematria/datasets/find_accessed_addrs.h"
+#include "gematria/proto/execution_annotation.pb.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCDisassembler/MCDisassembler.h"
@@ -53,8 +53,8 @@ class ExegesisAnnotator {
  public:
   static Expected<std::unique_ptr<ExegesisAnnotator>> create(
       LLVMState &ExegesisState);
-  Expected<BlockAnnotations> findAccessedAddrs(ArrayRef<uint8_t> BasicBlock,
-                                               unsigned MaxAnnotationAttempts);
+  Expected<ExecutionAnnotations> findAccessedAddrs(
+      ArrayRef<uint8_t> BasicBlock, unsigned MaxAnnotationAttempts);
 };
 
 }  // namespace gematria

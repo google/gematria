@@ -32,3 +32,8 @@ gematria_proto_library(
     name = "annotation_proto",
     srcs = ["annotation.proto"],
 )
+
+gematria_proto_library(
+    name = "execution_annotation_proto",
+    srcs = ["execution_annotation.proto"],
+)

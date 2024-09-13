@@ -22,11 +22,11 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "gematria/datasets/bhive_importer.h"
-#include "gematria/datasets/find_accessed_addrs.h"
 #include "gematria/datasets/find_accessed_addrs_exegesis.h"
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/proto/basic_block.pb.h"
+#include "gematria/proto/execution_annotation.pb.h"
 #include "llvm/MC/MCInstPrinter.h"
 #include "llvm/Support/Error.h"
 #include "llvm/tools/llvm-exegesis/lib/LlvmState.h"
@@ -34,7 +34,7 @@
 namespace gematria {
 
 struct AnnotatedBlock {
-  BlockAnnotations AccessedAddrs;
+  ExecutionAnnotations AccessedAddrs;
   BasicBlockProto BasicBlockProto;
 };
 
@@ -60,7 +60,7 @@ class BHiveToExegesis {
       llvm::exegesis::LLVMState &&LLVMExegesisState,
       std::unique_ptr<gematria::ExegesisAnnotator> &&LLVMExegesisAnnotator);
 
-  absl::StatusOr<BlockAnnotations> getAccessedAddrs(
+  absl::StatusOr<ExecutionAnnotations> getAccessedAddrs(
       absl::Span<const uint8_t> BasicBlock,
       const unsigned MaxAnnotationAttempts, AnnotatorType AnnotatorToUse);
 
