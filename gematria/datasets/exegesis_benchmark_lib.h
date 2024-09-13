@@ -16,7 +16,7 @@
 #include <memory>
 #include <string_view>
 
-#include "gematria/datasets/find_accessed_addrs.h"
+#include "gematria/proto/execution_annotation.pb.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCDisassembler/MCDisassembler.h"
 #include "llvm/MC/MCInst.h"
@@ -43,12 +43,18 @@ class ExegesisBenchmark {
       const llvm::json::Object &BasicBlockJSON, size_t BlockIndex);
 
   llvm::Expected<llvm::exegesis::BenchmarkCode> processAnnotatedBlock(
-      std::string_view BlockHex, const BlockAnnotations &Annotations);
+      std::string_view BlockHex, const ExecutionAnnotations &Annotations);
 
   llvm::Expected<double> benchmarkBasicBlock(
       const llvm::exegesis::BenchmarkCode &BenchCode);
 
  private:
+  // TODO(boomanaiden154): This is duplicated with code from Exegesis for
+  // snippet file parsing. That code should be moved to LLVMState so that we
+  // can reuse it here.
+  llvm::Expected<llvm::MCRegister> getRegisterFromName(
+      llvm::StringRef RegisterName);
+
   std::unique_ptr<llvm::MCContext> LLVMMCContext;
   std::unique_ptr<llvm::MCDisassembler> LLVMMCDisassembler;
   std::unique_ptr<llvm::MCInstPrinter> LLVMMCInstPrinter;

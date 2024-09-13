@@ -33,6 +33,7 @@
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/llvm/llvm_to_absl.h"
+#include "gematria/proto/execution_annotation.pb.h"
 #include "gematria/utils/string.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/Twine.h"
@@ -69,7 +70,7 @@ Expected<std::unique_ptr<BHiveToExegesis>> BHiveToExegesis::create(
                           std::move(*AnnotatorOrErr)));
 }
 
-absl::StatusOr<BlockAnnotations> BHiveToExegesis::getAccessedAddrs(
+absl::StatusOr<ExecutionAnnotations> BHiveToExegesis::getAccessedAddrs(
     absl::Span<const uint8_t> BasicBlock, const unsigned MaxAnnotationAttempts,
     AnnotatorType AnnotatorToUse) {
   switch (AnnotatorToUse) {
@@ -80,7 +81,7 @@ absl::StatusOr<BlockAnnotations> BHiveToExegesis::getAccessedAddrs(
           ArrayRef(BasicBlock.begin(), BasicBlock.end()),
           MaxAnnotationAttempts));
     case AnnotatorType::kNone:
-      return gematria::BlockAnnotations();
+      return gematria::ExecutionAnnotations();
   }
   return absl::InvalidArgumentError("unknown annotator type");
 }

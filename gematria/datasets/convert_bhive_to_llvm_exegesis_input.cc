@@ -35,6 +35,7 @@
 #include "gematria/datasets/find_accessed_addrs.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/proto/basic_block.pb.h"
+#include "gematria/proto/execution_annotation.pb.h"
 #include "gematria/utils/string.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/Twine.h"
@@ -102,37 +103,39 @@ llvm::json::Value GetJSONForSnippet(
   llvm::json::Object current_snippet;
 
   llvm::json::Array register_definitions;
-  for (const gematria::RegisterAndValue register_and_value :
-       annotated_block.AccessedAddrs.initial_regs) {
+  for (const gematria::RegisterAndValue& register_and_value :
+       annotated_block.AccessedAddrs.initial_registers()) {
     llvm::json::Object current_register_definition;
-    current_register_definition["Register"] = register_and_value.register_index;
-    current_register_definition["Value"] = register_and_value.register_value;
+    current_register_definition["Register"] =
+        register_and_value.register_name();
+    current_register_definition["Value"] = register_and_value.register_value();
     register_definitions.push_back(std::move(current_register_definition));
   }
   current_snippet["RegisterDefinitions"] =
       llvm::json::Value(std::move(register_definitions));
 
   // Output the loop register.
-  if (annotated_block.AccessedAddrs.loop_register)
+  if (annotated_block.AccessedAddrs.has_loop_register())
     current_snippet["LoopRegister"] =
-        *annotated_block.AccessedAddrs.loop_register;
+        annotated_block.AccessedAddrs.loop_register();
   else
     current_snippet["LoopRegister"] = llvm::MCRegister::NoRegister;
 
-  if (annotated_block.AccessedAddrs.accessed_blocks.size() > 0) {
+  if (annotated_block.AccessedAddrs.accessed_blocks_size() > 0) {
     llvm::json::Array memory_definitions;
     llvm::json::Object current_memory_definition;
     current_memory_definition["Name"] = llvm::json::Value(kMemNamePrefix);
     current_memory_definition["Size"] =
-        annotated_block.AccessedAddrs.block_size;
+        annotated_block.AccessedAddrs.block_size();
     current_memory_definition["Value"] =
-        annotated_block.AccessedAddrs.block_contents;
+        annotated_block.AccessedAddrs.block_contents();
     memory_definitions.push_back(std::move(current_memory_definition));
     current_snippet["MemoryDefinitions"] =
         llvm::json::Value(std::move(memory_definitions));
 
     llvm::json::Array memory_mappings;
-    for (const uintptr_t addr : annotated_block.AccessedAddrs.accessed_blocks) {
+    for (const uintptr_t addr :
+         annotated_block.AccessedAddrs.accessed_blocks()) {
       llvm::json::Object current_memory_mapping;
       current_memory_mapping["Value"] = llvm::json::Value(kMemNamePrefix);
       current_memory_mapping["Address"] = addr;
@@ -169,35 +172,32 @@ absl::Status WriteAsmOutput(const gematria::AnnotatedBlock& annotated_block,
   }
 
   for (const gematria::RegisterAndValue& register_and_value :
-       annotated_block.AccessedAddrs.initial_regs) {
+       annotated_block.AccessedAddrs.initial_registers()) {
     std::string register_value_string =
-        gematria::ConvertHexToString(register_and_value.register_value);
-    output_file << kRegDefPrefix
-                << reg_info.getName(register_and_value.register_index) << " "
+        gematria::ConvertHexToString(register_and_value.register_value());
+    output_file << kRegDefPrefix << register_and_value.register_name() << " "
                 << register_value_string << "\n";
   }
 
   // Multiple mappings can point to the same definition.
-  if (annotated_block.AccessedAddrs.accessed_blocks.size() > 0) {
+  if (annotated_block.AccessedAddrs.accessed_blocks_size() > 0) {
     // Make sure to left-pad the memory value string so llvm-exegesis is able to
     // assume the right bit-width.
-    std::string memory_value_string =
-        absl::StrFormat("%016x", annotated_block.AccessedAddrs.block_contents);
+    std::string memory_value_string = absl::StrFormat(
+        "%016x", annotated_block.AccessedAddrs.block_contents());
     output_file << kMemDefPrefix << kMemNamePrefix << " "
-                << annotated_block.AccessedAddrs.block_size << " "
+                << annotated_block.AccessedAddrs.block_size() << " "
                 << memory_value_string << "\n";
   }
-  for (const auto& addr : annotated_block.AccessedAddrs.accessed_blocks) {
+  for (const auto& addr : annotated_block.AccessedAddrs.accessed_blocks()) {
     output_file << kMemMapPrefix << kMemNamePrefix << " " << std::dec << addr
                 << "\n";
   }
 
   // Write the loop register annotation, assuming we were able to find one.
-  if (annotated_block.AccessedAddrs.loop_register) {
+  if (annotated_block.AccessedAddrs.has_loop_register()) {
     output_file << kLoopRegisterPrefix
-                << reg_info.getName(
-                       *annotated_block.AccessedAddrs.loop_register)
-                << "\n";
+                << annotated_block.AccessedAddrs.loop_register() << "\n";
   }
 
   // Append disassembled instructions.
@@ -275,7 +275,7 @@ int main(int argc, char* argv[]) {
     // If we can't find a loop register, skip writing out this basic block
     // so that downstream tooling doesn't execute the incorrect number of
     // iterations.
-    if (!annotated_block->AccessedAddrs.loop_register &&
+    if (!annotated_block->AccessedAddrs.has_loop_register() &&
         skip_no_loop_register) {
       std::cerr
           << "Skipping block due to not being able to find a loop register\n";

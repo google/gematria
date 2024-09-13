@@ -24,11 +24,11 @@
 ; CHECK:     ],
 ; CHECK:     "RegisterDefinitions": [
 ; CHECK:       {
-; CHECK:         "Register": 54,
+; CHECK:         "Register": "RCX",
 ; CHECK:         "Value": 86016
 ; CHECK:       },
 ; CHECK:       {
-; CHECK:         "Register": 60,
+; CHECK:         "Register": "RSI",
 ; CHECK:         "Value": 86016
 ; CHECK:       }
 ; CHECK:     ]
