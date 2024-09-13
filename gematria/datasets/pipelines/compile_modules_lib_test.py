@@ -22,6 +22,9 @@ from apache_beam.testing import util as beam_test
 
 from gematria.datasets.pipelines import compile_modules_lib
 from gematria.testing.python import ir_utils
+from gematria.datasets.python import bhive_to_exegesis
+from gematria.proto import execution_annotation_pb2
+from gematria.io.python import tfrecord
 
 
 class CompileModulesTests(absltest.TestCase):
@@ -83,6 +86,18 @@ class CompileModulesTests(absltest.TestCase):
       output = input | compile_modules_lib.DeduplicateBBs()
       beam_test.assert_that(output, beam_test.equal_to(['aa', 'ab', 'bc']))
 
+  def test_annotate_bbs(self):
+    annotator = compile_modules_lib.AnnotateBBs(
+        bhive_to_exegesis.AnnotatorType.fast, 50
+    )
+    annotator.setup()
+
+    annotated_blocks = list(
+        annotator.process('4829d38b44246c8b54246848c1fb034829d04839c3')
+    )
+
+    self.assertLen(annotated_blocks, 1)
+
   def test_process_and_filter_bbs(self):
     bb_hex = 'B801000000C3'
 
@@ -123,19 +138,25 @@ class CompileModulesTests(absltest.TestCase):
     )
 
     pipeline_constructor = compile_modules_lib.get_bbs(
-        test_parquet_file.full_path, output_file_pattern, False
+        test_parquet_file.full_path,
+        output_file_pattern,
+        False,
+        bhive_to_exegesis.AnnotatorType.fast,
+        50,
     )
 
     with test_pipeline.TestPipeline() as pipeline_under_test:
       pipeline_constructor(pipeline_under_test)
 
-    with open(output_file_pattern + '-00000-of-00001') as output_file:
-      output_file_lines_raw = output_file.readlines()
+    block_hex_values = []
+    for annotated_block in tfrecord.read_protos(
+        [output_file_pattern + '-00000-of-00001'],
+        execution_annotation_pb2.BlockWithExecutionAnnotations,
+    ):
+      block_hex_values.append(annotated_block.block_hex)
 
-    output_file_lines = [raw_line.strip() for raw_line in output_file_lines_raw]
-
-    self.assertLen(output_file_lines, 2)
-    self.assertContainsSubset(['B801000000', 'B802000000'], output_file_lines)
+    self.assertLen(block_hex_values, 2)
+    self.assertContainsSubset(['B801000000', 'B802000000'], block_hex_values)
 
 
 if __name__ == '__main__':

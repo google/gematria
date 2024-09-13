@@ -4,9 +4,13 @@ gematria_py_library(
     name = "compile_modules_lib",
     srcs = ["compile_modules_lib.py"],
     deps = [
+        "//gematria/datasets/python:bhive_to_exegesis",
         "//gematria/datasets/python:extract_bbs_from_obj",
         "//gematria/datasets/python:process_and_filter_bbs",
+        "//gematria/io/python:tfrecord",
+        "//gematria/llvm/python:llvm_architecture_support",
         "//gematria/llvm/python:runfiles",
+        "//gematria/proto:execution_annotation_py_pb2",
     ],
 )
 
@@ -21,6 +25,12 @@ gematria_py_binary(
 gematria_py_test(
     name = "compile_modules_lib_test",
     srcs = ["compile_modules_lib_test.py"],
+    # TODO(boomanaiden154): We use the python implementation here as otherwise
+    # we get a segmentation fault. Eventually this should be debugged and
+    # fixed. Tracked as issue #201.
+    env = {
+        "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": "python",
+    },
     deps = [
         ":compile_modules_lib",
         "//gematria/testing/python:ir_utils",
