@@ -384,13 +384,13 @@ Expected<double> ExegesisBenchmark::benchmarkBasicBlock(
 
 Expected<MCRegister> ExegesisBenchmark::getRegisterFromName(
     StringRef RegisterName) {
-  auto RegIterator =
-      ExegesisState.getRegNameToRegNoMapping().find(RegisterName);
-  if (RegIterator == ExegesisState.getRegNameToRegNoMapping().end())
+  std::optional<MCRegister> register_index =
+      ExegesisState.getRegisterNumberFromName(RegisterName);
+  if (!register_index.has_value())
     return llvm::make_error<StringError>(
         errc::invalid_argument,
         "Invalid register name for target: " + RegisterName);
-  return RegIterator->second;
+  return *register_index;
 }
 
 }  // namespace gematria
