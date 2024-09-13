@@ -25,8 +25,6 @@ from gematria.datasets.python import process_and_filter_bbs
 from gematria.datasets.python import bhive_to_exegesis
 from gematria.llvm.python import llvm_architecture_support
 from gematria.proto import execution_annotation_pb2
-from gematria.datasets.python import extract_bbs_from_obj
-from gematria.datasets.python import process_and_filter_bbs
 import gematria.llvm.python.runfiles
 
 

@@ -9,8 +9,8 @@ gematria_py_library(
         "//gematria/datasets/python:process_and_filter_bbs",
         "//gematria/io/python:tfrecord",
         "//gematria/llvm/python:llvm_architecture_support",
-        "//gematria/proto:execution_annotation_py_pb2",
         "//gematria/llvm/python:runfiles",
+        "//gematria/proto:execution_annotation_py_pb2",
     ],
 )
 
