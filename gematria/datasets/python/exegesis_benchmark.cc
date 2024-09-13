@@ -75,9 +75,9 @@ PYBIND11_MODULE(exegesis_benchmark, m) {
 
             return LlvmExpectedToStatusOr(ExegesisBenchmark::create());
           },
-          R"(Creates a ExegesisBenchmark Instance.
+          R"(Creates an ExegesisBenchmark Instance.
 
-          Does the necessary initialization to run Exegesis and creates a
+          Does the necessary initialization to run Exegesis and creates an
           ExegesisBenchmark that can be used to execute annotated blocks. This
           will only perform initialization once even if called multiple times,
           but it is reccomended to only create one instance per thread/worker.
