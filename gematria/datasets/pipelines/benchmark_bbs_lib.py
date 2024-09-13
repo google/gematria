@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from collections.abc import Callable, Iterable
-from typing import Tuple
 
 import apache_beam as beam
 from pybind11_abseil import status
@@ -31,7 +30,7 @@ class BenchmarkBasicBlock(beam.DoFn):
   def process(
       self,
       block_with_annotations: execution_annotation_pb2.BlockWithExecutionAnnotations,
-  ) -> Iterable[Tuple[str, float]]:
+  ) -> Iterable[tuple[str, float]]:
     try:
       benchmark_code = self._exegesis_benchmark.process_annotated_block(
           block_with_annotations

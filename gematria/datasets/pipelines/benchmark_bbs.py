@@ -33,7 +33,8 @@ _OUTPUT_FILE_PATTERN = flags.DEFINE_string(
 
 
 def main(argv) -> None:
-  del argv  # Unused.
+  if len(argv) > 1:
+    raise app.UsageError('Too many command-line arguments.')
 
   beam_options = pipeline_options.PipelineOptions()
 
