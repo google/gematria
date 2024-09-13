@@ -19,10 +19,10 @@ from runfiles import runfiles
 
 def get_llvm_binary_path(tool_name: str) -> str:
   """Gets the path to a LLVM binary.
-  
+
   Args:
     tool_name: The name of the llvm tool that we want to get the path to.
-  
+
   Returns:
     The path to the requested tool.
   """
