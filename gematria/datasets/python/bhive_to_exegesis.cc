@@ -16,8 +16,10 @@
 
 #include <string>
 
+#include "absl/status/statusor.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/llvm/llvm_to_absl.h"
+#include "gematria/proto/execution_annotation.pb.h"
 #include "llvm-c/Target.h"
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 #include "pybind11/cast.h"
@@ -25,7 +27,8 @@
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"  // IWYU pragma: keep
 #include "pybind11_abseil/import_status_module.h"
-#include "pybind11_abseil/status_casters.h"  // IWYU pragma: keep
+#include "pybind11_abseil/status_casters.h"         // IWYU pragma: keep
+#include "pybind11_protobuf/native_proto_caster.h"  // IWYU pragma: keep
 
 namespace gematria {
 
@@ -41,8 +44,6 @@ PYBIND11_MODULE(bhive_to_exegesis, m) {
       .value("fast", BHiveToExegesis::AnnotatorType::kFast)
       .value("none", BHiveToExegesis::AnnotatorType::kNone)
       .export_values();
-
-  py::class_<AnnotatedBlock>(m, "AnnotatedBlock");
 
   py::class_<BHiveToExegesis>(m, "BHiveToExegesis")
       .def_static(
@@ -79,9 +80,16 @@ PYBIND11_MODULE(bhive_to_exegesis, m) {
           "annotate_basic_block",
           [](BHiveToExegesis& Self, std::string BasicBlockHex,
              BHiveToExegesis::AnnotatorType AnnotatorType,
-             unsigned MaxAnnotationAttempts) {
-            return Self.annotateBasicBlock(BasicBlockHex, AnnotatorType,
-                                           MaxAnnotationAttempts);
+             unsigned MaxAnnotationAttempts)
+              -> absl::StatusOr<ExecutionAnnotations> {
+            absl::StatusOr<AnnotatedBlock> annotated_block =
+                Self.annotateBasicBlock(BasicBlockHex, AnnotatorType,
+                                        MaxAnnotationAttempts);
+            if (!annotated_block.ok()) {
+              return annotated_block.status();
+            }
+
+            return annotated_block->AccessedAddrs;
           },
           py::arg("basic_block_hex"), py::arg("annotator_type"),
           py::arg("max_annotation_attempts"),
@@ -99,7 +107,7 @@ PYBIND11_MODULE(bhive_to_exegesis, m) {
               giving up.
             
           Returns:
-            An AnnotatedBlock that can then be used for benchmarking.
+            An ExecutionAnnotations proto that can be used for benchmarking.
 
           Raises:
             StatusNotOk: When annotating the block fails.

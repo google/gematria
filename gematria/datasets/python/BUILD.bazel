@@ -128,6 +128,7 @@ gematria_pybind_extension(
     deps = [
         "//gematria/datasets:bhive_to_exegesis",
         "//gematria/llvm:llvm_to_absl",
+        "@com_google_pybind11_protobuf//pybind11_protobuf:native_proto_caster",
         "@pybind11_abseil_repo//pybind11_abseil:status_casters",
     ],
 )
@@ -139,6 +140,7 @@ gematria_py_test(
     deps = [
         ":bhive_to_exegesis",
         "//gematria/llvm/python:llvm_architecture_support",
+        "//gematria/proto:execution_annotation_py_pb2",
     ],
 )
 
@@ -150,6 +152,7 @@ gematria_pybind_extension(
         "//gematria/datasets:bhive_to_exegesis",
         "//gematria/datasets:exegesis_benchmark_lib",
         "//gematria/llvm:llvm_to_absl",
+        "@com_google_pybind11_protobuf//pybind11_protobuf:native_proto_caster",
         "@pybind11_abseil_repo//pybind11_abseil:status_casters",
     ],
 )
@@ -165,5 +168,6 @@ gematria_py_test(
         ":bhive_to_exegesis",
         ":exegesis_benchmark",
         "//gematria/llvm/python:llvm_architecture_support",
+        "//gematria/proto:execution_annotation_py_pb2",
     ],
 )
