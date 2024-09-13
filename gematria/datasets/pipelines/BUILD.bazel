@@ -27,7 +27,7 @@ gematria_py_test(
     srcs = ["compile_modules_lib_test.py"],
     # TODO(boomanaiden154): We use the python implementation here as otherwise
     # we get a segmentation fault. Eventually this should be debugged and
-    # fixed.
+    # fixed. Tracked as issue #201.
     env = {
         "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": "python",
     },
