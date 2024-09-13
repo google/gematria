@@ -98,7 +98,6 @@ gematria_py_test(
     ],
     deps = [
         ":extract_bbs_from_obj",
-        "@rules_python//python/runfiles",
     ],
 )
 

@@ -16,7 +16,6 @@ gematria_py_library(
         "//gematria/basic_block/python:throughput_protos",
         "//gematria/basic_block/python:tokens",
         "//gematria/proto:throughput_py_pb2",
-        "@rules_python//python/runfiles",
     ],
 )
 
@@ -61,13 +60,9 @@ gematria_py_library(
     name = "ir_utils",
     testonly = True,
     srcs = ["ir_utils.py"],
-    data = [
-        "@llvm-project//llvm:llvm-as",
-        "@llvm-project//llvm:llvm-dis",
-    ],
     visibility = ["//:internal_users"],
     deps = [
-        "@rules_python//python/runfiles",
+        "//gematria/llvm/python:runfiles",
     ],
 )
 
