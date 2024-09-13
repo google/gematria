@@ -1,5 +1,6 @@
 load(
     "//:python.bzl",
+    "gematria_py_library",
     "gematria_py_test",
     "gematria_pybind_extension",
 )
@@ -47,5 +48,20 @@ gematria_py_test(
     deps = [
         ":llvm_architecture_support",
         "//gematria/utils/python:pybind11_abseil_status",
+    ],
+)
+
+gematria_py_library(
+    name = "runfiles",
+    srcs = ["runfiles.py"],
+    data = [
+        "@llvm-project//llvm:llc",
+        "@llvm-project//llvm:llvm-as",
+        "@llvm-project//llvm:llvm-dis",
+        "@llvm-project//llvm:opt",
+    ],
+    visibility = ["//:internal_users"],
+    deps = [
+        "@rules_python//python/runfiles",
     ],
 )
