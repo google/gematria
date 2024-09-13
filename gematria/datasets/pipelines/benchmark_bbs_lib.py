@@ -47,7 +47,7 @@ class FormatBBsForOutput(beam.DoFn):
   """A Beam function for formatting hex/throughput values for output."""
 
   def process(
-      self, block_hex_and_throughput: Tuple[str, float]
+      self, block_hex_and_throughput: tuple[str, float]
   ) -> Iterable[str]:
     block_hex, throughput = block_hex_and_throughput
     yield f'{block_hex},{throughput}'
