@@ -60,11 +60,10 @@ gematria_py_library(
     name = "ir_utils",
     testonly = True,
     srcs = ["ir_utils.py"],
-    data = [
-        "@llvm-project//llvm:llvm-as",
-        "@llvm-project//llvm:llvm-dis",
-    ],
     visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/llvm/python:runfiles",
+    ],
 )
 
 gematria_py_test(
