@@ -3,6 +3,11 @@ load(
     "glob_lit_tests",
 )
 
+package(
+    default_visibility = ["//visibility:private"],
+    features = ["layering_check"],
+)
+
 glob_lit_tests(
     name = "lit_tests",
     data = [

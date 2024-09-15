@@ -22,9 +22,7 @@
 #include <string_view>
 #include <system_error>
 #include <utility>
-#include <vector>
 
-#include "X86Subtarget.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/status/status.h"
@@ -32,7 +30,6 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "gematria/datasets/bhive_to_exegesis.h"
-#include "gematria/datasets/find_accessed_addrs.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/proto/basic_block.pb.h"
 #include "gematria/proto/execution_annotation.pb.h"
