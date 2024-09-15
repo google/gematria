@@ -7,6 +7,7 @@ load(
 
 package(
     default_visibility = ["//visibility:private"],
+    features = ["layering_check"],
 )
 
 gematria_pybind_extension(
@@ -25,6 +26,7 @@ gematria_pybind_extension(
         "//gematria/llvm:canonicalizer",
         "@com_google_pybind11_protobuf//pybind11_protobuf:native_proto_caster",
         "@llvm-project//llvm:Support",
+        "@pybind11_abseil_repo//pybind11_abseil:import_status_module",
         "@pybind11_abseil_repo//pybind11_abseil:status_casters",
     ],
 )
@@ -74,6 +76,8 @@ gematria_pybind_extension(
     deps = [
         "//gematria/datasets:extract_bbs_from_obj_lib",
         "//gematria/llvm:llvm_to_absl",
+        "@llvm-project//llvm:Support",
+        "@pybind11_abseil_repo//pybind11_abseil:import_status_module",
         "@pybind11_abseil_repo//pybind11_abseil:status_casters",
     ],
 )
@@ -108,6 +112,7 @@ gematria_pybind_extension(
     deps = [
         "//gematria/datasets:process_and_filter_bbs_lib",
         "//gematria/llvm:llvm_to_absl",
+        "@pybind11_abseil_repo//pybind11_abseil:import_status_module",
         "@pybind11_abseil_repo//pybind11_abseil:status_casters",
     ],
 )
@@ -127,8 +132,14 @@ gematria_pybind_extension(
     visibility = ["//:internal_users"],
     deps = [
         "//gematria/datasets:bhive_to_exegesis",
+        "//gematria/llvm:llvm_architecture_support",
         "//gematria/llvm:llvm_to_absl",
+        "//gematria/proto:execution_annotation_cc_proto",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_pybind11_protobuf//pybind11_protobuf:native_proto_caster",
+        "@llvm-project//llvm:Exegesis",
+        "@llvm-project//llvm:Target",
+        "@pybind11_abseil_repo//pybind11_abseil:import_status_module",
         "@pybind11_abseil_repo//pybind11_abseil:status_casters",
     ],
 )
@@ -152,7 +163,12 @@ gematria_pybind_extension(
         "//gematria/datasets:bhive_to_exegesis",
         "//gematria/datasets:exegesis_benchmark_lib",
         "//gematria/llvm:llvm_to_absl",
+        "//gematria/proto:execution_annotation_cc_proto",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_pybind11_protobuf//pybind11_protobuf:native_proto_caster",
+        "@llvm-project//llvm:Exegesis",
+        "@llvm-project//llvm:Target",
+        "@pybind11_abseil_repo//pybind11_abseil:import_status_module",
         "@pybind11_abseil_repo//pybind11_abseil:status_casters",
     ],
 )

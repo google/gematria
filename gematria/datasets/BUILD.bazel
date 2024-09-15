@@ -1,5 +1,6 @@
 package(
     default_visibility = ["//visibility:private"],
+    features = ["layering_check"],
 )
 
 cc_library(
@@ -20,6 +21,7 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
         "@llvm-project//llvm:MC",
         "@llvm-project//llvm:MCDisassembler",
         "@llvm-project//llvm:Support",
@@ -34,9 +36,17 @@ cc_test(
     deps = [
         ":bhive_importer",
         "//gematria/llvm:canonicalizer",
+        "//gematria/llvm:disassembler",
         "//gematria/llvm:llvm_architecture_support",
         "//gematria/testing:matchers",
+        "//gematria/utils:string",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:MC",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -49,15 +59,20 @@ cc_library(
         ":bhive_importer",
         "//gematria/basic_block:basic_block_protos",
         "//gematria/llvm:canonicalizer",
+        "//gematria/llvm:disassembler",
         "//gematria/llvm:llvm_to_absl",
         "//gematria/proto:basic_block_cc_proto",
         "//gematria/proto:throughput_cc_proto",
         "//gematria/utils:string",
+        "@com_google_absl//absl/hash",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_perf_data_converter//quipper:perf_parser",
         "@com_google_perf_data_converter//quipper:perf_reader",
+        "@llvm-project//llvm:Object",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -76,6 +91,7 @@ cc_test(
         "//gematria/testing:matchers",
         "@bazel_tools//tools/cpp/runfiles",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -90,9 +106,18 @@ cc_library(
         ":find_accessed_addrs",
         ":find_accessed_addrs_exegesis",
         "//gematria/llvm:canonicalizer",
+        "//gematria/llvm:disassembler",
         "//gematria/llvm:llvm_architecture_support",
+        "//gematria/llvm:llvm_to_absl",
         "//gematria/proto:basic_block_cc_proto",
+        "//gematria/proto:execution_annotation_cc_proto",
+        "//gematria/utils:string",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
         "@llvm-project//llvm:Exegesis",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -106,9 +131,13 @@ cc_test(
         "//gematria/llvm:llvm_architecture_support",
         "//gematria/utils:string",
         "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/memory",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Exegesis",
         "@llvm-project//llvm:MC",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:ir_headers",
     ],
 )
 
@@ -124,9 +153,18 @@ cc_binary(
         ":find_accessed_addrs_exegesis",
         "//gematria/llvm:canonicalizer",
         "//gematria/llvm:llvm_architecture_support",
+        "//gematria/proto:basic_block_cc_proto",
+        "//gematria/proto:execution_annotation_cc_proto",
         "//gematria/utils:string",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@llvm-project//llvm:Exegesis",
+        "@llvm-project//llvm:MC",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -138,10 +176,13 @@ cc_library(
     deps = [
         ":find_accessed_addrs",
         "//gematria/llvm:disassembler",
+        "//gematria/proto:execution_annotation_cc_proto",
         "//gematria/utils:string",
         "@llvm-project//llvm:Exegesis",
+        "@llvm-project//llvm:MC",
         "@llvm-project//llvm:Support",
         "@llvm-project//llvm:X86Disassembler",
+        "@llvm-project//llvm:ir_headers",
     ],
 )
 
@@ -163,7 +204,10 @@ cc_test(
         "//gematria/proto:execution_annotation_cc_proto",
         "//gematria/testing:llvm",
         "//gematria/testing:parse_proto",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Exegesis",
+        "@llvm-project//llvm:Support",
         "@llvm-project//llvm:X86UtilsAndDesc",
     ],
 )
@@ -176,6 +220,7 @@ cc_binary(
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
         "@llvm-project//llvm:Exegesis",
+        "@llvm-project//llvm:MC",
         "@llvm-project//llvm:Support",
     ],
 )
@@ -213,7 +258,9 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
+        "@com_google_protobuf//:protobuf_lite",
         "@llvm-project//llvm:MC",
+        "@llvm-project//llvm:Support",
         "@llvm-project//llvm:X86UtilsAndDesc",
     ],
 )
@@ -227,8 +274,11 @@ cc_library(
         ":find_accessed_addrs",
         "//gematria/llvm:disassembler",
         "//gematria/llvm:llvm_architecture_support",
+        "//gematria/proto:execution_annotation_cc_proto",
         "@llvm-project//llvm:Exegesis",
+        "@llvm-project//llvm:MC",
         "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:X86UtilsAndDesc",
     ],
 )
 
@@ -248,6 +298,7 @@ cc_test(
         ":find_accessed_addrs",
         "//gematria/llvm:asm_parser",
         "//gematria/llvm:llvm_architecture_support",
+        "//gematria/proto:execution_annotation_cc_proto",
         "//gematria/testing:matchers",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/memory",
@@ -256,6 +307,7 @@ cc_test(
         "@com_google_absl//absl/random:seed_sequences",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:MC",
         "@llvm-project//llvm:Support",
@@ -279,8 +331,16 @@ cc_test(
     deps = [
         ":find_accessed_addrs_exegesis",
         "//gematria/llvm:asm_parser",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/proto:execution_annotation_cc_proto",
         "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/memory",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Exegesis",
+        "@llvm-project//llvm:MC",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:ir_headers",
     ],
 )
 
@@ -305,7 +365,9 @@ cc_library(
     hdrs = ["basic_block_utils.h"],
     deps = [
         "//gematria/llvm:disassembler",
-        "@llvm-project//llvm:X86CodeGen",
+        "@llvm-project//llvm:MC",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:X86UtilsAndDesc",
     ],
 )
 
@@ -318,7 +380,12 @@ cc_test(
         "//gematria/llvm:disassembler",
         "//gematria/llvm:llvm_architecture_support",
         "//gematria/testing:matchers",
+        "@com_google_absl//absl/log:check",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:MC",
+        "@llvm-project//llvm:X86UtilsAndDesc",
+        "@llvm-project//llvm:ir_headers",
     ],
 )
 
@@ -354,7 +421,9 @@ cc_library(
         "//gematria/llvm:disassembler",
         "//gematria/llvm:llvm_architecture_support",
         "//gematria/utils:string",
+        "@llvm-project//llvm:MC",
         "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:X86UtilsAndDesc",
     ],
 )
 
@@ -364,7 +433,16 @@ cc_test(
     deps = [
         ":process_and_filter_bbs_lib",
         "//gematria/llvm:asm_parser",
+        "//gematria/llvm:disassembler",
+        "//gematria/llvm:llvm_architecture_support",
+        "//gematria/utils:string",
         "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/memory",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:MC",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:X86UtilsAndDesc",
+        "@llvm-project//llvm:ir_headers",
     ],
 )
