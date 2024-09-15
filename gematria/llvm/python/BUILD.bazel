@@ -7,6 +7,7 @@ load(
 
 package(
     default_visibility = ["//visibility:private"],
+    features = ["layering_check"],
 )
 
 gematria_pybind_extension(
@@ -37,6 +38,7 @@ gematria_pybind_extension(
     deps = [
         "//gematria/llvm:llvm_architecture_support",
         "//gematria/llvm:llvm_to_absl",
+        "@pybind11_abseil_repo//pybind11_abseil:import_status_module",
         "@pybind11_abseil_repo//pybind11_abseil:status_casters",
     ],
 )
