@@ -1,5 +1,6 @@
 package(
     default_visibility = ["//visibility:private"],
+    features = ["layering_check"],
 )
 
 cc_library(
@@ -32,6 +33,7 @@ cc_test(
         "//gematria/testing:llvm",
         "//gematria/testing:matchers",
         "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:MC",
         "@llvm-project//llvm:X86UtilsAndDesc",
@@ -62,6 +64,8 @@ cc_test(
         ":asm_parser",
         ":canonicalizer",
         ":llvm_architecture_support",
+        "//gematria/basic_block",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:MC",
         "@llvm-project//llvm:ir_headers",
@@ -85,6 +89,7 @@ cc_test(
     deps = [
         ":diagnostics",
         ":llvm_architecture_support",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:MC",
         "@llvm-project//llvm:Support",
@@ -115,6 +120,7 @@ cc_test(
         "//gematria/testing:llvm",
         "//gematria/testing:matchers",
         "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:MC",
         "@llvm-project//llvm:Support",
@@ -145,6 +151,7 @@ cc_test(
         ":llvm_to_absl",
         "//gematria/testing:matchers",
         "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -178,6 +185,7 @@ cc_test(
         ":llvm_to_absl",
         "//gematria/testing:matchers",
         "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
     ],
