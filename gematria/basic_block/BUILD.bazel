@@ -1,5 +1,6 @@
 package(
     default_visibility = ["//visibility:private"],
+    features = ["layering_check"],
 )
 
 cc_library(
@@ -17,6 +18,7 @@ cc_test(
     srcs = ["basic_block_test.cc"],
     deps = [
         ":basic_block",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -28,6 +30,7 @@ cc_library(
     visibility = ["//:internal_users"],
     deps = [
         ":basic_block",
+        "//gematria/proto:annotation_cc_proto",
         "//gematria/proto:basic_block_cc_proto",
         "//gematria/proto:canonicalized_instruction_cc_proto",
         "@com_google_protobuf//:protobuf_lite",
@@ -45,6 +48,7 @@ cc_test(
         "//gematria/proto:canonicalized_instruction_cc_proto",
         "//gematria/testing:matchers",
         "//gematria/testing:parse_proto",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
