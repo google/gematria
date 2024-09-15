@@ -1,5 +1,6 @@
 package(
     default_visibility = ["//visibility:private"],
+    features = ["layering_checks"],
 )
 
 # The macro BALANCE_FLUSHING_TIME is defined when this matches. This enables the
