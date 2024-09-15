@@ -2,6 +2,7 @@ load("//:proto.bzl", "gematria_proto_library")
 
 package(
     default_visibility = ["//:external_users"],
+    features = ["layering_check"],
 )
 
 gematria_proto_library(
