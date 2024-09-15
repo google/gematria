@@ -2,6 +2,7 @@ load("//:python.bzl", "gematria_py_binary", "gematria_py_library", "gematria_py_
 
 package(
     default_visibility = ["//visibility:private"],
+    features = ["layering_check"],
 )
 
 gematria_py_binary(
