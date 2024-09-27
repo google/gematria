@@ -65,7 +65,7 @@ class LowerModulesAsm(beam.DoFn):
         self._llc_path,
         optimization_level,
         '-filetype=obj',
-        '-basic-block-sections=labels',
+        '-basic-block-address-map',
     ]
     result = subprocess.run(
         command_vector, input=input_module, capture_output=True, check=True
