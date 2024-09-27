@@ -17,7 +17,7 @@ cc_binary(
     name = "simple_x86_elf_object_source",
     srcs = ["simple_x86_elf_object_source.c"],
     copts = [
-        "-fbasic-block-sections=labels",
+        "-fbasic-block-address-map",
     ],
     visibility = ["//:internal_users"],
 )
