@@ -19,7 +19,7 @@ name: Gematria CI
 # TODO(virajbshah): Find a better way to keep these two in sync without the
 # need to update one manually every time the other is changed.
 env:
-  LLVM_COMMIT: 99fe5954d258511ec2e36e8c7f612568e9701ab7
+  LLVM_COMMIT: 29b92d07746fac26cd64c914bc9c5c3833974f6d
 
 on:
   push:

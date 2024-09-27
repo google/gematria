@@ -163,7 +163,7 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
     BenchmarkRunner::RunnableConfiguration &RC = *RCOrErr;
 
     std::pair<Error, Benchmark> BenchmarkResultOrErr =
-        Runner->runConfiguration(std::move(RC), {});
+        Runner->runConfiguration(std::move(RC), {}, std::nullopt);
 
     // If we don't have any errors executing the snippet, we executed the
     // snippet successfully and thus have all the needed memory annotations.
