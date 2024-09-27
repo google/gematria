@@ -110,6 +110,21 @@ jobs:
     - uses: actions/checkout@v4
     - name: Setup environment variables
       run: echo "CURRENT_DAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+    - name: Setup LLVM
+      # TODO(boomanaiden154): We should refactor the docker image so we can
+      # have a base image with just system dependencies that we can then run
+      # everything in here to keep things consistent with less hacks.
+      run: |
+        sudo apt-get autoremove gcc-12 g++-12 && \
+        echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-19 main\ndeb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-19 main" | sudo tee /etc/apt/sources.list && \
+        curl -L https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - && \
+        curl -L https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
+        sudo apt-get update && \
+        sudo apt-get install -y clang-19 lld-19 && \
+        sudo rm -f /usr/bin/clang && \
+        sudo rm -f /usr/bin/clang++ && \
+        sudo ln -s /usr/bin/clang-19 /usr/bin/clang && \
+        sudo ln -s /usr/bin/clang-19 /usr/bin/clang++
     - name: Cache Bazel
       uses: actions/cache@v3
       with:
