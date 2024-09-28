@@ -15,6 +15,7 @@
 from collections.abc import Callable, Iterable
 
 import apache_beam as beam
+from apache_beam import metrics
 from pybind11_abseil import status
 
 from gematria.proto import execution_annotation_pb2
@@ -26,6 +27,9 @@ class BenchmarkBasicBlock(beam.DoFn):
 
   def setup(self):
     self._exegesis_benchmark = exegesis_benchmark.ExegesisBenchmark.create()
+    self._benchmark_failed_blocks = metrics.Metrics.counter(
+        'benchmark_bbs', 'failed_benchmarking_blocks'
+    )
 
   def process(
       self,
