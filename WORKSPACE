@@ -16,12 +16,10 @@ http_archive(
 git_repository(
     name = "com_google_protobuf",
     remote = "https://github.com/protocolbuffers/protobuf.git",
-    tag = "v23.2",
+    tag = "v28.2",
 )
 
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
-
-protobuf_deps()
 
 # Required for protobuf to build.
 git_repository(
@@ -113,23 +111,13 @@ http_archive(
 )
 
 # Python
-load("@upb//bazel:system_python.bzl", "system_python")
-
-system_python(
-    name = "system_python",
-    minimum_python_version = "3.10",
-)
-
-bind(
-    name = "python_headers",
-    actual = "@system_python//:python_headers",
-)
-
 git_repository(
     name = "rules_python",
     remote = "https://github.com/bazelbuild/rules_python.git",
     tag = "0.19.0",
 )
+
+protobuf_deps()
 
 git_repository(
     name = "pybind11_bazel",
