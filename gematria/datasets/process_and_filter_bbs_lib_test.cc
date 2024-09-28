@@ -103,10 +103,38 @@ class ProcessFilterBBsTest : public testing::Test {
 // fixed (https://github.com/llvm/llvm-project/issues/100944), we should move
 // the assembly back to a direct parameter of the functions.
 
+TEST_F(ProcessFilterBBsTest, RemoveSoftwareInterrupt) {
+  static constexpr std::string_view Assembly = R"asm(
+    movq %r11, %r12
+    int $0x80
+  )asm";
+
+  auto ProcessedInstructions = removeRiskyInstructions(Assembly, false);
+
+  EXPECT_EQ(ProcessedInstructions.size(), 1);
+  EXPECT_EQ(ProcessedInstructions[0].mc_inst.getOpcode(), X86::MOV64rr);
+}
+
 TEST_F(ProcessFilterBBsTest, RemoveSyscall) {
   static constexpr std::string_view Assembly = R"asm(
     movq %r11, %r12
     syscall
+    sysret
+    sysretq
+  )asm";
+
+  auto ProcessedInstructions = removeRiskyInstructions(Assembly, false);
+
+  EXPECT_EQ(ProcessedInstructions.size(), 1);
+  EXPECT_EQ(ProcessedInstructions[0].mc_inst.getOpcode(), X86::MOV64rr);
+}
+
+TEST_F(ProcessFilterBBsTest, RemoveSysenter) {
+  static constexpr std::string_view Assembly = R"asm(
+    movq %r11, %r12
+    sysenter
+    sysexit
+    sysexitq
   )asm";
 
   auto ProcessedInstructions = removeRiskyInstructions(Assembly, false);
