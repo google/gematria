@@ -156,12 +156,10 @@ git_repository(
     remote = "https://github.com/pybind/pybind11_abseil.git",
 )
 
-# TODO(ondrasej): Revert back to the official repository, once
-# https://github.com/pybind/pybind11_protobuf/pull/117 is merged.
 git_repository(
     name = "com_google_pybind11_protobuf",
-    commit = "3e4d063c56156d752ad5cf63cf8338ef960c3269",
-    remote = "https://github.com/ondrasej/pybind11_protobuf.git",
+    commit = "55916e14588b3c26203d4aefbdcaa888870c29ac",
+    remote = "https://github.com/pybind/pybind11_protobuf.git",
 )
 
 load("@pybind11_bazel//:python_configure.bzl", _pybind11_python_configure = "python_configure")
