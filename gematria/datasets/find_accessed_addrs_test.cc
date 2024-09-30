@@ -233,7 +233,7 @@ TEST_F(FindAccessedAddrsTest, ZmmRegister) {
 TEST_F(FindAccessedAddrsTest, UpperXmmRegister) {
   EXPECT_THAT(
       FindAccessedAddrsAsm(R"asm(
-    movq rax, xmm21
+    vmovq rax, xmm21
     mov rax, [rax]
   )asm"),
       IsOkAndHolds(Partially(EqualsProto(R"pb(
@@ -246,7 +246,7 @@ TEST_F(FindAccessedAddrsTest, UpperYmmRegister) {
   EXPECT_THAT(
       FindAccessedAddrsAsm(R"asm(
     vpaddq ymm30, ymm30, ymm30
-    movq rax, xmm30
+    vmovq rax, xmm30
     mov rax, [rax]
   )asm"),
       IsOkAndHolds(Partially(EqualsProto(R"pb(
@@ -259,7 +259,7 @@ TEST_F(FindAccessedAddrsTest, UpperZmmRegister) {
   EXPECT_THAT(
       FindAccessedAddrsAsm(R"asm(
     vpaddq zmm18, zmm18, zmm18
-    movq rax, xmm18
+    vmovq rax, xmm18
     mov rax, [rax]
   )asm"),
       IsOkAndHolds(Partially(EqualsProto(R"pb(
