@@ -192,5 +192,78 @@ TEST_F(FindAccessedAddrsTest, DivideByPointee) {
               IsOkAndHolds(Partially(EqualsProto("accessed_blocks: 0x15000"))));
 }
 
+TEST_F(FindAccessedAddrsTest, XmmRegister) {
+  EXPECT_THAT(
+      FindAccessedAddrsAsm(R"asm(
+    movq rax, xmm0
+    mov rax, [rax]
+  )asm"),
+      IsOkAndHolds(Partially(EqualsProto(R"pb(
+        accessed_blocks: 0x15000
+        initial_registers: { register_name: "XMM0" register_value: 0x15000 }
+      )pb"))));
+}
+
+TEST_F(FindAccessedAddrsTest, YmmRegister) {
+  EXPECT_THAT(
+      FindAccessedAddrsAsm(R"asm(
+    movq rax, ymm0
+    mov rax, [rax]
+  )asm"),
+      IsOkAndHolds(Partially(EqualsProto(R"pb(
+        accessed_blocks: 0x15000
+        initial_registers: { register_name: "YMM0" register_value: 0x15000 }
+      )pb"))));
+}
+
+TEST_F(FindAccessedAddrsTest, ZmmRegister) {
+  EXPECT_THAT(
+      FindAccessedAddrsAsm(R"asm(
+    movq rax, zmm0
+    mov rax, [rax]
+  )asm"),
+      IsOkAndHolds(Partially(EqualsProto(R"pb(
+        accessed_blocks: 0x15000
+        initial_registers: { register_name: "ZMM0" register_value: 0x15000 }
+      )pb"))));
+}
+
+TEST_F(FindAccessedAddrsTest, UpperXmmRegister) {
+  EXPECT_THAT(
+      FindAccessedAddrsAsm(R"asm(
+    movq rax, xmm21
+    mov rax, [rax]
+  )asm"),
+      IsOkAndHolds(Partially(EqualsProto(R"pb(
+        accessed_blocks: 0x15000
+        initial_registers: { register_name: "XMM21" register_value: 0x15000 }
+      )pb"))));
+}
+
+TEST_F(FindAccessedAddrsTest, UpperYmmRegister) {
+  EXPECT_THAT(
+      FindAccessedAddrsAsm(R"asm(
+    movq rax, ymm30
+    mov rax, [rax]
+  )asm"),
+      IsOkAndHolds(Partially(EqualsProto(R"pb(
+        accessed_blocks: 0x15000
+        initial_registers: { register_name: "YMM30" register_value: 0x15000 }
+      )pb"))));
+}
+
+TEST_F(FindAccessedAddrsTest, UpperZmmRegister) {
+  EXPECT_THAT(
+      FindAccessedAddrsAsm(R"asm(
+    movq rax, zmm18
+    mov rax, [rax]
+  )asm"),
+      IsOkAndHolds(Partially(EqualsProto(R"pb(
+        accessed_blocks: 0x15000
+        initial_registers: { register_name: "YMM18" register_value: 0x15000 }
+      )pb"))));
+}
+
+
 }  // namespace
 }  // namespace gematria

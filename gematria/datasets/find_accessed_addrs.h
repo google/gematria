@@ -24,10 +24,23 @@
 
 namespace gematria {
 
+// Values specified explicitly, as the assembly prologue hardcodes these values.
+// If they're changed, make sure to update block_wrapper.S
+enum class VectorRegWidth : uint64_t {
+  NONE = 0,
+  XMM = 1,
+  YMM = 2,
+  ZMM = 3,
+};
+
 // We need a register struct with each member directly encoded so that it has a
 // predictable memory layout to pass into the prelude assembly which sets the
-// registers before executing the block
+// registers before executing the block. For convenience we make every element 8
+// bytes large, so that there will be no padding and calculating offsets by hand
+// is easy (as is required in our assembly prologue code).
 struct RawX64Regs {
+  VectorRegWidth max_vector_reg_width;
+  uint64_t uses_upper_vector_regs;
   int64_t rax;
   int64_t rbx;
   int64_t rcx;
@@ -44,6 +57,8 @@ struct RawX64Regs {
   int64_t r13;
   int64_t r14;
   int64_t r15;
+
+  int64_t vector_regs[32];
 };
 
 // Given a basic block of code, attempt to determine what addresses that code
