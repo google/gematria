@@ -16,17 +16,18 @@
 
 .text
 
-.global gematria_before_block
-.type gematria_before_block, %function
+.global gematria_prologue
+.type gematria_prologue, %function
 // This code is copied directly before the code we execute, as we need exact
 // control over the code that is executed, so we can't do it from C++. Its job
 // is to initialise the registers to consistent values so that the accessed
 // addresses don't depend on the register state when calling FindAccessedAddrs.
 //
-// It takes one argument, in rdi: a pointer to a struct containing the initial
-// register values for this execution.
+// See the "WrappedFunc" typedef for the function signature this code has. Since
+// it doesn't return we make no guarantees about preserving registers / stack
+// frame, but we do use the normal calling convention for input parameters.
 // TODO(orodley): Update to support r16-r31.
-gematria_before_block:
+gematria_prologue:
   mov r15, rdi
   mov rax, [r15 + 0x00]
   mov rbx, [r15 + 0x08]
@@ -45,8 +46,8 @@ gematria_before_block:
   mov r14, [r15 + 0x70]
   mov r15, [r15 + 0x78]
 
-_gematria_before_block_size = . - gematria_before_block
-.size gematria_before_block, _gematria_before_block_size
+_gematria_prologue_size = . - gematria_prologue
+.size gematria_prologue, _gematria_prologue_size
 
 // This code is copied directly after the code we execute, as we no longer have
 // a stack to hold a return address. Its job is just to cleanly exit the process
@@ -55,9 +56,9 @@ _gematria_before_block_size = . - gematria_before_block
 //
 // We do this by raising SIGABRT. We can't call any standard library functions,
 // as we don't have a stack. So we have to issue the syscalls manually.
-.global gematria_after_block
-.type gematria_after_block, %function
-gematria_after_block:
+.global gematria_epilogue
+.type gematria_epilogue, %function
+gematria_epilogue:
   // getpid()
   mov rax, 39
   syscall
@@ -73,16 +74,16 @@ gematria_after_block:
   // random bytes are next.
   ud2
 
-_gematria_after_block_size = . - gematria_after_block
-.size gematria_after_block, _gematria_after_block_size
+_gematria_epilogue_size = . - gematria_epilogue
+.size gematria_epilogue, _gematria_epilogue_size
 
 .rodata
-// Store the size of gematria_before_block, so we know how much to copy.
-.global gematria_after_block_size
-gematria_after_block_size:
-  .quad _gematria_after_block_size
+// Store the size of gematria_prologue, so we know how much to copy.
+.global gematria_prologue_size
+gematria_prologue_size:
+  .quad _gematria_prologue_size
 
 // Ditto for gematria_after_block.
-.global gematria_before_block_size
-gematria_before_block_size:
-  .quad _gematria_before_block_size
+.global gematria_epilogue_size
+gematria_epilogue_size:
+  .quad _gematria_epilogue_size
