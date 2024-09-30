@@ -264,6 +264,5 @@ TEST_F(FindAccessedAddrsTest, UpperZmmRegister) {
       )pb"))));
 }
 
-
 }  // namespace
 }  // namespace gematria
