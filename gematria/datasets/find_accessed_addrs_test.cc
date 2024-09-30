@@ -207,11 +207,12 @@ TEST_F(FindAccessedAddrsTest, XmmRegister) {
 TEST_F(FindAccessedAddrsTest, YmmRegister) {
   EXPECT_THAT(
       FindAccessedAddrsAsm(R"asm(
-    movq rax, ymm0
+    vpaddq ymm0, ymm0, ymm0
+    movq rax, xmm0
     mov rax, [rax]
   )asm"),
       IsOkAndHolds(Partially(EqualsProto(R"pb(
-        accessed_blocks: 0x15000
+        accessed_blocks: 0x30000
         initial_registers: { register_name: "YMM0" register_value: 0x15000 }
       )pb"))));
 }
@@ -219,11 +220,12 @@ TEST_F(FindAccessedAddrsTest, YmmRegister) {
 TEST_F(FindAccessedAddrsTest, ZmmRegister) {
   EXPECT_THAT(
       FindAccessedAddrsAsm(R"asm(
-    movq rax, zmm0
+    vpaddq zmm0, zmm0, zmm0
+    movq rax, xmm0
     mov rax, [rax]
   )asm"),
       IsOkAndHolds(Partially(EqualsProto(R"pb(
-        accessed_blocks: 0x15000
+        accessed_blocks: 0x30000
         initial_registers: { register_name: "ZMM0" register_value: 0x15000 }
       )pb"))));
 }
@@ -243,11 +245,12 @@ TEST_F(FindAccessedAddrsTest, UpperXmmRegister) {
 TEST_F(FindAccessedAddrsTest, UpperYmmRegister) {
   EXPECT_THAT(
       FindAccessedAddrsAsm(R"asm(
-    movq rax, ymm30
+    vpaddq ymm30, ymm30, ymm30
+    movq rax, xmm30
     mov rax, [rax]
   )asm"),
       IsOkAndHolds(Partially(EqualsProto(R"pb(
-        accessed_blocks: 0x15000
+        accessed_blocks: 0x30000
         initial_registers: { register_name: "YMM30" register_value: 0x15000 }
       )pb"))));
 }
@@ -255,12 +258,13 @@ TEST_F(FindAccessedAddrsTest, UpperYmmRegister) {
 TEST_F(FindAccessedAddrsTest, UpperZmmRegister) {
   EXPECT_THAT(
       FindAccessedAddrsAsm(R"asm(
-    movq rax, zmm18
+    vpaddq zmm18, zmm18, zmm18
+    movq rax, xmm18
     mov rax, [rax]
   )asm"),
       IsOkAndHolds(Partially(EqualsProto(R"pb(
-        accessed_blocks: 0x15000
-        initial_registers: { register_name: "YMM18" register_value: 0x15000 }
+        accessed_blocks: 0x30000
+        initial_registers: { register_name: "ZMM18" register_value: 0x15000 }
       )pb"))));
 }
 
