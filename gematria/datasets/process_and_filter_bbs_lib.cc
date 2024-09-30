@@ -22,10 +22,10 @@
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/utils/string.h"
 #include "llvm/ADT/StringExtras.h"
-#include "llvm/include/llvm/ADT/StringRef.h"
-#include "llvm/include/llvm/ADT/Twine.h"
-#include "llvm/include/llvm/MC/MCInstrDesc.h"
-#include "llvm/include/llvm/Support/Error.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/Twine.h"
+#include "llvm/MC/MCInstrDesc.h"
+#include "llvm/Support/Error.h"
 #include "llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 
 using namespace llvm;
