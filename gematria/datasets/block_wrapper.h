@@ -17,7 +17,7 @@
 
 #include <stdint.h>
 
-#include "third_party/absl/types/span.h"
+#include "absl/types/span.h"
 
 extern "C" {
 
