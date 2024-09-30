@@ -65,15 +65,39 @@ Expected<std::string> BBProcessorFilter::removeRiskyInstructions(
        *DisassembledInstructionsOrErr) {
     MCInstrDesc InstDesc =
         LLVMSupport->mc_instr_info().get(Instruction.mc_inst.getOpcode());
-    // TODO(boomanaiden154): This filtering is a bit simplistic currently. We
-    // should probably be using MCInsrtDesc::hasUnmodeledSideEffects, but this
-    // needs to be evaluated at scale.
-    if (Instruction.mc_inst.getOpcode() == X86::SYSCALL) continue;
+    // Filter out syscalls as they do not match our benchmarking assumptions
+    // and have potential security concerns. We filter out the three main
+    // types of syscalls here:
+    // 1. Software interrupts with int.
+    // 2. Fast system calls with sysenter/sysexit.
+    // 3. Fast system calls with syscall/sysret.
+    // Call gates are also possible, but require far calls, which we filter out
+    // below. We include the kernel side return instructions in case we pull
+    // benchmarking code from privileged sources (like the Linux kernel).
+    switch (Instruction.mc_inst.getOpcode()) {
+      case X86::INT:
+        continue;
+      case X86::SYSENTER:
+        continue;
+      case X86::SYSEXIT:
+        continue;
+      case X86::SYSEXIT64:
+        continue;
+      case X86::SYSCALL:
+        continue;
+      case X86::SYSRET:
+        continue;
+      case X86::SYSRET64:
+        continue;
+    }
+
     if (InstDesc.isReturn() || InstDesc.isCall() || InstDesc.isBranch())
       continue;
+
     if (FilterMemoryAccessingBlocks &&
         (InstDesc.mayLoad() || InstDesc.mayStore()))
       continue;
+
     OutputBlock += toHex(Instruction.machine_code);
   }
 
