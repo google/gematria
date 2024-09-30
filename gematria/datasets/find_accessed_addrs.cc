@@ -411,14 +411,14 @@ constexpr uint64_t kBlockContents = 0x800000008;
     }
   }
 
-  // We copy in our before-block code which sets up registers, followed by the
-  // code we're given, followed by our after-block code which cleanly exits the
+  // We copy in our prologue code which sets up registers, followed by the
+  // code we're given, followed by our epilogue code which cleanly exits the
   // process. Otherwise if it finishes without segfaulting it will just run over
   // into whatever is afterwards.
-  const auto before_block = GetGematriaBeforeBlockCode();
-  const auto after_block = GetGematriaAfterBlockCode();
+  const auto epilogue = GetPrologueCode();
+  const auto prologue = GetEpilogueCode();
   const auto total_block_size =
-      before_block.size() + basic_block.size() + after_block.size();
+      epilogue.size() + basic_block.size() + prologue.size();
 
   uintptr_t desired_code_location = accessed_addrs.code_start_address();
   if (desired_code_location == 0) {
@@ -443,14 +443,13 @@ constexpr uint64_t kBlockContents = 0x800000008;
 
   absl::Span<uint8_t> mapped_span = absl::MakeSpan(
       reinterpret_cast<uint8_t*>(mapped_address), total_block_size);
-  std::copy(before_block.begin(), before_block.end(), &mapped_span[0]);
+  std::copy(epilogue.begin(), epilogue.end(), &mapped_span[0]);
   std::copy(basic_block.begin(), basic_block.end(),
-            &mapped_span[before_block.size()]);
-  std::copy(after_block.begin(), after_block.end(),
-            &mapped_span[before_block.size() + basic_block.size()]);
+            &mapped_span[epilogue.size()]);
+  std::copy(prologue.begin(), prologue.end(),
+            &mapped_span[epilogue.size() + basic_block.size()]);
 
-  auto mapped_func = reinterpret_cast<void (*)(const RawX64Regs* initial_regs)>(
-      mapped_address);
+  auto mapped_func = reinterpret_cast<WrappedFunc>(mapped_address);
   auto raw_regs = ToRawRegs(accessed_addrs.initial_registers());
   mapped_func(&raw_regs);
 

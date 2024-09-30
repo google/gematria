@@ -17,33 +17,42 @@
 
 #include <stdint.h>
 
-#include "absl/types/span.h"
+#include "third_party/absl/types/span.h"
 
 extern "C" {
 
 // This is a function, defined in block_wrapper.S. But we're not going to call
 // it directly, we're going to copy it after the block we're given, and execute
 // the whole thing. So we declare it as a byte array instead.
-extern const uint8_t gematria_before_block;
+extern const uint8_t gematria_prologue;
 
 // Ditto.
-extern const uint8_t gematria_after_block;
+extern const uint8_t gematria_epilogue;
 
 // A separate symbol, also defined in block_wrapper.S, which gives the size of
 // the function.
-extern const uint64_t gematria_before_block_size;
+extern const uint64_t gematria_prologue_size;
 
 // Ditto.
-extern const uint64_t gematria_after_block_size;
+extern const uint64_t gematria_epilogue_size;
 }
 
-inline absl::Span<const uint8_t> GetGematriaBeforeBlockCode() {
-  return absl::MakeConstSpan(&gematria_before_block,
-                             gematria_before_block_size);
+namespace gematria {
+
+inline absl::Span<const uint8_t> GetPrologueCode() {
+  return absl::MakeConstSpan(&gematria_prologue, gematria_prologue_size);
 }
 
-inline absl::Span<const uint8_t> GetGematriaAfterBlockCode() {
-  return absl::MakeConstSpan(&gematria_after_block, gematria_after_block_size);
+inline absl::Span<const uint8_t> GetEpilogueCode() {
+  return absl::MakeConstSpan(&gematria_epilogue, gematria_epilogue_size);
 }
+
+struct RawX64Regs;
+
+// This is the signature for the parameters the prologue code expects. It never
+// returns, and makes no attempt to preserve registers or the stack frame.
+typedef void (*WrappedFunc)(const RawX64Regs *initial_regs);
+
+}  // namespace gematria
 
 #endif  // RESEARCH_DEVTOOLS_EXEGESIS_GEMATRIA_BHIVE_BLOCK_WRAPPER_H_
