@@ -28,6 +28,8 @@ from gematria.llvm.python import llvm_architecture_support
 from gematria.proto import execution_annotation_pb2
 import gematria.llvm.python.runfiles
 
+_BEAM_METRIC_NAMESPACE_NAME = 'compile_modules'
+
 
 class OptimizeModules(beam.DoFn):
   """A Beam function that uses LLVM opt to optimize bitcode modules."""
@@ -36,10 +38,10 @@ class OptimizeModules(beam.DoFn):
     self._optimization_pipelines = optimization_pipelines
     self._opt_path = gematria.llvm.python.runfiles.get_llvm_binary_path('opt')
     self._modules_succeeded = metrics.Metrics.counter(
-        'compile_modules', 'modules_succeded_optimization'
+        _BEAM_METRIC_NAMESPACE_NAME, 'optimize_modules_success'
     )
     self._modules_failed = metrics.Metrics.counter(
-        'compile_modules', 'modules_failed_optimization'
+        _BEAM_METRIC_NAMESPACE_NAME, 'optimize_modules_failure'
     )
 
   def optimize_module(
@@ -69,10 +71,10 @@ class LowerModulesAsm(beam.DoFn):
     self._optimization_levels = optimization_levels
     self._llc_path = gematria.llvm.python.runfiles.get_llvm_binary_path('llc')
     self._modules_succeded = metrics.Metrics.counter(
-        'compile_modules', 'modules_succeded_lowering'
+        _BEAM_METRIC_NAMESPACE_NAME, 'lower_modules_success'
     )
     self._modules_failed = metrics.Metrics.counter(
-        'compile_modules', 'modules_failed_lowering'
+        _BEAM_METRIC_NAMESPACE_NAME, 'lower_modules_failure'
     )
 
   def lower_module(self, optimization_level: str, input_module: bytes) -> bytes:
@@ -103,7 +105,7 @@ class GetBBsFromModule(beam.DoFn):
 
   def __init__(self):
     self._bbs_produced = metrics.Metrics.counter(
-        'compile_modules', 'bbs_extracted'
+        _BEAM_METRIC_NAMESPACE_NAME, 'extracted_bbs'
     )
 
   def process(self, input_object_file: bytes) -> Iterable[str]:
@@ -136,7 +138,7 @@ class ProcessAndFilterBBs(beam.DoFn):
         remove_memory_accessing_instructions
     )
     self._blocks_after_filtering = metrics.Metrics.counter(
-        'compile_modules', 'bbs_after_filtering'
+        _BEAM_METRIC_NAMESPACE_NAME, 'filtered_bbs'
     )
 
   def setup(self):
@@ -161,10 +163,10 @@ class AnnotateBBs(beam.DoFn):
     self._annotator_type = annotator_type
     self._max_annotation_attempts = max_annotation_attempts
     self._blocks_annotated_successfully = metrics.Metrics.counter(
-        'compile_modules', 'blocks_annotated'
+        _BEAM_METRIC_NAMESPACE_NAME, 'annotate_blocks_success'
     )
     self._blocks_failed_annotation = metrics.Metrics.counter(
-        'compile_modules', 'blocks_failed_annotation'
+        _BEAM_METRIC_NAMESPACE_NAME, 'annotate_blocks_failure'
     )
 
   def setup(self):
