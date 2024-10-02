@@ -21,6 +21,8 @@ from pybind11_abseil import status
 from gematria.proto import execution_annotation_pb2
 from gematria.datasets.python import exegesis_benchmark
 
+_BEAM_METRIC_NAMESPACE_NAME = 'benchmark_bbs'
+
 
 class BenchmarkBasicBlock(beam.DoFn):
   """A Beam function that benchmarks basic blocks."""
@@ -28,7 +30,7 @@ class BenchmarkBasicBlock(beam.DoFn):
   def setup(self):
     self._exegesis_benchmark = exegesis_benchmark.ExegesisBenchmark.create()
     self._benchmark_failed_blocks = metrics.Metrics.counter(
-        'benchmark_bbs', 'failed_benchmarking_blocks'
+        _BEAM_METRIC_NAMESPACE_NAME, 'benchmark_blocks_failed'
     )
 
   def process(
