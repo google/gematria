@@ -36,8 +36,11 @@ _ANNOTATED_BASIC_BLOCK_RESOURCE_PATH = os.path.join(
     _ROOT_PATH,
     'gematria/testing/testdata/annotated_basic_blocks_with_throughput.pbtxt',
 )
-# Parsed basic block. An exception is thrown if the basic blocks do not parse.
+# Parsed basic blocks. An exception is thrown if the basic blocks do not parse.
 _BASIC_BLOCKS: throughput_pb2.BasicBlockWithThroughputListProto | None = None
+_ANNOTATED_BASIC_BLOCKS: throughput_pb2.BasicBlockWithThroughputListProto | None = (
+    None
+)
 
 CleanupFn = Callable[
     [throughput_pb2.BasicBlockWithThroughputProto],
@@ -48,23 +51,35 @@ KeepFn = Callable[[throughput_pb2.BasicBlockWithThroughputProto], bool]
 
 def _get_basic_block_list_proto(get_annotated_blocks=False):
   """Loads basic blocks from test data."""
-  global _BASIC_BLOCKS
-  if _BASIC_BLOCKS is None:
-    runfiles_dir = os.environ.get('PYTHON_RUNFILES')
-    runfiles_env = runfiles.Create({'RUNFILES_DIR': runfiles_dir})
-    assert runfiles_env is not None
-    with open(
-        runfiles_env.Rlocation(
-            _ANNOTATED_BASIC_BLOCK_RESOURCE_PATH
-            if get_annotated_blocks
-            else _BASIC_BLOCK_RESOURCE_PATH
-        ),
-        'rt',
-    ) as f:
-      _BASIC_BLOCKS = text_format.Parse(
-          f.read(), throughput_pb2.BasicBlockWithThroughputListProto()
-      )
-  return _BASIC_BLOCKS
+  global _BASIC_BLOCKS, _ANNOTATED_BASIC_BLOCKS
+  if get_annotated_blocks:
+    if _ANNOTATED_BASIC_BLOCKS is None:
+      runfiles_dir = os.environ.get('PYTHON_RUNFILES')
+      runfiles_env = runfiles.Create({'RUNFILES_DIR': runfiles_dir})
+      assert runfiles_env is not None
+      with open(
+          runfiles_env.Rlocation(_ANNOTATED_BASIC_BLOCK_RESOURCE_PATH),
+          'rt',
+      ) as f:
+        _ANNOTATED_BASIC_BLOCKS = text_format.Parse(
+            f.read(), throughput_pb2.BasicBlockWithThroughputListProto()
+        )
+    assert _ANNOTATED_BASIC_BLOCKS is not None
+    return _ANNOTATED_BASIC_BLOCKS
+  else:  # get_annotated_blocks == False
+    if _BASIC_BLOCKS is None:
+      runfiles_dir = os.environ.get('PYTHON_RUNFILES')
+      runfiles_env = runfiles.Create({'RUNFILES_DIR': runfiles_dir})
+      assert runfiles_env is not None
+      with open(
+          runfiles_env.Rlocation(_BASIC_BLOCK_RESOURCE_PATH),
+          'rt',
+      ) as f:
+        _BASIC_BLOCKS = text_format.Parse(
+            f.read(), throughput_pb2.BasicBlockWithThroughputListProto()
+        )
+    assert _BASIC_BLOCKS is not None
+    return _BASIC_BLOCKS
 
 
 def get_basic_blocks(
