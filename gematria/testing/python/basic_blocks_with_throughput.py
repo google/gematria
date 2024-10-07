@@ -189,8 +189,8 @@ class TestCase(unittest.TestCase):
     self.annotated_block_protos = get_basic_blocks(
         self.num_blocks, get_annotated_blocks=True, keep_fn=self.keep_function
     )
-    self.assertEqual(len(self.block_protos), self.num_blocks)
-    self.assertEqual(len(self.annotated_block_protos), self.num_blocks)
+    self.assertLen(self.block_protos, self.num_blocks)
+    self.assertLen(self.annotated_block_protos, self.num_blocks)
 
     self.blocks_with_throughput = [
         throughput_protos.block_with_throughput_from_proto(proto)
