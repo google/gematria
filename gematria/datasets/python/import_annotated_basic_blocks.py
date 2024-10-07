@@ -36,14 +36,14 @@ import tensorflow as tf
 _INPUT_ELF_FILE = flags.DEFINE_string(
     'gematria_input_elf',
     None,
-    'The name of the ELF file from which basic blocks are to be imported',
+    'The name of the ELF file from which basic blocks are to be imported.',
     required=True,
 )
 _INPUT_PERF_FILE = flags.DEFINE_string(
-    'gematria_input_perf',
+    'gematria_input_perf_data',
     None,
     'The name of the `perf.data`-like file from which samples are to be'
-    ' imported',
+    ' imported.',
     required=True,
 )
 _OUTPUT_TFRECORD_FILE = flags.DEFINE_string(

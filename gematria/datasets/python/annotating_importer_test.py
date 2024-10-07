@@ -116,7 +116,7 @@ class AnnotatingImporterTest(absltest.TestCase):
 
     self._runfiles_dir = os.environ.get("PYTHON_RUNFILES")
     self._runfiles_env = runfiles.Create({"RUNFILES_DIR": self._runfiles_dir})
-    assert self._runfiles_env is not None
+    self.assertIsNotNone(self._runfiles_env)
 
   def test_x86_basic_block_proto_from_binary_and_profile(self):
     source_name = "test: skl"
@@ -128,15 +128,16 @@ class AnnotatingImporterTest(absltest.TestCase):
         ),
         source_name=self._SOURCE_NAME,
     )
-    self.assertLen(block_protos, 1)
-    self.assertEqual(
-        block_protos[0],
-        throughput_pb2.BasicBlockWithThroughputProto(
-            basic_block=_EXPECTED_BASIC_BLOCK_PROTO,
-            inverse_throughputs=(
-                throughput_pb2.ThroughputWithSourceProto(
-                    source=source_name,
-                    inverse_throughput_cycles=[1.532258064516129],
+    self.assertSequenceEqual(
+        block_protos,
+        (
+            throughput_pb2.BasicBlockWithThroughputProto(
+                basic_block=_EXPECTED_BASIC_BLOCK_PROTO,
+                inverse_throughputs=(
+                    throughput_pb2.ThroughputWithSourceProto(
+                        source=source_name,
+                        inverse_throughput_cycles=[1.532258064516129],
+                    ),
                 ),
             ),
         ),
