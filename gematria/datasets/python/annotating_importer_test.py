@@ -15,13 +15,14 @@
 import os
 
 from absl.testing import absltest
+from runfiles import runfiles
+
 from gematria.datasets.python import annotating_importer
 from gematria.llvm.python import canonicalizer
 from gematria.llvm.python import llvm_architecture_support
 from gematria.proto import basic_block_pb2
 from gematria.proto import canonicalized_instruction_pb2
 from gematria.proto import throughput_pb2
-from rules_python.python.runfiles import runfiles
 
 _CanonicalizedOperandProto = (
     canonicalized_instruction_pb2.CanonicalizedOperandProto
