@@ -94,7 +94,6 @@ gematria_py_test(
         "//gematria/proto:basic_block_py_pb2",
         "//gematria/proto:canonicalized_instruction_py_pb2",
         "//gematria/proto:throughput_py_pb2",
-        "@rules_python//python/runfiles",
     ],
 )
 
