@@ -57,6 +57,58 @@ gematria_py_binary(
     ],
 )
 
+gematria_pybind_extension(
+    name = "annotating_importer",
+    srcs = ["annotating_importer.cc"],
+    py_deps = [
+        "//gematria/llvm/python:canonicalizer",
+        "//gematria/proto:basic_block_py_pb2",
+        "//gematria/proto:canonicalized_instruction_py_pb2",
+        "//gematria/proto:throughput_py_pb2",
+    ],
+    visibility = ["//:internal_users"],
+    deps = [
+        "//gematria/basic_block:basic_block_protos",
+        "//gematria/datasets:annotating_importer",
+        "//gematria/datasets:bhive_importer",
+        "//gematria/llvm:canonicalizer",
+        "@com_google_pybind11_protobuf//pybind11_protobuf:native_proto_caster",
+        "@llvm-project//llvm:Support",
+        "@pybind11_abseil_repo//pybind11_abseil:import_status_module",
+        "@pybind11_abseil_repo//pybind11_abseil:status_casters",
+    ],
+)
+
+gematria_py_test(
+    name = "annotating_importer_test",
+    size = "small",
+    srcs = ["annotating_importer_test.py"],
+    data = [
+        "//gematria/testing/testdata:simple_x86_elf_object",
+        "//gematria/testing/testdata:simple_x86_elf_object.perf.data",
+    ],
+    deps = [
+        ":annotating_importer",
+        "//gematria/llvm/python:canonicalizer",
+        "//gematria/llvm/python:llvm_architecture_support",
+        "//gematria/proto:basic_block_py_pb2",
+        "//gematria/proto:canonicalized_instruction_py_pb2",
+        "//gematria/proto:throughput_py_pb2",
+        "@rules_python//python/runfiles",
+    ],
+)
+
+gematria_py_binary(
+    name = "import_annotated_basic_blocks",
+    srcs = ["import_annotated_basic_blocks.py"],
+    deps = [
+        ":annotating_importer",
+        "//gematria/llvm/python:canonicalizer",
+        "//gematria/llvm/python:llvm_architecture_support",
+        "//gematria/utils/python:pybind11_abseil_status",
+    ],
+)
+
 gematria_py_binary(
     name = "extract_tokens_file",
     srcs = ["extract_tokens_file.py"],
