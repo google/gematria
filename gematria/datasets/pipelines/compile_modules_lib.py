@@ -18,6 +18,7 @@ import subprocess
 
 from absl import logging
 import apache_beam as beam
+from apache_beam import metrics
 from pybind11_abseil import status
 
 from gematria.datasets.python import extract_bbs_from_obj
@@ -27,6 +28,8 @@ from gematria.llvm.python import llvm_architecture_support
 from gematria.proto import execution_annotation_pb2
 import gematria.llvm.python.runfiles
 
+_BEAM_METRIC_NAMESPACE_NAME = 'compile_modules'
+
 
 class OptimizeModules(beam.DoFn):
   """A Beam function that uses LLVM opt to optimize bitcode modules."""
@@ -34,6 +37,12 @@ class OptimizeModules(beam.DoFn):
   def __init__(self, optimization_pipelines: Sequence[str]):
     self._optimization_pipelines = optimization_pipelines
     self._opt_path = gematria.llvm.python.runfiles.get_llvm_binary_path('opt')
+    self._modules_succeeded = metrics.Metrics.counter(
+        _BEAM_METRIC_NAMESPACE_NAME, 'optimize_modules_success'
+    )
+    self._modules_failed = metrics.Metrics.counter(
+        _BEAM_METRIC_NAMESPACE_NAME, 'optimize_modules_failure'
+    )
 
   def optimize_module(
       self, input_module: bytes, optimization_pipeline: str
@@ -48,8 +57,10 @@ class OptimizeModules(beam.DoFn):
     for optimization_pipeline in self._optimization_pipelines:
       try:
         yield self.optimize_module(input_module, optimization_pipeline)
+        self._modules_succeeded.inc()
       except subprocess.CalledProcessError as process_error:
         logging.error(process_error)
+        self._modules_failed.inc()
         continue
 
 
@@ -59,6 +70,12 @@ class LowerModulesAsm(beam.DoFn):
   def __init__(self, optimization_levels: Sequence[str]):
     self._optimization_levels = optimization_levels
     self._llc_path = gematria.llvm.python.runfiles.get_llvm_binary_path('llc')
+    self._modules_succeded = metrics.Metrics.counter(
+        _BEAM_METRIC_NAMESPACE_NAME, 'lower_modules_success'
+    )
+    self._modules_failed = metrics.Metrics.counter(
+        _BEAM_METRIC_NAMESPACE_NAME, 'lower_modules_failure'
+    )
 
   def lower_module(self, optimization_level: str, input_module: bytes) -> bytes:
     command_vector = [
@@ -76,19 +93,27 @@ class LowerModulesAsm(beam.DoFn):
     for optimization_level in self._optimization_levels:
       try:
         yield self.lower_module(optimization_level, input_module)
+        self._modules_succeded.inc()
       except subprocess.CalledProcessError as process_error:
         logging.error(process_error)
+        self._modules_failed.inc()
         continue
 
 
 class GetBBsFromModule(beam.DoFn):
   """A Beam function to extract BB hex values from object files."""
 
+  def __init__(self):
+    self._bbs_produced = metrics.Metrics.counter(
+        _BEAM_METRIC_NAMESPACE_NAME, 'extracted_bbs'
+    )
+
   def process(self, input_object_file: bytes) -> Iterable[str]:
     for bb_hex_value in extract_bbs_from_obj.get_basic_block_hex_values(
         input_object_file
     ):
       yield bb_hex_value
+      self._bbs_produced.inc()
 
 
 class DeduplicateBBs(beam.ptransform.PTransform):
@@ -112,6 +137,9 @@ class ProcessAndFilterBBs(beam.DoFn):
     self._remove_memory_accessing_instructions = (
         remove_memory_accessing_instructions
     )
+    self._blocks_after_filtering = metrics.Metrics.counter(
+        _BEAM_METRIC_NAMESPACE_NAME, 'filtered_bbs'
+    )
 
   def setup(self):
     self._bb_processor_filter = process_and_filter_bbs.BBProcessorFilter()
@@ -122,6 +150,7 @@ class ProcessAndFilterBBs(beam.DoFn):
     )
     if output_block != '':
       yield output_block
+      self._blocks_after_filtering.inc()
 
 
 class AnnotateBBs(beam.DoFn):
@@ -133,6 +162,12 @@ class AnnotateBBs(beam.DoFn):
   ):
     self._annotator_type = annotator_type
     self._max_annotation_attempts = max_annotation_attempts
+    self._blocks_annotated_successfully = metrics.Metrics.counter(
+        _BEAM_METRIC_NAMESPACE_NAME, 'annotate_blocks_success'
+    )
+    self._blocks_failed_annotation = metrics.Metrics.counter(
+        _BEAM_METRIC_NAMESPACE_NAME, 'annotate_blocks_failure'
+    )
 
   def setup(self):
     self._x86_llvm = llvm_architecture_support.LlvmArchitectureSupport.x86_64()
@@ -156,7 +191,9 @@ class AnnotateBBs(beam.DoFn):
           ),
           block_hex=bb_hex,
       )
+      self._blocks_annotated_successfully.inc()
     except status.StatusNotOk:
+      self._blocks_failed_annotation.inc()
       pass
 
 
