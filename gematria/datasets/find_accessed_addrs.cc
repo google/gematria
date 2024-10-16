@@ -43,6 +43,9 @@
 #include "absl/random/uniform_int_distribution.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/ascii.h"
+#include "absl/strings/match.h"
+#include "absl/strings/numbers.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -175,6 +178,8 @@ void RandomiseRegs(absl::BitGen& gen,
 RawX64Regs ToRawRegs(
     const google::protobuf::RepeatedPtrField<RegisterAndValue>& regs) {
   RawX64Regs raw_regs;
+  raw_regs.max_vector_reg_width = VectorRegWidth::NONE;
+  raw_regs.uses_upper_vector_regs = 0;
 
   for (const RegisterAndValue& reg_and_value : regs) {
     if (reg_and_value.register_name() == "RAX") {
@@ -209,6 +214,38 @@ RawX64Regs ToRawRegs(
       raw_regs.r14 = reg_and_value.register_value();
     } else if (reg_and_value.register_name() == "R15") {
       raw_regs.r15 = reg_and_value.register_value();
+    } else {
+      int number_suffix = -1;
+      absl::string_view trailing_numbers = reg_and_value.register_name();
+      while (!trailing_numbers.empty() &&
+             !absl::ascii_isdigit(trailing_numbers.front())) {
+        trailing_numbers.remove_prefix(1);
+      }
+      if (!trailing_numbers.empty()) {
+        int x;
+        if (absl::SimpleAtoi(trailing_numbers, &x)) {
+          number_suffix = x;
+        }
+      }
+
+      VectorRegWidth vector_width = VectorRegWidth::NONE;
+      if (absl::StartsWith(reg_and_value.register_name(), "XMM")) {
+        vector_width = VectorRegWidth::XMM;
+        raw_regs.vector_regs[number_suffix] = reg_and_value.register_value();
+      } else if (absl::StartsWith(reg_and_value.register_name(), "YMM")) {
+        vector_width = VectorRegWidth::YMM;
+        raw_regs.vector_regs[number_suffix] = reg_and_value.register_value();
+      } else if (absl::StartsWith(reg_and_value.register_name(), "ZMM")) {
+        vector_width = VectorRegWidth::ZMM;
+        raw_regs.vector_regs[number_suffix] = reg_and_value.register_value();
+      }
+
+      if (number_suffix > 15) {
+        raw_regs.uses_upper_vector_regs = 1;
+      }
+
+      raw_regs.max_vector_reg_width =
+          std::max(raw_regs.max_vector_reg_width, vector_width);
     }
   }
 
