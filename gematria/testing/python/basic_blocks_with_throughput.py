@@ -52,9 +52,9 @@ KeepFn = Callable[[throughput_pb2.BasicBlockWithThroughputProto], bool]
 def _get_basic_block_list_proto(get_annotated_blocks=False):
   """Loads basic blocks from test data."""
   global _BASIC_BLOCKS, _ANNOTATED_BASIC_BLOCKS
-  
+
   runfiles_dir = os.environ.get('PYTHON_RUNFILES')
-  runfiles_env = runfiles.Create({'RUNFILES_DIR': runfiles_dir})  
+  runfiles_env = runfiles.Create({'RUNFILES_DIR': runfiles_dir})
   if get_annotated_blocks:
     if _ANNOTATED_BASIC_BLOCKS is None:
       assert runfiles_env is not None
