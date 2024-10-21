@@ -226,11 +226,8 @@ TEST_F(FindAccessedAddrsTest, YmmRegister) {
 class FindAccessedAddrsAvx512Test : public FindAccessedAddrsTest {
  protected:
   void SetUp() override {
-    int cpu_info;
-    __asm__ volatile("cpuid \n\t" : "=b"(cpu_info) : "a"(7), "c"(0));
-    bool has_avx512_f = (cpu_info & (1 << 16)) != 0;
-    bool has_avx512_bw = (cpu_info & (1 << 30)) != 0;
-    bool host_supports_avx512 = has_avx512_f && has_avx512_bw;
+    bool host_supports_avx512 =
+        __builtin_cpu_supports("avx512f") && __builtin_cpu_supports("avx512bw");
 
     if (!host_supports_avx512) GTEST_SKIP() << "Host doesn't support AVX-512";
 
