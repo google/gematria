@@ -332,7 +332,8 @@ absl::Status ParentProcessInner(int child_pid,
     long data_at_rip = ptrace(PTRACE_PEEKDATA, child_pid, rip, 0);
     std::string rip_bytes;
     for (int i = 0; i < 8; i++) {
-      absl::StrAppendFormat(&rip_bytes, "%02X ", (data_at_rip >> (i * 8)) & 0xFF);
+      absl::StrAppendFormat(&rip_bytes, "%02X ",
+                            (data_at_rip >> (i * 8)) & 0xFF);
     }
     return absl::InternalError(absl::StrFormat(
         "Child stopped with unexpected signal: %s\n%s\n8 bytes at rip: %s",
