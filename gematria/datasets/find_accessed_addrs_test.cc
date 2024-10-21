@@ -217,7 +217,22 @@ TEST_F(FindAccessedAddrsTest, YmmRegister) {
       )pb"))));
 }
 
-TEST_F(FindAccessedAddrsTest, ZmmRegister) {
+class FindAccessedAddrsAvx512Test : public FindAccessedAddrsTest {
+ protected:
+  void SetUp() override {
+    int cpu_info;
+    __asm__ volatile("cpuid \n\t" : "=b"(cpu_info) : "a"(7), "c"(0));
+    bool has_avx512_f = (cpu_info & (1 << 16)) != 0;
+    bool has_avx512_bw = (cpu_info & (1 << 30)) != 0;
+    bool host_supports_avx512 = has_avx512_f && has_avx512_bw;
+
+    if (!host_supports_avx512) GTEST_SKIP() << "Host doesn't support AVX-512";
+
+    FindAccessedAddrsTest::SetUp();
+  }
+};
+
+TEST_F(FindAccessedAddrsAvx512Test, ZmmRegister) {
   EXPECT_THAT(
       FindAccessedAddrsAsm(R"asm(
     vpaddq zmm0, zmm0, zmm0
@@ -230,7 +245,7 @@ TEST_F(FindAccessedAddrsTest, ZmmRegister) {
       )pb"))));
 }
 
-TEST_F(FindAccessedAddrsTest, UpperXmmRegister) {
+TEST_F(FindAccessedAddrsAvx512Test, UpperXmmRegister) {
   EXPECT_THAT(
       FindAccessedAddrsAsm(R"asm(
     vmovq rax, xmm21
@@ -242,7 +257,7 @@ TEST_F(FindAccessedAddrsTest, UpperXmmRegister) {
       )pb"))));
 }
 
-TEST_F(FindAccessedAddrsTest, UpperYmmRegister) {
+TEST_F(FindAccessedAddrsAvx512Test, UpperYmmRegister) {
   EXPECT_THAT(
       FindAccessedAddrsAsm(R"asm(
     vpaddq ymm30, ymm30, ymm30
@@ -255,7 +270,7 @@ TEST_F(FindAccessedAddrsTest, UpperYmmRegister) {
       )pb"))));
 }
 
-TEST_F(FindAccessedAddrsTest, UpperZmmRegister) {
+TEST_F(FindAccessedAddrsAvx512Test, UpperZmmRegister) {
   EXPECT_THAT(
       FindAccessedAddrsAsm(R"asm(
     vpaddq zmm18, zmm18, zmm18
