@@ -17,15 +17,16 @@ from collections.abc import Callable, Iterable, Sequence
 import copy
 import itertools
 import os
-import unittest
+
+from google.protobuf import text_format
+from runfiles import runfiles
+from absl.testing import absltest
 
 from gematria.basic_block.python import basic_block
 from gematria.basic_block.python import throughput
 from gematria.basic_block.python import throughput_protos
 from gematria.basic_block.python import tokens
 from gematria.proto import throughput_pb2
-from google.protobuf import text_format
-from runfiles import runfiles
 
 # The path to the basic blocks in text format in the resources of the test.
 _ROOT_PATH = 'com_google_gematria'
@@ -135,7 +136,7 @@ def _get_block_tokens(
 
 # NOTE(ondrasej): The inheritance is not necessary, we add it mainly to make
 # type checkers happy.
-class TestCase(unittest.TestCase):
+class TestCase(absltest.TestCase):
   """Provides example basic blocks for use inside unit tests.
 
   This class can be used as a mixin with one of the classes that derive from
@@ -189,8 +190,8 @@ class TestCase(unittest.TestCase):
     self.annotated_block_protos = get_basic_blocks(
         self.num_blocks, get_annotated_blocks=True, keep_fn=self.keep_function
     )
-    self.assertEqual(len(self.block_protos), self.num_blocks)
-    self.assertEqual(len(self.annotated_block_protos), self.num_blocks)
+    self.assertLen(self.block_protos, self.num_blocks)
+    self.assertLen(self.annotated_block_protos, self.num_blocks)
 
     self.blocks_with_throughput = [
         throughput_protos.block_with_throughput_from_proto(proto)
