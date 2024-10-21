@@ -192,5 +192,105 @@ TEST_F(FindAccessedAddrsTest, DivideByPointee) {
               IsOkAndHolds(Partially(EqualsProto("accessed_blocks: 0x15000"))));
 }
 
+TEST_F(FindAccessedAddrsTest, XmmRegister) {
+  EXPECT_THAT(
+      FindAccessedAddrsAsm(R"asm(
+    movq rax, xmm0
+    mov rax, [rax]
+  )asm"),
+      IsOkAndHolds(Partially(EqualsProto(R"pb(
+        accessed_blocks: 0x15000
+        initial_registers: { register_name: "XMM0" register_value: 0x15000 }
+      )pb"))));
+}
+
+TEST_F(FindAccessedAddrsTest, YmmRegister) {
+  EXPECT_THAT(
+      FindAccessedAddrsAsm(R"asm(
+    vpaddq ymm0, ymm0, ymm0
+    movq rax, xmm0
+    mov rax, [rax]
+  )asm"),
+      // This (and similar below) isn't the ideal result. Since we broadcast to
+      // the whole register, it's redundant to include XMM0 as an input register
+      // when we already have YMM0.
+      // TODO(orodley): Fix this, either in getUsedRegisters, or by filtering
+      // out such duplicates afterwards.
+      IsOkAndHolds(Partially(EqualsProto(R"pb(
+        accessed_blocks: 0x2a000
+        initial_registers: { register_name: "XMM0" register_value: 0x15000 }
+        initial_registers: { register_name: "YMM0" register_value: 0x15000 }
+      )pb"))));
+}
+
+class FindAccessedAddrsAvx512Test : public FindAccessedAddrsTest {
+ protected:
+  void SetUp() override {
+    int cpu_info;
+    __asm__ volatile("cpuid \n\t" : "=b"(cpu_info) : "a"(7), "c"(0));
+    bool has_avx512_f = (cpu_info & (1 << 16)) != 0;
+    bool has_avx512_bw = (cpu_info & (1 << 30)) != 0;
+    bool host_supports_avx512 = has_avx512_f && has_avx512_bw;
+
+    if (!host_supports_avx512) GTEST_SKIP() << "Host doesn't support AVX-512";
+
+    FindAccessedAddrsTest::SetUp();
+  }
+};
+
+TEST_F(FindAccessedAddrsAvx512Test, ZmmRegister) {
+  EXPECT_THAT(
+      FindAccessedAddrsAsm(R"asm(
+    vpaddq zmm0, zmm0, zmm0
+    movq rax, xmm0
+    mov rax, [rax]
+  )asm"),
+      IsOkAndHolds(Partially(EqualsProto(R"pb(
+        accessed_blocks: 0x2a000
+        initial_registers: { register_name: "XMM0" register_value: 0x15000 }
+        initial_registers: { register_name: "ZMM0" register_value: 0x15000 }
+      )pb"))));
+}
+
+TEST_F(FindAccessedAddrsAvx512Test, UpperXmmRegister) {
+  EXPECT_THAT(
+      FindAccessedAddrsAsm(R"asm(
+    vmovq rax, xmm21
+    mov rax, [rax]
+  )asm"),
+      IsOkAndHolds(Partially(EqualsProto(R"pb(
+        accessed_blocks: 0x15000
+        initial_registers: { register_name: "XMM21" register_value: 0x15000 }
+      )pb"))));
+}
+
+TEST_F(FindAccessedAddrsAvx512Test, UpperYmmRegister) {
+  EXPECT_THAT(
+      FindAccessedAddrsAsm(R"asm(
+    vpaddq ymm30, ymm30, ymm30
+    vmovq rax, xmm30
+    mov rax, [rax]
+  )asm"),
+      IsOkAndHolds(Partially(EqualsProto(R"pb(
+        accessed_blocks: 0x2a000
+        initial_registers: { register_name: "XMM30" register_value: 0x15000 }
+        initial_registers: { register_name: "YMM30" register_value: 0x15000 }
+      )pb"))));
+}
+
+TEST_F(FindAccessedAddrsAvx512Test, UpperZmmRegister) {
+  EXPECT_THAT(
+      FindAccessedAddrsAsm(R"asm(
+    vpaddq zmm18, zmm18, zmm18
+    vmovq rax, xmm18
+    mov rax, [rax]
+  )asm"),
+      IsOkAndHolds(Partially(EqualsProto(R"pb(
+        accessed_blocks: 0x2a000
+        initial_registers: { register_name: "XMM18" register_value: 0x15000 }
+        initial_registers: { register_name: "ZMM18" register_value: 0x15000 }
+      )pb"))));
+}
+
 }  // namespace
 }  // namespace gematria
