@@ -327,6 +327,17 @@ absl::Status ParentProcessInner(int child_pid,
         "Child stopped with unexpected signal: %s, address %ul\n%s",
         strsignal(signal), (uint64_t)siginfo.si_addr, DumpRegs(registers)));
   }
+  if (signal == SIGILL) {
+    const auto* rip = reinterpret_cast<uint8_t*>(registers.rip);
+    long data_at_rip = ptrace(PTRACE_PEEKDATA, child_pid, rip, 0);
+    std::string rip_bytes;
+    for (int i = 0; i < 8; i++) {
+      absl::StrAppendFormat(&rip_bytes, "%02X ", (data_at_rip >> (i * 8)) & 0xFF);
+    }
+    return absl::InternalError(absl::StrFormat(
+        "Child stopped with unexpected signal: %s\n%s\n8 bytes at rip: %s",
+        strsignal(signal), DumpRegs(registers), rip_bytes));
+  }
   return absl::InternalError(
       absl::StrFormat("Child stopped with unexpected signal: %s\n%s",
                       strsignal(signal), DumpRegs(registers)));
