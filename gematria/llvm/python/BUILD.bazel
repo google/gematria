@@ -63,7 +63,4 @@ gematria_py_library(
         "@llvm-project//llvm:opt",
     ],
     visibility = ["//:internal_users"],
-    deps = [
-        "@rules_python//python/runfiles",
-    ],
 )
