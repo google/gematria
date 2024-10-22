@@ -18,9 +18,9 @@ import copy
 import itertools
 import os
 
+from absl.testing import absltest
 from google.protobuf import text_format
 from runfiles import runfiles
-from absl.testing import absltest
 
 from gematria.basic_block.python import basic_block
 from gematria.basic_block.python import throughput
