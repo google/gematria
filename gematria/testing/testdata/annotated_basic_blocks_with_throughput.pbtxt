@@ -35,7 +35,7 @@ basic_blocks {
   }
   inverse_throughputs {
     source: "test: predicted value for tests"
-    inverse_throughput_cycles: [1.0, 
+    inverse_throughput_cycles: [1.0]
     prefix_inverse_throughputs {
       inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     }
@@ -160,7 +160,7 @@ basic_blocks {
   }
   inverse_throughputs {
     source: "test: predicted value for tests"
-    inverse_throughput_cycles: [3.0, 
+    inverse_throughput_cycles: [3.0]
   }
 }
 basic_blocks {
@@ -553,7 +553,7 @@ basic_blocks {
   }
   inverse_throughputs {
     source: "test: predicted value for tests"
-    inverse_throughput_cycles: [5.0, 
+    inverse_throughput_cycles: [5.0]
   }
 }
 basic_blocks {
@@ -2879,6 +2879,46 @@ basic_blocks {
       inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     }
     prefix_inverse_throughputs {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+}
+basic_blocks {
+  basic_block: {
+    canonicalized_instructions {
+      mnemonic: "MOV32ri"
+      prefixes: "REP"
+      llvm_mnemonic: "MOV32ri"
+      output_operands {
+        register_name: "EAX"
+      }
+      input_operands {
+        immediate_value: 1
+      }
+      instruction_annotations {
+        name: "made_up_cache_miss_freq"
+        value: 0.96679023420394
+      }
+    }
+  }
+  inverse_throughputs: {
+    source: "llvm_sim: triple=x86_64-linux-gnu, cpu=haswell, cpu_features="
+    inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    prefix_inverse_throughputs: {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+  inverse_throughputs: {
+    source: "test: made up values"
+    inverse_throughput_cycles: [5.0, 4.0, 3.0, 2.0, 1.0]
+    prefix_inverse_throughputs: {
+      inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    }
+  }
+  inverse_throughputs: {
+    source: "test: predicted value for tests"
+    inverse_throughput_cycles: [1.0]
+    prefix_inverse_throughputs: {
       inverse_throughput_cycles: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     }
   }
