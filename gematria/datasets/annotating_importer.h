@@ -51,18 +51,18 @@ class AnnotatingImporter {
   // returns a vector of annotated `BasicBlockProto`s consisting of basic blocks
   // from the ELF object annotated using samples from the `perf.data`-like file.
   absl::StatusOr<std::vector<BasicBlockWithThroughputProto>>
-  GetAnnotatedBasicBlockProtos(const std::string_view elf_file_name,
-                               const std::string_view perf_data_file_name,
-                               const std::string_view source_name);
+  GetAnnotatedBasicBlockProtos(std::string_view elf_file_name,
+                               std::string_view perf_data_file_name,
+                               std::string_view source_name);
 
  private:
   // Loads a `perf.data`-like file into the importer. Must be called before
   // `GetSamples`, `GetLBRData`, and `GetLBRBlocksWithLatency`.
-  absl::Status LoadPerfData(const std::string_view file_name);
+  absl::Status LoadPerfData(std::string_view file_name);
 
   // Loads a binary into the importer for further processing. Must be called
   // before `GetElfFromBinary` and `GetELFSlice`.
-  absl::Status LoadBinary(const std::string_view file_name);
+  absl::Status LoadBinary(std::string_view file_name);
 
   // Returns a pointer inside the loaded binary casted down to an ELF object.
   // The pointer is owned by this instance of `AnnotatingImporter` and may only
