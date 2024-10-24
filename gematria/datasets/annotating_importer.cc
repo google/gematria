@@ -15,30 +15,36 @@
 #include "gematria/datasets/annotating_importer.h"
 
 #include <cstdint>
+#include <numeric>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "absl/hash/hash.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/numbers.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "gematria/basic_block/basic_block.h"
 #include "gematria/basic_block/basic_block_protos.h"
 #include "gematria/datasets/bhive_importer.h"
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/disassembler.h"
 #include "gematria/llvm/llvm_to_absl.h"
-#include "gematria/utils/string.h"
+#include "gematria/proto/throughput.pb.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Object/Binary.h"
 #include "llvm/Object/ELFObjectFile.h"
 #include "llvm/Object/ELFTypes.h"
 #include "llvm/Object/ObjectFile.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Error.h"
+#include "quipper/perf_data.pb.h"
 #include "quipper/perf_parser.h"
 #include "quipper/perf_reader.h"
 
