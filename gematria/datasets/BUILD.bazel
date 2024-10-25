@@ -57,7 +57,7 @@ cc_library(
     visibility = ["//:internal_users"],
     deps = [
         ":bhive_importer",
-        "//gematria/basic_block:basic_block",
+        "//gematria/basic_block",
         "//gematria/basic_block:basic_block_protos",
         "//gematria/llvm:canonicalizer",
         "//gematria/llvm:disassembler",
