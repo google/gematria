@@ -72,6 +72,7 @@ cc_library(
         "@com_google_perf_data_converter//quipper:perf_data_cc_proto",
         "@com_google_perf_data_converter//quipper:perf_parser",
         "@com_google_perf_data_converter//quipper:perf_reader",
+        "@llvm-project//llvm:BinaryFormat",
         "@llvm-project//llvm:Object",
         "@llvm-project//llvm:Support",
     ],
