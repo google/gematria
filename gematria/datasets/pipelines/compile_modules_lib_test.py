@@ -98,6 +98,38 @@ class CompileModulesTests(absltest.TestCase):
 
     self.assertLen(annotated_blocks, 1)
 
+  def test_get_vocab(self):
+    get_vocab_function = compile_modules_lib.GetVocab()
+    get_vocab_function.setup()
+
+    vocab = list(
+        get_vocab_function.process('4829d38b44246c8b54246848c1fb034829d04839c3')
+    )
+
+    self.assertLen(vocab, 17)
+    self.assertContainsSubset(
+        vocab,
+        [
+            '_MEMORY_',
+            'RAX',
+            '_IMMEDIATE_',
+            'RBX',
+            '_D_',
+            '_ADDRESS_',
+            'EFLAGS',
+            'EAX',
+            'MOV',
+            'EDX',
+            'RSP',
+            '_NO_REGISTER_',
+            'SAR',
+            'CMP',
+            'RDX',
+            'SUB',
+            '_DISPLACEMENT_',
+        ],
+    )
+
   def test_process_and_filter_bbs(self):
     bb_hex = 'B801000000C3'
 
