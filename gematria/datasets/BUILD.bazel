@@ -90,7 +90,6 @@ cc_test(
         "//gematria/llvm:llvm_architecture_support",
         "//gematria/proto:throughput_cc_proto",
         "//gematria/testing:matchers",
-        "@bazel_tools//tools/cpp/runfiles",
         "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
