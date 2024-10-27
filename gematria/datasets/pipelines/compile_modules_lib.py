@@ -227,6 +227,7 @@ def get_bbs(
     remove_memory_accessing_instructions: bool,
     annotator_type: bhive_to_exegesis.AnnotatorType,
     max_annotation_attempts: int,
+    vocab_output_file: str,
 ) -> Callable[[beam.Pipeline], None]:
   """Creates a pipeline to process BBs from IR modules.
 
@@ -278,12 +279,19 @@ def get_bbs(
     annotated_bbs = processed_bbs_deduplicated | 'Annotate BBs' >> beam.ParDo(
         AnnotateBBs(annotator_type, max_annotation_attempts)
     )
+    bb_vocab = processed_bbs_deduplicated | 'Get Vocab' >> beam.ParDo(
+        GetVocab()
+    )
+    deduplicated_bb_vocab = bb_vocab | 'Deduplicate Vocab' >> DeduplicateBBs()
 
     _ = annotated_bbs | 'Write annotated blocks' >> beam.io.WriteToTFRecord(
         output_file,
         coder=beam.coders.ProtoCoder(
             execution_annotation_pb2.BlockWithExecutionAnnotations().__class__
         ),
+    )
+    _ = deduplicated_bb_vocab | 'Write vocab' >> beam.io.WriteToText(
+        vocab_output_file
     )
 
   return pipeline

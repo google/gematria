@@ -164,6 +164,7 @@ class CompileModulesTests(absltest.TestCase):
     test_parquet_file = self.create_tempfile()
     output_file_dir = self.create_tempdir()
     output_file_pattern = os.path.join(output_file_dir, 'bbs')
+    vocab_output_file_pattern = os.path.join(output_file_dir, 'bbvocab')
 
     ir_utils.create_compile_parquet(
         [ir_string1, ir_string2], test_parquet_file.full_path
@@ -175,6 +176,7 @@ class CompileModulesTests(absltest.TestCase):
         False,
         bhive_to_exegesis.AnnotatorType.fast,
         50,
+        vocab_output_file_pattern,
     )
 
     with test_pipeline.TestPipeline() as pipeline_under_test:
@@ -189,6 +191,16 @@ class CompileModulesTests(absltest.TestCase):
 
     self.assertLen(block_hex_values, 2)
     self.assertContainsSubset(['B801000000', 'B802000000'], block_hex_values)
+
+    with open(
+        vocab_output_file_pattern + '-00000-of-00001'
+    ) as vocab_file_handle:
+      vocab_tokens = [token.strip() for token in vocab_file_handle.readlines()]
+
+    self.assertLen(vocab_tokens, 4)
+    self.assertContainsSubset(
+        ['_D_', '_IMMEDIATE_', 'MOV', 'EAX'], vocab_tokens
+    )
 
 
 if __name__ == '__main__':

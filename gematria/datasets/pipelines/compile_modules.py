@@ -33,6 +33,13 @@ _OUTPUT_FILE = flags.DEFINE_string(
     'output_file', None, 'The path to the output tfrecord file.', required=True
 )
 
+_OUTPUT_VOCAB_FILE = flags.DEFINE_string(
+    'output_vocab_file',
+    None,
+    'The path to the output vocab text file.',
+    required=True,
+)
+
 _REMOVE_MEMORY_ACCESSING_INSTRUCTIONS = flags.DEFINE_bool(
     'remove_memory_accessing_instructions',
     False,
@@ -65,6 +72,7 @@ def main(argv) -> None:
       _REMOVE_MEMORY_ACCESSING_INSTRUCTIONS.value,
       ANNOTATOR_MAPPING[_ANNOTATOR_TYPE.value],
       _MAX_ANNOTATION_ATTEMPTS.value,
+      _OUTPUT_VOCAB_FILE.value,
   )
 
   with beam.Pipeline(options=beam_options) as pipeline:
