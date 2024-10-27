@@ -100,7 +100,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONBlock) {
   StringRef JSONBlock = R"json(
   {
     "Hex": "3b31",
-    "LoopRegister": 51,
+    "LoopRegister": "RAX",
     "MemoryDefinitions": [
       {
         "Name": "MEM",
@@ -135,7 +135,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONBlock) {
   EXPECT_THAT(BenchCode->Key.Instructions,
               UnorderedElementsAre(IsMCInst(X86::CMP32rm, _)));
 
-  EXPECT_EQ(BenchCode->Key.LoopRegister, 51);
+  EXPECT_EQ(BenchCode->Key.LoopRegister, X86::RAX);
 
   EXPECT_THAT(BenchCode->Key.MemoryValues,
               UnorderedElementsAre(Pair("MEM", FieldsAre(1, 4096, 0))));
@@ -152,24 +152,11 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONNoHex) {
             "Malformed basic block: Basic block at index 1 has no hex value");
 }
 
-TEST_F(ExegesisBenchmarkTest, TestParseJSONNoLoopRegister) {
-  Expected<std::string> ErrorMessage = getErrorMessage(R"json(
-  {
-    "Hex": ""
-  }
-  )json");
-  ASSERT_TRUE(static_cast<bool>(ErrorMessage));
-
-  EXPECT_EQ(
-      *ErrorMessage,
-      "Malformed basic block: Basic block at index 1 has no loop register");
-}
-
 TEST_F(ExegesisBenchmarkTest, TestParseJSONInvalidHex) {
   Expected<std::string> ErrorMessage = getErrorMessage(R"json(
   {
     "Hex": "INVALIDHEX",
-    "LoopRegister": 51
+    "LoopRegister": "RAX"
   }
   )json");
   ASSERT_TRUE(static_cast<bool>(ErrorMessage));
@@ -183,7 +170,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONNoRegisterDefinitions) {
   Expected<std::string> ErrorMessage = getErrorMessage(R"json(
   {
     "Hex": "3b31",
-    "LoopRegister": 51
+    "LoopRegister": "RAX"
   }
   )json");
   ASSERT_TRUE(static_cast<bool>(ErrorMessage));
@@ -197,7 +184,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONMissingRegisterIndexValue) {
   Expected<std::string> ErrorMessage = getErrorMessage(R"json(
   {
     "Hex": "3b31",
-    "LoopRegister": 51,
+    "LoopRegister": "RAX",
     "RegisterDefinitions": [
       {
         "Value": 86016
@@ -216,7 +203,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONMissingMemoryDefinitions) {
   Expected<std::string> ErrorMessage = getErrorMessage(R"json(
   {
     "Hex": "3b31",
-    "LoopRegister": 51,
+    "LoopRegister": "RAX",
     "RegisterDefinitions": [
       {
         "Register": "RCX",
@@ -236,7 +223,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONMemoryDefinitionNotObject) {
   Expected<std::string> ErrorMessage = getErrorMessage(R"json(
   {
     "Hex": "3b31",
-    "LoopRegister": 51,
+    "LoopRegister": "RAX",
     "RegisterDefinitions": [
       {
         "Register": "RCX",
@@ -257,7 +244,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONMemoryDefinitionMissingField) {
   Expected<std::string> ErrorMessage = getErrorMessage(R"json(
   {
     "Hex": "3b31",
-    "LoopRegister": 51,
+    "LoopRegister": "RAX",
     "RegisterDefinitions": [
       {
         "Register": "RCX",
@@ -282,7 +269,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONMissingMemoryMappings) {
   Expected<std::string> ErrorMessage = getErrorMessage(R"json(
   {
     "Hex": "3b31",
-    "LoopRegister": 51,
+    "LoopRegister": "RAX",
     "RegisterDefinitions": [
       {
         "Register": "RCX",
@@ -309,7 +296,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONMemoryMappingNonObject) {
   Expected<std::string> ErrorMessage = getErrorMessage(R"json(
   {
     "Hex": "3b31",
-    "LoopRegister": 51,
+    "LoopRegister": "RAX",
     "RegisterDefinitions": [
       {
         "Register": "RCX",
@@ -337,7 +324,7 @@ TEST_F(ExegesisBenchmarkTest, TestParseJSONMemoryMappingMissingField) {
   Expected<std::string> ErrorMessage = getErrorMessage(R"json(
   {
     "Hex": "3b31",
-    "LoopRegister": 51,
+    "LoopRegister": "RAX",
     "RegisterDefinitions": [
       {
         "Register": "RCX",
@@ -369,7 +356,7 @@ TEST_F(ExegesisBenchmarkTest, TestBenchmarkAdd) {
   Expected<double> BenchmarkResult = benchmark(R"json(
   {
     "Hex": "4801c1",
-    "LoopRegister": 51,
+    "LoopRegister": "RAX",
     "RegisterDefinitions": [
       {
         "Register": "HSI",

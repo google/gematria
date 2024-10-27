@@ -107,15 +107,15 @@ Expected<BenchmarkCode> ExegesisBenchmark::parseJSONBlock(
         errc::invalid_argument, "Malformed basic block: Basic block at index " +
                                     Twine(BlockIndex) + " has no hex value");
 
-  std::optional<int64_t> LoopRegister =
-      BasicBlockJSON.getInteger("LoopRegister");
-  if (!LoopRegister.has_value())
-    return llvm::make_error<StringError>(
-        errc::invalid_argument, "Malformed basic block: Basic block at index " +
-                                    Twine(BlockIndex) +
-                                    " has no loop register");
-
-  BenchCode.Key.LoopRegister = *LoopRegister;
+  std::optional<StringRef> LoopRegister =
+      BasicBlockJSON.getString("LoopRegister");
+  if (!LoopRegister.has_value()) {
+    BenchCode.Key.LoopRegister = MCRegister::NoRegister;
+  } else {
+    Expected<MCRegister> LoopRegisterIndex = getRegisterFromName(*LoopRegister);
+    if (!LoopRegisterIndex) return LoopRegisterIndex.takeError();
+    BenchCode.Key.LoopRegister = *LoopRegisterIndex;
+  }
 
   // TODO(ondrasej): Update this after converting gematria::ParseHexString to
   // return llvm::Expected rather than an optional.
