@@ -80,12 +80,12 @@ class CompileModulesTests(absltest.TestCase):
     self.assertLen(bb_hex_values, 1)
     self.assertEqual(bb_hex_values[0], '31C0C3')
 
-  def test_deduplicate_bbs(self):
+  def test_deduplicate_values(self):
     test_bbs = ['aa', 'aa', 'ab', 'ab', 'bc']
 
     with test_pipeline.TestPipeline() as pipeline_under_test:
       input = pipeline_under_test | beam.Create(test_bbs)
-      output = input | compile_modules_lib.DeduplicateBBs()
+      output = input | compile_modules_lib.DeduplicateValues()
       beam_test.assert_that(output, beam_test.equal_to(['aa', 'ab', 'bc']))
 
   def test_annotate_bbs(self):
@@ -165,6 +165,7 @@ class CompileModulesTests(absltest.TestCase):
     test_parquet_file = self.create_tempfile()
     output_file_dir = self.create_tempdir()
     output_file_pattern = os.path.join(output_file_dir, 'bbs')
+    vocab_output_file_pattern = os.path.join(output_file_dir, 'bbvocab')
 
     ir_utils.create_compile_parquet(
         [ir_string1, ir_string2], test_parquet_file.full_path
@@ -176,6 +177,7 @@ class CompileModulesTests(absltest.TestCase):
         False,
         bhive_to_exegesis.AnnotatorType.fast,
         50,
+        vocab_output_file_pattern,
     )
 
     with test_pipeline.TestPipeline() as pipeline_under_test:
@@ -190,6 +192,13 @@ class CompileModulesTests(absltest.TestCase):
 
     self.assertLen(block_hex_values, 2)
     self.assertContainsSubset(['B801000000', 'B802000000'], block_hex_values)
+
+    with open(
+        vocab_output_file_pattern + '-00000-of-00001'
+    ) as vocab_file_handle:
+      vocab_tokens = [token.strip() for token in vocab_file_handle.readlines()]
+
+    self.assertCountEqual(['_D_', '_IMMEDIATE_', 'MOV', 'EAX'], vocab_tokens)
 
 
 if __name__ == '__main__':
