@@ -23,9 +23,13 @@ from pybind11_abseil import status
 
 from gematria.datasets.python import extract_bbs_from_obj
 from gematria.datasets.python import process_and_filter_bbs
+from gematria.datasets.python import bhive_importer
 from gematria.datasets.python import bhive_to_exegesis
+from gematria.llvm.python import canonicalizer
 from gematria.llvm.python import llvm_architecture_support
 from gematria.proto import execution_annotation_pb2
+from gematria.basic_block.python import basic_block_protos
+from gematria.basic_block.python import basic_block
 import gematria.llvm.python.runfiles
 
 _BEAM_METRIC_NAMESPACE_NAME = 'compile_modules'
@@ -199,6 +203,25 @@ class AnnotateBBs(beam.DoFn):
     except status.StatusNotOk:
       self._blocks_failed_annotation.inc()
       pass
+
+
+class GetVocab(beam.DoFn):
+  """A Beam transform to get vocab from basic blocks."""
+
+  def setup(self):
+    self._x86_llvm = llvm_architecture_support.LlvmArchitectureSupport.x86_64()
+    self._x86_canonicalizer = canonicalizer.Canonicalizer.x86_64(self._x86_llvm)
+    self._importer = bhive_importer.BHiveImporter(self._x86_canonicalizer)
+
+  def process(self, bb_hex: str) -> Iterable[str]:
+    raw_block_proto = self._importer.basic_block_proto_from_hex(bb_hex)
+    block_proto = basic_block_protos.basic_block_from_proto(raw_block_proto)
+    tokens = set()
+
+    for instruction in block_proto.instructions:
+      tokens.update(instruction.as_token_list())
+
+    yield from tokens
 
 
 def get_bbs(
