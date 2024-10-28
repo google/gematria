@@ -80,12 +80,12 @@ class CompileModulesTests(absltest.TestCase):
     self.assertLen(bb_hex_values, 1)
     self.assertEqual(bb_hex_values[0], '31C0C3')
 
-  def test_deduplicate_bbs(self):
+  def test_deduplicate_values(self):
     test_bbs = ['aa', 'aa', 'ab', 'ab', 'bc']
 
     with test_pipeline.TestPipeline() as pipeline_under_test:
       input = pipeline_under_test | beam.Create(test_bbs)
-      output = input | compile_modules_lib.DeduplicateBBs()
+      output = input | compile_modules_lib.DeduplicateValues()
       beam_test.assert_that(output, beam_test.equal_to(['aa', 'ab', 'bc']))
 
   def test_annotate_bbs(self):
@@ -198,10 +198,7 @@ class CompileModulesTests(absltest.TestCase):
     ) as vocab_file_handle:
       vocab_tokens = [token.strip() for token in vocab_file_handle.readlines()]
 
-    self.assertLen(vocab_tokens, 4)
-    self.assertContainsSubset(
-        ['_D_', '_IMMEDIATE_', 'MOV', 'EAX'], vocab_tokens
-    )
+    self.assertCountEqual(['_D_', '_IMMEDIATE_', 'MOV', 'EAX'], vocab_tokens)
 
 
 if __name__ == '__main__':

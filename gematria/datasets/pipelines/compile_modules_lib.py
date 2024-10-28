@@ -124,7 +124,7 @@ class GetBBsFromModule(beam.DoFn):
       self._bbs_produced.inc()
 
 
-class DeduplicateBBs(beam.ptransform.PTransform):
+class DeduplicateValues(beam.ptransform.PTransform):
   """A Beam transform to deduplicate string data."""
 
   def expand(self, pcoll: beam.PCollection) -> beam.PCollection:
@@ -221,12 +221,7 @@ class GetVocab(beam.DoFn):
     for instruction in block_proto.instructions:
       tokens.update(instruction.as_token_list())
 
-<<<<<<< HEAD
-    for token in tokens:
-      yield token
-=======
     yield from tokens
->>>>>>> main
 
 
 def get_bbs(
@@ -274,7 +269,7 @@ def get_bbs(
         GetBBsFromModule()
     )
     bb_hex_values_deduplicated = (
-        bb_hex_values | 'Deduplicate' >> DeduplicateBBs()
+        bb_hex_values | 'Deduplicate' >> DeduplicateValues()
     )
     processed_filtered_bbs = (
         bb_hex_values_deduplicated
@@ -282,7 +277,8 @@ def get_bbs(
         >> beam.ParDo(ProcessAndFilterBBs(remove_memory_accessing_instructions))
     )
     processed_bbs_deduplicated = (
-        processed_filtered_bbs | 'Deduplicate Processed BBs' >> DeduplicateBBs()
+        processed_filtered_bbs
+        | 'Deduplicate Processed BBs' >> DeduplicateValues()
     )
     annotated_bbs = processed_bbs_deduplicated | 'Annotate BBs' >> beam.ParDo(
         AnnotateBBs(annotator_type, max_annotation_attempts)
@@ -290,7 +286,9 @@ def get_bbs(
     bb_vocab = processed_bbs_deduplicated | 'Get Vocab' >> beam.ParDo(
         GetVocab()
     )
-    deduplicated_bb_vocab = bb_vocab | 'Deduplicate Vocab' >> DeduplicateBBs()
+    deduplicated_bb_vocab = (
+        bb_vocab | 'Deduplicate Vocab' >> DeduplicateValues()
+    )
 
     _ = annotated_bbs | 'Write annotated blocks' >> beam.io.WriteToTFRecord(
         output_file,
