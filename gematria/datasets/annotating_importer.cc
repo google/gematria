@@ -101,7 +101,7 @@ absl::Status AnnotatingImporter::LoadBinary(std::string_view file_name) {
   return absl::OkStatus();
 }
 
-absl::StatusOr<llvm::object::ELF64LEObjectFile *>
+absl::StatusOr<llvm::object::ELFObjectFileBase *>
 AnnotatingImporter::GetELFFromBinary() {
   llvm::object::Binary *binary = owning_binary_.getBinary();
   if (!binary->isObject()) {
@@ -109,59 +109,32 @@ AnnotatingImporter::GetELFFromBinary() {
         absl::StrFormat("The given binary (%s) is not an object.",
                         std::string(binary->getFileName())));
   }
-  llvm::object::ObjectFile *object =
-      llvm::cast<llvm::object::ObjectFile>(binary);
-  if (!object) {
+  auto *object = llvm::cast<llvm::object::ObjectFile>(binary);
+  if (object == nullptr) {
     return absl::InvalidArgumentError(
         absl::StrFormat("Could not cast the binary (%s) to an ObjectFile.",
                         std::string(binary->getFileName())));
   }
 
   // Make sure the object is an ELF file.
-  if (!object->isELF() || !object->is64Bit() || !object->isLittleEndian()) {
+  if (!object->isELF()) {
     return absl::InvalidArgumentError(
-        absl::StrFormat("The given object (%s) is not in ELF64LE format.",
+        absl::StrFormat("The given object (%s) is not in ELF format.",
                         std::string(binary->getFileName())));
   }
-  auto *elf_object = llvm::dyn_cast<llvm::object::ELF64LEObjectFile>(object);
-  if (!elf_object) {
+  auto *elf_object = llvm::dyn_cast<llvm::object::ELFObjectFileBase>(object);
+  if (elf_object == nullptr) {
     return absl::InvalidArgumentError(absl::StrFormat(
-        "Could not cast the object (%s) to an ELF64LEObjectFile.",
+        "Could not cast the object (%s) to an ELFObjectFileBase.",
         std::string(binary->getFileName())));
   }
 
   return elf_object;
 }
 
-absl::StatusOr<llvm::object::Elf_Phdr_Impl<llvm::object::ELF64LE>>
-AnnotatingImporter::GetMainProgramHeader(
-    const llvm::object::ELF64LEObjectFile *elf_object) {
-  llvm::object::Elf_Phdr_Impl<llvm::object::ELF64LE> main_header;
-  bool found_main_header = false;
-  auto program_headers = elf_object->getELFFile().program_headers();
-  if (llvm::Error error = program_headers.takeError()) {
-    return LlvmErrorToStatus(std::move(error));
-  }
-  for (const auto &program_header : *program_headers) {
-    if (program_header.p_type == llvm::ELF::PT_LOAD &&
-        program_header.p_flags & llvm::ELF::PF_R &&
-        program_header.p_flags & llvm::ELF::PF_X) {
-      if (found_main_header) {
-        return absl::InvalidArgumentError(
-            "The given object has multiple executable segments. This is "
-            "currently not supported.");
-      }
-      main_header = program_header;
-      found_main_header = true;
-    }
-  }
-
-  return main_header;
-}
-
 absl::StatusOr<std::vector<DisassembledInstruction>>
 AnnotatingImporter::GetELFSlice(
-    const llvm::object::ELF64LEObjectFile *elf_object, uint64_t range_begin,
+    const llvm::object::ELFObjectFileBase *elf_object, uint64_t range_begin,
     uint64_t range_end, uint64_t file_offset) {
   llvm::StringRef binary_buf = elf_object->getData();
 
@@ -195,7 +168,24 @@ AnnotatingImporter::GetBlocksFromELF() {
   if (llvm::Error error = bb_addr_map.takeError()) {
     return LlvmErrorToStatus(std::move(error));
   }
-  const auto main_header = GetMainProgramHeader(*elf_object);
+
+  // TODO(vbshah): Consider making it possible to use other ELFTs rather than
+  // only ELF64LE since only the implementation of GetMainProgramHeader differs
+  // between different ELFTs.
+  if (!(*elf_object)->is64Bit() || !(*elf_object)->isLittleEndian()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("The given object (%s) is not in ELF64LE format.",
+                        (*elf_object)->getFileName()));
+  }
+  auto *typed_elf_object =
+      llvm::dyn_cast<llvm::object::ELF64LEObjectFile>(*elf_object);
+  if (typed_elf_object == nullptr) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "Could not cast the ELF object (%s) to an ELF64LEObjectFileBase.",
+        (*elf_object)->getFileName()));
+  }
+
+  const auto main_header = GetMainProgramHeader(typed_elf_object);
   if (!main_header.ok()) {
     return main_header.status();
   }
@@ -296,7 +286,24 @@ AnnotatingImporter::GetLBRBlocksWithLatency() {
   if (!elf_object.ok()) {
     return elf_object.status();
   }
-  const auto main_header = GetMainProgramHeader(*elf_object);
+
+  // TODO(vbshah): Consider making it possible to use other ELFTs rather than
+  // only ELF64LE since only the implementation of GetMainProgramHeader differs
+  // between different ELFTs.
+  if (!(*elf_object)->is64Bit() || !(*elf_object)->isLittleEndian()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("The given object (%s) is not in ELF64LE format.",
+                        (*elf_object)->getFileName()));
+  }
+  auto *typed_elf_object =
+      llvm::dyn_cast<llvm::object::ELF64LEObjectFile>(*elf_object);
+  if (typed_elf_object == nullptr) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "Could not cast the ELF object (%s) to an ELF64LEObjectFileBase.",
+        (*elf_object)->getFileName()));
+  }
+
+  const auto main_header = GetMainProgramHeader(typed_elf_object);
   if (!main_header.ok()) {
     return main_header.status();
   }
