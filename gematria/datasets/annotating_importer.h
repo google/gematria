@@ -29,10 +29,13 @@
 #include "gematria/datasets/bhive_importer.h"
 #include "gematria/llvm/canonicalizer.h"
 #include "gematria/llvm/disassembler.h"
+#include "gematria/llvm/llvm_to_absl.h"
 #include "gematria/proto/throughput.pb.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Object/Binary.h"
 #include "llvm/Object/ELFObjectFile.h"
 #include "llvm/Object/ELFTypes.h"
+#include "llvm/Support/Error.h"
 #include "quipper/perf_data.pb.h"
 #include "quipper/perf_parser.h"
 #include "quipper/perf_reader.h"
@@ -51,32 +54,33 @@ class AnnotatingImporter {
   // returns a vector of annotated `BasicBlockProto`s consisting of basic blocks
   // from the ELF object annotated using samples from the `perf.data`-like file.
   absl::StatusOr<std::vector<BasicBlockWithThroughputProto>>
-  GetAnnotatedBasicBlockProtos(const std::string_view elf_file_name,
-                               const std::string_view perf_data_file_name,
-                               const std::string_view source_name);
+  GetAnnotatedBasicBlockProtos(std::string_view elf_file_name,
+                               std::string_view perf_data_file_name,
+                               std::string_view source_name);
 
  private:
   // Loads a `perf.data`-like file into the importer. Must be called before
   // `GetSamples`, `GetLBRData`, and `GetLBRBlocksWithLatency`.
-  absl::Status LoadPerfData(const std::string_view file_name);
+  absl::Status LoadPerfData(std::string_view file_name);
 
   // Loads a binary into the importer for further processing. Must be called
   // before `GetElfFromBinary` and `GetELFSlice`.
-  absl::Status LoadBinary(const std::string_view file_name);
+  absl::Status LoadBinary(std::string_view file_name);
 
   // Returns a pointer inside the loaded binary casted down to an ELF object.
   // The pointer is owned by this instance of `AnnotatingImporter` and may only
   // be accessed while this is alive.
-  absl::StatusOr<llvm::object::ELF64LEObjectFile*> GetELFFromBinary();
+  absl::StatusOr<llvm::object::ELFObjectFileBase*> GetELFFromBinary();
 
-  // Returns the file offset of the passed ELF object.
-  absl::StatusOr<llvm::object::Elf_Phdr_Impl<llvm::object::ELF64LE>>
-  GetMainProgramHeader(const llvm::object::ELF64LEObjectFile* elf_object);
+  // Returns the program header corresponding to the main executable section.
+  template <class ELFT>
+  absl::StatusOr<llvm::object::Elf_Phdr_Impl<ELFT>> GetMainProgramHeader(
+      const llvm::object::ELFObjectFile<ELFT>* elf_object);
 
   // Disassembles and returns instructions between two addresses in an ELF
   // object.
   absl::StatusOr<std::vector<DisassembledInstruction>> GetELFSlice(
-      const llvm::object::ELF64LEObjectFile* elf_object, uint64_t range_begin,
+      const llvm::object::ELFObjectFileBase* elf_object, uint64_t range_begin,
       uint64_t range_end, uint64_t file_offset);
 
   // Extracts basic blocks from an ELF object, and returns them as tuple
@@ -111,6 +115,33 @@ class AnnotatingImporter {
   quipper::PerfDataProto::MMapEvent main_mapping_;
   llvm::object::OwningBinary<llvm::object::Binary> owning_binary_;
 };
+
+template <class ELFT>
+absl::StatusOr<llvm::object::Elf_Phdr_Impl<ELFT>>
+AnnotatingImporter::GetMainProgramHeader(
+    const llvm::object::ELFObjectFile<ELFT>* elf_object) {
+  llvm::object::Elf_Phdr_Impl<ELFT> main_header;
+  bool found_main_header = false;
+  auto program_headers = elf_object->getELFFile().program_headers();
+  if (llvm::Error error = program_headers.takeError()) {
+    return LlvmErrorToStatus(std::move(error));
+  }
+  for (const auto& program_header : *program_headers) {
+    if (program_header.p_type == llvm::ELF::PT_LOAD &&
+        program_header.p_flags & llvm::ELF::PF_R &&
+        program_header.p_flags & llvm::ELF::PF_X) {
+      if (found_main_header) {
+        return absl::InvalidArgumentError(
+            "The given object has multiple executable segments. This is "
+            "currently not supported.");
+      }
+      main_header = program_header;
+      found_main_header = true;
+    }
+  }
+
+  return main_header;
+}
 
 }  // namespace gematria
 

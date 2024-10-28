@@ -115,8 +115,6 @@ llvm::json::Value GetJSONForSnippet(
   if (annotated_block.AccessedAddrs.has_loop_register())
     current_snippet["LoopRegister"] =
         annotated_block.AccessedAddrs.loop_register();
-  else
-    current_snippet["LoopRegister"] = llvm::MCRegister::NoRegister;
 
   if (annotated_block.AccessedAddrs.accessed_blocks_size() > 0) {
     llvm::json::Array memory_definitions;

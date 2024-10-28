@@ -40,6 +40,7 @@ class CompileModulesTests(absltest.TestCase):
     module_optimizer = compile_modules_lib.OptimizeModules(
         ['default<O0>', 'instcombine']
     )
+    module_optimizer.setup()
     optimized_modules = list(
         module_optimizer.process(ir_utils.get_bc_from_ir(ir_string))
     )
@@ -69,6 +70,7 @@ class CompileModulesTests(absltest.TestCase):
     ir_string_bc = ir_utils.get_bc_from_ir(ir_string)
 
     module_lower_transform = compile_modules_lib.LowerModulesAsm(['-O0', '-O1'])
+    module_lower_transform.setup()
     lowered_modules = list(module_lower_transform.process(ir_string_bc))
 
     self.assertLen(lowered_modules, 2)
@@ -106,8 +108,7 @@ class CompileModulesTests(absltest.TestCase):
         get_vocab_function.process('4829d38b44246c8b54246848c1fb034829d04839c3')
     )
 
-    self.assertLen(vocab, 17)
-    self.assertContainsSubset(
+    self.assertCountEqual(
         vocab,
         [
             '_MEMORY_',

@@ -15,6 +15,7 @@
 #include "gematria/datasets/annotating_importer.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -27,7 +28,6 @@
 #include "gematria/testing/matchers.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "tools/cpp/runfiles/runfiles.h"
 
 namespace gematria {
 namespace {
@@ -46,19 +46,12 @@ class AnnotatingImporterTest : public ::testing::Test {
       "simple_x86_elf_object.perf.data";
   static constexpr std::string_view kSourceName = "test: skl";
 
-  std::unique_ptr<bazel::tools::cpp::runfiles::Runfiles> runfiles_;
-
   void SetUp() override {
     x86_llvm_ = LlvmArchitectureSupport::X86_64();
     x86_canonicalizer_ =
         std::make_unique<X86Canonicalizer>(&x86_llvm_->target_machine());
     x86_annotating_importer_ =
         std::make_unique<AnnotatingImporter>(x86_canonicalizer_.get());
-
-    std::string error;
-    runfiles_ = std::unique_ptr<bazel::tools::cpp::runfiles::Runfiles>(
-        bazel::tools::cpp::runfiles::Runfiles::CreateForTest(&error));
-    assert(runfiles_ != nullptr);
   }
 
   std::unique_ptr<LlvmArchitectureSupport> x86_llvm_;
@@ -67,10 +60,12 @@ class AnnotatingImporterTest : public ::testing::Test {
 };
 
 TEST_F(AnnotatingImporterTest, AnnotatedBasicBlockProtosFromBinary) {
+  std::string test_srcdir = std::string(getenv("TEST_SRCDIR")) + "/";
+
   absl::StatusOr<std::vector<BasicBlockWithThroughputProto>> protos =
       x86_annotating_importer_->GetAnnotatedBasicBlockProtos(
-          runfiles_->Rlocation(std::string(kElfObjectFilepath)),
-          runfiles_->Rlocation(std::string(kPerfDataFilepath)), kSourceName);
+          test_srcdir + std::string(kElfObjectFilepath),
+          test_srcdir + std::string(kPerfDataFilepath), kSourceName);
 
   EXPECT_TRUE(protos.ok());
   EXPECT_EQ(protos->size(), 1);

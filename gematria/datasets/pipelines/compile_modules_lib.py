@@ -40,13 +40,15 @@ class OptimizeModules(beam.DoFn):
 
   def __init__(self, optimization_pipelines: Sequence[str]):
     self._optimization_pipelines = optimization_pipelines
-    self._opt_path = gematria.llvm.python.runfiles.get_llvm_binary_path('opt')
     self._modules_succeeded = metrics.Metrics.counter(
         _BEAM_METRIC_NAMESPACE_NAME, 'optimize_modules_success'
     )
     self._modules_failed = metrics.Metrics.counter(
         _BEAM_METRIC_NAMESPACE_NAME, 'optimize_modules_failure'
     )
+
+  def setup(self):
+    self._opt_path = gematria.llvm.python.runfiles.get_llvm_binary_path('opt')
 
   def optimize_module(
       self, input_module: bytes, optimization_pipeline: str
@@ -73,13 +75,15 @@ class LowerModulesAsm(beam.DoFn):
 
   def __init__(self, optimization_levels: Sequence[str]):
     self._optimization_levels = optimization_levels
-    self._llc_path = gematria.llvm.python.runfiles.get_llvm_binary_path('llc')
     self._modules_succeded = metrics.Metrics.counter(
         _BEAM_METRIC_NAMESPACE_NAME, 'lower_modules_success'
     )
     self._modules_failed = metrics.Metrics.counter(
         _BEAM_METRIC_NAMESPACE_NAME, 'lower_modules_failure'
     )
+
+  def setup(self):
+    self._llc_path = gematria.llvm.python.runfiles.get_llvm_binary_path('llc')
 
   def lower_module(self, optimization_level: str, input_module: bytes) -> bytes:
     command_vector = [
@@ -217,8 +221,12 @@ class GetVocab(beam.DoFn):
     for instruction in block_proto.instructions:
       tokens.update(instruction.as_token_list())
 
+<<<<<<< HEAD
     for token in tokens:
       yield token
+=======
+    yield from tokens
+>>>>>>> main
 
 
 def get_bbs(
