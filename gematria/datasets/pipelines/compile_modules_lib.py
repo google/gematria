@@ -217,8 +217,7 @@ class GetVocab(beam.DoFn):
     for instruction in block_proto.instructions:
       tokens.update(instruction.as_token_list())
 
-    for token in tokens:
-      yield token
+    yield from tokens
 
 
 def get_bbs(

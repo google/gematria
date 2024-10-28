@@ -106,8 +106,7 @@ class CompileModulesTests(absltest.TestCase):
         get_vocab_function.process('4829d38b44246c8b54246848c1fb034829d04839c3')
     )
 
-    self.assertLen(vocab, 17)
-    self.assertContainsSubset(
+    self.assertCountEqual(
         vocab,
         [
             '_MEMORY_',
