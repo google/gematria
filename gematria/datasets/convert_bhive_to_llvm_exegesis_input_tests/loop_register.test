@@ -39,11 +39,11 @@
 
 ; RUN: mkdir %t.jsondir
 ; RUN: %convert_bhive_to_llvm_exegesis_input --json_output_dir=%t.jsondir --bhive_csv=%t/test.csv --skip_no_loop_register=false --blocks_per_json_file=1
-; cat %t.jsondir/0.json | FileCheck %s --check-prefix JSON0
-; cat %t.jsondir/1.json | FileCheck %s --check-prefix JSON1
+; RUN: cat %t.jsondir/0.json | FileCheck %s --check-prefix JSON0
+; RUN: cat %t.jsondir/1.json | FileCheck %s --check-prefix JSON1
 
-; JSON0: "LoopRegister": null
-; JSON1: "LoopRegister": 56
+; JSON0-NOT: "LoopRegister"
+; JSON1: "LoopRegister": "RDX"
 
 ; The first line in test.csv contains an assembly snippet that uses every single
 ; GPR (%RAX-%R15), leaving no register available to be used as the loop
