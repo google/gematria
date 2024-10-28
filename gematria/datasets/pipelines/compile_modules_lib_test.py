@@ -40,6 +40,7 @@ class CompileModulesTests(absltest.TestCase):
     module_optimizer = compile_modules_lib.OptimizeModules(
         ['default<O0>', 'instcombine']
     )
+    module_optimizer.setup()
     optimized_modules = list(
         module_optimizer.process(ir_utils.get_bc_from_ir(ir_string))
     )
@@ -69,6 +70,7 @@ class CompileModulesTests(absltest.TestCase):
     ir_string_bc = ir_utils.get_bc_from_ir(ir_string)
 
     module_lower_transform = compile_modules_lib.LowerModulesAsm(['-O0', '-O1'])
+    module_lower_transform.setup()
     lowered_modules = list(module_lower_transform.process(ir_string_bc))
 
     self.assertLen(lowered_modules, 2)
