@@ -33,6 +33,12 @@ namespace gematria {
 
 unsigned getSuperRegister(unsigned OriginalRegister,
                           const MCRegisterInfo &RegisterInfo) {
+  // Sections of EFLAGS that are explicitly modeled by LLVM as separate
+  // registers should all return eflags.
+  if (OriginalRegister == X86::EFLAGS || OriginalRegister == X86::DF) {
+    return X86::EFLAGS;
+  }
+
   // We should be able to get the super register by getting an iterator from
   // RegisterInfo and getting the back, but this always returns a value of
   // zero.

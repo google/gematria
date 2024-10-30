@@ -189,6 +189,14 @@ TEST_F(BasicBlockUtilsTest, DISABLED_UsedRegistersSingleByteDefines) {
               UnorderedElementsAre(X86::RAX, X86::RDX, X86::RCX));
 }
 
+TEST_F(BasicBlockUtilsTest, MovsqImplicitDfUsesEflags) {
+  std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
+    movsq
+  )asm");
+  EXPECT_THAT(UsedRegisters,
+              UnorderedElementsAre(X86::RSI, X86::RDI, X86::EFLAGS));
+}
+
 TEST_F(BasicBlockUtilsTest, UnusedGPRegisterSingleInstruction) {
   std::optional<unsigned> UnusedGPRegister = getUnusedGPReg(R"asm(
     mov %rax, %rcx
