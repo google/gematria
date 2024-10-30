@@ -22,6 +22,11 @@ from apache_beam.options import pipeline_options
 from gematria.datasets.pipelines import compile_modules_lib
 from gematria.datasets.python import bhive_to_exegesis
 
+ANNOTATOR_MAPPING = {
+    'fast': bhive_to_exegesis.AnnotatorType.fast,
+    'exegesis': bhive_to_exegesis.AnnotatorType.exegesis,
+}
+
 _PARQUET_FOLDER = flags.DEFINE_string(
     'parquet_folder',
     None,
@@ -49,7 +54,7 @@ _REMOVE_MEMORY_ACCESSING_INSTRUCTIONS = flags.DEFINE_bool(
 _ANNOTATOR_TYPE = flags.DEFINE_enum(
     'annotator_type',
     'fast',
-    ['fast', 'exegesis'],
+    sorted(ANNOTATOR_MAPPING.keys()),
     'The type of annotator to use.',
 )
 
@@ -58,11 +63,6 @@ _MAX_ANNOTATION_ATTEMPTS = flags.DEFINE_integer(
     50,
     'The maximum number of times to try annotating a block before giving up',
 )
-
-ANNOTATOR_MAPPING = {
-    'fast': bhive_to_exegesis.AnnotatorType.fast,
-    'exegesis': bhive_to_exegesis.AnnotatorType.exegesis,
-}
 
 
 def main(argv) -> None:
