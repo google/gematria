@@ -47,8 +47,8 @@ namespace gematria {
 
 BHiveToExegesis::BHiveToExegesis(
     LlvmArchitectureSupport& ArchitectureSupport,
-    std::unique_ptr<llvm::exegesis::LLVMState>&& LLVMExegesisState,
-    std::unique_ptr<ExegesisAnnotator>&& LLVMExegesisAnnotator)
+    std::unique_ptr<llvm::exegesis::LLVMState> LLVMExegesisState,
+    std::unique_ptr<ExegesisAnnotator> LLVMExegesisAnnotator)
     : LLVMAnnotator(std::move(LLVMExegesisAnnotator)),
       ExegesisState(std::move(LLVMExegesisState)),
       Canonicalizer(&ArchitectureSupport.target_machine()),
