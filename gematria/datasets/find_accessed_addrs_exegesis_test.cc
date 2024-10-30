@@ -160,5 +160,16 @@ TEST_F(FindAccessedAddrsExegesisTest, DISABLED_QuitMaxAnnotationAttempts) {
   ASSERT_FALSE(static_cast<bool>(AddrsOrErr));
 }
 
+TEST_F(FindAccessedAddrsExegesisTest, MovsqImplictDfUse) {
+  // Test that we can successfully find the accessed addrs for a movsq
+  // instruction, which makes things more complicated by explicitly using
+  // the df register. We do not care about the specific addresses in this
+  // case.
+  auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
+    movsq
+  )asm");
+  ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
+}
+
 }  // namespace
 }  // namespace gematria
