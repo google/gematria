@@ -57,8 +57,8 @@ class BHiveToExegesis {
 
   BHiveToExegesis(
       LlvmArchitectureSupport &ArchitectureSupport,
-      std::unique_ptr<llvm::exegesis::LLVMState> &&LLVMExegesisState,
-      std::unique_ptr<gematria::ExegesisAnnotator> &&LLVMExegesisAnnotator);
+      std::unique_ptr<llvm::exegesis::LLVMState> LLVMExegesisState,
+      std::unique_ptr<gematria::ExegesisAnnotator> LLVMExegesisAnnotator);
 
   absl::StatusOr<ExecutionAnnotations> getAccessedAddrs(
       absl::Span<const uint8_t> BasicBlock,
