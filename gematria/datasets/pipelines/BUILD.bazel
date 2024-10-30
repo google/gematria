@@ -40,6 +40,9 @@ gematria_py_test(
     env = {
         "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": "python",
     },
+    tags = [
+        "perf_counters",
+    ],
     deps = [
         ":compile_modules_lib",
         "//gematria/testing/python:ir_utils",
