@@ -47,7 +47,10 @@ _REMOVE_MEMORY_ACCESSING_INSTRUCTIONS = flags.DEFINE_bool(
 )
 
 _ANNOTATOR_TYPE = flags.DEFINE_enum(
-    'annotator_type', 'fast', ['fast'], 'The type of annotator to use.'
+    'annotator_type',
+    'fast',
+    ['fast', 'exegesis'],
+    'The type of annotator to use.',
 )
 
 _MAX_ANNOTATION_ATTEMPTS = flags.DEFINE_integer(
@@ -56,9 +59,10 @@ _MAX_ANNOTATION_ATTEMPTS = flags.DEFINE_integer(
     'The maximum number of times to try annotating a block before giving up',
 )
 
-# TODO(boomanaiden154): Currently, only the fast annotator works. Eventually
-# this should be fixed so we can use the exegesis annotator too.
-ANNOTATOR_MAPPING = {'fast': bhive_to_exegesis.AnnotatorType.fast}
+ANNOTATOR_MAPPING = {
+    'fast': bhive_to_exegesis.AnnotatorType.fast,
+    'exegesis': bhive_to_exegesis.AnnotatorType.exegesis,
+}
 
 
 def main(argv) -> None:

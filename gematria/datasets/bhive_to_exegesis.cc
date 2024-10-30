@@ -47,7 +47,7 @@ namespace gematria {
 
 BHiveToExegesis::BHiveToExegesis(
     LlvmArchitectureSupport& ArchitectureSupport,
-    llvm::exegesis::LLVMState&& LLVMExegesisState,
+    std::unique_ptr<llvm::exegesis::LLVMState>&& LLVMExegesisState,
     std::unique_ptr<ExegesisAnnotator>&& LLVMExegesisAnnotator)
     : LLVMAnnotator(std::move(LLVMExegesisAnnotator)),
       ExegesisState(std::move(LLVMExegesisState)),
@@ -60,13 +60,15 @@ Expected<std::unique_ptr<BHiveToExegesis>> BHiveToExegesis::create(
     LlvmArchitectureSupport& ArchitectureSupport) {
   Expected<LLVMState> LLVMStateOrErr = LLVMState::Create("", "native");
   if (!LLVMStateOrErr) return LLVMStateOrErr.takeError();
+  std::unique_ptr<LLVMState> LLVMStateOwner(
+      new LLVMState(std::move(*LLVMStateOrErr)));
 
   Expected<std::unique_ptr<ExegesisAnnotator>> AnnotatorOrErr =
-      ExegesisAnnotator::create(*LLVMStateOrErr);
+      ExegesisAnnotator::create(*LLVMStateOwner);
   if (!AnnotatorOrErr) return AnnotatorOrErr.takeError();
 
   return std::unique_ptr<BHiveToExegesis>(
-      new BHiveToExegesis(ArchitectureSupport, std::move(*LLVMStateOrErr),
+      new BHiveToExegesis(ArchitectureSupport, std::move(LLVMStateOwner),
                           std::move(*AnnotatorOrErr)));
 }
 

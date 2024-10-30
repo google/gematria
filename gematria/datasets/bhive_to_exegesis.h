@@ -49,7 +49,7 @@ class BHiveToExegesis {
 
  private:
   std::unique_ptr<ExegesisAnnotator> LLVMAnnotator;
-  llvm::exegesis::LLVMState ExegesisState;
+  std::unique_ptr<llvm::exegesis::LLVMState> ExegesisState;
   gematria::X86Canonicalizer Canonicalizer;
   gematria::BHiveImporter BHiveImporter;
   LlvmArchitectureSupport &ArchSupport;
@@ -57,7 +57,7 @@ class BHiveToExegesis {
 
   BHiveToExegesis(
       LlvmArchitectureSupport &ArchitectureSupport,
-      llvm::exegesis::LLVMState &&LLVMExegesisState,
+      std::unique_ptr<llvm::exegesis::LLVMState> &&LLVMExegesisState,
       std::unique_ptr<gematria::ExegesisAnnotator> &&LLVMExegesisAnnotator);
 
   absl::StatusOr<ExecutionAnnotations> getAccessedAddrs(
