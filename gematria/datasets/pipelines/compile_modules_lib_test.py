@@ -16,6 +16,7 @@ import os
 import textwrap
 
 from absl.testing import absltest
+from absl.testing import parameterized
 import apache_beam as beam
 from apache_beam.testing import test_pipeline
 from apache_beam.testing import util as beam_test
@@ -27,7 +28,7 @@ from gematria.proto import execution_annotation_pb2
 from gematria.io.python import tfrecord
 
 
-class CompileModulesTests(absltest.TestCase):
+class CompileModulesTests(parameterized.TestCase):
 
   def test_optimize_modules(self):
     ir_string = textwrap.dedent("""\
@@ -88,10 +89,12 @@ class CompileModulesTests(absltest.TestCase):
       output = input | compile_modules_lib.DeduplicateValues()
       beam_test.assert_that(output, beam_test.equal_to(['aa', 'ab', 'bc']))
 
-  def test_annotate_bbs(self):
-    annotator = compile_modules_lib.AnnotateBBs(
-        bhive_to_exegesis.AnnotatorType.fast, 50
-    )
+  @parameterized.parameters([
+      bhive_to_exegesis.AnnotatorType.fast,
+      bhive_to_exegesis.AnnotatorType.exegesis,
+  ])
+  def test_annotate_bbs(self, annotator_type):
+    annotator = compile_modules_lib.AnnotateBBs(annotator_type, 50)
     annotator.setup()
 
     annotated_blocks = list(
@@ -150,7 +153,11 @@ class CompileModulesTests(absltest.TestCase):
     filtered_bbs = list(process_and_filter_transform.process(bb_hex))
     self.assertLen(filtered_bbs, 0)
 
-  def test_get_bbs(self):
+  @parameterized.parameters([
+      bhive_to_exegesis.AnnotatorType.fast,
+      bhive_to_exegesis.AnnotatorType.exegesis,
+  ])
+  def test_get_bbs(self, annotator_type):
     ir_string1 = textwrap.dedent("""\
       define i32 @a() {
         ret i32 1
@@ -175,7 +182,7 @@ class CompileModulesTests(absltest.TestCase):
         test_parquet_file.full_path,
         output_file_pattern,
         False,
-        bhive_to_exegesis.AnnotatorType.fast,
+        annotator_type,
         50,
         vocab_output_file_pattern,
     )
