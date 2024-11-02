@@ -222,6 +222,12 @@ TEST_F(FindAccessedAddrsExegesisTest, YMMRegisters) {
 }
 
 TEST_F(FindAccessedAddrsExegesisTest, AVX512KZMMRegisters) {
+  // This test requires AVX512, skip if we are not running on a CPU with
+  // AVX512F.
+  if (!__builtin_cpu_supports("avx512f")) {
+    GTEST_SKIP() << "CPU does not support AVX512, skipping.";
+  }
+
   auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
     vmovdqu32 %zmm0, (%rax) {%k1}
   )asm");
