@@ -38,6 +38,7 @@
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/FormatVariadic.h"
 #include "llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkCode.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkResult.h"
@@ -135,8 +136,10 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
   BenchCode.Key.MemoryValues["memdef1"] = MemVal;
 
   const llvm::MCRegisterInfo &MRI = State.getRegInfo();
-  std::vector<unsigned> UsedRegisters = gematria::getUsedRegisters(
+  const std::vector<unsigned> UsedRegisters = gematria::getUsedRegisters(
       *DisInstructions, State.getRegInfo(), State.getInstrInfo());
+  MemAnnotations.mutable_accessed_blocks()->Reserve(
+      BenchCode.Key.MemoryMappings.size());
 
   for (unsigned RegisterIndex : UsedRegisters) {
     RegisterAndValue *NewRegisterValue = MemAnnotations.add_initial_registers();
@@ -146,17 +149,23 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
     RegisterValue RegVal;
     RegVal.Register = RegisterIndex;
 
-    if (MRI.getRegClass(X86::GR64_NOREX2RegClassID).contains(RegisterIndex)) {
+    if (MRI.getRegClass(X86::GR64_NOREX2RegClassID).contains(RegisterIndex) ||
+        MRI.getRegClass(X86::VR64RegClassID).contains(RegisterIndex) ||
+        MRI.getRegClass(X86::VR128RegClassID).contains(RegisterIndex) ||
+        MRI.getRegClass(X86::VR256RegClassID).contains(RegisterIndex) ||
+        MRI.getRegClass(X86::VR512RegClassID).contains(RegisterIndex) ||
+        MRI.getRegClass(X86::VK64RegClassID).contains(RegisterIndex)) {
       RegVal.Value = APInt(64, kInitialRegVal);
       NewRegisterValue->set_register_value(kInitialRegVal);
-    } else if (MRI.getRegClass(X86::VR128RegClassID).contains(RegisterIndex)) {
-      RegVal.Value = APInt(128, kInitialRegVal);
-      NewRegisterValue->set_register_value(kInitialRegVal);
-    } else if (RegisterIndex == X86::EFLAGS) {
-      RegVal.Value = 0;
+    } else if (RegisterIndex ==
+               X86::EFLAGS || RegisterIndex == X86::MXCSR) {
+      RegVal.Value = APInt(32, 0);
       NewRegisterValue->set_register_value(0);
     } else {
-      report_fatal_error("Found unhandled register case for used register.");
+      report_fatal_error(
+          formatv("Expected all registers to be handled, but found unhandled "
+                  "register {0}",
+                  MRI.getName(RegisterIndex)));
     }
 
     BenchCode.Key.RegisterInitialValues.push_back(RegVal);
@@ -213,9 +222,6 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
 
     if (AnnotationError) return std::move(AnnotationError);
   }
-
-  MemAnnotations.mutable_accessed_blocks()->Reserve(
-      BenchCode.Key.MemoryMappings.size());
 
   for (const MemoryMapping &Mapping : BenchCode.Key.MemoryMappings) {
     MemAnnotations.add_accessed_blocks(Mapping.Address);

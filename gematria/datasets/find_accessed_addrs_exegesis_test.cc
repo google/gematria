@@ -28,6 +28,7 @@
 #include "gematria/llvm/asm_parser.h"
 #include "gematria/llvm/llvm_architecture_support.h"
 #include "gematria/proto/execution_annotation.pb.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallString.h"
@@ -44,6 +45,10 @@ using namespace llvm::exegesis;
 
 namespace gematria {
 namespace {
+
+using ::testing::Contains;
+using ::testing::IsSupersetOf;
+using ::testing::Property;
 
 class FindAccessedAddrsExegesisTest : public testing::Test {
  private:
@@ -160,7 +165,7 @@ TEST_F(FindAccessedAddrsExegesisTest, DISABLED_QuitMaxAnnotationAttempts) {
   ASSERT_FALSE(static_cast<bool>(AddrsOrErr));
 }
 
-TEST_F(FindAccessedAddrsExegesisTest, MovsqImplictDfUse) {
+TEST_F(FindAccessedAddrsExegesisTest, DFRegister) {
   // Test that we can successfully find the accessed addrs for a movsq
   // instruction, which makes things more complicated by explicitly using
   // the df register. We do not care about the specific addresses in this
@@ -169,6 +174,63 @@ TEST_F(FindAccessedAddrsExegesisTest, MovsqImplictDfUse) {
     movsq
   )asm");
   ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
+}
+
+// Test that we can annotate snippets using various different register
+// classes. This is mostly intended to test that we do not get any MC
+// verification errors, which exegesis will throw if we do not define a
+// register that gets used in the snippet.
+
+TEST_F(FindAccessedAddrsExegesisTest, MXCSRRegister) {
+  auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
+    stmxcsr (%rax)
+  )asm");
+  ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
+  EXPECT_THAT(AddrsOrErr->initial_registers(),
+              Contains(Property("register_name",
+                                &RegisterAndValue::register_name, "MXCSR")));
+}
+
+TEST_F(FindAccessedAddrsExegesisTest, MMXRegisters) {
+  auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
+    movq %mm0, (%rax)
+  )asm");
+  ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
+  EXPECT_THAT(AddrsOrErr->initial_registers(),
+              Contains(Property("register_name",
+                                &RegisterAndValue::register_name, "MM0")));
+}
+
+TEST_F(FindAccessedAddrsExegesisTest, XMMRegisters) {
+  auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
+    vmovdqu %xmm0, (%rax)
+  )asm");
+  ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
+  EXPECT_THAT(AddrsOrErr->initial_registers(),
+              Contains(Property("register_name",
+                                &RegisterAndValue::register_name, "XMM0")));
+}
+
+TEST_F(FindAccessedAddrsExegesisTest, YMMRegisters) {
+  auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
+    vmovdqu %ymm0, (%rax)
+  )asm");
+  ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
+  EXPECT_THAT(AddrsOrErr->initial_registers(),
+              Contains(Property("register_name",
+                                &RegisterAndValue::register_name, "YMM0")));
+}
+
+TEST_F(FindAccessedAddrsExegesisTest, AVX512KZMMRegisters) {
+  auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
+    vmovdqu32 %zmm0, (%rax) {%k1}
+  )asm");
+  ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
+  EXPECT_THAT(
+      AddrsOrErr->initial_registers(),
+      IsSupersetOf(
+          {Property("register_name", &RegisterAndValue::register_name, "ZMM0"),
+           Property("register_name", &RegisterAndValue::register_name, "K1")}));
 }
 
 }  // namespace
