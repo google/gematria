@@ -157,8 +157,7 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
         MRI.getRegClass(X86::VK64RegClassID).contains(RegisterIndex)) {
       RegVal.Value = APInt(64, kInitialRegVal);
       NewRegisterValue->set_register_value(kInitialRegVal);
-    } else if (RegisterIndex ==
-               X86::EFLAGS || RegisterIndex == X86::MXCSR) {
+    } else if (RegisterIndex == X86::EFLAGS || RegisterIndex == X86::MXCSR) {
       RegVal.Value = APInt(32, 0);
       NewRegisterValue->set_register_value(0);
     } else {
