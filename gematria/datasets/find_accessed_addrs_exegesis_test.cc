@@ -239,5 +239,28 @@ TEST_F(FindAccessedAddrsExegesisTest, AVX512KZMMRegisters) {
            Property("register_name", &RegisterAndValue::register_name, "K1")}));
 }
 
+TEST_F(FindAccessedAddrsExegesisTest, SegmentRegisters) {
+  auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
+    movq %fs:4, %rax
+    movq %gs:4, %rdx
+  )asm");
+  ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
+  EXPECT_THAT(
+      AddrsOrErr->initial_registers(),
+      IsSupersetOf(
+          {Property("register_name", &RegisterAndValue::register_name, "FS"),
+           Property("register_name", &RegisterAndValue::register_name, "GS")}));
+}
+
+TEST_F(FindAccessedAddrsExegesisTest, FSTCWRegister) {
+  auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
+    fstcw (%rax)
+  )asm");
+  ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
+  EXPECT_THAT(AddrsOrErr->initial_registers(),
+              Contains(Property("register_name",
+                                &RegisterAndValue::register_name, "FPCW")));
+}
+
 }  // namespace
 }  // namespace gematria

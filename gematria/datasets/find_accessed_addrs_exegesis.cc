@@ -142,6 +142,14 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
       BenchCode.Key.MemoryMappings.size());
 
   for (unsigned RegisterIndex : UsedRegisters) {
+    // Skip all the segment registers other than FS and GS as we cannot set
+    // them from userspace and the machine code verifier does not complain if
+    // they are not defined.
+    if (RegisterIndex == X86::SS || RegisterIndex == X86::CS ||
+        RegisterIndex == X86::DS || RegisterIndex == X86::ES) {
+      continue;
+    }
+
     RegisterAndValue *NewRegisterValue = MemAnnotations.add_initial_registers();
     NewRegisterValue->set_register_name(
         State.getRegInfo().getName(RegisterIndex));
@@ -157,7 +165,11 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
         MRI.getRegClass(X86::VK64RegClassID).contains(RegisterIndex)) {
       RegVal.Value = APInt(64, kInitialRegVal);
       NewRegisterValue->set_register_value(kInitialRegVal);
-    } else if (RegisterIndex == X86::EFLAGS || RegisterIndex == X86::MXCSR) {
+    } else if (RegisterIndex == X86::FS || RegisterIndex == X86::GS) {
+      RegVal.Value = APInt(32, kInitialRegVal);
+      NewRegisterValue->set_register_value(kInitialRegVal);
+    } else if (RegisterIndex == X86::EFLAGS || RegisterIndex == X86::MXCSR ||
+               RegisterIndex == X86::FPCW) {
       RegVal.Value = APInt(32, 0);
       NewRegisterValue->set_register_value(0);
     } else {
