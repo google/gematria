@@ -61,6 +61,12 @@ using namespace llvm::exegesis;
 constexpr uint64_t kInitialRegVal = 0x12345600;
 constexpr uint64_t kInitialMemVal = 0x12345600;
 
+// TODO(boomanaiden154): This is currently chosen just to make things simple.
+// Eventually we should probably switch to a different constant per FP
+// FP register size and ensure it is a reasonable enough value to hopefully
+// avoid problems like expensive FP operations due to edge cases.
+constexpr uint64_t kInitialFloatVal = 0x12345600;
+
 namespace gematria {
 
 ExegesisAnnotator::ExegesisAnnotator(
@@ -172,6 +178,12 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
                RegisterIndex == X86::FPCW) {
       RegVal.Value = APInt(32, 0);
       NewRegisterValue->set_register_value(0);
+    } else if (MRI.getRegClass(X86::RSTRegClassID).contains(RegisterIndex) ||
+               MRI.getRegClass(X86::RFP32RegClassID).contains(RegisterIndex) ||
+               MRI.getRegClass(X86::RFP64RegClassID).contains(RegisterIndex) ||
+               MRI.getRegClass(X86::RFP80RegClassID).contains(RegisterIndex)) {
+      RegVal.Value = APInt(32, kInitialFloatVal);
+      NewRegisterValue->set_register_value(kInitialFloatVal);
     } else {
       report_fatal_error(
           formatv("Expected all registers to be handled, but found unhandled "
