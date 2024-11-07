@@ -29,6 +29,9 @@ class BenchmarkBasicBlock(beam.DoFn):
 
   def setup(self):
     self._exegesis_benchmark = exegesis_benchmark.ExegesisBenchmark.create()
+    self._benchmark_success_blocks = metrics.Metrics.counter(
+        _BEAM_METRIC_NAMESPACE_NAME, 'benchmark_bbs_success'
+    )
     self._benchmark_failed_blocks = metrics.Metrics.counter(
         _BEAM_METRIC_NAMESPACE_NAME, 'benchmark_blocks_failed'
     )
@@ -44,8 +47,10 @@ class BenchmarkBasicBlock(beam.DoFn):
       benchmark_value = self._exegesis_benchmark.benchmark_basic_block(
           benchmark_code
       )
+      self._benchmark_success_blocks.inc()
       yield (block_with_annotations.block_hex, benchmark_value)
     except status.StatusNotOk:
+      self._benchmark_failed_blocks.inc()
       pass
 
 
