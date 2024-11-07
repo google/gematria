@@ -37,6 +37,8 @@
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/FormatVariadic.h"
 #include "llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkCode.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkResult.h"
@@ -134,21 +136,49 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
   BenchCode.Key.MemoryValues["memdef1"] = MemVal;
 
   const llvm::MCRegisterInfo &MRI = State.getRegInfo();
+  const std::vector<unsigned> UsedRegisters = gematria::getUsedRegisters(
+      *DisInstructions, State.getRegInfo(), State.getInstrInfo());
+  MemAnnotations.mutable_accessed_blocks()->Reserve(
+      BenchCode.Key.MemoryMappings.size());
 
-  for (unsigned i = 0;
-       i < MRI.getRegClass(X86::GR64_NOREX2RegClassID).getNumRegs(); ++i) {
-    RegisterValue RegVal;
-    RegVal.Register =
-        MRI.getRegClass(X86::GR64_NOREX2RegClassID).getRegister(i);
-    RegVal.Value = APInt(64, kInitialRegVal);
-    BenchCode.Key.RegisterInitialValues.push_back(RegVal);
-  }
+  for (unsigned RegisterIndex : UsedRegisters) {
+    // Skip all the segment registers other than FS and GS as we cannot set
+    // them from userspace and the machine code verifier does not complain if
+    // they are not defined.
+    if (RegisterIndex == X86::SS || RegisterIndex == X86::CS ||
+        RegisterIndex == X86::DS || RegisterIndex == X86::ES) {
+      continue;
+    }
 
-  for (unsigned i = 0; i < MRI.getRegClass(X86::VR128RegClassID).getNumRegs();
-       ++i) {
+    RegisterAndValue *NewRegisterValue = MemAnnotations.add_initial_registers();
+    NewRegisterValue->set_register_name(
+        State.getRegInfo().getName(RegisterIndex));
+
     RegisterValue RegVal;
-    RegVal.Register = MRI.getRegClass(X86::VR128RegClassID).getRegister(i);
-    RegVal.Value = APInt(128, kInitialRegVal);
+    RegVal.Register = RegisterIndex;
+
+    if (MRI.getRegClass(X86::GR64_NOREX2RegClassID).contains(RegisterIndex) ||
+        MRI.getRegClass(X86::VR64RegClassID).contains(RegisterIndex) ||
+        MRI.getRegClass(X86::VR128RegClassID).contains(RegisterIndex) ||
+        MRI.getRegClass(X86::VR256RegClassID).contains(RegisterIndex) ||
+        MRI.getRegClass(X86::VR512RegClassID).contains(RegisterIndex) ||
+        MRI.getRegClass(X86::VK64RegClassID).contains(RegisterIndex)) {
+      RegVal.Value = APInt(64, kInitialRegVal);
+      NewRegisterValue->set_register_value(kInitialRegVal);
+    } else if (RegisterIndex == X86::FS || RegisterIndex == X86::GS) {
+      RegVal.Value = APInt(32, kInitialRegVal);
+      NewRegisterValue->set_register_value(kInitialRegVal);
+    } else if (RegisterIndex == X86::EFLAGS || RegisterIndex == X86::MXCSR ||
+               RegisterIndex == X86::FPCW) {
+      RegVal.Value = APInt(32, 0);
+      NewRegisterValue->set_register_value(0);
+    } else {
+      report_fatal_error(
+          formatv("Expected all registers to be handled, but found unhandled "
+                  "register {0}",
+                  MRI.getName(RegisterIndex)));
+    }
+
     BenchCode.Key.RegisterInitialValues.push_back(RegVal);
   }
 
@@ -204,25 +234,11 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
     if (AnnotationError) return std::move(AnnotationError);
   }
 
-  MemAnnotations.mutable_accessed_blocks()->Reserve(
-      BenchCode.Key.MemoryMappings.size());
-
   for (const MemoryMapping &Mapping : BenchCode.Key.MemoryMappings) {
     MemAnnotations.add_accessed_blocks(Mapping.Address);
   }
 
-  std::vector<unsigned> UsedRegisters = gematria::getUsedRegisters(
-      *DisInstructions, State.getRegInfo(), State.getInstrInfo());
-
   MemAnnotations.mutable_initial_registers()->Reserve(UsedRegisters.size());
-
-  for (const unsigned UsedRegister : UsedRegisters) {
-    RegisterAndValue *new_register_value =
-        MemAnnotations.add_initial_registers();
-    new_register_value->set_register_name(
-        State.getRegInfo().getName(UsedRegister));
-    new_register_value->set_register_value(kInitialRegVal);
-  }
 
   std::optional<unsigned> LoopRegister = gematria::getUnusedGPRegister(
       *DisInstructions, State.getRegInfo(), State.getInstrInfo());
