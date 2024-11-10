@@ -264,14 +264,12 @@ TEST_F(FindAccessedAddrsExegesisTest, FSTCWRegister) {
 
 TEST_F(FindAccessedAddrsExegesisTest, STRegister) {
   auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
-    fsts %st(0)
-    fstl %st(0)
-    fstt %st(0)
+    fadd
   )asm");
   ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
   EXPECT_THAT(AddrsOrErr->initial_registers(),
               Contains(Property("register_name",
-                                &RegisterAndValue::register_name, "ST(0)")));
+                                &RegisterAndValue::register_name, "ST1")));
 }
 
 }  // namespace
