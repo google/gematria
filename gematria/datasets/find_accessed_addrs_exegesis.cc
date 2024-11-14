@@ -32,6 +32,7 @@
 #include "gematria/proto/execution_annotation.pb.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/bit.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCRegisterInfo.h"
@@ -60,6 +61,15 @@ using namespace llvm::exegesis;
 // exceeding the virtual address space ceiling in most cases.
 constexpr uint64_t kInitialRegVal = 0x12345600;
 constexpr uint64_t kInitialMemVal = 0x12345600;
+
+// TODO(boomanaiden154): This is currently chosen just to make things simple.
+// Eventually we should probably switch to a different constant per each FP
+// register size (rather than just enumerating floats/doubles) and ensure it
+// is a reasonable enough value to hopefully avoid problems like expensive FP
+// operations due to edge cases. These values should be fine, but more
+// experimentation is needed.
+constexpr float kInitialFloatVal = 1000000.0f;
+constexpr double kInitialDoubleVal = 1000000.0f;
 
 namespace gematria {
 
@@ -172,6 +182,16 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
                RegisterIndex == X86::FPCW) {
       RegVal.Value = APInt(32, 0);
       NewRegisterValue->set_register_value(0);
+    } else if (MRI.getRegClass(X86::RFP32RegClassID).contains(RegisterIndex)) {
+      RegVal.Value = APInt(32, bit_cast<uint32_t>(kInitialFloatVal));
+      NewRegisterValue->set_register_value(
+          bit_cast<uint32_t>(kInitialFloatVal));
+    } else if (MRI.getRegClass(X86::RSTRegClassID).contains(RegisterIndex) ||
+               MRI.getRegClass(X86::RFP64RegClassID).contains(RegisterIndex) ||
+               MRI.getRegClass(X86::RFP80RegClassID).contains(RegisterIndex)) {
+      RegVal.Value = APInt(64, bit_cast<uint64_t>(kInitialDoubleVal));
+      NewRegisterValue->set_register_value(
+          bit_cast<uint64_t>(kInitialDoubleVal));
     } else {
       report_fatal_error(
           formatv("Expected all registers to be handled, but found unhandled "

@@ -262,5 +262,15 @@ TEST_F(FindAccessedAddrsExegesisTest, FSTCWRegister) {
                                 &RegisterAndValue::register_name, "FPCW")));
 }
 
+TEST_F(FindAccessedAddrsExegesisTest, STRegister) {
+  auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
+    fadd
+  )asm");
+  ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
+  EXPECT_THAT(AddrsOrErr->initial_registers(),
+              Contains(Property("register_name",
+                                &RegisterAndValue::register_name, "ST1")));
+}
+
 }  // namespace
 }  // namespace gematria
