@@ -94,7 +94,7 @@ class CompileModulesTests(parameterized.TestCase):
       bhive_to_exegesis.AnnotatorType.exegesis,
   ])
   def test_annotate_bbs(self, annotator_type):
-    annotator = compile_modules_lib.AnnotateBBs(annotator_type, 50)
+    annotator = compile_modules_lib.AnnotateBBs(annotator_type, 50, False)
     annotator.setup()
 
     annotated_blocks = list(
@@ -102,6 +102,18 @@ class CompileModulesTests(parameterized.TestCase):
     )
 
     self.assertLen(annotated_blocks, 1)
+
+  def test_annotate_bbs_no_loop_register(self):
+    annotator = compile_modules_lib.AnnotateBBs(
+        bhive_to_exegesis.AnnotatorType.fast, 50, True
+    )
+    annotator.setup()
+
+    annotated_blocks = list(
+        annotator.process('4889C84889DA4889FE4889EC4D89C84D89DA4D89EC4D89FE')
+    )
+
+    self.assertLen(annotated_blocks, 0)
 
   def test_get_vocab(self):
     get_vocab_function = compile_modules_lib.GetVocab()
@@ -185,6 +197,7 @@ class CompileModulesTests(parameterized.TestCase):
         annotator_type,
         50,
         vocab_output_file_pattern,
+        False,
     )
 
     with test_pipeline.TestPipeline() as pipeline_under_test:
