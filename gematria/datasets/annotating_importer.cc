@@ -357,7 +357,8 @@ absl::StatusOr<std::vector<BasicBlockWithThroughputProto>>
 AnnotatingImporter::GetAnnotatedBasicBlockProtos(
     std::string_view elf_file_name, std::string_view perf_data_file_name,
     std::string_view source_name) {
-  auto owning_binary = LoadBinary(elf_file_name);
+  absl::StatusOr<llvm::object::OwningBinary<llvm::object::Binary>>
+      owning_binary = LoadBinary(elf_file_name);
   if (!owning_binary.ok()) {
     return owning_binary.status();
   }
