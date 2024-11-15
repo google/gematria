@@ -169,8 +169,8 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
 
     if (MRI.getRegClass(X86::GR64_NOREX2RegClassID).contains(RegisterIndex) ||
         MRI.getRegClass(X86::VR64RegClassID).contains(RegisterIndex) ||
-        MRI.getRegClass(X86::VR128RegClassID).contains(RegisterIndex) ||
-        MRI.getRegClass(X86::VR256RegClassID).contains(RegisterIndex) ||
+        MRI.getRegClass(X86::VR128XRegClassID).contains(RegisterIndex) ||
+        MRI.getRegClass(X86::VR256XRegClassID).contains(RegisterIndex) ||
         MRI.getRegClass(X86::VR512RegClassID).contains(RegisterIndex) ||
         MRI.getRegClass(X86::VK64RegClassID).contains(RegisterIndex)) {
       RegVal.Value = APInt(64, kInitialRegVal);
