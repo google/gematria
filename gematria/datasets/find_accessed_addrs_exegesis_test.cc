@@ -272,5 +272,25 @@ TEST_F(FindAccessedAddrsExegesisTest, STRegister) {
                                 &RegisterAndValue::register_name, "ST1")));
 }
 
+TEST_F(FindAccessedAddrsExegesisTest, AVX512XMMYMMRegisters) {
+  // This test requires AVX512, skip if we are not running on a CPU with
+  // AVX512F.
+  if (!__builtin_cpu_supports("avx512f")) {
+    GTEST_SKIP() << "CPU does not support AVX512, skipping.";
+  }
+
+  auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
+    vmovdqu %xmm16, (%rax)
+    vmovdqu %ymm16, (%rax)
+  )asm");
+  ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
+  EXPECT_THAT(
+      AddrsOrErr->initial_registers(),
+      IsSupersetOf(
+          {Property("register_name", &RegisterAndValue::register_name, "XMM16"),
+           Property("register_name", &RegisterAndValue::register_name,
+                    "YMM16")}));
+}
+
 }  // namespace
 }  // namespace gematria
