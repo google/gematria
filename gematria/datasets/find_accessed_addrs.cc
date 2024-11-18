@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "gematria/datasets/find_accessed_addrs.h"
+#include "third_party/gematria/gematria/datasets/find_accessed_addrs.h"
 
 #include <bits/types/siginfo_t.h>
 #include <sched.h>
@@ -39,26 +39,26 @@
 #include <utility>
 #include <vector>
 
-#include "absl/random/random.h"
-#include "absl/random/uniform_int_distribution.h"
-#include "absl/status/status.h"
-#include "absl/status/statusor.h"
-#include "absl/strings/ascii.h"
-#include "absl/strings/match.h"
-#include "absl/strings/numbers.h"
-#include "absl/strings/str_format.h"
-#include "absl/strings/string_view.h"
-#include "absl/types/span.h"
-#include "gematria/datasets/basic_block_utils.h"
-#include "gematria/datasets/block_wrapper.h"
-#include "gematria/llvm/disassembler.h"
-#include "gematria/llvm/llvm_architecture_support.h"
-#include "gematria/llvm/llvm_to_absl.h"
-#include "gematria/proto/execution_annotation.pb.h"
-#include "google/protobuf/repeated_ptr_field.h"
-#include "lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/Error.h"
+#include "third_party/absl/random/random.h"
+#include "third_party/absl/random/uniform_int_distribution.h"
+#include "third_party/absl/status/status.h"
+#include "third_party/absl/status/statusor.h"
+#include "third_party/absl/strings/ascii.h"
+#include "third_party/absl/strings/match.h"
+#include "third_party/absl/strings/numbers.h"
+#include "third_party/absl/strings/str_format.h"
+#include "third_party/absl/strings/string_view.h"
+#include "third_party/absl/types/span.h"
+#include "third_party/gematria/gematria/datasets/basic_block_utils.h"
+#include "third_party/gematria/gematria/datasets/block_wrapper.h"
+#include "third_party/gematria/gematria/llvm/disassembler.h"
+#include "third_party/gematria/gematria/llvm/llvm_architecture_support.h"
+#include "third_party/gematria/gematria/llvm/llvm_to_absl.h"
+#include "third_party/gematria/gematria/proto/execution_annotation.proto.h"
+#include "third_party/llvm/llvm-project/llvm/include/llvm/ADT/ArrayRef.h"
+#include "third_party/llvm/llvm-project/llvm/include/llvm/Support/Error.h"
+#include "third_party/llvm/llvm-project/llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.h"
+#include "third_party/protobuf/repeated_ptr_field.h"
 
 namespace gematria {
 namespace {
@@ -162,7 +162,7 @@ absl::StatusOr<PipedData> ReadAll(int fd) {
 uintptr_t AlignDown(uintptr_t x, size_t align) { return x - (x % align); }
 
 void RandomiseRegs(absl::BitGen& gen,
-                   google::protobuf::RepeatedPtrField<RegisterAndValue>& regs) {
+                   proto2::RepeatedPtrField<RegisterAndValue>& regs) {
   for (size_t i = 0; i < regs.size(); ++i) {
     // Pick between three values: 0, a low address, and a high address. These
     // are picked to try to maximise the chance that some combination will
@@ -175,11 +175,11 @@ void RandomiseRegs(absl::BitGen& gen,
   }
 }
 
-RawX64Regs ToRawRegs(
-    const google::protobuf::RepeatedPtrField<RegisterAndValue>& regs) {
+RawX64Regs ToRawRegs(const proto2::RepeatedPtrField<RegisterAndValue>& regs) {
   RawX64Regs raw_regs;
   raw_regs.max_vector_reg_width = VectorRegWidth::NONE;
   raw_regs.uses_upper_vector_regs = 0;
+  raw_regs.uses_apx_regs = 0;
 
   for (const RegisterAndValue& reg_and_value : regs) {
     if (reg_and_value.register_name() == "RAX") {
@@ -229,7 +229,10 @@ RawX64Regs ToRawRegs(
       }
 
       VectorRegWidth vector_width = VectorRegWidth::NONE;
-      if (absl::StartsWith(reg_and_value.register_name(), "XMM")) {
+      if (reg_and_value.register_name()[0] == 'R') {
+        raw_regs.apx_regs[number_suffix - 16] = reg_and_value.register_value();
+        raw_regs.uses_apx_regs = 1;
+      } else if (absl::StartsWith(reg_and_value.register_name(), "XMM")) {
         vector_width = VectorRegWidth::XMM;
         raw_regs.vector_regs[number_suffix] = reg_and_value.register_value();
       } else if (absl::StartsWith(reg_and_value.register_name(), "YMM")) {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "gematria/datasets/find_accessed_addrs.h"
+#include "third_party/gematria/gematria/datasets/find_accessed_addrs.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -20,28 +20,28 @@
 #include <string>
 #include <string_view>
 
-#include "absl/log/check.h"
-#include "absl/memory/memory.h"
-#include "absl/random/distributions.h"
-#include "absl/random/random.h"
-#include "absl/strings/str_format.h"
-#include "absl/types/span.h"
-#include "gematria/llvm/asm_parser.h"
-#include "gematria/llvm/llvm_architecture_support.h"
-#include "gematria/proto/execution_annotation.pb.h"
-#include "gematria/testing/matchers.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/IR/InlineAsm.h"
-#include "llvm/MC/MCAsmInfo.h"
-#include "llvm/MC/MCAssembler.h"
-#include "llvm/MC/MCCodeEmitter.h"
-#include "llvm/MC/MCContext.h"
-#include "llvm/MC/MCFixup.h"
-#include "llvm/MC/TargetRegistry.h"
-#include "llvm/Target/TargetMachine.h"
+#include "testing/base/public/gmock.h"
+#include "testing/base/public/gunit.h"
+#include "third_party/absl/log/check.h"
+#include "third_party/absl/memory/memory.h"
+#include "third_party/absl/random/distributions.h"
+#include "third_party/absl/random/random.h"
+#include "third_party/absl/strings/str_format.h"
+#include "third_party/absl/types/span.h"
+#include "third_party/gematria/gematria/llvm/asm_parser.h"
+#include "third_party/gematria/gematria/llvm/llvm_architecture_support.h"
+#include "third_party/gematria/gematria/proto/execution_annotation.proto.h"
+#include "third_party/gematria/gematria/testing/matchers.h"
+#include "third_party/llvm/llvm-project/llvm/include/llvm/ADT/SmallString.h"
+#include "third_party/llvm/llvm-project/llvm/include/llvm/ADT/SmallVector.h"
+#include "third_party/llvm/llvm-project/llvm/include/llvm/IR/InlineAsm.h"
+#include "third_party/llvm/llvm-project/llvm/include/llvm/MC/MCAsmInfo.h"
+#include "third_party/llvm/llvm-project/llvm/include/llvm/MC/MCAssembler.h"
+#include "third_party/llvm/llvm-project/llvm/include/llvm/MC/MCCodeEmitter.h"
+#include "third_party/llvm/llvm-project/llvm/include/llvm/MC/MCContext.h"
+#include "third_party/llvm/llvm-project/llvm/include/llvm/MC/MCFixup.h"
+#include "third_party/llvm/llvm-project/llvm/include/llvm/MC/TargetRegistry.h"
+#include "third_party/llvm/llvm-project/llvm/include/llvm/Target/TargetMachine.h"
 
 namespace gematria {
 namespace {
@@ -286,6 +286,28 @@ TEST_F(FindAccessedAddrsAvx512Test, UpperZmmRegister) {
         accessed_blocks: 0x2a000
         initial_registers: { register_name: "XMM18" register_value: 0x15000 }
         initial_registers: { register_name: "ZMM18" register_value: 0x15000 }
+      )pb"))));
+}
+
+class FindAccessedAddrsApxTest : public FindAccessedAddrsTest {
+ protected:
+  void SetUp() override {
+    if (!__builtin_cpu_supports("apxf")) {
+      GTEST_SKIP() << "Host doesn't support APX";
+    }
+
+    FindAccessedAddrsTest::SetUp();
+  }
+};
+
+TEST_F(FindAccessedAddrsApxTest, UpperGpr) {
+  EXPECT_THAT(
+      FindAccessedAddrsAsm(R"asm(
+    mov r23, [r30]
+  )asm"),
+      IsOkAndHolds(Partially(EqualsProto(R"pb(
+        accessed_blocks: 0x15000
+        initial_registers: { register_name: "R30" register_value: 0x15000 }
       )pb"))));
 }
 
