@@ -193,8 +193,7 @@ TEST_F(BasicBlockUtilsTest, MovsqImplicitDfUsesEflags) {
   std::vector<unsigned> UsedRegisters = getUsedRegs(R"asm(
     movsq
   )asm");
-  EXPECT_THAT(UsedRegisters,
-              UnorderedElementsAre(X86::RSI, X86::RDI, X86::EFLAGS));
+  EXPECT_THAT(UsedRegisters, UnorderedElementsAre(X86::RSI, X86::RDI, X86::DF));
 }
 
 TEST_F(BasicBlockUtilsTest, UnusedGPRegisterSingleInstruction) {
