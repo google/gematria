@@ -167,9 +167,11 @@ class AnnotateBBs(beam.DoFn):
       self,
       annotator_type: bhive_to_exegesis.AnnotatorType,
       max_annotation_attempts: int,
+      skip_no_loop_register: bool,
   ):
     self._annotator_type = annotator_type
     self._max_annotation_attempts = max_annotation_attempts
+    self._skip_no_loop_register = skip_no_loop_register
     self._blocks_annotated_successfully = metrics.Metrics.counter(
         _BEAM_METRIC_NAMESPACE_NAME, 'annotate_blocks_success'
     )
@@ -193,10 +195,14 @@ class AnnotateBBs(beam.DoFn):
       print('', file=dummy_file)
 
     try:
+      execution_annotations = self._bhive_to_exegesis.annotate_basic_block(
+          bb_hex, self._annotator_type, self._max_annotation_attempts
+      )
+      if not execution_annotations.HasField('loop_register'):
+        return
+
       yield execution_annotation_pb2.BlockWithExecutionAnnotations(
-          execution_annotations=self._bhive_to_exegesis.annotate_basic_block(
-              bb_hex, self._annotator_type, self._max_annotation_attempts
-          ),
+          execution_annotations=execution_annotations,
           block_hex=bb_hex,
       )
       self._blocks_annotated_successfully.inc()
@@ -231,6 +237,7 @@ def get_bbs(
     annotator_type: bhive_to_exegesis.AnnotatorType,
     max_annotation_attempts: int,
     vocab_output_file: str,
+    skip_no_loop_register: bool,
 ) -> Callable[[beam.Pipeline], None]:
   """Creates a pipeline to process BBs from IR modules.
 
@@ -281,7 +288,9 @@ def get_bbs(
         | 'Deduplicate Processed BBs' >> DeduplicateValues()
     )
     annotated_bbs = processed_bbs_deduplicated | 'Annotate BBs' >> beam.ParDo(
-        AnnotateBBs(annotator_type, max_annotation_attempts)
+        AnnotateBBs(
+            annotator_type, max_annotation_attempts, skip_no_loop_register
+        )
     )
     bb_vocab = processed_bbs_deduplicated | 'Get Vocab' >> beam.ParDo(
         GetVocab()

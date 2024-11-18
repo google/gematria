@@ -64,6 +64,13 @@ _MAX_ANNOTATION_ATTEMPTS = flags.DEFINE_integer(
     'The maximum number of times to try annotating a block before giving up',
 )
 
+_SKIP_NO_LOOP_REGISTER = flags.DEFINE_bool(
+    'skip_no_loop_register',
+    False,
+    'Whether or not to skip emitting basic blocks for which a loop register'
+    ' cannot be found.',
+)
+
 
 def main(argv) -> None:
   del argv  # Unused.
@@ -77,6 +84,7 @@ def main(argv) -> None:
       ANNOTATOR_MAPPING[_ANNOTATOR_TYPE.value],
       _MAX_ANNOTATION_ATTEMPTS.value,
       _OUTPUT_VOCAB_FILE.value,
+      _SKIP_NO_LOOP_REGISTER.value,
   )
 
   with beam.Pipeline(options=beam_options) as pipeline:
