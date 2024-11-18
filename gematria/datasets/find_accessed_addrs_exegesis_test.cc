@@ -174,6 +174,9 @@ TEST_F(FindAccessedAddrsExegesisTest, DFRegister) {
     movsq
   )asm");
   ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
+  EXPECT_THAT(AddrsOrErr->initial_registers(),
+              Contains(Property("register_name",
+                                &RegisterAndValue::register_name, "DF")));
 }
 
 // Test that we can annotate snippets using various different register

@@ -179,7 +179,7 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
       RegVal.Value = APInt(32, kInitialRegVal);
       NewRegisterValue->set_register_value(kInitialRegVal);
     } else if (RegisterIndex == X86::EFLAGS || RegisterIndex == X86::MXCSR ||
-               RegisterIndex == X86::FPCW) {
+               RegisterIndex == X86::FPCW || RegisterIndex == X86::DF) {
       RegVal.Value = APInt(32, 0);
       NewRegisterValue->set_register_value(0);
     } else if (MRI.getRegClass(X86::RFP32RegClassID).contains(RegisterIndex)) {
