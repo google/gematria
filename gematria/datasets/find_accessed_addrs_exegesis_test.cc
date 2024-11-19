@@ -278,13 +278,13 @@ TEST_F(FindAccessedAddrsExegesisTest, STRegister) {
 TEST_F(FindAccessedAddrsExegesisTest, AVX512XMMYMMRegisters) {
   // This test requires AVX512, skip if we are not running on a CPU with
   // AVX512F.
-  if (!__builtin_cpu_supports("avx512f")) {
-    GTEST_SKIP() << "CPU does not support AVX512, skipping.";
+  if (!__builtin_cpu_supports("avx512vl")) {
+    GTEST_SKIP() << "CPU does not support AVX512VL, skipping.";
   }
 
   auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
-    vmovdqu %xmm16, (%rax)
-    vmovdqu %ymm16, (%rax)
+    vmovdqu32 %xmm16, (%rax)
+    vmovdqu32 %ymm16, (%rax)
   )asm");
   ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
   EXPECT_THAT(
