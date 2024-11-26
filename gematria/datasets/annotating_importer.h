@@ -63,14 +63,14 @@ class AnnotatingImporter {
   // `GetSamples`, `GetLBRData`, and `GetLBRBlocksWithLatency`.
   absl::Status LoadPerfData(std::string_view file_name);
 
-  // Loads a binary into the importer for further processing. Must be called
-  // before `GetElfFromBinary` and `GetELFSlice`.
-  absl::Status LoadBinary(std::string_view file_name);
+  // Loads a binary into for use by the importer.
+  absl::StatusOr<llvm::object::OwningBinary<llvm::object::Binary>> LoadBinary(
+      std::string_view file_name);
 
   // Returns a pointer inside the loaded binary casted down to an ELF object.
-  // The pointer is owned by this instance of `AnnotatingImporter` and may only
-  // be accessed while this is alive.
-  absl::StatusOr<llvm::object::ELFObjectFileBase*> GetELFFromBinary();
+  // The pointer is only valid for as long as the passed pointer to binary is.
+  absl::StatusOr<llvm::object::ELFObjectFileBase const*> GetELFFromBinary(
+      const llvm::object::Binary* binary);
 
   // Returns the program header corresponding to the main executable section.
   template <class ELFT>
@@ -89,7 +89,7 @@ class AnnotatingImporter {
   // TODO(virajbshah): Remove/refactor this in favor of having a single library
   // for extracting basic blocks i.e. merge with `extract_bbs_from_obj`.
   absl::StatusOr<std::vector<std::vector<DisassembledInstruction>>>
-  GetBlocksFromELF();
+  GetBlocksFromELF(const llvm::object::ELFObjectFileBase* elf_object);
 
   // Extracts samples from the `perf.data`-file loaded using `LoadPerfData`,
   // usually obtained from `perf record`. Returns a {`sample_types`, `samples`}
@@ -107,13 +107,12 @@ class AnnotatingImporter {
   // `LoadPerfData`.
   absl::StatusOr<std::vector<
       std::pair<std::vector<DisassembledInstruction>, std::vector<uint32_t>>>>
-  GetLBRBlocksWithLatency();
+  GetLBRBlocksWithLatency(const llvm::object::ELFObjectFileBase* elf_object);
 
   BHiveImporter importer_;
   quipper::PerfReader perf_reader_;
   quipper::PerfParser perf_parser_;
   quipper::PerfDataProto::MMapEvent main_mapping_;
-  llvm::object::OwningBinary<llvm::object::Binary> owning_binary_;
 };
 
 template <class ELFT>
