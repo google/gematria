@@ -72,22 +72,22 @@ TEST_F(AnnotatingImporterTest, AnnotatedBasicBlockProtosFromBinary) {
   EXPECT_THAT((*protos)[0], EqualsProto(R"pb(
                 basic_block {
                   machine_instructions {
-                    address: 18446744073709547787
+                    address: 1739
                     assembly: "\tmovl\t%ecx, %edx"
                     machine_code: "\211\312"
                   }
                   machine_instructions {
-                    address: 18446744073709547789
+                    address: 1741
                     assembly: "\timull\t%edx, %edx"
                     machine_code: "\017\257\322"
                   }
                   machine_instructions {
-                    address: 18446744073709547792
+                    address: 1744
                     assembly: "\taddl\t%edx, %eax"
                     machine_code: "\001\320"
                   }
                   machine_instructions {
-                    address: 18446744073709547794
+                    address: 1746
                     assembly: "\tdecl\t%ecx"
                     machine_code: "\377\311"
                   }
@@ -119,6 +119,14 @@ TEST_F(AnnotatingImporterTest, AnnotatedBasicBlockProtosFromBinary) {
                     output_operands { register_name: "ECX" }
                     input_operands { register_name: "ECX" }
                     implicit_output_operands { register_name: "EFLAGS" }
+                    instruction_annotations {
+                      name: "cycles:u"
+                      value: 1
+                    }
+                    instruction_annotations {
+                      name: "instructions:u"
+                      value: 1
+                    }
                   }
                 }
                 inverse_throughputs {
