@@ -267,6 +267,9 @@ AnnotatingImporter::GetSamples(
     }
 
     // Filter out sample events from outside the profiled binary.
+    if (!event.sample_event().has_pid() ||
+        !(event.sample_event().pid() == mapping->pid()))
+      continue;
     uint64_t sample_ip = event.sample_event().ip();
     if (sample_ip < mmap_begin_addr || sample_ip >= mmap_end_addr) continue;
 
@@ -329,6 +332,13 @@ AnnotatingImporter::GetLBRBlocksWithLatency(
         !event.sample_event().branch_stack_size()) {
       continue;
     }
+
+    // Check if the sample PID matches that of the relevant mapping.
+    if (!event.sample_event().has_pid() ||
+        !(event.sample_event().pid() == mapping->pid())) {
+      continue;
+    }
+
     const auto &branch_stack = event.sample_event().branch_stack();
     for (int branch_idx = branch_stack.size() - 2; branch_idx >= 0;
          --branch_idx) {
@@ -345,9 +355,6 @@ AnnotatingImporter::GetLBRBlocksWithLatency(
 
       // Remove blocks not belonging to the binary we are importing from.
       if (block_begin < mmap_begin_addr || mmap_end_addr < block_end) continue;
-      if (block_begin < main_header->p_offset ||
-          main_header->p_offset + main_header->p_filesz < block_end)
-        continue;
 
       uint32_t block_latency = next_branch_entry.cycles();
 
