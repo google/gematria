@@ -73,17 +73,26 @@ absl::StatusOr<const quipper::PerfDataProto *> AnnotatingImporter::LoadPerfData(
   return &perf_reader_.proto();
 }
 
+namespace {
+
+std::string GetFileNameFromPath(const std::string &path) {
+  int idx = path.find_last_of('/');
+  if (idx == std::string::npos) {
+    return path;
+  }
+  return path.substr(idx + 1);
+}
+
+}  // namespace
+
 absl::StatusOr<const quipper::PerfDataProto_MMapEvent *>
 AnnotatingImporter::GetMainMapping(
     const llvm::object::ELFObjectFileBase *elf_object,
     const quipper::PerfDataProto *perf_data) {
-  // Find the relevant mapping.
-  // TODO(virajbshah): Make sure the mapping was found. (Use num_mmap_events)
+  std::string file_name = GetFileNameFromPath(elf_object->getFileName().str());
   for (const auto &event : perf_data->events()) {
-    // TODO(virajbshah): Not sure if this always works, i.e. does the main
-    // binary always correspond to the first MMapEvent. Implement BuildID or
-    // name based checking.
     if (event.has_mmap_event() &&
+        GetFileNameFromPath(event.mmap_event().filename()) == file_name &&
         event.mmap_event().prot() & 0b001 /* PROT_READ */ &&
         event.mmap_event().prot() & 0b100 /* PROT_EXEC */) {
       return &event.mmap_event();
@@ -199,8 +208,8 @@ AnnotatingImporter::GetBlocksFromELF(
     for (const llvm::object::BBAddrMap::BBRangeEntry &bb_range :
          map.getBBRanges()) {
       for (const llvm::object::BBAddrMap::BBEntry &bb : bb_range.BBEntries) {
-        uint64_t begin_idx = function_addr + bb.Offset,
-                 end_idx = begin_idx + bb.Size;
+        uint64_t begin_idx = function_addr + bb.Offset;
+        uint64_t end_idx = begin_idx + bb.Size;
         if (begin_idx == end_idx) {
           continue;  // Skip any empty basic blocks.
         }

@@ -66,6 +66,11 @@ class AnnotatingImporter {
 
   // Searches all MMap events for the one that most likely corresponds to the
   // executable load segment of the given object.
+  // This requires that the ELF object's filename has not changed from when it
+  // was profiled, since we check its name against the filenames from the
+  // recorded MMap events. Note the object file can still be moved, since we
+  // check only the name and not the path.
+  // TODO(virajbshah): Find a better way to identify the relevant mapping.
   absl::StatusOr<const quipper::PerfDataProto_MMapEvent*> GetMainMapping(
       const llvm::object::ELFObjectFileBase* elf_object,
       const quipper::PerfDataProto* perf_data);
