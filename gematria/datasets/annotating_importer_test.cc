@@ -119,14 +119,8 @@ TEST_F(AnnotatingImporterTest, AnnotatedBasicBlockProtosFromBinary) {
                     output_operands { register_name: "ECX" }
                     input_operands { register_name: "ECX" }
                     implicit_output_operands { register_name: "EFLAGS" }
-                    instruction_annotations {
-                      name: "cycles:u"
-                      value: 1
-                    }
-                    instruction_annotations {
-                      name: "instructions:u"
-                      value: 1
-                    }
+                    instruction_annotations { name: "cycles:u" value: 1 }
+                    instruction_annotations { name: "instructions:u" value: 1 }
                   }
                 }
                 inverse_throughputs {
