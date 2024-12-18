@@ -93,6 +93,7 @@ def main(argv: Sequence[str]) -> None:
   with tf.io.TFRecordWriter(_OUTPUT_TFRECORD_FILE.value) as writer:
     for proto in protos:
       writer.write(proto.SerializeToString())
+  print(f'Wrote {len(protos)} (pseudo-)basic block(s).')
 
 
 if __name__ == '__main__':
