@@ -19,9 +19,9 @@ and produces a text file containing a new-line separated list of all
 the unique tokens that compose the dataset vocab.
 
 Usage:
-  generate_vocab \
-      --input_tfrecord=/tmp/dataset.tfrecord \
-      --output_vocab=/tmp/vocab.txt
+  extract_tokens_file \
+      --gematria_input_tfrecord=/tmp/dataset.tfrecord \
+      --gematria_output_tokens_file=/tmp/vocab.txt
 """
 
 from absl import app
@@ -64,8 +64,6 @@ def main(argv) -> None:
     )
     for instruction in basic_block_proto.instructions:
       tokens.update(instruction.as_token_list())
-
-    current_proto_index += 1
 
   with open(_OUTPUT_TXT_FILE.value, 'w') as output_file_handle:
     for token in sorted(tokens):
