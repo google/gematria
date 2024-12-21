@@ -119,8 +119,9 @@ class AnnotatingImporter {
                           const quipper::PerfDataProto_MMapEvent* mapping);
 
   BHiveImporter importer_;
-  quipper::PerfReader
-      perf_reader_;  // Has ownership of the `PerfDataProto` used throughout.
+
+  // Owns the `PerfDataProto` that samples and branch records are read from.
+  quipper::PerfReader perf_reader_;
 };
 
 template <class ELFT>
