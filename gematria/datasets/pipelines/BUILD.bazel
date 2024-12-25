@@ -81,3 +81,17 @@ gematria_py_test(
         "//gematria/proto:execution_annotation_py_pb2",
     ],
 )
+
+gematria_py_library(
+    name = "benchmark_cpu_scheduler",
+    srcs = ["benchmark_cpu_scheduler.py"],
+)
+
+gematria_py_test(
+    name = "benchmark_cpu_scheduler_test",
+    size = "small",
+    srcs = ["benchmark_cpu_scheduler_test.py"],
+    deps = [
+        ":benchmark_cpu_scheduler",
+    ],
+)
