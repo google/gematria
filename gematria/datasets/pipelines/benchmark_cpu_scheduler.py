@@ -15,6 +15,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 import os
+import re
 
 
 class BenchmarkScheduler(ABC):
@@ -47,11 +48,11 @@ class DefaultBenchmarkScheduler(BenchmarkScheduler):
     with open(
         f'/sys/devices/system/cpu/cpu{cpu_index}/topology/thread_siblings_list'
     ) as thread_sibling_list_handle:
+      neighboring_threads_strings = re.split(
+          r'[-,]+', thread_sibling_list_handle.read().strip()
+      )
       neighboring_threads = [
-          int(cpu_index_str)
-          for cpu_index_str in thread_sibling_list_handle.read()
-          .strip()
-          .split(',')
+          int(cpu_index_str) for cpu_index_str in neighboring_threads_strings
       ]
     return neighboring_threads
 
