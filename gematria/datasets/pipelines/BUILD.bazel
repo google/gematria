@@ -53,6 +53,7 @@ gematria_py_binary(
     name = "benchmark_bbs_lib",
     srcs = ["benchmark_bbs_lib.py"],
     deps = [
+        ":benchmark_cpu_scheduler",
         "//gematria/datasets/python:exegesis_benchmark",
         "//gematria/proto:execution_annotation_py_pb2",
     ],
@@ -63,6 +64,7 @@ gematria_py_binary(
     srcs = ["benchmark_bbs.py"],
     deps = [
         ":benchmark_bbs_lib",
+        ":benchmark_cpu_scheduler",
     ],
 )
 
@@ -77,7 +79,22 @@ gematria_py_test(
     ],
     deps = [
         ":benchmark_bbs_lib",
+        ":benchmark_cpu_scheduler",
         "//gematria/io/python:tfrecord",
         "//gematria/proto:execution_annotation_py_pb2",
+    ],
+)
+
+gematria_py_library(
+    name = "benchmark_cpu_scheduler",
+    srcs = ["benchmark_cpu_scheduler.py"],
+)
+
+gematria_py_test(
+    name = "benchmark_cpu_scheduler_test",
+    size = "small",
+    srcs = ["benchmark_cpu_scheduler_test.py"],
+    deps = [
+        ":benchmark_cpu_scheduler",
     ],
 )
