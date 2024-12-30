@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string_view>
 
 #include "gematria/proto/execution_annotation.pb.h"
@@ -46,7 +47,8 @@ class ExegesisBenchmark {
       std::string_view BlockHex, const ExecutionAnnotations &Annotations);
 
   llvm::Expected<double> benchmarkBasicBlock(
-      const llvm::exegesis::BenchmarkCode &BenchCode);
+      const llvm::exegesis::BenchmarkCode &BenchCode,
+      std::optional<int> BenchmarkProcessCPU);
 
  private:
   // This is a simple wrapper around functionality in ExegesisState that maps

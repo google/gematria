@@ -15,6 +15,7 @@
 #include "gematria/datasets/exegesis_benchmark_lib.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "gematria/proto/execution_annotation.pb.h"
@@ -92,7 +93,7 @@ class ExegesisBenchmarkTest : public testing::Test {
         Benchmark->parseJSONBlock(*BlockValue->getAsObject(), 0);
     if (!BenchCode) return BenchCode.takeError();
 
-    return Benchmark->benchmarkBasicBlock(*BenchCode);
+    return Benchmark->benchmarkBasicBlock(*BenchCode, std::nullopt);
   }
 };
 
@@ -441,7 +442,7 @@ TEST_F(ExegesisBenchmarkTest, TestBenchmarkFromAnnotatedBlock) {
   ASSERT_TRUE(static_cast<bool>(BenchmarkConfiguration));
 
   Expected<double> BenchmarkResult =
-      Benchmark->benchmarkBasicBlock(*BenchmarkConfiguration);
+      Benchmark->benchmarkBasicBlock(*BenchmarkConfiguration, std::nullopt);
   EXPECT_LT(*BenchmarkResult, 10);
 }
 
