@@ -12,24 +12,57 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC, abstractmethod
+import abc
+import typing_extensions
 
 
-class BenchmarkScheduler(ABC):
+class BenchmarkScheduler(metaclass=abc.ABCMeta):
+  """Schedules a benchmark and the parent process to reduce noise.
 
-  @abstractmethod
+  BenchmarkScheduler is an abstraction that provides two main pieces of
+  functionality. Firstly, it provides a function
+  (setup_and_get_benchmark_core) that allows an implementation to perform any
+  necessary setup in the parent process and provide a core ID that should be
+  used to perform any benchmarking. Additionally, implementations are
+  intended to hold state to verify that the expected state is maintained and
+  not changed by external software.
+  """
+
+  @abc.abstractmethod
   def setup_and_get_benchmark_core(self) -> int | None:
-    pass
+    """Sets up the parent process and chooses a benchmark core.
 
-  @abstractmethod
+    This function will perform any relevant setup in the parent process,
+    and return a core ID that can be used to run benchmarks on.
+
+    Returns:
+      Returns an integer core ID to specify a core that should be used for
+      running benchmarks, or None to indicate that any core can be used.
+    """
+
+  @abc.abstractmethod
   def verify(self):
-    pass
+    """Verifies that conditions match what is expected.
+
+    This function allows for implementations to verify that the original
+    setup created in setup_and_get_benchmark_core is maintained for every
+    benchmark that is run.
+    """
 
 
 class NoSchedulingBenchmarkScheduler(BenchmarkScheduler):
+  """A basic BenchmarkScheduler implementation that does nothing.
 
+  This BenchmarkScheduler implementation does nothing. It leaves scheduling
+  of the benchmarking process to the operating system by specifying any core
+  can be used for benchmarking, performs no setup in the parent process, and
+  performs no verification.
+  """
+
+  @typing_extensions.override
   def setup_and_get_benchmark_core(self) -> int | None:
     return None
 
+  @typing_extensions.override
   def verify(self):
     pass
