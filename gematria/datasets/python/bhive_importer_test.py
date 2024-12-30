@@ -246,6 +246,30 @@ class BhiveImporterTest(absltest.TestCase):
         ),
     )
 
+  def test_x86_block_from_hex_and_throughput(self):
+    source_name = "test: made-up"
+    importer = bhive_importer.BHiveImporter(self._x86_canonicalizer)
+    block_proto = importer.block_with_throughput_from_hex_and_throughput(
+        source_name,
+        "4829d38b44246c8b54246848c1fb034829d04839c3",
+        10,
+        throughput_scaling=2.0,
+        base_address=600,
+    )
+
+    self.assertEqual(
+        block_proto,
+        throughput_pb2.BasicBlockWithThroughputProto(
+            basic_block=_EXPECTED_BASIC_BLOCK_PROTO,
+            inverse_throughputs=(
+                throughput_pb2.ThroughputWithSourceProto(
+                    source=source_name,
+                    inverse_throughput_cycles=[20.0],
+                ),
+            ),
+        ),
+    )
+
 
 if __name__ == "__main__":
   absltest.main()
