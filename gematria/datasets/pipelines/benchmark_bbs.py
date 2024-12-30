@@ -20,6 +20,7 @@ import apache_beam as beam
 from apache_beam.options import pipeline_options
 
 from gematria.datasets.pipelines import benchmark_bbs_lib
+from gematria.datasets.pipelines import benchmark_cpu_scheduler
 
 _INPUT_FILE_PATTERN = flags.DEFINE_string(
     'input_file_pattern',
@@ -30,6 +31,15 @@ _INPUT_FILE_PATTERN = flags.DEFINE_string(
 _OUTPUT_FILE_PATTERN = flags.DEFINE_string(
     'output_file_pattern', None, 'The output file path/pattern.', required=True
 )
+_BENCHMARK_SCHEDULER = flags.DEFINE_enum(
+    'benchmark_scheduler',
+    'NoScheduling',
+    [
+        scheduler_type.name
+        for scheduler_type in benchmark_cpu_scheduler.BenchmarkSchedulerImplementations
+    ],
+    'The scheduler to use for choosing a core for running benchmarks.',
+)
 
 
 def main(argv) -> None:
@@ -39,7 +49,11 @@ def main(argv) -> None:
   beam_options = pipeline_options.PipelineOptions()
 
   pipeline_constructor = benchmark_bbs_lib.benchmark_bbs(
-      _INPUT_FILE_PATTERN.value, _OUTPUT_FILE_PATTERN.value
+      _INPUT_FILE_PATTERN.value,
+      _OUTPUT_FILE_PATTERN.value,
+      benchmark_cpu_scheduler.BenchmarkSchedulerImplementations[
+          _BENCHMARK_SCHEDULER.value
+      ],
   )
 
   with beam.Pipeline(options=beam_options) as pipeline:

@@ -199,9 +199,9 @@ new_git_repository(
 # The pinned version of LLVM, and its SHA256 hash. The `LLVM_COMMIT` variable in
 # `.github/workflows/main.yaml` must be updated to match this everytime it is
 # changed.
-LLVM_COMMIT = "842fd1537521d38913aec5c9a081afedf97d88fe"
+LLVM_COMMIT = "cd66c9b6a04689659348c0a3ff4c1205b1133fe9"
 
-LLVM_SHA256 = "21a1d434b4dbbafee65c2a9fc8e64ac3e3210eab9c5d67affd8d6d36bbf979b3"
+LLVM_SHA256 = "8d2a8b2e0accdf072a3897aec6a3e68d522dfc1b40416b3c4215bb5af36a36e1"
 
 http_archive(
     name = "llvm-raw",
