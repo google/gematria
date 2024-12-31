@@ -113,7 +113,8 @@ int main(int Argc, char *Argv[]) {
         Benchmark->parseJSONBlock(*AnnotatedBlockObject, BlockIndex));
 
     double Throughput = exitOnFileError(
-        AnnotatedBlocksJson, Benchmark->benchmarkBasicBlock(BenchCode));
+        AnnotatedBlocksJson,
+        Benchmark->benchmarkBasicBlock(BenchCode, std::nullopt));
 
     std::optional<StringRef> HexValue = AnnotatedBlockObject->getString("Hex");
     // The block has already been parsed previously, and thus should have thrown

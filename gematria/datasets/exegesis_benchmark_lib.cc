@@ -341,7 +341,7 @@ Expected<BenchmarkCode> ExegesisBenchmark::processAnnotatedBlock(
 }
 
 Expected<double> ExegesisBenchmark::benchmarkBasicBlock(
-    const BenchmarkCode &BenchCode) {
+    const BenchmarkCode &BenchCode, std::optional<int> BenchmarkProcessCPU) {
   std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
       SnippetRepetitor::Create(Benchmark::RepetitionModeE::MiddleHalfLoop,
                                ExegesisState, BenchCode.Key.LoopRegister);
@@ -355,7 +355,7 @@ Expected<double> ExegesisBenchmark::benchmarkBasicBlock(
   if (!RC2) return RC2.takeError();
 
   std::pair<Error, Benchmark> BenchmarkResultAOrErr =
-      BenchRunner->runConfiguration(std::move(*RC1), {}, std::nullopt);
+      BenchRunner->runConfiguration(std::move(*RC1), {}, BenchmarkProcessCPU);
 
   if (std::get<0>(BenchmarkResultAOrErr))
     return std::move(std::get<0>(BenchmarkResultAOrErr));
@@ -363,7 +363,7 @@ Expected<double> ExegesisBenchmark::benchmarkBasicBlock(
   AllResults.push_back(std::move(std::get<1>(BenchmarkResultAOrErr)));
 
   std::pair<Error, Benchmark> BenchmarkResultBOrErr =
-      BenchRunner->runConfiguration(std::move(*RC2), {}, std::nullopt);
+      BenchRunner->runConfiguration(std::move(*RC2), {}, BenchmarkProcessCPU);
 
   if (std::get<0>(BenchmarkResultBOrErr))
     return std::move(std::get<0>(BenchmarkResultBOrErr));
