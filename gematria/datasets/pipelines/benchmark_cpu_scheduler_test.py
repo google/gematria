@@ -41,11 +41,17 @@ class BenchmarkSchedulerTests(absltest.TestCase):
   def _set_normal_affinity():
     cpu_mask = os.sched_getaffinity(0)
     cpu_mask_list = list(cpu_mask)
-    aux_cpu = cpu_mask.pop()
-    hyperthread_pair_part = cpu_mask.pop()
+
+    # We first select a CPU to use for the hyperthread pair and then remove
+    # both cores in the pair from the mask set to ensure that we do not
+    # accidentally select an auxiliary CPU that is part of the pair.
+    hyperthread_pair_part = next(iter(cpu_mask))
     hyperthread_pair = benchmark_cpu_scheduler.DefaultBenchmarkScheduler._get_neighboring_threads(
         hyperthread_pair_part
     )
+    cpu_mask.remove(hyperthread_pair[0])
+    cpu_mask.remove(hyperthread_pair[1])
+    aux_cpu = cpu_mask.pop()
     new_cpu_mask = [aux_cpu, *hyperthread_pair]
 
     os.sched_setaffinity(0, new_cpu_mask)
