@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import abc
-import typing_extensions
+from typing_extensions import override
 
 
 class BenchmarkScheduler(metaclass=abc.ABCMeta):
@@ -59,10 +59,10 @@ class NoSchedulingBenchmarkScheduler(BenchmarkScheduler):
   performs no verification.
   """
 
-  @typing_extensions.override
+  @override
   def setup_and_get_benchmark_core(self) -> int | None:
     return None
 
-  @typing_extensions.override
+  @override
   def verify(self):
     pass
