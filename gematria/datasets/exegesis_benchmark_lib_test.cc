@@ -14,6 +14,8 @@
 
 #include "gematria/datasets/exegesis_benchmark_lib.h"
 
+#include <sched.h>
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -443,6 +445,44 @@ TEST_F(ExegesisBenchmarkTest, TestBenchmarkFromAnnotatedBlock) {
 
   Expected<double> BenchmarkResult =
       Benchmark->benchmarkBasicBlock(*BenchmarkConfiguration, std::nullopt);
+  EXPECT_LT(*BenchmarkResult, 10);
+}
+
+TEST_F(ExegesisBenchmarkTest, TestBenchmarkCorePinning) {
+  // clang-format off
+  const ExecutionAnnotations Annotations = ParseTextProto(R"pb(
+    code_start_address: 0
+    block_size: 4096
+    block_contents: 34359738376
+    accessed_blocks: 86016
+    initial_registers: [
+      {
+        register_name: "RCX"
+        register_value: 86016
+      },
+      {
+        register_name: "RSI"
+        register_value: 86016
+      }
+    ]
+    loop_register: "RAX"
+  )pb");
+  // clang-format on
+
+  Expected<BenchmarkCode> BenchmarkConfiguration =
+      Benchmark->processAnnotatedBlock("3b31", Annotations);
+  ASSERT_TRUE(static_cast<bool>(BenchmarkConfiguration));
+
+  cpu_set_t process_cpu_mask;
+  ASSERT_FALSE(
+      sched_getaffinity(0, sizeof(process_cpu_mask), &process_cpu_mask));
+  if (!CPU_ISSET(0, &process_cpu_mask)) {
+    GTEST_SKIP()
+        << "The CPU (0) used for testing core pinning is not available.";
+  }
+
+  Expected<double> BenchmarkResult =
+      Benchmark->benchmarkBasicBlock(*BenchmarkConfiguration, 0);
   EXPECT_LT(*BenchmarkResult, 10);
 }
 
