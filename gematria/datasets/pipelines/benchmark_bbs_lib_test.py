@@ -47,7 +47,7 @@ class BenchmarkBBsTests(absltest.TestCase):
 
   def test_benchmark_basic_block(self):
     benchmark_transform = benchmark_bbs_lib.BenchmarkBasicBlock(
-        benchmark_cpu_scheduler.BenchmarkSchedulerImplementations.NoScheduling
+        benchmark_cpu_scheduler.BenchmarkSchedulerImplementations.NO_SCHEDULING
     )
     benchmark_transform.setup()
 
@@ -79,7 +79,7 @@ class BenchmarkBBsTests(absltest.TestCase):
     pipeline_constructor = benchmark_bbs_lib.benchmark_bbs(
         test_tfrecord.full_path,
         output_file_pattern,
-        benchmark_cpu_scheduler.BenchmarkSchedulerImplementations.NoScheduling,
+        benchmark_cpu_scheduler.BenchmarkSchedulerImplementations.NO_SCHEDULING,
     )
 
     with test_pipeline.TestPipeline() as pipeline_under_test:

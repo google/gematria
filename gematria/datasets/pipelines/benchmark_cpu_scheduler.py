@@ -17,7 +17,7 @@ from typing_extensions import override
 from collections.abc import Collection
 import os
 import re
-from enum import Enum
+import enum
 
 
 class BenchmarkScheduler(metaclass=abc.ABCMeta):
@@ -151,17 +151,18 @@ class DefaultBenchmarkScheduler(BenchmarkScheduler):
       raise ValueError('Expected the CPU mask to not change.')
 
 
-class BenchmarkSchedulerImplementations(Enum):
-  NoScheduling = 1
-  Default = 2
+class BenchmarkSchedulerImplementations(enum.Enum):
+  NO_SCHEDULING = 1
+  DEFAULT = 2
 
 
 def construct_benchmark_scheduler(
     scheduler_type: BenchmarkSchedulerImplementations,
 ) -> BenchmarkScheduler:
-  if scheduler_type == BenchmarkSchedulerImplementations.NoScheduling:
-    return NoSchedulingBenchmarkScheduler()
-  elif scheduler_type == BenchmarkSchedulerImplementations.Default:
-    return DefaultBenchmarkScheduler()
-  else:
-    raise ValueError('Unexpected Benchmark Scheduler Type.')
+  match scheduler_type:
+    case BenchmarkSchedulerImplementations.NO_SCHEDULING:
+      return NoSchedulingBenchmarkScheduler()
+    case BenchmarkSchedulerImplementations.DEFAULT:
+      return DefaultBenchmarkScheduler()
+    case _:
+      raise ValueError('Unexpected Benchmark Scheduler Type.')
