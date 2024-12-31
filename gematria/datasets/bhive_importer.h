@@ -77,6 +77,15 @@ class BHiveImporter {
   absl::StatusOr<BasicBlockProto> BasicBlockProtoFromMachineCodeHex(
       std::string_view machine_code_hex, uint64_t base_address = 0);
 
+  // Parses a basic block with throughput information directly from the hex
+  // string representing the assembly and the throughput value as a double.
+  absl::StatusOr<BasicBlockWithThroughputProto>
+  BlockWithThroughputFromHexAndThroughput(std::string_view source_name,
+                                          std::string_view bb_hex,
+                                          double throughput,
+                                          double throughput_scaling = 1.0,
+                                          uint64_t base_address = 0);
+
   // Parses a basic block with throughput from one BHive CSV line. Expects that
   // the line has the format "{machine_code},{throughput}" where {machine_code}
   // is the machine code of the basic block in the hex format accepted by
