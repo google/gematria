@@ -14,7 +14,7 @@
 
 import abc
 from typing_extensions import override
-from collections.abc import Iterable
+from collections.abc import Collection
 import os
 import re
 
@@ -71,6 +71,19 @@ class NoSchedulingBenchmarkScheduler(BenchmarkScheduler):
     pass
 
 
+def _get_neighboring_threads(cpu_index: int) -> list[int]:
+  with open(
+      f'/sys/devices/system/cpu/cpu{cpu_index}/topology/thread_siblings_list'
+  ) as thread_sibling_list_handle:
+    neighboring_threads_strings = re.split(
+        '[-,]+', thread_sibling_list_handle.read().strip()
+    )
+    neighboring_threads = [
+        int(cpu_index_str) for cpu_index_str in neighboring_threads_strings
+    ]
+  return neighboring_threads
+
+
 class DefaultBenchmarkScheduler(BenchmarkScheduler):
   """A BenchmarkScheduler that schedules processes separately.
 
@@ -87,38 +100,32 @@ class DefaultBenchmarkScheduler(BenchmarkScheduler):
   def __init__(self):
     self._cpu_mask = []
 
-  @staticmethod
-  def _get_neighboring_threads(cpu_index: int) -> list[int]:
-    with open(
-        f'/sys/devices/system/cpu/cpu{cpu_index}/topology/thread_siblings_list'
-    ) as thread_sibling_list_handle:
-      neighboring_threads_strings = re.split(
-          r'[-,]+', thread_sibling_list_handle.read().strip()
-      )
-      neighboring_threads = [
-          int(cpu_index_str) for cpu_index_str in neighboring_threads_strings
-      ]
-    return neighboring_threads
-
   def _get_aux_core_and_hyperthread_pair(
       self,
-      cpu_mask: Iterable[int],
+      cpu_mask: Collection[int],
   ) -> tuple[int, list[int]]:
     for cpu_index in cpu_mask:
-      neighboring_threads = self._get_neighboring_threads(cpu_index)
+      neighboring_threads = _get_neighboring_threads(cpu_index)
       if len(neighboring_threads) != 2:
         raise ValueError('Expected two hyperthreads per CPU.')
 
       if (
-          neighboring_threads[0] in cpu_mask
-          and neighboring_threads[1] in cpu_mask
+          neighboring_threads[0] not in cpu_mask
+          or neighboring_threads[1] not in cpu_mask
       ):
-        cpus = list(cpu_mask)
-        cpus.remove(neighboring_threads[0])
-        cpus.remove(neighboring_threads[1])
-        return (cpus[0], [neighboring_threads[0], neighboring_threads[1]])
+        continue
+
+      cpus = list(cpu_mask)
+      cpus.remove(neighboring_threads[0])
+      cpus.remove(neighboring_threads[1])
+
+      if not cpus:
+        continue
+
+      return (cpus[0], [neighboring_threads[0], neighboring_threads[1]])
     raise ValueError(
-        'Expected a pair of neighboring hyperthreads in the CPU mask.'
+        'Expected a pair of neighboring hyperthreads and an aux thread in the'
+        ' CPU mask.'
     )
 
   @override
