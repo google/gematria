@@ -20,6 +20,7 @@ from pybind11_abseil import status
 
 from gematria.proto import execution_annotation_pb2
 from gematria.datasets.python import exegesis_benchmark
+from gematria.datasets.pipelines import benchmark_cpu_scheduler
 
 _BEAM_METRIC_NAMESPACE_NAME = 'benchmark_bbs'
 
@@ -27,13 +28,27 @@ _BEAM_METRIC_NAMESPACE_NAME = 'benchmark_bbs'
 class BenchmarkBasicBlock(beam.DoFn):
   """A Beam function that benchmarks basic blocks."""
 
-  def setup(self):
-    self._exegesis_benchmark = exegesis_benchmark.ExegesisBenchmark.create()
+  def __init__(
+      self,
+      benchmark_scheduler_type: benchmark_cpu_scheduler.BenchmarkSchedulerImplementations,
+  ):
+    self._benchmark_scheduler_type = benchmark_scheduler_type
     self._benchmark_success_blocks = metrics.Metrics.counter(
         _BEAM_METRIC_NAMESPACE_NAME, 'benchmark_bbs_success'
     )
     self._benchmark_failed_blocks = metrics.Metrics.counter(
         _BEAM_METRIC_NAMESPACE_NAME, 'benchmark_blocks_failed'
+    )
+
+  def setup(self):
+    self._exegesis_benchmark = exegesis_benchmark.ExegesisBenchmark.create()
+    self._benchmark_scheduler = (
+        benchmark_cpu_scheduler.construct_benchmark_scheduler(
+            self._benchmark_scheduler_type
+        )
+    )
+    self._benchmarking_core = (
+        self._benchmark_scheduler.setup_and_get_benchmark_core()
     )
 
   def process(
@@ -44,8 +59,10 @@ class BenchmarkBasicBlock(beam.DoFn):
       benchmark_code = self._exegesis_benchmark.process_annotated_block(
           block_with_annotations
       )
+
+      self._benchmark_scheduler.verify()
       benchmark_value = self._exegesis_benchmark.benchmark_basic_block(
-          benchmark_code
+          benchmark_code, self._benchmarking_core
       )
       self._benchmark_success_blocks.inc()
       yield (block_with_annotations.block_hex, benchmark_value)
@@ -65,7 +82,9 @@ class FormatBBsForOutput(beam.DoFn):
 
 
 def benchmark_bbs(
-    input_file_pattern: str, output_file_pattern: str
+    input_file_pattern: str,
+    output_file_pattern: str,
+    benchmark_scheduler_type: benchmark_cpu_scheduler.BenchmarkSchedulerImplementations,
 ) -> Callable[[beam.Pipeline], None]:
   """Creates a pipeline to benchmark BBs."""
 
@@ -78,7 +97,7 @@ def benchmark_bbs(
     )
     annotated_bbs_shuffled = annotated_bbs | 'Shuffle' >> beam.Reshuffle()
     benchmarked_blocks = annotated_bbs_shuffled | 'Benchmarking' >> beam.ParDo(
-        BenchmarkBasicBlock()
+        BenchmarkBasicBlock(benchmark_scheduler_type)
     )
     formatted_output = benchmarked_blocks | 'Formatting' >> beam.ParDo(
         FormatBBsForOutput()

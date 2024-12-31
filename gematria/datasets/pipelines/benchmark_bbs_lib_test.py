@@ -21,6 +21,7 @@ from apache_beam.testing import util as beam_test
 from gematria.datasets.pipelines import benchmark_bbs_lib
 from gematria.proto import execution_annotation_pb2
 from gematria.io.python import tfrecord
+from gematria.datasets.pipelines import benchmark_cpu_scheduler
 
 BLOCK_FOR_TESTING = execution_annotation_pb2.BlockWithExecutionAnnotations(
     execution_annotations=execution_annotation_pb2.ExecutionAnnotations(
@@ -45,7 +46,9 @@ BLOCK_FOR_TESTING = execution_annotation_pb2.BlockWithExecutionAnnotations(
 class BenchmarkBBsTests(absltest.TestCase):
 
   def test_benchmark_basic_block(self):
-    benchmark_transform = benchmark_bbs_lib.BenchmarkBasicBlock()
+    benchmark_transform = benchmark_bbs_lib.BenchmarkBasicBlock(
+        benchmark_cpu_scheduler.BenchmarkSchedulerImplementations.NO_SCHEDULING
+    )
     benchmark_transform.setup()
 
     block_outputs = list(benchmark_transform.process(BLOCK_FOR_TESTING))
@@ -74,7 +77,9 @@ class BenchmarkBBsTests(absltest.TestCase):
     output_file_pattern = os.path.join(output_folder, 'bhive-output')
 
     pipeline_constructor = benchmark_bbs_lib.benchmark_bbs(
-        test_tfrecord.full_path, output_file_pattern
+        test_tfrecord.full_path,
+        output_file_pattern,
+        benchmark_cpu_scheduler.BenchmarkSchedulerImplementations.NO_SCHEDULING,
     )
 
     with test_pipeline.TestPipeline() as pipeline_under_test:
