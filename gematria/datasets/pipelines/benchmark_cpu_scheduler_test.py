@@ -76,6 +76,13 @@ class BenchmarkSchedulerTests(absltest.TestCase):
 
   def test_default_scheduler_get_cores_no_neighboring_threads(self):
     cpu_mask = os.sched_getaffinity(0)
+
+    # If we have less than five CPUs, that means we are guaranteed to get
+    # a pair when selecting three of them. Skip this test in those
+    # instances.
+    if len(cpu_mask) < 5:
+      self.skipTest('Not enough cores to complete setup properly.')
+
     three_cores = [cpu_mask.pop(), cpu_mask.pop(), cpu_mask.pop()]
 
     scheduler = benchmark_cpu_scheduler.DefaultBenchmarkScheduler()
