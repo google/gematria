@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import abc
-import typing_extensions
+from typing_extensions import override
 from collections.abc import Iterable
 import os
 import re
@@ -62,11 +62,11 @@ class NoSchedulingBenchmarkScheduler(BenchmarkScheduler):
   performs no verification.
   """
 
-  @typing_extensions.override
+  @override
   def setup_and_get_benchmark_core(self) -> int | None:
     return None
 
-  @typing_extensions.override
+  @override
   def verify(self):
     pass
 
@@ -121,7 +121,7 @@ class DefaultBenchmarkScheduler(BenchmarkScheduler):
         'Expected a pair of neighboring hyperthreads in the CPU mask.'
     )
 
-  @typing_extensions.override
+  @override
   def setup_and_get_benchmark_core(self) -> int | None:
     cpu_mask = os.sched_getaffinity(0)
 
@@ -136,7 +136,7 @@ class DefaultBenchmarkScheduler(BenchmarkScheduler):
 
     return hyperthread_pair[0]
 
-  @typing_extensions.override
+  @override
   def verify(self):
     cpu_mask = list(os.sched_getaffinity(0))
     if self._cpu_mask != cpu_mask:
