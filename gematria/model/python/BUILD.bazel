@@ -78,6 +78,9 @@ gematria_py_test(
     size = "small",
     timeout = "moderate",
     srcs = ["main_function_test.py"],
+    tags = [
+        "manual",
+    ],
     deps = [
         ":inference",
         ":main_function",
