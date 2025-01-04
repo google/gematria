@@ -118,9 +118,6 @@ gematria_py_test(
     size = "small",
     timeout = "moderate",
     srcs = ["model_base_test.py"],
-    tags = [
-        "manual",
-    ],
     deps = [
         ":model_base",
         ":options",
