@@ -838,5 +838,5 @@ def run_gematria_model_from_command_line_flags(
           num_epochs=_GEMATRIA_TRAINING_NUM_EPOCHS.value,
           randomize_batches=_GEMATRIA_TRAINING_RANDOMIZE_BATCHES.value,
           randomize_expected_outputs=randomize_expected_outputs,
-          hooks=[(_GEMATRIA_SAVE_CHECKPOINT_EPOCHS.value, checkpoint_model)]
+          hooks=[(_GEMATRIA_SAVE_CHECKPOINT_EPOCHS.value, checkpoint_model)],
       )

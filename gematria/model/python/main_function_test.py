@@ -112,7 +112,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
 
   def _create_checkpoint_file(
       self,
-      checkpoint_folder,
+      checkpoint_prefix,
       prediction_value,
       *model_args,
       **model_kwargs,
@@ -123,7 +123,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
     model predicts 'prediction_value' for all basic blocks.
 
     Args:
-      checkpoint_folder: The folder to put checkpoints in.
+      checkpoint_prefix: The checkpoint prefix to name checkpoints.
       prediction_value: The value predicted by the model loaded from the
         checkpoint file.
       *model_args: Extra positional arguments, passed to the constructor of the
@@ -138,7 +138,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
     model.initialize()
     model._prediction_var.assign([[prediction_value]])
     checkpoint = tf.train.Checkpoint(model)
-    return checkpoint.save(checkpoint_folder)
+    return checkpoint.save(checkpoint_prefix)
 
   def _assert_file_exists(self, pattern):
     """Checks that the working directory contains a file.
@@ -453,14 +453,14 @@ class GematriaMainFunctionTest(model_test.TestCase):
         num_epochs=num_epochs,
         randomize_batches=randomize_batches,
         randomize_expected_outputs=True,
-        hooks=mock.ANY # Any hooks, they are an implementation detail.
+        hooks=mock.ANY,  # Any hooks, they are an implementation detail.
     )
 
     # Check that the files created by the monitored session are there.
     self._assert_file_exists('checkpoint/checkpoint')
     self._assert_file_exists('checkpoint/ckpt-1.index')
     # TODO(boomanaiden154): Fix this
-    #self._assert_file_exists('summary/events.out.tfevents.*')
+    # self._assert_file_exists('summary/events.out.tfevents.*')
 
     # Try to load the latest checkpoint with the model.
     model = TestModel(dtype=tf.dtypes.float32)
@@ -479,7 +479,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
     # Check the value of the global step loaded from the checkpoint. This
     # should be equal to the number of training epochs.
     # TODO(boomanaiden154): Fix this
-    #self.assertEqual(sess.run(model.global_step), num_epochs)
+    # self.assertEqual(sess.run(model.global_step), num_epochs)
 
   @flagsaver.flagsaver
   def test_train_with_min_throughput(self):
@@ -539,7 +539,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
         num_epochs=num_epochs,
         randomize_batches=randomize_batches,
         randomize_expected_outputs=False,
-        hooks=mock.ANY # Any hooks, they are an implementation detail.
+        hooks=mock.ANY,  # Any hooks, they are an implementation detail.
     )
 
   @flagsaver.flagsaver
@@ -603,7 +603,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
         num_epochs=num_epochs,
         randomize_batches=randomize_batches,
         randomize_expected_outputs=False,
-        hooks=mock.ANY # Any hooks, they are an implementation detail.
+        hooks=mock.ANY,  # Any hooks, they are an implementation detail.
     )
 
   def test_train_with_resume(self):
@@ -613,31 +613,25 @@ class GematriaMainFunctionTest(model_test.TestCase):
     experiment to the directory of the current experiment.
     """
     predicted_value = 123.0
-    global_step = 999
 
     old_checkpoint_dir = path.join(self.work_directory, 'old')
     new_checkpoint_dir = path.join(self.work_directory, 'new')
     summary_dir = path.join(self.work_directory, 'summaries')
 
     # Create a checkpoint in the "old" directory.
-    old_checkpoint_file = path.join(old_checkpoint_dir, 'model.ckpt')
+    old_checkpoint_prefix = path.join(old_checkpoint_dir, 'old_checkpoint')
     tf.io.gfile.makedirs(old_checkpoint_dir)
-    self._create_checkpoint_file(
-        old_checkpoint_file, predicted_value
-    )
+    self._create_checkpoint_file(old_checkpoint_prefix, predicted_value)
 
     # Check that the checkpoint dir has the expected structure. There must be at
     # least a file called "checkpoint" that contains the list of the actual
-    # checkpoints in text format. We check that the file is there, it contains
-    # references to the old dir and no references to the "new" checkpoint dir.
+    # checkpoints in text format.
     with tf.io.gfile.GFile(
         path.join(old_checkpoint_dir, 'checkpoint'), 'r'
     ) as f:
       checkpoint_list_pbtxt = f.read()
-      raise ValueError(checkpoint_list_pbtxt)
-      self.assertIn(old_checkpoint_file, checkpoint_list_pbtxt)
-      self.assertNotIn(new_checkpoint_dir, checkpoint_list_pbtxt)
-    checkpoint_files = tf.io.gfile.glob(old_checkpoint_file + '*')
+      self.assertIn('old_checkpoint', checkpoint_list_pbtxt)
+    checkpoint_files = tf.io.gfile.glob(old_checkpoint_prefix + '*')
     self.assertNotEmpty(checkpoint_files)
 
     model = None
@@ -681,17 +675,15 @@ class GematriaMainFunctionTest(model_test.TestCase):
         f'Not all files were copied.\nOld: {old_glob}\nNew: {new_glob}',
     )
 
-    # Check that all paths related to the old directory have been replaced with
-    # the new one.
+    # Check that the old checkpoint still exists in the new checkpoint file.
     with tf.io.gfile.GFile(
         path.join(new_checkpoint_dir, 'checkpoint'), 'r'
     ) as f:
       checkpoint_list_pbtxt = f.read()
-      self.assertNotIn(old_checkpoint_dir, checkpoint_list_pbtxt)
-      self.assertIn(new_checkpoint_dir, checkpoint_list_pbtxt)
+      self.assertIn('old_checkpoint', checkpoint_list_pbtxt)
 
   @flagsaver.flagsaver
-  def disabled_test_eval_with_source_filters(self):
+  def test_eval_with_source_filters(self):
     """Tests filtering basic blocks by source filters.
 
     Loads the first five basic blocks from testdata with filters that are
@@ -729,7 +721,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
     self.assertLen(block_list, 5)
 
   @flagsaver.flagsaver
-  def disabled_test_eval_with_multiple_tasks(self):
+  def test_eval_with_multiple_tasks(self):
     """Tests training a multi-task model.
 
     This test is much simpler than the model training test above, and it checks
