@@ -213,9 +213,7 @@ class PredictForProtosTest(model_test.TestCase):
   def check_predict_deltas(self, model):
     """Checks the prediction of the model when predicting also deltas."""
     input_protos = copy.deepcopy(self.block_protos)
-    output_protos = tuple(
-        inference.predict_for_protos(model, input_protos)
-    )
+    output_protos = tuple(inference.predict_for_protos(model, input_protos))
     self.assertLen(output_protos, len(self.block_protos))
 
     for index, (in_proto, out_proto) in enumerate(
