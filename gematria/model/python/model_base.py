@@ -472,7 +472,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
           feed_dict['delta_block_index'],
           name=ModelBase.OUTPUT_TENSOR_NAME,
       )
-      output_dict['output_deltas'] = feed_dict['output_deltas']
+      output_dict['output_deltas'] = output['output_deltas']
 
       return output_dict
     else:
