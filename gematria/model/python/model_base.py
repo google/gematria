@@ -1210,6 +1210,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       max_instructions_in_batch: Optional[int],
       randomize_batches: bool = True,
       randomize_expected_outputs: bool = False,
+      hooks=[],
   ) -> Optional[training.TrainingEpochStats]:
     """Runs training of the model on the given training data.
 
@@ -1231,6 +1232,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       randomize_expected_outputs: Set to True to randomly select the expected
         outputs used for training from the available values. When False, it
         takes the first value from the list.
+      hooks: Hooks to run during the training process.
 
     Returns:
       The loss before the last training step. Returns None when no training was
@@ -1270,10 +1272,14 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
         )
         return self.train_batch(schedule)
 
-    for _ in range(0, num_epochs):
+    for epoch_index in range(0, num_epochs):
       stats = run_one_epoch()
       logging.info('Training: %s', stats)
-      return stats
+      for hook in hooks:
+        epochs_every, hook_function = hook
+        if epoch_index % epochs_every == 0:
+          hook_function()
+    return stats
 
   def compute_loss(self, schedule: FeedDict):
     output = self(schedule, train=True)
