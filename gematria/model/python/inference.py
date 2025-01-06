@@ -32,21 +32,19 @@ def _get_num_instructions_in_block_with_throughput_proto(
 
 def predict_for_protos(
     model: model_base.ModelBase,
-    sess: tf.Session,
     basic_blocks: Iterable[throughput_pb2.BasicBlockWithThroughputProto],
     max_blocks_in_batch: Optional[int] = None,
     max_instructions_in_batch: Optional[int] = None,
 ) -> Iterable[throughput_pb2.BasicBlockWithThroughputProto]:
   """Predicts the inverse throughput using the model.
 
-  Assumes that sess has been initialized and that it contains the weights for
-  the model. The input sequence is iterated through only once, and the method
-  may safely be used with iterable objects that read the protos from a file or
+  Assumes that model has been initialized and that it contains the appropriate
+  weights. The input sequence is iterated through only once, and the method may
+  safely be used with iterable objects that read the protos from a file or
   generate them on the fly.
 
   Args:
     model: The model used for inference.
-    sess: The TensorFlow session object in which the computation is done.
     basic_blocks: The collection of basic blocks for which the inverse
       throughput is predicted.
     max_blocks_in_batch: The maximal number of basic blocks processed in a
@@ -82,7 +80,7 @@ def predict_for_protos(
 
     # Blocks are already divided into batches according to the given criteria,
     # no need to use max_blocks_in_batch and max_instructions_in_batch again.
-    predictions = iter(model.predict(sess, blocks))
+    predictions = iter(model.predict(blocks))
 
     # Inject predictions into the input protos.
     for proto, is_valid in zip(protos, block_is_valid):
