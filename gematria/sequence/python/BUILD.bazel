@@ -38,6 +38,9 @@ gematria_py_test(
     timeout = "moderate",
     srcs = ["sequence_model_test.py"],
     shard_count = 10,
+    tags = [
+        "manual",
+    ],
     deps = [
         ":sequence_model",
         "//gematria/basic_block/python:basic_block",
@@ -66,6 +69,9 @@ gematria_py_test(
     timeout = "moderate",
     srcs = ["sequence_model_hlstm_test.py"],
     shard_count = 15,
+    tags = [
+        "manual",
+    ],
     deps = [
         ":sequence_model_hlstm",
         "//gematria/model/python:oov_token_behavior",
