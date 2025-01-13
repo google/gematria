@@ -49,6 +49,11 @@
 
 namespace gematria {
 
+// Memory mapping protection flag bits on Linux, from `sys/mman.h`.
+constexpr int kProtRead = 0b001;  /* PROT_READ */
+constexpr int kProtWrite = 0b010; /* PROT_WRITE */
+constexpr int kProtExec = 0b100;  /* PROT_EXEC */
+
 AnnotatingImporter::AnnotatingImporter(const Canonicalizer *canonicalizer)
     : importer_(canonicalizer) {}
 
@@ -63,7 +68,8 @@ absl::StatusOr<const quipper::PerfDataProto *> AnnotatingImporter::LoadPerfData(
   quipper::PerfParser perf_parser(
       &perf_reader_, quipper::PerfParserOptions{.do_remap = true,
                                                 .discard_unused_events = true,
-                                                .sort_events_by_time = false});
+                                                .sort_events_by_time = false,
+                                                .combine_mappings = true});
   if (!perf_parser.ParseRawEvents()) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "The given `perf.data`-like file (%s) could not be parsed.",
@@ -75,9 +81,9 @@ absl::StatusOr<const quipper::PerfDataProto *> AnnotatingImporter::LoadPerfData(
 
 namespace {
 
-std::string GetFileNameFromPath(const std::string &path) {
+llvm::StringRef GetBasenameFromPath(const llvm::StringRef path) {
   int idx = path.find_last_of('/');
-  if (idx == std::string::npos) {
+  if (idx == llvm::StringRef::npos) {
     return path;
   }
   return path.substr(idx + 1);
@@ -89,19 +95,23 @@ absl::StatusOr<const quipper::PerfDataProto_MMapEvent *>
 AnnotatingImporter::GetMainMapping(
     const llvm::object::ELFObjectFileBase *elf_object,
     const quipper::PerfDataProto *perf_data) {
-  std::string file_name = GetFileNameFromPath(elf_object->getFileName().str());
+  llvm::StringRef file_name =
+      GetBasenameFromPath(elf_object->getFileName().str());
+  // TODO(vbshah): There may be multiple mappings corresponding to the profiled
+  // binary. Record and match samples from all of them instead of assuming
+  // there is only one and returning after finding it.
   for (const auto &event : perf_data->events()) {
     if (event.has_mmap_event() &&
-        GetFileNameFromPath(event.mmap_event().filename()) == file_name &&
-        event.mmap_event().prot() & 0b001 /* PROT_READ */ &&
-        event.mmap_event().prot() & 0b100 /* PROT_EXEC */) {
+        GetBasenameFromPath(event.mmap_event().filename()) == file_name &&
+        event.mmap_event().prot() & kProtRead &&
+        event.mmap_event().prot() & kProtExec) {
       return &event.mmap_event();
     }
   }
 
   return absl::InvalidArgumentError(absl::StrFormat(
-      "The given `perf.data`-like file does not have a mapping corresponding "
-      "to the given object (%s).",
+      "The given `perf.data`-like file does not have a mapping corresponding"
+      " to the given object (%s).",
       elf_object->getFileName()));
 }
 
@@ -268,10 +278,13 @@ AnnotatingImporter::GetSamples(
 
     // Filter out sample events from outside the profiled binary.
     if (!event.sample_event().has_pid() ||
-        !(event.sample_event().pid() == mapping->pid()))
+        !(event.sample_event().pid() == mapping->pid())) {
       continue;
+    }
     uint64_t sample_ip = event.sample_event().ip();
-    if (sample_ip < mmap_begin_addr || sample_ip >= mmap_end_addr) continue;
+    if (sample_ip < mmap_begin_addr || sample_ip >= mmap_end_addr) {
+      continue;
+    }
 
     std::vector<int> &samples_at_same_addr = samples[sample_ip];
     if (samples_at_same_addr.empty()) {
@@ -350,11 +363,17 @@ AnnotatingImporter::GetLBRBlocksWithLatency(
 
       // Simple validity checks: the block must start before it ends and cannot
       // be larger than some threshold.
-      if (block_begin >= block_end) continue;
-      if (block_end - block_begin > kMaxBlockSizeBytes) continue;
+      if (block_begin >= block_end) {
+        continue;
+      }
+      if (block_end - block_begin > kMaxBlockSizeBytes) {
+        continue;
+      }
 
       // Remove blocks not belonging to the binary we are importing from.
-      if (block_begin < mmap_begin_addr || mmap_end_addr < block_end) continue;
+      if (block_begin < mmap_begin_addr || mmap_end_addr < block_end) {
+        continue;
+      }
 
       uint32_t block_latency = next_branch_entry.cycles();
 
@@ -437,7 +456,9 @@ AnnotatingImporter::GetAnnotatedBasicBlockProtos(
       uint64_t instruction_addr = basic_block_proto.basic_block()
                                       .machine_instructions()[instruction_idx]
                                       .address();
-      if (!samples.count(instruction_addr)) continue;
+      if (!samples.count(instruction_addr)) {
+        continue;
+      }
 
       const std::vector<int> &annotations = samples.at(instruction_addr);
       auto &instruction_proto = basic_block_proto.mutable_basic_block()

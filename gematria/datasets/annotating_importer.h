@@ -145,8 +145,8 @@ AnnotatingImporter::GetMainProgramHeader(
         program_header.p_flags & llvm::ELF::PF_X) {
       if (found_main_header) {
         return absl::InvalidArgumentError(
-            "The given object has multiple executable segments. This is "
-            "currently not supported.");
+            "The given object has multiple executable segments. This is"
+            " currently not supported.");
       }
       main_header = program_header;
       found_main_header = true;
