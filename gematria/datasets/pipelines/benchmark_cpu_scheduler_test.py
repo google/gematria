@@ -26,7 +26,8 @@ class BenchmarkSchedulerTests(absltest.TestCase):
     cpu_mask = os.sched_getaffinity(0)
     cpu_mask_list = list(cpu_mask)
 
-    self.addCleanup(lambda: os.sched_setaffinity(0, list(cpu_mask_list)))
+    original_cpu_mask = list(cpu_mask_list)
+    self.addCleanup(lambda: os.sched_setaffinity(0, original_cpu_mask))
 
     # We first select a CPU to use for the hyperthread pair and then remove
     # both cores in the pair from the mask set to ensure that we do not
