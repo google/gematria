@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import abc
-from typing_extensions import override
 from collections.abc import Collection
+import enum
 import os
 import re
-import enum
+from typing_extensions import override
 
 
 class BenchmarkScheduler(metaclass=abc.ABCMeta):
@@ -95,7 +95,7 @@ class DefaultBenchmarkScheduler(BenchmarkScheduler):
   assuming that two of the threads are neighboring (part of the same core).
   Errors are raised if these conditions are not met. The benchmarking core
   returned is one of the two neighboring threads. The main process has its
-  COU mask limited to the thread that neighbors neither of the other threads.
+  CPU mask limited to the thread that neighbors neither of the other threads.
   """
 
   def __init__(self):
