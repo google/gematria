@@ -16,12 +16,12 @@ import os
 
 from absl.testing import absltest
 from apache_beam.testing import test_pipeline
-from apache_beam.testing import util as beam_test
 
 from gematria.datasets.pipelines import benchmark_bbs_lib
 from gematria.proto import execution_annotation_pb2
 from gematria.io.python import tfrecord
 from gematria.datasets.pipelines import benchmark_cpu_scheduler
+from gematria.proto import throughput_pb2
 
 BLOCK_FOR_TESTING = execution_annotation_pb2.BlockWithExecutionAnnotations(
     execution_annotations=execution_annotation_pb2.ExecutionAnnotations(
@@ -60,14 +60,14 @@ class BenchmarkBBsTests(absltest.TestCase):
     self.assertEqual(block_hex, '3b31')
     self.assertLess(block_throughput, 10)
 
-  def test_format_bbs(self):
-    format_transform = benchmark_bbs_lib.FormatBBsForOutput()
+  def test_serialize_bbs_to_protos(self):
+    serialize_transform = benchmark_bbs_lib.SerializeToProto()
+    serialize_transform.setup()
 
     benchmarked_block_data = ('3b31', 5)
 
-    output = list(format_transform.process(benchmarked_block_data))
+    output = list(serialize_transform.process(benchmarked_block_data))
     self.assertLen(output, 1)
-    self.assertEqual(output[0], '3b31,5')
 
   def test_benchmark_bbs(self):
     test_tfrecord = self.create_tempfile()
@@ -85,13 +85,19 @@ class BenchmarkBBsTests(absltest.TestCase):
     with test_pipeline.TestPipeline() as pipeline_under_test:
       pipeline_constructor(pipeline_under_test)
 
-    with open(output_file_pattern + '-00000-of-00001') as output_txt_file:
-      output_lines = output_txt_file.readlines()
-      self.assertLen(output_lines, 1)
+    throughputs = []
+    for block_with_throughput in tfrecord.read_protos(
+        [output_file_pattern + '-00000-of-00001'],
+        throughput_pb2.BasicBlockWithThroughputProto,
+    ):
+      throughputs.append(
+          block_with_throughput.inverse_throughputs[
+              0
+          ].inverse_throughput_cycles[0]
+      )
 
-      line_parts = output_lines[0].split(',')
-      self.assertEqual(line_parts[0], '3b31')
-      self.assertLess(float(line_parts[1]), 10)
+    self.assertLen(throughputs, 1)
+    self.assertLess(throughputs[0], 10)
 
 
 if __name__ == '__main__':
