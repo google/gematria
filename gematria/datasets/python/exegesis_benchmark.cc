@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <memory>
+#include <optional>
 
 #include "absl/status/statusor.h"
 #include "gematria/datasets/bhive_to_exegesis.h"
@@ -26,6 +27,8 @@
 #include "pybind11/cast.h"
 #include "pybind11/detail/common.h"
 #include "pybind11/pybind11.h"
+#include "pybind11/pytypes.h"
+#include "pybind11/stl.h"  // IWYU pragma: keep
 #include "pybind11_abseil/import_status_module.h"
 #include "pybind11_abseil/status_casters.h"         // IWYU pragma: keep
 #include "pybind11_protobuf/native_proto_caster.h"  // IWYU pragma: keep
@@ -116,11 +119,13 @@ PYBIND11_MODULE(exegesis_benchmark, m) {
           )")
       .def(
           "benchmark_basic_block",
-          [](ExegesisBenchmark& Self, const BenchmarkCode& InputBenchmark) {
+          [](ExegesisBenchmark& Self, const BenchmarkCode& InputBenchmark,
+             std::optional<int> BenchmarkProcessCPU) {
             return LlvmExpectedToStatusOr(
-                Self.benchmarkBasicBlock(InputBenchmark));
+                Self.benchmarkBasicBlock(InputBenchmark, BenchmarkProcessCPU));
           },
           py::arg("input_benchmark"),
+          py::arg("benchmark_process_cpu") = py::none(),
           R"(Benchmarks a block in the form of a BenchmarkCode instance.
 
           Takes a BenchmarkCode instance and then executes it, collecting
@@ -129,6 +134,8 @@ PYBIND11_MODULE(exegesis_benchmark, m) {
           Args:
             input_benchmark: The BenchmarkCode instance formed from the block and
               annotations of interest that should be benchmarked.
+            benchmark_process_cpu: An optional integer specifying the CPU ID
+              that the benchmarking subprocess should be pinned to.
           
           Returns:
             A floating point value representing the inverse throughput (i.e.,
