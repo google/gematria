@@ -30,8 +30,26 @@ message BasicBlockProto {
   // same instruction.
   repeated CanonicalizedInstructionProto canonicalized_instructions = 2;
 
+  // An optional list of machine instructions preceding the basic block, used
+  // to provide context that lies before `canonicalized_instructions`. These
+  // instructions are not included in the timing measurements and predictions.
+  repeated CanonicalizedInstructionProto machine_back_context = 3;
+
+  // An optional list of machine instructions following the basic block, used
+  // to provide context lying after `canonicalized_instructions`. These
+  // instructions are not included in the timing measurements and predictions.
+  repeated CanonicalizedInstructionProto machine_front_context = 4;
+
+  // Canonicalized instructions parallel to `machine_back_context`. May be
+  // empty in case no back context is provided.
+  repeated CanonicalizedInstructionProto canonicalized_back_context = 5;
+
+  // Canonicalized instructions parallel to `machine_front_context`. May be
+  // empty in case no front context is provided.
+  repeated CanonicalizedInstructionProto canonicalized_front_context = 6;
+
   // The fingerprint-id of this basic block. Might be empty.
-  string fingerprint = 3;
+  string fingerprint = 7;
 }
 
 // Represents a raw instruction extracted from binary code.
