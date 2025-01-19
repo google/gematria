@@ -33,8 +33,11 @@
 namespace gematria {
 namespace {
 
+using ::testing::_;
+using ::testing::Each;
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
+using ::testing::IsFalse;
 using ::testing::Pair;
 
 // Tokens used in the basic blocks in tests. For simplicity, we do not use the
@@ -490,6 +493,7 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleInstructions) {
                   true, false,
                   // Fourth instruction.
                   true, false));
+  EXPECT_THAT(builder_->context_node_mask(), Each(IsFalse()));
 
   EXPECT_THAT(
       builder_->edge_types(),
@@ -569,6 +573,98 @@ TEST_F(BasicBlockGraphBuilderTest, TwoNops) {
     canonicalized_instructions { mnemonic: "NOP" llvm_mnemonic: "NOOP" }
     canonicalized_instructions { mnemonic: "NOP" llvm_mnemonic: "NOOP" }
   )pb"))));
+}
+
+// Tests that the graph is built and context node mask is set correctly when
+// context is supplied.
+TEST_F(BasicBlockGraphBuilderTest, MultipleBasicBlocksWithContext) {
+  CreateBuilder(OutOfVocabularyTokenBehavior::ReturnError());
+  ASSERT_TRUE(
+      builder_->AddBasicBlock(BasicBlockFromProto(ParseTextProto(R"pb(
+                                canonicalized_instructions: {
+                                  mnemonic: "NOT"
+                                  llvm_mnemonic: "NOT64r"
+                                  output_operands: { register_name: "RCX" }
+                                  input_operands: { register_name: "RCX" }
+                                }
+                                canonicalized_back_context: {
+                                  mnemonic: "NOT"
+                                  llvm_mnemonic: "NOT64r"
+                                  output_operands: { register_name: "RCX" }
+                                  input_operands: { register_name: "RCX" }
+                                }
+                                canonicalized_front_context: {
+                                  mnemonic: "NOT"
+                                  llvm_mnemonic: "NOT64r"
+                                  output_operands: { register_name: "RCX" }
+                                  input_operands: { register_name: "RCX" }
+                                })pb")),
+                              true));
+  ASSERT_TRUE(
+      builder_->AddBasicBlock(BasicBlockFromProto(ParseTextProto(R"pb(
+                                canonicalized_instructions: {
+                                  mnemonic: "NOT"
+                                  llvm_mnemonic: "NOT64r"
+                                  output_operands: { register_name: "RCX" }
+                                  input_operands: { register_name: "RCX" }
+                                }
+                                canonicalized_back_context: {
+                                  mnemonic: "NOT"
+                                  llvm_mnemonic: "NOT64r"
+                                  output_operands: { register_name: "RCX" }
+                                  input_operands: { register_name: "RCX" }
+                                })pb")),
+                              true));
+
+  EXPECT_EQ(builder_->num_graphs(), 2);
+  EXPECT_EQ(builder_->num_node_tokens(), std::size(kTokens));
+
+  EXPECT_EQ(builder_->num_nodes(), 7 + 5);
+  EXPECT_THAT(builder_->num_nodes_per_block(), ElementsAre(7, 5));
+
+  EXPECT_EQ(builder_->num_edges(), 8 + 5);
+  EXPECT_THAT(builder_->num_edges_per_block(), ElementsAre(8, 5));
+
+  EXPECT_THAT(builder_->node_types(),
+              ElementsAre(NodeType::kInstruction, NodeType::kRegister,
+                          NodeType::kRegister, NodeType::kInstruction,
+                          NodeType::kRegister, NodeType::kInstruction,
+                          NodeType::kRegister, NodeType::kInstruction,
+                          NodeType::kRegister, NodeType::kRegister,
+                          NodeType::kInstruction, NodeType::kRegister));
+  EXPECT_THAT(
+      builder_->node_features(),
+      ElementsAre(TokenIndex("NOT"), TokenIndex("RCX"), TokenIndex("RCX"),
+                  TokenIndex("NOT"), TokenIndex("RCX"), TokenIndex("NOT"),
+                  TokenIndex("RCX"), TokenIndex("NOT"), TokenIndex("RCX"),
+                  TokenIndex("RCX"), TokenIndex("NOT"), TokenIndex("RCX")));
+  EXPECT_THAT(builder_->InstructionNodeMask(),
+              ElementsAre(true, false, false, true, false, true, false, true,
+                          false, false, true, false));
+  EXPECT_THAT(builder_->context_node_mask(),
+              ElementsAre(true, _, _, false, _, true, _, true, _, _, false, _));
+
+  EXPECT_THAT(
+      builder_->edge_types(),
+      ElementsAre(EdgeType::kInputOperands, EdgeType::kOutputOperands,
+                  EdgeType::kStructuralDependency, EdgeType::kInputOperands,
+                  EdgeType::kOutputOperands, EdgeType::kStructuralDependency,
+                  EdgeType::kInputOperands, EdgeType::kOutputOperands,
+                  EdgeType::kInputOperands, EdgeType::kOutputOperands,
+                  EdgeType::kStructuralDependency, EdgeType::kInputOperands,
+                  EdgeType::kOutputOperands));
+
+  EXPECT_THAT(builder_->edge_senders(),
+              ElementsAre(1, 0, 0, 2, 3, 3, 4, 5, 8, 7, 7, 9, 10));
+  EXPECT_THAT(builder_->edge_receivers(),
+              ElementsAre(0, 2, 3, 3, 4, 5, 5, 6, 7, 9, 10, 10, 11));
+
+  EXPECT_THAT(
+      builder_->global_features(),
+      ElementsAre(ElementsAre(0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4, 0, 0, 0, 0),
+                  ElementsAre(0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 0)));
+
+  EXPECT_THAT(builder_->DeltaBlockIndex(), ElementsAre(0, 0, 0, 1, 1));
 }
 
 }  // namespace
