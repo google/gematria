@@ -37,7 +37,6 @@
 #include "gematria/proto/throughput.pb.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Object/Binary.h"
 #include "llvm/Object/ELFObjectFile.h"
 #include "llvm/Object/ELFTypes.h"
@@ -50,43 +49,70 @@
 
 namespace gematria {
 
-AnnotatingImporter::AnnotatingImporter(const Canonicalizer *canonicalizer)
-    : importer_(canonicalizer), perf_parser_(&perf_reader_) {
-  quipper::PerfParserOptions parser_opts;
-  parser_opts.do_remap = true;
-  parser_opts.discard_unused_events = true;
-  parser_opts.sort_events_by_time = false;
-  perf_parser_.set_options(parser_opts);
-}
+// Memory mapping protection flag bits on Linux, from `sys/mman.h`.
+constexpr int kProtRead = 0b001;  /* PROT_READ */
+constexpr int kProtWrite = 0b010; /* PROT_WRITE */
+constexpr int kProtExec = 0b100;  /* PROT_EXEC */
 
-absl::Status AnnotatingImporter::LoadPerfData(std::string_view file_name) {
+AnnotatingImporter::AnnotatingImporter(const Canonicalizer *canonicalizer)
+    : importer_(canonicalizer) {}
+
+absl::StatusOr<const quipper::PerfDataProto *> AnnotatingImporter::LoadPerfData(
+    std::string_view file_name) {
   // Read and parse the `perf.data`-like file into something more tractable.
   if (!perf_reader_.ReadFile(std::string(file_name))) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "The given `perf.data`-like file (%s) could not be read.", file_name));
   }
-  if (!perf_parser_.ParseRawEvents()) {
+
+  quipper::PerfParser perf_parser(
+      &perf_reader_, quipper::PerfParserOptions{.do_remap = true,
+                                                .discard_unused_events = true,
+                                                .sort_events_by_time = false,
+                                                .combine_mappings = true});
+  if (!perf_parser.ParseRawEvents()) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "The given `perf.data`-like file (%s) could not be parsed.",
         file_name));
   }
 
-  // Find the relevant mapping.
-  // TODO(virajbshah): Make sure the mapping was found. (Use num_mmap_events)
-  const quipper::PerfDataProto &perf_data_proto = perf_reader_.proto();
-  for (const auto &event : perf_data_proto.events()) {
-    // TODO(virajbshah): Not sure if this always works, i.e. does the main
-    // binary always correspond to the first MMapEvent. Implement BuildID or
-    // name based checking.
+  return &perf_reader_.proto();
+}
+
+namespace {
+
+llvm::StringRef GetBasenameFromPath(const llvm::StringRef path) {
+  int idx = path.find_last_of('/');
+  if (idx == llvm::StringRef::npos) {
+    return path;
+  }
+  return path.substr(idx + 1);
+}
+
+}  // namespace
+
+absl::StatusOr<const quipper::PerfDataProto_MMapEvent *>
+AnnotatingImporter::GetMainMapping(
+    const llvm::object::ELFObjectFileBase *elf_object,
+    const quipper::PerfDataProto *perf_data) {
+  llvm::StringRef file_name =
+      GetBasenameFromPath(elf_object->getFileName().str());
+  // TODO(vbshah): There may be multiple mappings corresponding to the profiled
+  // binary. Record and match samples from all of them instead of assuming
+  // there is only one and returning after finding it.
+  for (const auto &event : perf_data->events()) {
     if (event.has_mmap_event() &&
-        event.mmap_event().prot() & 1 /* PROT_READ */ &&
-        event.mmap_event().prot() & 4 /* PROT_EXEC */) {
-      main_mapping_ = event.mmap_event();
-      break;
+        GetBasenameFromPath(event.mmap_event().filename()) == file_name &&
+        event.mmap_event().prot() & kProtRead &&
+        event.mmap_event().prot() & kProtExec) {
+      return &event.mmap_event();
     }
   }
 
-  return absl::OkStatus();
+  return absl::InvalidArgumentError(absl::StrFormat(
+      "The given `perf.data`-like file does not have a mapping corresponding"
+      " to the given object (%s).",
+      elf_object->getFileName()));
 }
 
 absl::StatusOr<llvm::object::OwningBinary<llvm::object::Binary>>
@@ -192,8 +218,8 @@ AnnotatingImporter::GetBlocksFromELF(
     for (const llvm::object::BBAddrMap::BBRangeEntry &bb_range :
          map.getBBRanges()) {
       for (const llvm::object::BBAddrMap::BBEntry &bb : bb_range.BBEntries) {
-        uint64_t begin_idx = function_addr + bb.Offset,
-                 end_idx = begin_idx + bb.Size;
+        uint64_t begin_idx = function_addr + bb.Offset;
+        uint64_t end_idx = begin_idx + bb.Size;
         if (begin_idx == end_idx) {
           continue;  // Skip any empty basic blocks.
         }
@@ -211,23 +237,24 @@ AnnotatingImporter::GetBlocksFromELF(
 
 absl::StatusOr<std::pair<std::vector<std::string>,
                          std::unordered_map<uint64_t, std::vector<int>>>>
-AnnotatingImporter::GetSamples() {
-  const quipper::PerfDataProto &perf_data_proto = perf_reader_.proto();
-  const uint64_t mmap_begin_addr = main_mapping_.start();
-  const uint64_t mmap_end_addr = main_mapping_.start() + main_mapping_.len();
+AnnotatingImporter::GetSamples(
+    const quipper::PerfDataProto *perf_data,
+    const quipper::PerfDataProto_MMapEvent *mapping) {
+  const uint64_t mmap_begin_addr = mapping->start();
+  const uint64_t mmap_end_addr = mmap_begin_addr + mapping->len();
 
   // Extract event type information,
-  const int num_sample_types = perf_data_proto.event_types_size();
+  const int num_sample_types = perf_data->event_types_size();
   std::vector<std::string> sample_types(num_sample_types);
   std::unordered_map<int, int> event_code_to_idx;
   for (int sample_type_idx = 0; sample_type_idx < num_sample_types;
        ++sample_type_idx) {
-    const auto &event_type = perf_data_proto.event_types()[sample_type_idx];
+    const auto &event_type = perf_data->event_types()[sample_type_idx];
     sample_types[sample_type_idx] = event_type.name();
     event_code_to_idx[event_type.id()] = sample_type_idx;
   }
   std::unordered_map<int, int> event_id_to_code;
-  for (const auto &event_type : perf_data_proto.file_attrs()) {
+  for (const auto &event_type : perf_data->file_attrs()) {
     // Mask out bits identifying the PMU and not the event.
     int event_code = event_type.attr().config() & 0xffff;
     for (int event_id : event_type.ids()) {
@@ -243,15 +270,21 @@ AnnotatingImporter::GetSamples() {
 
   // Process sample events.
   std::unordered_map<uint64_t, std::vector<int>> samples;
-  for (const auto &event : perf_data_proto.events()) {
+  for (const auto &event : perf_data->events()) {
     // Filter out non-sample events.
     if (!event.has_sample_event()) {
       continue;
     }
 
     // Filter out sample events from outside the profiled binary.
+    if (!event.sample_event().has_pid() ||
+        !(event.sample_event().pid() == mapping->pid())) {
+      continue;
+    }
     uint64_t sample_ip = event.sample_event().ip();
-    if (sample_ip < mmap_begin_addr || sample_ip >= mmap_end_addr) continue;
+    if (sample_ip < mmap_begin_addr || sample_ip >= mmap_end_addr) {
+      continue;
+    }
 
     std::vector<int> &samples_at_same_addr = samples[sample_ip];
     if (samples_at_same_addr.empty()) {
@@ -271,13 +304,14 @@ AnnotatingImporter::GetSamples() {
 absl::StatusOr<std::vector<
     std::pair<std::vector<DisassembledInstruction>, std::vector<uint32_t>>>>
 AnnotatingImporter::GetLBRBlocksWithLatency(
-    const llvm::object::ELFObjectFileBase *elf_object) {
+    const llvm::object::ELFObjectFileBase *elf_object,
+    const quipper::PerfDataProto *perf_data,
+    const quipper::PerfDataProto_MMapEvent *mapping) {
   // TODO(vbshah): Refactor this and other parameters as function arguments.
   constexpr int kMaxBlockSizeBytes = 65536;
 
-  const quipper::PerfDataProto &perf_data_proto = perf_reader_.proto();
-  const uint64_t mmap_begin_addr = main_mapping_.start();
-  const uint64_t mmap_end_addr = main_mapping_.start() + main_mapping_.len();
+  const uint64_t mmap_begin_addr = mapping->start();
+  const uint64_t mmap_end_addr = mmap_begin_addr + mapping->len();
 
   // TODO(vbshah): Consider making it possible to use other ELFTs rather than
   // only ELF64LE since only the implementation of GetMainProgramHeader differs
@@ -306,30 +340,40 @@ AnnotatingImporter::GetLBRBlocksWithLatency(
   std::unordered_map<std::pair<uint64_t, uint64_t>, int,
                      absl::Hash<std::pair<uint64_t, uint64_t>>>
       index_map;
-  for (const auto &event : perf_data_proto.events()) {
+  for (const auto &event : perf_data->events()) {
     if (!event.has_sample_event() ||
         !event.sample_event().branch_stack_size()) {
       continue;
     }
+
+    // Check if the sample PID matches that of the relevant mapping.
+    if (!event.sample_event().has_pid() ||
+        !(event.sample_event().pid() == mapping->pid())) {
+      continue;
+    }
+
     const auto &branch_stack = event.sample_event().branch_stack();
     for (int branch_idx = branch_stack.size() - 2; branch_idx >= 0;
          --branch_idx) {
       const auto &branch_entry = branch_stack[branch_idx + 1];
       const auto &next_branch_entry = branch_stack[branch_idx];
 
-      uint64_t block_begin = branch_entry.to_ip(),
-               block_end = next_branch_entry.from_ip();
+      const uint64_t block_begin = branch_entry.to_ip();
+      const uint64_t block_end = next_branch_entry.from_ip();
 
       // Simple validity checks: the block must start before it ends and cannot
       // be larger than some threshold.
-      if (block_begin >= block_end) continue;
-      if (block_end - block_begin > kMaxBlockSizeBytes) continue;
+      if (block_begin >= block_end) {
+        continue;
+      }
+      if (block_end - block_begin > kMaxBlockSizeBytes) {
+        continue;
+      }
 
       // Remove blocks not belonging to the binary we are importing from.
-      if (block_begin < mmap_begin_addr || mmap_end_addr < block_end) continue;
-      if (block_begin < main_header->p_offset ||
-          main_header->p_offset + main_header->p_filesz < block_end)
+      if (block_begin < mmap_begin_addr || mmap_end_addr < block_end) {
         continue;
+      }
 
       uint32_t block_latency = next_branch_entry.cycles();
 
@@ -357,30 +401,38 @@ absl::StatusOr<std::vector<BasicBlockWithThroughputProto>>
 AnnotatingImporter::GetAnnotatedBasicBlockProtos(
     std::string_view elf_file_name, std::string_view perf_data_file_name,
     std::string_view source_name) {
+  // Try to load the binary and cast it down to an ELF object.
   absl::StatusOr<llvm::object::OwningBinary<llvm::object::Binary>>
       owning_binary = LoadBinary(elf_file_name);
   if (!owning_binary.ok()) {
     return owning_binary.status();
   }
-  absl::Status status = LoadPerfData(perf_data_file_name);
-  if (!status.ok()) {
-    return status;
-  }
-
-  // Try to cast the binary down to an ELF object.
   const auto elf_object = GetELFFromBinary(owning_binary->getBinary());
   if (!elf_object.ok()) {
     return elf_object.status();
   }
 
+  // Try to load the perf profile and locate its main mapping, i.e. the one
+  // corresponding to the executable load segment of the given object file.
+  absl::StatusOr<const quipper::PerfDataProto *> perf_data =
+      LoadPerfData(perf_data_file_name);
+  if (!perf_data.ok()) {
+    return perf_data.status();
+  }
+  auto main_mapping = GetMainMapping(*elf_object, *perf_data);
+  if (!main_mapping.ok()) {
+    return main_mapping.status();
+  }
+
   // Get the raw basic blocks, perf samples, and LBR data for annotation.
   absl::StatusOr<std::vector<
       std::pair<std::vector<DisassembledInstruction>, std::vector<uint32_t>>>>
-      basic_blocks = GetLBRBlocksWithLatency(*elf_object);
+      basic_blocks =
+          GetLBRBlocksWithLatency(*elf_object, *perf_data, *main_mapping);
   if (!basic_blocks.ok()) {
     return basic_blocks.status();
   }
-  const auto sample_types_and_samples = GetSamples();
+  const auto sample_types_and_samples = GetSamples(*perf_data, *main_mapping);
   if (!sample_types_and_samples.ok()) {
     return sample_types_and_samples.status();
   }
@@ -404,7 +456,9 @@ AnnotatingImporter::GetAnnotatedBasicBlockProtos(
       uint64_t instruction_addr = basic_block_proto.basic_block()
                                       .machine_instructions()[instruction_idx]
                                       .address();
-      if (!samples.count(instruction_addr)) continue;
+      if (!samples.count(instruction_addr)) {
+        continue;
+      }
 
       const std::vector<int> &annotations = samples.at(instruction_addr);
       auto &instruction_proto = basic_block_proto.mutable_basic_block()
