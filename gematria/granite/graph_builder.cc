@@ -190,7 +190,9 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
 }
 
 bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
-    const std::vector<Instruction>& instructions) {
+    const std::vector<Instruction>& instructions,
+    const std::vector<Instruction>& back_context,
+    const std::vector<Instruction>& front_context) {
   if (instructions.empty()) return false;
   AddBasicBlockTransaction transaction(this);
 
@@ -202,58 +204,65 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
   const int prev_num_edges = num_edges();
 
   NodeIndex previous_instruction_node = kInvalidNode;
-  for (const Instruction& instruction : instructions) {
-    // Add the instruction node.
-    const NodeIndex instruction_node =
-        AddNode(NodeType::kInstruction, instruction.mnemonic);
-    if (instruction_node == kInvalidNode) {
-      return false;
-    }
-
-    // Store the annotations for later use (inclusion in embeddings), using -1
-    // as a default value wherever annotations are missing.
-    std::vector<float> row = std::vector<float>(annotation_names_.size(), -1);
-    for (const auto& [name, value] : instruction.instruction_annotations) {
-      const auto annotation_index = annotation_name_to_idx_.find(name);
-      if (annotation_index == annotation_name_to_idx_.end()) continue;
-      row[annotation_index->second] = value;
-    }
-    instruction_annotations_.push_back(row);
-
-    // Add nodes for prefixes of the instruction.
-    for (const std::string& prefix : instruction.prefixes) {
-      const NodeIndex prefix_node = AddNode(NodeType::kPrefix, prefix);
-      if (prefix_node == kInvalidNode) {
+  const struct {
+    const std::vector<Instruction>& instruction_group;
+    bool is_context;
+  } instruction_groups[] = {
+      {back_context, true}, {instructions, false}, {front_context, true}};
+  for (const auto [instruction_group, is_context] : instruction_groups) {
+    for (const Instruction& instruction : instruction_group) {
+      // Add the instruction node.
+      const NodeIndex instruction_node =
+          AddNode(NodeType::kInstruction, instruction.mnemonic, is_context);
+      if (instruction_node == kInvalidNode) {
         return false;
       }
-      AddEdge(EdgeType::kInstructionPrefix, prefix_node, instruction_node);
-    }
 
-    // Add a structural dependency edge from the previous instruction.
-    if (previous_instruction_node >= 0) {
-      AddEdge(EdgeType::kStructuralDependency, previous_instruction_node,
-              instruction_node);
-    }
+      // Store the annotations for later use (inclusion in embeddings), using -1
+      // as a default value wherever annotations are missing.
+      std::vector<float> row = std::vector<float>(annotation_names_.size(), -1);
+      for (const auto& [name, value] : instruction.instruction_annotations) {
+        const auto annotation_index = annotation_name_to_idx_.find(name);
+        if (annotation_index == annotation_name_to_idx_.end()) continue;
+        row[annotation_index->second] = value;
+      }
+      instruction_annotations_.push_back(row);
 
-    // Add edges for input operands. And nodes too, if necessary.
-    for (const InstructionOperand& operand : instruction.input_operands) {
-      if (!AddInputOperand(instruction_node, operand)) return false;
-    }
-    for (const InstructionOperand& operand :
-         instruction.implicit_input_operands) {
-      if (!AddInputOperand(instruction_node, operand)) return false;
-    }
+      // Add nodes for prefixes of the instruction.
+      for (const std::string& prefix : instruction.prefixes) {
+        const NodeIndex prefix_node = AddNode(NodeType::kPrefix, prefix);
+        if (prefix_node == kInvalidNode) {
+          return false;
+        }
+        AddEdge(EdgeType::kInstructionPrefix, prefix_node, instruction_node);
+      }
 
-    // Add edges and nodes for output operands.
-    for (const InstructionOperand& operand : instruction.output_operands) {
-      if (!AddOutputOperand(instruction_node, operand)) return false;
-    }
-    for (const InstructionOperand& operand :
-         instruction.implicit_output_operands) {
-      if (!AddOutputOperand(instruction_node, operand)) return false;
-    }
+      // Add a structural dependency edge from the previous instruction.
+      if (previous_instruction_node >= 0) {
+        AddEdge(EdgeType::kStructuralDependency, previous_instruction_node,
+                instruction_node);
+      }
 
-    previous_instruction_node = instruction_node;
+      // Add edges for input operands. And nodes too, if necessary.
+      for (const InstructionOperand& operand : instruction.input_operands) {
+        if (!AddInputOperand(instruction_node, operand)) return false;
+      }
+      for (const InstructionOperand& operand :
+           instruction.implicit_input_operands) {
+        if (!AddInputOperand(instruction_node, operand)) return false;
+      }
+
+      // Add edges and nodes for output operands.
+      for (const InstructionOperand& operand : instruction.output_operands) {
+        if (!AddOutputOperand(instruction_node, operand)) return false;
+      }
+      for (const InstructionOperand& operand :
+           instruction.implicit_output_operands) {
+        if (!AddOutputOperand(instruction_node, operand)) return false;
+      }
+
+      previous_instruction_node = instruction_node;
+    }
   }
 
   global_features_.emplace_back(num_node_tokens(), 0);
@@ -276,6 +285,7 @@ void BasicBlockGraphBuilder::Reset() {
 
   node_types_.clear();
   node_features_.clear();
+  context_node_mask_.clear();
 
   edge_senders_.clear();
   edge_receivers_.clear();
@@ -404,15 +414,16 @@ bool BasicBlockGraphBuilder::AddDependencyOnRegister(
 }
 
 BasicBlockGraphBuilder::NodeIndex BasicBlockGraphBuilder::AddNode(
-    NodeType node_type, TokenIndex token_index) {
+    NodeType node_type, TokenIndex token_index, bool is_context) {
   const NodeIndex new_node_index = num_nodes();
   node_types_.push_back(node_type);
   node_features_.push_back(token_index);
+  context_node_mask_.push_back(is_context);
   return new_node_index;
 }
 
 BasicBlockGraphBuilder::NodeIndex BasicBlockGraphBuilder::AddNode(
-    NodeType node_type, const std::string& token) {
+    NodeType node_type, const std::string& token, bool is_context) {
   const auto it = node_tokens_.find(token);
   TokenIndex token_index = kInvalidTokenIndex;
   if (it != node_tokens_.end()) {
@@ -427,7 +438,7 @@ BasicBlockGraphBuilder::NodeIndex BasicBlockGraphBuilder::AddNode(
         token_index = replacement_token_;
     }
   }
-  return AddNode(node_type, token_index);
+  return AddNode(node_type, token_index, is_context);
 }
 
 void BasicBlockGraphBuilder::AddEdge(EdgeType edge_type, NodeIndex sender,
@@ -505,6 +516,7 @@ std::string BasicBlockGraphBuilder::DebugString() const {
   StrAppendList(buffer, "num_nodes_per_block", num_nodes_per_block());
   StrAppendList(buffer, "num_edges_per_block", num_edges_per_block());
   StrAppendList(buffer, "node_types", node_types());
+  StrAppendList(buffer, "context_node_mask", context_node_mask());
   StrAppendList(buffer, "edge_senders", edge_senders());
   StrAppendList(buffer, "edge_receivers", edge_receivers());
   StrAppendList(buffer, "edge_types", edge_types());
