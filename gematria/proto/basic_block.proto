@@ -33,12 +33,12 @@ message BasicBlockProto {
   // An optional list of machine instructions preceding the basic block, used
   // to provide context that lies before `canonicalized_instructions`. These
   // instructions are not included in the timing measurements and predictions.
-  repeated CanonicalizedInstructionProto machine_back_context = 3;
+  repeated MachineInstructionProto machine_back_context = 3;
 
   // An optional list of machine instructions following the basic block, used
   // to provide context lying after `canonicalized_instructions`. These
   // instructions are not included in the timing measurements and predictions.
-  repeated CanonicalizedInstructionProto machine_front_context = 4;
+  repeated MachineInstructionProto machine_front_context = 4;
 
   // Canonicalized instructions parallel to `machine_back_context`. May be
   // empty in case no back context is provided.
