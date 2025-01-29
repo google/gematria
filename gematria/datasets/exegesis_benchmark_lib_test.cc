@@ -51,7 +51,7 @@ class ExegesisBenchmarkTest : public testing::Test {
   std::unique_ptr<ExegesisBenchmark> Benchmark;
 
  protected:
-  ExegesisBenchmarkTest() : Benchmark(cantFail(ExegesisBenchmark::create())){};
+  ExegesisBenchmarkTest() : Benchmark(cantFail(ExegesisBenchmark::create())) {};
 
   static void SetUpTestSuite() {
     // LLVM Setup

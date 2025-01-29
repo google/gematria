@@ -48,9 +48,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Check c++ formatting
-      uses: jidicula/clang-format-action@v4.11.0
+      uses: jidicula/clang-format-action@v4.14.0
       with:
-        clang-format-version: '18'
+        clang-format-version: '19'
         check-path: 'src'
   check-bazel-formatting:
     name: Bazel Formatting Check
