@@ -377,11 +377,17 @@ std::ostream& operator<<(std::ostream& os, const Instruction& instruction) {
   return os;
 }
 
-BasicBlock::BasicBlock(std::vector<Instruction> instructions)
-    : instructions(std::move(instructions)) {}
+BasicBlock::BasicBlock(std::vector<Instruction> instructions,
+                       std::vector<Instruction> back_context,
+                       std::vector<Instruction> front_context)
+    : instructions(std::move(instructions)),
+      back_context(std::move(back_context)),
+      front_context(std::move(front_context)) {}
 
 bool BasicBlock::operator==(const BasicBlock& other) const {
-  return instructions == other.instructions;
+  return instructions == other.instructions &&
+         back_context == other.back_context &&
+         front_context == other.front_context;
 }
 
 std::string BasicBlock::ToString() const {
@@ -389,6 +395,24 @@ std::string BasicBlock::ToString() const {
   if (!instructions.empty()) {
     buffer += "instructions=InstructionList((";
     for (const Instruction& instruction : instructions) {
+      buffer += instruction.ToString();
+      buffer += ", ";
+    }
+    if (buffer.back() == ' ') buffer.pop_back();
+    buffer += "))";
+  }
+  if (!back_context.empty()) {
+    buffer += "back_context=InstructionList((";
+    for (const Instruction& instruction : back_context) {
+      buffer += instruction.ToString();
+      buffer += ", ";
+    }
+    if (buffer.back() == ' ') buffer.pop_back();
+    buffer += "))";
+  }
+  if (!front_context.empty()) {
+    buffer += "front_context=InstructionList((";
+    for (const Instruction& instruction : front_context) {
       buffer += instruction.ToString();
       buffer += ", ";
     }
