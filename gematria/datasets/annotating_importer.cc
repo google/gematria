@@ -47,12 +47,16 @@
 #include "quipper/perf_parser.h"
 #include "quipper/perf_reader.h"
 
-namespace gematria {
+#if __has_include(<sys/mman.h>)
+#include <sys/mman.h>
+#else
+// Memory mapping protection flag bits from `sys/mman.h`.
+constexpr int PROT_READ = 0x1;
+constexpr int PROT_WRITE = 0x2;
+constexpr int PROT_EXEC = 0x4;
+#endif
 
-// Memory mapping protection flag bits on Linux, from `sys/mman.h`.
-constexpr int kProtRead = 0b001;  /* PROT_READ */
-constexpr int kProtWrite = 0b010; /* PROT_WRITE */
-constexpr int kProtExec = 0b100;  /* PROT_EXEC */
+namespace gematria {
 
 AnnotatingImporter::AnnotatingImporter(const Canonicalizer *canonicalizer)
     : importer_(canonicalizer) {}
@@ -103,8 +107,8 @@ AnnotatingImporter::GetMainMapping(
   for (const auto &event : perf_data->events()) {
     if (event.has_mmap_event() &&
         GetBasenameFromPath(event.mmap_event().filename()) == file_name &&
-        event.mmap_event().prot() & kProtRead &&
-        event.mmap_event().prot() & kProtExec) {
+        event.mmap_event().prot() & PROT_READ &&
+        event.mmap_event().prot() & PROT_EXEC) {
       return &event.mmap_event();
     }
   }
