@@ -91,7 +91,6 @@
 
 #include <cstddef>
 #include <ostream>
-#include <set>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -192,17 +191,18 @@ class BasicBlockGraphBuilder {
   bool AddBasicBlock(const BasicBlock& block, bool add_context = false) {
     if (add_context) {
       return AddBasicBlockFromInstructions(
-          block.instructions, block.back_context, block.front_context);
+          block.instructions, block.preceding_context, block.following_context);
     }
     return AddBasicBlockFromInstructions(block.instructions);
   }
   // A version of AddBasicBlock that takes the list of instructions in the basic
-  // block and optionally its back and front contexts instead of the basic block
-  // object itself.
+  // block and optionally its preceding and following contexts instead of the
+  // basic block object itself.
   bool AddBasicBlockFromInstructions(
       const std::vector<Instruction>& instructions,
-      const std::vector<Instruction>& back_context = std::vector<Instruction>(),
-      const std::vector<Instruction>& front_context =
+      const std::vector<Instruction>& preceding_context =
+          std::vector<Instruction>(),
+      const std::vector<Instruction>& following_context =
           std::vector<Instruction>());
 
   // Resets the graph builder so that it can be used to create a new graph from
@@ -251,9 +251,9 @@ class BasicBlockGraphBuilder {
   // Feature value of the nodes in the batch (i.e. the indices of the tokens
   // corresponding to the nodes). Corresponds to `GraphsTuple.nodes`.
   const std::vector<int>& node_features() const { return node_features_; }
-  // Whether or not the corresponding node belongs to either the back or front
-  // context of the basic block, and not the basic block itself. Used by the
-  // models to exclude context nodes from predictions.
+  // Whether or not the corresponding node belongs to either the preceding or
+  // following context of the basic block, and not the basic block itself. Used
+  // by the models to exclude context nodes from predictions.
   const std::vector<bool>& context_node_mask() const {
     return context_node_mask_;
   }
@@ -386,7 +386,7 @@ class BasicBlockGraphBuilder {
   // a register. Adds the register node if it doesn't exist in the graph.
   bool AddDependencyOnRegister(NodeIndex dependent_node,
                                const std::string& register_name,
-                               EdgeType edge_type);
+                               EdgeType edge_type, bool is_context = false);
 
   // Adds a new node to the batch; the feature of the node is given directly by
   // the caller.

@@ -85,8 +85,8 @@ PYBIND11_MODULE(graph_builder, m) {
       .def("add_basic_block_from_instructions",
            &BasicBlockGraphBuilder::AddBasicBlockFromInstructions,
            py::arg("instructions"),
-           py::arg("back_context") = std::vector<Instruction>(),
-           py::arg("front_context") = std::vector<Instruction>())
+           py::arg("preceding_context") = std::vector<Instruction>(),
+           py::arg("following_context") = std::vector<Instruction>())
       .def("reset", &BasicBlockGraphBuilder::Reset)
       .def_property_readonly("num_node_tokens",
                              &BasicBlockGraphBuilder::num_node_tokens)

@@ -587,13 +587,13 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleBasicBlocksWithContext) {
                                   output_operands: { register_name: "RCX" }
                                   input_operands: { register_name: "RCX" }
                                 }
-                                canonicalized_back_context: {
+                                canonicalized_preceding_context: {
                                   mnemonic: "NOT"
                                   llvm_mnemonic: "NOT64r"
                                   output_operands: { register_name: "RCX" }
                                   input_operands: { register_name: "RCX" }
                                 }
-                                canonicalized_front_context: {
+                                canonicalized_following_context: {
                                   mnemonic: "NOT"
                                   llvm_mnemonic: "NOT64r"
                                   output_operands: { register_name: "RCX" }
@@ -608,7 +608,7 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleBasicBlocksWithContext) {
                                   output_operands: { register_name: "RCX" }
                                   input_operands: { register_name: "RCX" }
                                 }
-                                canonicalized_back_context: {
+                                canonicalized_preceding_context: {
                                   mnemonic: "NOT"
                                   llvm_mnemonic: "NOT64r"
                                   output_operands: { register_name: "RCX" }
@@ -642,7 +642,8 @@ TEST_F(BasicBlockGraphBuilderTest, MultipleBasicBlocksWithContext) {
               ElementsAre(true, false, false, true, false, true, false, true,
                           false, false, true, false));
   EXPECT_THAT(builder_->context_node_mask(),
-              ElementsAre(true, _, _, false, _, true, _, true, _, _, false, _));
+              ElementsAre(true, true, false, false, false, true, true, true,
+                          true, false, false, false));
 
   EXPECT_THAT(
       builder_->edge_types(),
