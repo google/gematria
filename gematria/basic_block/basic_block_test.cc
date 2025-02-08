@@ -596,7 +596,7 @@ TEST(BasicBlockTest, ToString) {
       /* instruction_annotations = */
       {Annotation("MEM_LOAD_RETIRED:L3_MISS", 0.875)});
 
-  BasicBlock block({instruction});
+  BasicBlock block({instruction}, {instruction}, {instruction});
   constexpr char kExpectedString[] =
       "BasicBlock(instructions=InstructionList((Instruction(mnemonic='ADC', "
       "llvm_mnemonic='ADC32rr', prefixes=('LOCK',), "
@@ -606,8 +606,25 @@ TEST(BasicBlockTest, ToString) {
       "output_operands=(InstructionOperand.from_register('RAX'),), "
       "implicit_output_operands=(InstructionOperand.from_register('EFLAGS'),), "
       "instruction_annotations=(Annotation(name='MEM_LOAD_RETIRED:L3_MISS', "
-      "value=0.875),)),"
-      ")))";
+      "value=0.875),)),)), "
+      "preceding_context=InstructionList((Instruction(mnemonic='ADC', "
+      "llvm_mnemonic='ADC32rr', prefixes=('LOCK',), "
+      "input_operands=(InstructionOperand.from_register('RAX'), "
+      "InstructionOperand.from_register('RBX'),), "
+      "implicit_input_operands=(InstructionOperand.from_register('EFLAGS'),), "
+      "output_operands=(InstructionOperand.from_register('RAX'),), "
+      "implicit_output_operands=(InstructionOperand.from_register('EFLAGS'),), "
+      "instruction_annotations=(Annotation(name='MEM_LOAD_RETIRED:L3_MISS', "
+      "value=0.875),)),)), "
+      "following_context=InstructionList((Instruction(mnemonic='ADC', "
+      "llvm_mnemonic='ADC32rr', prefixes=('LOCK',), "
+      "input_operands=(InstructionOperand.from_register('RAX'), "
+      "InstructionOperand.from_register('RBX'),), "
+      "implicit_input_operands=(InstructionOperand.from_register('EFLAGS'),), "
+      "output_operands=(InstructionOperand.from_register('RAX'),), "
+      "implicit_output_operands=(InstructionOperand.from_register('EFLAGS'),), "
+      "instruction_annotations=(Annotation(name='MEM_LOAD_RETIRED:L3_MISS', "
+      "value=0.875),)),)))";
   EXPECT_EQ(block.ToString(), kExpectedString);
 }
 

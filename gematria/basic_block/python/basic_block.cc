@@ -256,14 +256,14 @@ PYBIND11_MODULE(basic_block, m) {
   py::class_<BasicBlock> basic_block(m, "BasicBlock");
   basic_block
       .def(py::init<std::vector<Instruction> /* instructions */,
-                    std::vector<Instruction> /* back_context */,
-                    std::vector<Instruction> /* front_context */>(),
+                    std::vector<Instruction> /* preceding_context */,
+                    std::vector<Instruction> /* following_context */>(),
            py::arg("instructions") = std::vector<Instruction>(),
-           py::arg("back_context") = std::vector<Instruction>(),
-           py::arg("front_context") = std::vector<Instruction>())
+           py::arg("preceding_context") = std::vector<Instruction>(),
+           py::arg("following_context") = std::vector<Instruction>())
       .def_readwrite("instructions", &BasicBlock::instructions)
-      .def_readwrite("back_context", &BasicBlock::back_context)
-      .def_readwrite("front_context", &BasicBlock::front_context)
+      .def_readwrite("preceding_context", &BasicBlock::preceding_context)
+      .def_readwrite("following_context", &BasicBlock::following_context)
       .def("__repr__", &BasicBlock::ToString)
       .def("__str__", &BasicBlock::ToString)
       .def("__eq__", &BasicBlock::operator==)

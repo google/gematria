@@ -378,16 +378,16 @@ std::ostream& operator<<(std::ostream& os, const Instruction& instruction) {
 }
 
 BasicBlock::BasicBlock(std::vector<Instruction> instructions,
-                       std::vector<Instruction> back_context,
-                       std::vector<Instruction> front_context)
+                       std::vector<Instruction> preceding_context,
+                       std::vector<Instruction> following_context)
     : instructions(std::move(instructions)),
-      back_context(std::move(back_context)),
-      front_context(std::move(front_context)) {}
+      preceding_context(std::move(preceding_context)),
+      following_context(std::move(following_context)) {}
 
 bool BasicBlock::operator==(const BasicBlock& other) const {
   return instructions == other.instructions &&
-         back_context == other.back_context &&
-         front_context == other.front_context;
+         preceding_context == other.preceding_context &&
+         following_context == other.following_context;
 }
 
 std::string BasicBlock::ToString() const {
@@ -400,19 +400,21 @@ std::string BasicBlock::ToString() const {
     }
     if (buffer.back() == ' ') buffer.pop_back();
     buffer += "))";
+    if (!preceding_context.empty()) buffer += ", ";
   }
-  if (!back_context.empty()) {
-    buffer += "back_context=InstructionList((";
-    for (const Instruction& instruction : back_context) {
+  if (!preceding_context.empty()) {
+    buffer += "preceding_context=InstructionList((";
+    for (const Instruction& instruction : preceding_context) {
       buffer += instruction.ToString();
       buffer += ", ";
     }
     if (buffer.back() == ' ') buffer.pop_back();
     buffer += "))";
+    if (!following_context.empty()) buffer += ", ";
   }
-  if (!front_context.empty()) {
-    buffer += "front_context=InstructionList((";
-    for (const Instruction& instruction : front_context) {
+  if (!following_context.empty()) {
+    buffer += "following_context=InstructionList((";
+    for (const Instruction& instruction : following_context) {
       buffer += instruction.ToString();
       buffer += ", ";
     }

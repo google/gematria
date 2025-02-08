@@ -183,11 +183,11 @@ BasicBlock BasicBlockFromProto(const BasicBlockProto& proto) {
       /* instructions = */
       ToVector<Instruction>(proto.canonicalized_instructions(),
                             InstructionFromProto),
-      /* back_context = */
-      ToVector<Instruction>(proto.canonicalized_back_context(),
+      /* preceding_context = */
+      ToVector<Instruction>(proto.canonicalized_preceding_context(),
                             InstructionFromProto),
-      /* front_context = */
-      ToVector<Instruction>(proto.canonicalized_front_context(),
+      /* following_context = */
+      ToVector<Instruction>(proto.canonicalized_following_context(),
                             InstructionFromProto));
 }
 

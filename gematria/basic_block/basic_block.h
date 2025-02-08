@@ -328,8 +328,8 @@ struct BasicBlock {
   // context. Needed for compatibility with the Python code.
   explicit BasicBlock(
       std::vector<Instruction> instructions,
-      std::vector<Instruction> back_context = std::vector<Instruction>(),
-      std::vector<Instruction> front_context = std::vector<Instruction>());
+      std::vector<Instruction> preceding_context = std::vector<Instruction>(),
+      std::vector<Instruction> following_context = std::vector<Instruction>());
 
   BasicBlock(const BasicBlock&) = default;
   BasicBlock(BasicBlock&&) = default;
@@ -350,10 +350,10 @@ struct BasicBlock {
   // The list of instructions in the basic block.
   std::vector<Instruction> instructions;
 
-  // The back and front context instructions, i.e. those preceeding and
+  // The preceding and following context instructions, i.e. those preceeding and
   // following the instructions in the basic block.
-  std::vector<Instruction> back_context;
-  std::vector<Instruction> front_context;
+  std::vector<Instruction> preceding_context;
+  std::vector<Instruction> following_context;
 };
 
 std::ostream& operator<<(std::ostream& os, const BasicBlock& block);
