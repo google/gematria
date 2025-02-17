@@ -66,6 +66,11 @@ class AnnotatingImporter {
 
   // Searches all MMap events for the one that most likely corresponds to the
   // executable load segment of the given object.
+  // This requires that the ELF object's filename has not changed from when it
+  // was profiled, since we check its name against the filenames from the
+  // recorded MMap events. Note the object file can still be moved, since we
+  // check only the name and not the path.
+  // TODO(virajbshah): Find a better way to identify the relevant mapping.
   absl::StatusOr<const quipper::PerfDataProto_MMapEvent*> GetMainMapping(
       const llvm::object::ELFObjectFileBase* elf_object,
       const quipper::PerfDataProto* perf_data);
@@ -140,8 +145,8 @@ AnnotatingImporter::GetMainProgramHeader(
         program_header.p_flags & llvm::ELF::PF_X) {
       if (found_main_header) {
         return absl::InvalidArgumentError(
-            "The given object has multiple executable segments. This is "
-            "currently not supported.");
+            "The given object has multiple executable segments. This is"
+            " currently not supported.");
       }
       main_header = program_header;
       found_main_header = true;
