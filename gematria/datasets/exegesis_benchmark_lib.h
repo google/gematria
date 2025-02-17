@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string_view>
 
 #include "gematria/proto/execution_annotation.pb.h"
@@ -46,12 +47,12 @@ class ExegesisBenchmark {
       std::string_view BlockHex, const ExecutionAnnotations &Annotations);
 
   llvm::Expected<double> benchmarkBasicBlock(
-      const llvm::exegesis::BenchmarkCode &BenchCode);
+      const llvm::exegesis::BenchmarkCode &BenchCode,
+      std::optional<int> BenchmarkProcessCPU);
 
  private:
-  // TODO(boomanaiden154): This is duplicated with code from Exegesis for
-  // snippet file parsing. That code should be moved to LLVMState so that we
-  // can reuse it here.
+  // This is a simple wrapper around functionality in ExegesisState that maps
+  // optional values to a register or an error.
   llvm::Expected<llvm::MCRegister> getRegisterFromName(
       llvm::StringRef RegisterName);
 

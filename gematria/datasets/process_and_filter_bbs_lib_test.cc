@@ -53,7 +53,7 @@ class ProcessFilterBBsTest : public testing::Test {
       : LLVMArchSupport(LlvmArchitectureSupport::X86_64()),
         LLVMInstPrinter(LLVMArchSupport->CreateMCInstPrinter(
             InlineAsm::AsmDialect::AD_ATT)),
-        BBProcessor(){};
+        BBProcessor() {};
 
   std::vector<DisassembledInstruction> removeRiskyInstructions(
       std::string_view TextualAssembly, bool FilterMemoryAccessingBlocks) {
