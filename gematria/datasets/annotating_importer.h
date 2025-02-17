@@ -93,7 +93,7 @@ class AnnotatingImporter {
   // object.
   absl::StatusOr<std::vector<DisassembledInstruction>> GetELFSlice(
       const llvm::object::ELFObjectFileBase* elf_object, uint64_t range_begin,
-      uint64_t range_end, uint64_t file_offset);
+      uint64_t range_end, uint64_t offset);
 
   // Extracts basic blocks from an ELF object, and returns them as tuple
   // consisting the begin address, end address, and a vector of

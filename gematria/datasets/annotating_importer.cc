@@ -165,16 +165,16 @@ AnnotatingImporter::GetELFFromBinary(const llvm::object::Binary *binary) {
 absl::StatusOr<std::vector<DisassembledInstruction>>
 AnnotatingImporter::GetELFSlice(
     const llvm::object::ELFObjectFileBase *elf_object, uint64_t range_begin,
-    uint64_t range_end, uint64_t file_offset) {
+    uint64_t range_end, uint64_t offset) {
   llvm::StringRef binary_buf = elf_object->getData();
 
   llvm::ArrayRef<uint8_t> machine_code(
       reinterpret_cast<const uint8_t *>(
-          binary_buf.slice(range_begin, range_end).data()),
+          binary_buf.slice(range_begin + offset, range_end + offset).data()),
       range_end - range_begin);
   absl::StatusOr<std::vector<DisassembledInstruction>> instructions =
-      importer_.DisassembledInstructionsFromMachineCode(
-          machine_code, range_begin - file_offset);
+      importer_.DisassembledInstructionsFromMachineCode(machine_code,
+                                                        range_begin);
   if (!instructions.ok()) {
     return instructions.status();
   }
@@ -386,8 +386,8 @@ AnnotatingImporter::GetLBRBlocksWithLatency(
         blocks[index_map[block_range]].second.push_back(block_latency);
       } else {
         index_map[block_range] = blocks.size();
-        const auto block = GetELFSlice(elf_object, block_begin, block_end,
-                                       main_header->p_vaddr);
+        const auto block =
+            GetELFSlice(elf_object, block_begin, block_end, mapping->pgoff());
         if (!block.ok()) {
           // TODO(vbshah): Make the importer so something better than simply
           // exiting upon encountering something unexpected.
