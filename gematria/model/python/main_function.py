@@ -25,6 +25,7 @@ Typical usage:
 """
 
 from collections.abc import Iterable, Mapping, Sequence
+from contextlib import nullcontext
 import functools
 import os
 import random
@@ -424,6 +425,23 @@ _GEMATRIA_USE_SEQ2SEQ_LOSS = flags.DEFINE_bool(
     ),
 )
 
+_GEMATRIA_RUN_TF_PROFILER = flags.DEFINE_bool(
+    'gematria_run_tf_profiler',
+    False,
+    'Whether the TensorFlow profiler is invoked or not. The profiles are'
+    ' written to --gematria_tf_profile_dir when it is set and first falls back'
+    ' to --gematria_summary_dir and then --gematria_checkpoint_dir by default'
+    ' otherwise. Running the profiler for too many steps may cause issues.',
+)
+_GEMATRIA_TF_PROFILE_DIR = flags.DEFINE_string(
+    'gematria_tf_profile_dir',
+    '',
+    (
+        'When running under the TensorFlow profiler, this is the directory the'
+        ' collected profiles are written to.'
+    ),
+)
+
 
 @flags.validator(
     _COLLECTED_PERCENTILE_RANKS.name,
@@ -698,6 +716,19 @@ def _task_names_from_command_line_flags() -> Sequence[str]:
   return tuple(f'task_{i + 1}' for i in range(num_filters))
 
 
+def _tf_profiler_from_command_line_flags():
+  """Creates a context manager responsible for profiling graph execution."""
+  tf_profile_dir = (
+      _GEMATRIA_TF_PROFILE_DIR.value
+      or _GEMATRIA_SUMMARY_DIR.value
+      or _CHECKPOINT_DIR.value
+  )
+  if not tf_profile_dir:
+    logging.info('Nowhere to write profiles to, running without profiler.')
+    return nullcontext()
+  return profiler.experimental.Profile(logdir=tf_profile_dir)
+
+
 def run_gematria_model_from_command_line_flags(
     model_class: Type[model_base.ModelBase],
     **model_kwargs: Any,
@@ -824,6 +855,9 @@ def run_gematria_model_from_command_line_flags(
       train_summary_writer = tf.summary.create_file_writer(
           _GEMATRIA_SUMMARY_DIR.value
       )
+
+      if _GEMATRIA_RUN_TF_PROFILER.value:
+        tf.profiler.experimental.server.start(_GEMATRIA_TF_PROFILER_PORT.value)
 
       with train_summary_writer.as_default(), tf.summary.record_if(
           lambda: tf.equal(

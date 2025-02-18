@@ -1295,14 +1295,15 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
 
     with timer.scoped('ModelBase.train - one batch', num_iterations=num_epochs):
       for epoch_index in range(num_epochs):
-        tf.summary.experimental.set_step(epoch_index)
-        stats = run_one_epoch()
-        logging.info('Training: %s', stats)
-        if not hooks:
-          continue
-        for epochs_every, hook_function in hooks:
-          if (epoch_index + 1) % epochs_every == 0:
-            hook_function()
+        with tf.profiler.experimental.Trace('train', step_num=epoch_index, _r=1):
+          tf.summary.experimental.set_step(epoch_index)
+          stats = run_one_epoch()
+          logging.info('Training: %s', stats)
+          if not hooks:
+            continue
+          for epochs_every, hook_function in hooks:
+            if (epoch_index + 1) % epochs_every == 0:
+              hook_function()
       return stats
 
   def _compute_loss(self, schedule: FeedDict) -> loss_utils.LossComputation:
