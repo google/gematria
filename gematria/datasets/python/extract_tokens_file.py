@@ -33,10 +33,12 @@ from gematria.proto import throughput_pb2
 from gematria.basic_block.python import basic_block_protos
 from gematria.basic_block.python import basic_block
 
-_INPUT_TFRECORD_FILE = flags.DEFINE_string(
+_INPUT_TFRECORD_FILES = flags.DEFINE_multi_string(
     'gematria_input_tfrecord',
     None,
-    'The path to the tfrecord file to process',
+    'The path(s) to the tfrecord file(s) to process. Repeated usages of this'
+    ' option accumulate to generate a single vocab from a dataset split into'
+    ' multiple TFRecords.',
     required=True,
 )
 _OUTPUT_TXT_FILE = flags.DEFINE_string(
@@ -51,7 +53,7 @@ def main(argv) -> None:
   del argv  # Unused.
 
   loaded_protos = tfrecord.read_protos(
-      [_INPUT_TFRECORD_FILE.value], throughput_pb2.BasicBlockWithThroughputProto
+      _INPUT_TFRECORD_FILES.value, throughput_pb2.BasicBlockWithThroughputProto
   )
 
   tokens = set()
