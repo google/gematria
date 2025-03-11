@@ -460,6 +460,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
         num_epochs=num_epochs,
         randomize_batches=randomize_batches,
         randomize_expected_outputs=True,
+        run_under_tf_profiler=False,
     )
 
     # Check that the files created by the monitored session are there.
@@ -546,6 +547,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
         num_epochs=num_epochs,
         randomize_batches=randomize_batches,
         randomize_expected_outputs=False,
+        run_under_tf_profiler=False,
     )
 
   @flagsaver.flagsaver
@@ -610,6 +612,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
         num_epochs=num_epochs,
         randomize_batches=randomize_batches,
         randomize_expected_outputs=False,
+        run_under_tf_profiler=False,
     )
 
   def test_train_with_resume(self):
