@@ -56,6 +56,7 @@ class LearningRateScheduleType(enum.Enum):
     NATURAL_EXP: Applies natural exponential decay to the initial learning rate.
     NOISY_LINEAR_COSINE: Applies noisy linear cosine decay to the learning rate.
     POLYNOMIAL: Applies a polynomial decay to the learning rate.
+    COSINE_RESTARTS: Applies a cosine decay with restarts to the learning rate.
   """
 
   NONE = 1
@@ -66,6 +67,7 @@ class LearningRateScheduleType(enum.Enum):
   NATURAL_EXP = 6
   NOISY_LINEAR_COSINE = 7
   POLYNOMIAL = 8
+  COSINE_RESTARTS = 9
 
 
 @enum.unique
