@@ -100,7 +100,7 @@ AnnotatingImporter::GetMainMapping(
     const llvm::object::ELFObjectFileBase *elf_object,
     const quipper::PerfDataProto *perf_data) {
   llvm::StringRef file_name =
-      GetBasenameFromPath(elf_object->getFileName().str());
+      GetBasenameFromPath(elf_object->getFileName());
   // TODO(vbshah): There may be multiple mappings corresponding to the profiled
   // binary. Record and match samples from all of them instead of assuming
   // there is only one and returning after finding it.
