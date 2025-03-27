@@ -180,8 +180,15 @@ CanonicalizedInstructionProto ProtoFromInstruction(
 
 BasicBlock BasicBlockFromProto(const BasicBlockProto& proto) {
   return BasicBlock(
-      /* instructions = */ ToVector<Instruction>(
-          proto.canonicalized_instructions(), InstructionFromProto));
+      /* instructions = */
+      ToVector<Instruction>(proto.canonicalized_instructions(),
+                            InstructionFromProto),
+      /* preceding_context = */
+      ToVector<Instruction>(proto.canonicalized_preceding_context(),
+                            InstructionFromProto),
+      /* following_context = */
+      ToVector<Instruction>(proto.canonicalized_following_context(),
+                            InstructionFromProto));
 }
 
 }  // namespace gematria
