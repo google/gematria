@@ -215,6 +215,39 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
         model, self.blocks_with_throughput[0:1], num_epochs=50
     )
 
+  @parameterized.named_parameters(
+      *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
+  )
+  def test_train_seq2seq_context_model(self, loss_type, loss_normalization):
+    blocks_with_throughput = self.blocks_with_throughput[0:1]
+    # Altered version of the regular basic blocks where all instructions belong
+    # to the context - i.e. an empty blocks with contexts matching the original
+    # basic blocks.
+    altered_blocks_with_throughput = [
+        throughput.BasicBlockWithThroughput(
+            block=basic_block.BasicBlock(
+                instructions=original.block.instructions,
+                back_context=original.block.instructions,
+                front_context=original.block.instructions,
+            ),
+            throughputs=original.throughputs,
+        )
+        for original in blocks_with_throughput
+    ]
+
+    model = TestGraphBuilderModel(
+        tokens=self.tokens,
+        loss_type=loss_type,
+        use_deltas=True,
+        use_delta_loss=False,
+        loss_normalization=loss_normalization,
+        num_message_passing_iterations=1,
+    )
+    model.initialize()
+    self.check_training_model(
+        model, altered_blocks_with_throughput, num_epochs=50
+    )
+
   def test_validate_basic_block(self):
     model = TestGraphBuilderModel(
         tokens=self.tokens, num_message_passing_iterations=1
