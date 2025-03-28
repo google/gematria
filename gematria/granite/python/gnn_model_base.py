@@ -417,6 +417,15 @@ class GnnModelBase(model_base.ModelBase):
           )
     return graphs_tuple
 
+  def _add_histogram_summaries(self) -> None:
+    """Adds histogram summaries for tensors.
+
+    Logs histograms for all trainable variables within graph layers.
+    """
+    for layer in self._graph_network:
+      for var in layer.module.trainable_variables:
+        tf.summary.histogram(var.name.replace(':', '_'), var)
+
   def _create_readout_network_resources(self) -> None:
     """Creates resources (like TensorFlow ops) needed by the readout network.
 

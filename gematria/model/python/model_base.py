@@ -415,6 +415,7 @@ class ModelBase(metaclass=abc.ABCMeta):
       )
     self._create_output_and_loss_tensors()
     self._create_optimizer()
+    self._add_histogram_summaries()
     tf.summary.scalar('learning_rate', self._decayed_learning_rate)
 
   @property
@@ -599,6 +600,15 @@ class ModelBase(metaclass=abc.ABCMeta):
     for task_idx, task_name in enumerate(self._task_list):
       summary_name = f'{error_name}_{task_name}'
       tf.summary.scalar(summary_name, error_tensor[task_idx])
+
+  @abc.abstractmethod
+  def _add_histogram_summaries(self) -> None:
+    """Adds histogram summaries for tensors.
+
+    Adds code for logging histogram summaries for model-specific tensors.
+
+    By default, this method is a no-op.
+    """
 
   def _create_output_and_loss_tensors(self) -> None:
     """Creates the output, expected output and loss tensors.
