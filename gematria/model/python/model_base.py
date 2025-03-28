@@ -381,6 +381,8 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
   def initialize(self) -> None:
     """Initializes the model. Must be called before any other method."""
     self._create_optimizer()
+    self._add_histogram_summaries()
+    tf.summary.scalar('learning_rate', self._decayed_learning_rate)
 
   @property
   def use_deltas(self) -> bool:
@@ -543,6 +545,15 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
     for task_idx, task_name in enumerate(self._task_list):
       summary_name = f'{error_name}_{task_name}'
       tf.summary.scalar(summary_name, error_tensor[task_idx])
+
+  @abc.abstractmethod
+  def _add_histogram_summaries(self) -> None:
+    """Adds histogram summaries for tensors.
+
+    Adds code for logging histogram summaries for model-specific tensors.
+
+    By default, this method is a no-op.
+    """
 
   def _make_spearman_correlations(
       self, expected_outputs: tf.Tensor, output_tensor: tf.Tensor
