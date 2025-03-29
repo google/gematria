@@ -141,9 +141,9 @@ git_repository(
 
 new_git_repository(
     name = "pybind11",
+    commit = "e7e5d6e5bb0af543a2ded6d34163176c3e6ab745",
     build_file = "@pybind11_bazel//:pybind11.BUILD",
     remote = "https://github.com/pybind/pybind11.git",
-    tag = "v2.10.3",
 )
 
 git_repository(
