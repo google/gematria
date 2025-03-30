@@ -20,6 +20,7 @@ from runfiles import runfiles
 from gematria.datasets.python import annotating_importer
 from gematria.llvm.python import canonicalizer
 from gematria.llvm.python import llvm_architecture_support
+from gematria.proto import annotation_pb2
 from gematria.proto import basic_block_pb2
 from gematria.proto import canonicalized_instruction_pb2
 from gematria.proto import throughput_pb2
@@ -36,22 +37,22 @@ _EXPECTED_BASIC_BLOCK_PROTO = basic_block_pb2.BasicBlockProto(
     machine_instructions=(
         basic_block_pb2.MachineInstructionProto(
             assembly="\tmovl\t%ecx, %edx",
-            address=18446744073709547787,
+            address=1739,
             machine_code=b"\211\312",
         ),
         basic_block_pb2.MachineInstructionProto(
             assembly="\timull\t%edx, %edx",
-            address=18446744073709547789,
+            address=1741,
             machine_code=b"\017\257\322",
         ),
         basic_block_pb2.MachineInstructionProto(
             assembly="\taddl\t%edx, %eax",
-            address=18446744073709547792,
+            address=1744,
             machine_code=b"\001\320",
         ),
         basic_block_pb2.MachineInstructionProto(
             assembly="\tdecl\t%ecx",
-            address=18446744073709547794,
+            address=1746,
             machine_code=b"\377\311",
         ),
     ),
@@ -93,6 +94,12 @@ _EXPECTED_BASIC_BLOCK_PROTO = basic_block_pb2.BasicBlockProto(
             input_operands=(_CanonicalizedOperandProto(register_name="ECX"),),
             implicit_output_operands=(
                 _CanonicalizedOperandProto(register_name="EFLAGS"),
+            ),
+            instruction_annotations=(
+                annotation_pb2.AnnotationProto(name="cycles:u", value=1.0),
+                annotation_pb2.AnnotationProto(
+                    name="instructions:u", value=1.0
+                ),
             ),
         ),
     ),
