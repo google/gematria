@@ -96,13 +96,9 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
     model = TestSequenceModel(tokens=self.tokens, use_deltas=use_deltas)
     model.initialize()
     schedule = model.schedule_batch(self.blocks_with_throughput)
-    self.assertEqual(schedule[model._token_sequence_placeholder].shape, (58,))
-    self.assertEqual(
-        schedule[model._num_tokens_per_instruction_placeholder].shape, (7,)
-    )
-    self.assertEqual(
-        schedule[model._num_instructions_per_block_placeholder].shape, (3,)
-    )
+    self.assertEqual(schedule['token_sequence'].shape, (58,))
+    self.assertEqual(schedule['num_tokens_per_instruction'].shape, (7,))
+    self.assertEqual(schedule['num_instructions_per_block'].shape, (3,))
 
   def test_schedule_batch_with_invalid_block(self):
     model = TestSequenceModel(tokens=self.tokens)
@@ -181,7 +177,7 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
     self.assertGreaterEqual(model._oov_token, 0)
 
     schedule = model.schedule_batch(self.blocks_with_throughput)
-    token_sequence = schedule[model._token_sequence_placeholder]
+    token_sequence = schedule['token_sequence']
     expected_token_sequence = np.full_like(token_sequence, model._oov_token)
     self.assertAllEqual(token_sequence, expected_token_sequence)
 
@@ -206,9 +202,7 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
     num_all_elements = 0
     for _ in range(num_trials):
       schedule = model.schedule_batch(self.blocks_with_throughput)
-      oov_token_mask = (
-          schedule[model._token_sequence_placeholder] == model._oov_token
-      )
+      oov_token_mask = schedule['token_sequence'] == model._oov_token
       num_ones += sum(oov_token_mask)
       num_all_elements += oov_token_mask.size
 
@@ -233,9 +227,7 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
       # not contain unknown tokens, we expect that the out-of-vocabulary
       # replacement token is never used.
       schedule = model.schedule_batch(self.blocks_with_throughput)
-      oov_token_mask = (
-          schedule[model._token_sequence_placeholder] == model._oov_token
-      )
+      oov_token_mask = schedule['token_sequence'] == model._oov_token
       expected_oov_token_mask = np.zeros_like(oov_token_mask)
       self.assertAllEqual(oov_token_mask, expected_oov_token_mask)
 
@@ -259,5 +251,4 @@ class SequenceModelTest(parameterized.TestCase, model_test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.disable_v2_behavior()
   tf.test.main()
