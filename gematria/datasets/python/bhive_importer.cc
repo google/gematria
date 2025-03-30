@@ -101,6 +101,37 @@ PYBIND11_MODULE(bhive_importer, m) {
           // the right format.
           )
       .def(  //
+          "block_with_throughput_from_hex_and_throughput",
+          &BHiveImporter::BlockWithThroughputFromHexAndThroughput,
+          py::arg("source_name"), py::arg("bb_hex"), py::arg("throughput"),
+          py::arg("throughput_scaling") = 1.0,
+          py::arg("base_address") = uint64_t{0},
+          R"(Creates a BasicBlockWithThroughProto from a hex bb and throughput.
+
+          Creates a proto containing the basic block and associated throughput
+          information directly from the basic block in hex format and the
+          throughput as a floating point number.
+
+          Args:
+            source_name: The name of the throughput source used in the output
+              proto.
+            bb_hex: The basic block as a hex string.
+            throughput: The throughput of the basic block as a floating point
+              value.
+            throughput_scaling: An optional scaling factor applied to
+              {throughput}.
+            base_address: The address of the first instruction of the basic
+              block.
+
+          Returns:
+            A BasicBlockWithThroughputProto that contains the basic block
+            extracted from {bb_hex} with throughput information from
+            {throughput}.
+
+          Raises:
+            StatusNotOk: If parsing the basic block hex fails.
+        )")
+      .def(  //
           "basic_block_with_throughput_proto_from_csv_line",
           &BHiveImporter::ParseBHiveCsvLine, py::arg("source_name"),
           py::arg("line"), py::arg("machine_code_hex_column_index"),

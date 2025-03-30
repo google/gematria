@@ -19,9 +19,9 @@ and produces a text file containing a new-line separated list of all
 the unique tokens that compose the dataset vocab.
 
 Usage:
-  generate_vocab \
-      --input_tfrecord=/tmp/dataset.tfrecord \
-      --output_vocab=/tmp/vocab.txt
+  extract_tokens_file \
+      --gematria_input_tfrecord=/tmp/dataset.tfrecord \
+      --gematria_output_tokens_file=/tmp/vocab.txt
 """
 
 from absl import app
@@ -33,10 +33,12 @@ from gematria.proto import throughput_pb2
 from gematria.basic_block.python import basic_block_protos
 from gematria.basic_block.python import basic_block
 
-_INPUT_TFRECORD_FILE = flags.DEFINE_string(
+_INPUT_TFRECORD_FILES = flags.DEFINE_multi_string(
     'gematria_input_tfrecord',
     None,
-    'The path to the tfrecord file to process',
+    'The path(s) to the tfrecord file(s) to process. Repeated usages of this'
+    ' option accumulate to generate a single vocab from a dataset split into'
+    ' multiple TFRecords.',
     required=True,
 )
 _OUTPUT_TXT_FILE = flags.DEFINE_string(
@@ -51,7 +53,7 @@ def main(argv) -> None:
   del argv  # Unused.
 
   loaded_protos = tfrecord.read_protos(
-      [_INPUT_TFRECORD_FILE.value], throughput_pb2.BasicBlockWithThroughputProto
+      _INPUT_TFRECORD_FILES.value, throughput_pb2.BasicBlockWithThroughputProto
   )
 
   tokens = set()
@@ -64,8 +66,6 @@ def main(argv) -> None:
     )
     for instruction in basic_block_proto.instructions:
       tokens.update(instruction.as_token_list())
-
-    current_proto_index += 1
 
   with open(_OUTPUT_TXT_FILE.value, 'w') as output_file_handle:
     for token in sorted(tokens):
