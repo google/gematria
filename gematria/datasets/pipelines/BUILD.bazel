@@ -53,8 +53,13 @@ gematria_py_binary(
     name = "benchmark_bbs_lib",
     srcs = ["benchmark_bbs_lib.py"],
     deps = [
+        ":benchmark_cpu_scheduler",
+        "//gematria/datasets/python:bhive_importer",
         "//gematria/datasets/python:exegesis_benchmark",
+        "//gematria/llvm/python:canonicalizer",
+        "//gematria/llvm/python:llvm_architecture_support",
         "//gematria/proto:execution_annotation_py_pb2",
+        "//gematria/proto:throughput_py_pb2",
     ],
 )
 
@@ -63,6 +68,7 @@ gematria_py_binary(
     srcs = ["benchmark_bbs.py"],
     deps = [
         ":benchmark_bbs_lib",
+        ":benchmark_cpu_scheduler",
     ],
 )
 
@@ -77,8 +83,10 @@ gematria_py_test(
     ],
     deps = [
         ":benchmark_bbs_lib",
+        ":benchmark_cpu_scheduler",
         "//gematria/io/python:tfrecord",
         "//gematria/proto:execution_annotation_py_pb2",
+        "//gematria/proto:throughput_py_pb2",
     ],
 )
 
