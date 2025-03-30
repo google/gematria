@@ -18,7 +18,7 @@ from gematria.basic_block.python import tokens
 from gematria.model.python import oov_token_behavior
 from gematria.model.python import token_model
 from gematria.testing.python import model_test
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 
@@ -66,9 +66,7 @@ class TokenModelTest(model_test.TestCase):
     model.initialize()
 
     self.assertSequenceEqual(model._token_list, self.tokens)
-    with self.session() as sess:
-      raw_token_list = sess.run(model.token_list_tensor)
-    token_list = raw_token_list.tobytes().split(b'\0')
+    token_list = bytes(model.token_list_tensor).split(b'\0')
     self.assertLen(token_list, len(set(token_list)))
     for token in self.tokens:
       self.assertIn(token.encode(), token_list)
@@ -167,5 +165,4 @@ class TokenModelTest(model_test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.disable_v2_behavior()
   tf.test.main()
