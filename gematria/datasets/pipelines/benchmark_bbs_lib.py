@@ -20,6 +20,11 @@ from pybind11_abseil import status
 
 from gematria.proto import execution_annotation_pb2
 from gematria.datasets.python import exegesis_benchmark
+from gematria.datasets.pipelines import benchmark_cpu_scheduler
+from gematria.proto import throughput_pb2
+from gematria.llvm.python import canonicalizer
+from gematria.llvm.python import llvm_architecture_support
+from gematria.datasets.python import bhive_importer
 
 _BEAM_METRIC_NAMESPACE_NAME = 'benchmark_bbs'
 
@@ -27,13 +32,27 @@ _BEAM_METRIC_NAMESPACE_NAME = 'benchmark_bbs'
 class BenchmarkBasicBlock(beam.DoFn):
   """A Beam function that benchmarks basic blocks."""
 
-  def setup(self):
-    self._exegesis_benchmark = exegesis_benchmark.ExegesisBenchmark.create()
+  def __init__(
+      self,
+      benchmark_scheduler_type: benchmark_cpu_scheduler.BenchmarkSchedulerImplementations,
+  ):
+    self._benchmark_scheduler_type = benchmark_scheduler_type
     self._benchmark_success_blocks = metrics.Metrics.counter(
         _BEAM_METRIC_NAMESPACE_NAME, 'benchmark_bbs_success'
     )
     self._benchmark_failed_blocks = metrics.Metrics.counter(
         _BEAM_METRIC_NAMESPACE_NAME, 'benchmark_blocks_failed'
+    )
+
+  def setup(self):
+    self._exegesis_benchmark = exegesis_benchmark.ExegesisBenchmark.create()
+    self._benchmark_scheduler = (
+        benchmark_cpu_scheduler.construct_benchmark_scheduler(
+            self._benchmark_scheduler_type
+        )
+    )
+    self._benchmarking_core = (
+        self._benchmark_scheduler.setup_and_get_benchmark_core()
     )
 
   def process(
@@ -44,8 +63,10 @@ class BenchmarkBasicBlock(beam.DoFn):
       benchmark_code = self._exegesis_benchmark.process_annotated_block(
           block_with_annotations
       )
+
+      self._benchmark_scheduler.verify()
       benchmark_value = self._exegesis_benchmark.benchmark_basic_block(
-          benchmark_code
+          benchmark_code, self._benchmarking_core
       )
       self._benchmark_success_blocks.inc()
       yield (block_with_annotations.block_hex, benchmark_value)
@@ -54,18 +75,27 @@ class BenchmarkBasicBlock(beam.DoFn):
       pass
 
 
-class FormatBBsForOutput(beam.DoFn):
-  """A Beam function for formatting hex/throughput values for output."""
+class SerializeToProto(beam.DoFn):
+  """A Beam function for formatting hex/throughput values to protos."""
+
+  def setup(self):
+    self._x86_llvm = llvm_architecture_support.LlvmArchitectureSupport.x86_64()
+    self._x86_canonicalizer = canonicalizer.Canonicalizer.x86_64(self._x86_llvm)
+    self._importer = bhive_importer.BHiveImporter(self._x86_canonicalizer)
 
   def process(
       self, block_hex_and_throughput: tuple[str, float]
-  ) -> Iterable[str]:
+  ) -> Iterable[throughput_pb2.BasicBlockWithThroughputProto]:
     block_hex, throughput = block_hex_and_throughput
-    yield f'{block_hex},{throughput}'
+    yield self._importer.block_with_throughput_from_hex_and_throughput(
+        'pipeline', block_hex, throughput
+    )
 
 
 def benchmark_bbs(
-    input_file_pattern: str, output_file_pattern: str
+    input_file_pattern: str,
+    output_file_pattern: str,
+    benchmark_scheduler_type: benchmark_cpu_scheduler.BenchmarkSchedulerImplementations,
 ) -> Callable[[beam.Pipeline], None]:
   """Creates a pipeline to benchmark BBs."""
 
@@ -78,14 +108,17 @@ def benchmark_bbs(
     )
     annotated_bbs_shuffled = annotated_bbs | 'Shuffle' >> beam.Reshuffle()
     benchmarked_blocks = annotated_bbs_shuffled | 'Benchmarking' >> beam.ParDo(
-        BenchmarkBasicBlock()
+        BenchmarkBasicBlock(benchmark_scheduler_type)
     )
-    formatted_output = benchmarked_blocks | 'Formatting' >> beam.ParDo(
-        FormatBBsForOutput()
+    block_protos = benchmarked_blocks | 'Serialize to protos' >> beam.ParDo(
+        SerializeToProto()
     )
 
-    _ = formatted_output | 'Write To Text' >> beam.io.WriteToText(
-        output_file_pattern
+    _ = block_protos | 'Write serialized blocks' >> beam.io.WriteToTFRecord(
+        output_file_pattern,
+        coder=beam.coders.ProtoCoder(
+            throughput_pb2.BasicBlockWithThroughputProto().__class__
+        ),
     )
 
   return pipeline
