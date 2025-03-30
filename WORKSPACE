@@ -49,7 +49,7 @@ git_repository(
     patch_args = ["-p1"],
     patches = ["@//:benchmark_build.patch"],
     remote = "https://github.com/google/benchmark.git",
-    tag = "v1.8.3",
+    tag = "v1.9.1",
 )
 
 # rules_foreign_cc is required to build libpfm4 since it is originally
@@ -199,9 +199,9 @@ new_git_repository(
 # The pinned version of LLVM, and its SHA256 hash. The `LLVM_COMMIT` variable in
 # `.github/workflows/main.yaml` must be updated to match this everytime it is
 # changed.
-LLVM_COMMIT = "cd66c9b6a04689659348c0a3ff4c1205b1133fe9"
+LLVM_COMMIT = "f3e8e805630e5092458a80e00ba83f7ad45e2302"
 
-LLVM_SHA256 = "8d2a8b2e0accdf072a3897aec6a3e68d522dfc1b40416b3c4215bb5af36a36e1"
+LLVM_SHA256 = "dbb7b4a3b391bbfe4fb0617a874affd0e22355da860f5c17bf928fe89d263aed"
 
 http_archive(
     name = "llvm-raw",

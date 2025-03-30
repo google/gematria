@@ -221,7 +221,7 @@ std::ostream& operator<<(std::ostream& os, const InstructionOperand& operand);
 // Represents an annotation holding a value such as some measure/statistic
 // paired with the instruction.
 struct Annotation {
-  Annotation() : value(-1){};
+  Annotation() : value(-1) {};
 
   // Initializes all fields of the annotation.
   Annotation(std::string name, double value);
