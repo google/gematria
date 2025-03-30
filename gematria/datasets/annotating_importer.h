@@ -59,9 +59,21 @@ class AnnotatingImporter {
                                std::string_view source_name);
 
  private:
-  // Loads a `perf.data`-like file into the importer. Must be called before
-  // `GetSamples`, `GetLBRData`, and `GetLBRBlocksWithLatency`.
-  absl::Status LoadPerfData(std::string_view file_name);
+  // Loads a `perf.data`-like file for use by the importer. The returned pointer
+  // is valid only as long as this instance of `AnnotatingImporter` is alive.
+  absl::StatusOr<const quipper::PerfDataProto*> LoadPerfData(
+      std::string_view file_name);
+
+  // Searches all MMap events for the one that most likely corresponds to the
+  // executable load segment of the given object.
+  // This requires that the ELF object's filename has not changed from when it
+  // was profiled, since we check its name against the filenames from the
+  // recorded MMap events. Note the object file can still be moved, since we
+  // check only the name and not the path.
+  // TODO(virajbshah): Find a better way to identify the relevant mapping.
+  absl::StatusOr<const quipper::PerfDataProto_MMapEvent*> GetMainMapping(
+      const llvm::object::ELFObjectFileBase* elf_object,
+      const quipper::PerfDataProto* perf_data);
 
   // Loads a binary into for use by the importer.
   absl::StatusOr<llvm::object::OwningBinary<llvm::object::Binary>> LoadBinary(
@@ -81,7 +93,7 @@ class AnnotatingImporter {
   // object.
   absl::StatusOr<std::vector<DisassembledInstruction>> GetELFSlice(
       const llvm::object::ELFObjectFileBase* elf_object, uint64_t range_begin,
-      uint64_t range_end, uint64_t file_offset);
+      uint64_t range_end, uint64_t offset);
 
   // Extracts basic blocks from an ELF object, and returns them as tuple
   // consisting the begin address, end address, and a vector of
@@ -91,28 +103,30 @@ class AnnotatingImporter {
   absl::StatusOr<std::vector<std::vector<DisassembledInstruction>>>
   GetBlocksFromELF(const llvm::object::ELFObjectFileBase* elf_object);
 
-  // Extracts samples from the `perf.data`-file loaded using `LoadPerfData`,
-  // usually obtained from `perf record`. Returns a {`sample_types`, `samples`}
-  // pair. `sample_types` is a vector of sample type names, while `samples` is
-  // a mapping between sample addresses and the corresponding sample values.
+  // Extracts samples belonging to `mapping` from the `perf_data`. Returns a
+  // {`sample_types`, `samples`} pair. `sample_types` is a vector of sample
+  // type names, while `samples` is a mapping between sample addresses and the
+  // corresponding sample values.
   // The ordering of the sample values matches the ordering of types in the
   // heading.
   absl::StatusOr<std::pair<std::vector<std::string>,
                            std::unordered_map<uint64_t, std::vector<int>>>>
-  GetSamples();
+  GetSamples(const quipper::PerfDataProto* perf_data,
+             const quipper::PerfDataProto_MMapEvent* mapping);
 
-  // Extracts start and end pairs, as well as latencies in cycles, of sequences
-  // of straight-run code from branch stacks.
-  // LBR data is extracted from the `perf.data`-like file loaded using
-  // `LoadPerfData`.
+  // Extracts start and end pairs belonging to the given mapping, as well as
+  // their latencies in cycles, of sequences of straight-run code from
+  // LBR branch stacks (pseudo-basic blocks).
   absl::StatusOr<std::vector<
       std::pair<std::vector<DisassembledInstruction>, std::vector<uint32_t>>>>
-  GetLBRBlocksWithLatency(const llvm::object::ELFObjectFileBase* elf_object);
+  GetLBRBlocksWithLatency(const llvm::object::ELFObjectFileBase* elf_object,
+                          const quipper::PerfDataProto* perf_data,
+                          const quipper::PerfDataProto_MMapEvent* mapping);
 
   BHiveImporter importer_;
+
+  // Owns the `PerfDataProto` that samples and branch records are read from.
   quipper::PerfReader perf_reader_;
-  quipper::PerfParser perf_parser_;
-  quipper::PerfDataProto::MMapEvent main_mapping_;
 };
 
 template <class ELFT>
@@ -131,8 +145,8 @@ AnnotatingImporter::GetMainProgramHeader(
         program_header.p_flags & llvm::ELF::PF_X) {
       if (found_main_header) {
         return absl::InvalidArgumentError(
-            "The given object has multiple executable segments. This is "
-            "currently not supported.");
+            "The given object has multiple executable segments. This is"
+            " currently not supported.");
       }
       main_header = program_header;
       found_main_header = true;
