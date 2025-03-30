@@ -121,6 +121,25 @@ BHiveImporter::BasicBlockProtoFromMachineCodeHex(
                                         base_address);
 }
 
+absl::StatusOr<BasicBlockWithThroughputProto>
+BHiveImporter::BlockWithThroughputFromHexAndThroughput(
+    std::string_view source_name, std::string_view bb_hex, double throughput,
+    double throughput_scaling, uint64_t base_address) {
+  BasicBlockWithThroughputProto proto;
+  absl::StatusOr<BasicBlockProto> block_proto_or_status =
+      BasicBlockProtoFromMachineCodeHex(bb_hex, base_address);
+  if (!block_proto_or_status.ok()) return block_proto_or_status.status();
+  *proto.mutable_basic_block() = std::move(block_proto_or_status).value();
+
+  ThroughputWithSourceProto& throughput_proto =
+      *proto.add_inverse_throughputs();
+  throughput_proto.set_source(source_name);
+  throughput_proto.add_inverse_throughput_cycles(throughput *
+                                                 throughput_scaling);
+
+  return proto;
+}
+
 absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseBHiveCsvLine(
     std::string_view source_name, std::string_view line,
     size_t machine_code_hex_column_index, size_t throughput_column_index,
@@ -144,24 +163,15 @@ absl::StatusOr<BasicBlockWithThroughputProto> BHiveImporter::ParseBHiveCsvLine(
       columns[machine_code_hex_column_index];
   const std::string_view throughput_str = columns[throughput_column_index];
 
-  BasicBlockWithThroughputProto proto;
-  absl::StatusOr<BasicBlockProto> block_proto_or_status =
-      BasicBlockProtoFromMachineCodeHex(machine_code_hex, base_address);
-  if (!block_proto_or_status.ok()) return block_proto_or_status.status();
-  *proto.mutable_basic_block() = std::move(block_proto_or_status).value();
-
   double throughput_cycles = 0.0;
   if (!absl::SimpleAtod(throughput_str, &throughput_cycles)) {
     return absl::InvalidArgumentError(
         absl::StrCat("Could not parse throughput value ", throughput_str));
   }
 
-  ThroughputWithSourceProto& throughput = *proto.add_inverse_throughputs();
-  throughput.set_source(source_name);
-  throughput.add_inverse_throughput_cycles(throughput_cycles *
-                                           throughput_scaling);
-
-  return proto;
+  return BlockWithThroughputFromHexAndThroughput(
+      source_name, machine_code_hex, throughput_cycles, throughput_scaling,
+      base_address);
 }
 
 }  // namespace gematria

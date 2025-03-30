@@ -19,7 +19,7 @@ name: Gematria CI
 # TODO(virajbshah): Find a better way to keep these two in sync without the
 # need to update one manually every time the other is changed.
 env:
-  LLVM_COMMIT: 29b92d07746fac26cd64c914bc9c5c3833974f6d
+  LLVM_COMMIT: f3e8e805630e5092458a80e00ba83f7ad45e2302
 
 on:
   push:
@@ -48,9 +48,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Check c++ formatting
-      uses: jidicula/clang-format-action@v4.11.0
+      uses: jidicula/clang-format-action@v4.14.0
       with:
-        clang-format-version: '18'
+        clang-format-version: '19'
         check-path: 'src'
   check-bazel-formatting:
     name: Bazel Formatting Check
@@ -144,5 +144,5 @@ jobs:
     - name: Run build
       run: bazel build -c ${{ matrix.build-config }} ...
     - name: Run tests
-      run: bazel test -c ${{ matrix.build-config }} --test_tag_filters="-perf_counters" --test_output=errors ...
+      run: bazel test -c ${{ matrix.build-config }} --define run_under_ci=1 --test_tag_filters="-perf_counters" --test_output=errors ...
 
