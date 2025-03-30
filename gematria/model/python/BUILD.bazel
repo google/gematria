@@ -23,9 +23,6 @@ gematria_py_test(
     name = "inference_test",
     size = "small",
     srcs = ["inference_test.py"],
-    tags = [
-        "manual",
-    ],
     deps = [
         ":inference",
         ":model_base",
