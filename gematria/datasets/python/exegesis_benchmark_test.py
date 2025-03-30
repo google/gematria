@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 from absl.testing import absltest
 
 from gematria.datasets.python import bhive_to_exegesis
@@ -31,7 +33,7 @@ class ExegesisBenchmarkTests(absltest.TestCase):
     )
     self.exegesis_benchmark = exegesis_benchmark.ExegesisBenchmark.create()
 
-  def test_benchmarking(self):
+  def _get_block_for_benchmarking(self) -> exegesis_benchmark.BenchmarkCode:
     execution_annotations = self.bhive_to_exegesis.annotate_basic_block(
         "4829d38b44246c8b54246848c1fb034829d04839c3",
         bhive_to_exegesis.AnnotatorType.fast,
@@ -49,8 +51,23 @@ class ExegesisBenchmarkTests(absltest.TestCase):
         block_with_annotations
     )
 
+    return benchmark_code
+
+  def test_benchmarking(self):
+    benchmark_code = self._get_block_for_benchmarking()
+
     block_measurement = self.exegesis_benchmark.benchmark_basic_block(
         benchmark_code
+    )
+
+    self.assertLess(block_measurement, 10)
+
+  def test_benchmarking_pinned_core(self):
+    benchmark_code = self._get_block_for_benchmarking()
+    benchmark_core = os.sched_getaffinity(0).pop()
+
+    block_measurement = self.exegesis_benchmark.benchmark_basic_block(
+        benchmark_code, benchmark_core
     )
 
     self.assertLess(block_measurement, 10)
