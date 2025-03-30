@@ -3,6 +3,15 @@ package(
     features = ["layering_checks"],
 )
 
+# Used to dry-run benchmarks when they are invoked as part of continuous
+# integration checks as `bazel test --define run_under_ci=1 ...`.
+config_setting(
+    name = "run_under_ci",
+    define_values = {
+        "run_under_ci": "1",
+    },
+)
+
 # The macro BALANCE_FLUSHING_TIME is defined when this matches. This enables the
 # lines of code that create and flush mock data structures in *_NoFlush
 # benchmarks to cancel out the time spent doing those operations as compared to
@@ -17,6 +26,11 @@ config_setting(
 COMMON_TEST_HDRS = ["configuration.h"]
 
 FEATURE_OPTS = ["-mclflushopt"]
+
+BENCHMARK_CI_OPTS = select({
+    ":run_under_ci": ["--benchmark_dry_run"],
+    "//conditions:default": [],
+})
 
 BALANCE_FLUSHING_TIME_OPTS = select({
     ":balance_flushing_time": ["-DGEMATRIA_EXPERIMENTS_ACCESS_PATTERN_BM_BALANCE_FLUSHING_TIME"],
@@ -42,6 +56,7 @@ cc_test(
         "linked_list.h",
         "linked_list_test.cc",
     ],
+    args = BENCHMARK_CI_OPTS,
     copts = BALANCE_FLUSHING_TIME_OPTS,
     deps = [
         ":linked_list",
@@ -70,6 +85,7 @@ cc_test(
         "contiguous_matrix.h",
         "contiguous_matrix_test.cc",
     ],
+    args = BENCHMARK_CI_OPTS,
     copts = BALANCE_FLUSHING_TIME_OPTS,
     deps = [
         ":contiguous_matrix",
@@ -97,6 +113,7 @@ cc_test(
         "vec_of_vec_matrix.h",
         "vec_of_vec_matrix_test.cc",
     ],
+    args = BENCHMARK_CI_OPTS,
     copts = BALANCE_FLUSHING_TIME_OPTS,
     deps = [
         ":vec_of_vec_matrix",
@@ -112,6 +129,7 @@ cc_test(
         "stl_container.h",
         "stl_container_test.cc",
     ],
+    args = BENCHMARK_CI_OPTS,
     copts = BALANCE_FLUSHING_TIME_OPTS + FEATURE_OPTS,  # Since templated functions using _mm_clflushopt are defined in the header.
     target_compatible_with = [
         "@platforms//cpu:x86_64",
@@ -130,6 +148,7 @@ cc_test(
         "stl_assoc_container.h",
         "stl_assoc_container_test.cc",
     ],
+    args = BENCHMARK_CI_OPTS,
     copts = BALANCE_FLUSHING_TIME_OPTS + FEATURE_OPTS,  # Since templated functions using _mm_clflushopt are defined in the header.
     target_compatible_with = [
         "@platforms//cpu:x86_64",
