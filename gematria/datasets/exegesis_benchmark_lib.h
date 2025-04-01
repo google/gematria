@@ -25,8 +25,10 @@
 #include "llvm/Support/Error.h"
 #include "llvm/Support/JSON.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkCode.h"
+#include "llvm/tools/llvm-exegesis/lib/BenchmarkResult.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkRunner.h"
 #include "llvm/tools/llvm-exegesis/lib/LlvmState.h"
+#include "llvm/tools/llvm-exegesis/lib/SnippetRepetitor.h"
 
 namespace gematria {
 
@@ -45,6 +47,12 @@ class ExegesisBenchmark {
 
   llvm::Expected<llvm::exegesis::BenchmarkCode> processAnnotatedBlock(
       std::string_view BlockHex, const ExecutionAnnotations &Annotations);
+
+  llvm::Expected<llvm::exegesis::Benchmark> benchmarkConfiguration(
+      const llvm::exegesis::BenchmarkCode &BenchCode,
+      const llvm::exegesis::SnippetRepetitor &Repetitor,
+      unsigned int MinInstructions,
+      std::optional<int> BenchmarkProcessCPU);
 
   llvm::Expected<double> benchmarkBasicBlock(
       const llvm::exegesis::BenchmarkCode &BenchCode,

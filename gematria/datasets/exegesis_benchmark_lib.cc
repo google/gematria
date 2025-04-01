@@ -40,6 +40,7 @@
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkCode.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkResult.h"
 #include "llvm/tools/llvm-exegesis/lib/BenchmarkRunner.h"
+#include "llvm/tools/llvm-exegesis/lib/Error.h"
 #include "llvm/tools/llvm-exegesis/lib/LlvmState.h"
 #include "llvm/tools/llvm-exegesis/lib/RegisterValue.h"
 #include "llvm/tools/llvm-exegesis/lib/ResultAggregator.h"
@@ -340,6 +341,27 @@ Expected<BenchmarkCode> ExegesisBenchmark::processAnnotatedBlock(
   return BenchmarkConfiguration;
 }
 
+Expected<Benchmark> ExegesisBenchmark::benchmarkConfiguration(
+    const BenchmarkCode &BenchCode, const SnippetRepetitor &Repetitor,
+    unsigned int MinInstructions, std::optional<int> BenchmarkProcessCPU) {
+  while (true) {
+    Expected<BenchmarkRunner::RunnableConfiguration> RC =
+        BenchRunner->getRunnableConfiguration(BenchCode, 5000, 0, Repetitor);
+    if (!RC) return RC.takeError();
+
+    std::pair<Error, Benchmark> BenchmarkResultOrErr =
+        BenchRunner->runConfiguration(std::move(*RC), {}, BenchmarkProcessCPU);
+    if (std::get<0>(BenchmarkResultOrErr).isA<PerfCounterNotFullyEnabled>())
+      continue;
+
+    if (std::get<0>(BenchmarkResultOrErr)) {
+      return std::move(std::get<0>(BenchmarkResultOrErr));
+    }
+
+    return std::move(std::get<1>(BenchmarkResultOrErr));
+  }
+}
+
 Expected<double> ExegesisBenchmark::benchmarkBasicBlock(
     const BenchmarkCode &BenchCode, std::optional<int> BenchmarkProcessCPU) {
   std::unique_ptr<const SnippetRepetitor> SnipRepetitor =
@@ -347,28 +369,15 @@ Expected<double> ExegesisBenchmark::benchmarkBasicBlock(
                                ExegesisState, BenchCode.Key.LoopRegister);
   SmallVector<Benchmark, 2> AllResults;
 
-  auto RC1 =
-      BenchRunner->getRunnableConfiguration(BenchCode, 5000, 0, *SnipRepetitor);
-  if (!RC1) return RC1.takeError();
-  auto RC2 = BenchRunner->getRunnableConfiguration(BenchCode, 10000, 0,
-                                                   *SnipRepetitor);
-  if (!RC2) return RC2.takeError();
+  Expected<Benchmark> BenchmarkResultAOrErr = benchmarkConfiguration(
+      BenchCode, *SnipRepetitor, 5000, BenchmarkProcessCPU);
+  if (!BenchmarkResultAOrErr) return BenchmarkResultAOrErr.takeError();
+  AllResults.push_back(std::move(*BenchmarkResultAOrErr));
 
-  std::pair<Error, Benchmark> BenchmarkResultAOrErr =
-      BenchRunner->runConfiguration(std::move(*RC1), {}, BenchmarkProcessCPU);
-
-  if (std::get<0>(BenchmarkResultAOrErr))
-    return std::move(std::get<0>(BenchmarkResultAOrErr));
-
-  AllResults.push_back(std::move(std::get<1>(BenchmarkResultAOrErr)));
-
-  std::pair<Error, Benchmark> BenchmarkResultBOrErr =
-      BenchRunner->runConfiguration(std::move(*RC2), {}, BenchmarkProcessCPU);
-
-  if (std::get<0>(BenchmarkResultBOrErr))
-    return std::move(std::get<0>(BenchmarkResultBOrErr));
-
-  AllResults.push_back(std::move(std::get<1>(BenchmarkResultBOrErr)));
+  Expected<Benchmark> BenchmarkResultBOrErr = benchmarkConfiguration(
+      BenchCode, *SnipRepetitor, 10000, BenchmarkProcessCPU);
+  if (!BenchmarkResultBOrErr) return BenchmarkResultBOrErr.takeError();
+  AllResults.push_back(std::move(*BenchmarkResultBOrErr));
 
   std::unique_ptr<ResultAggregator> ResultAgg =
       ResultAggregator::CreateAggregator(
