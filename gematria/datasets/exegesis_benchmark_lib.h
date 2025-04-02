@@ -51,8 +51,7 @@ class ExegesisBenchmark {
   llvm::Expected<llvm::exegesis::Benchmark> benchmarkConfiguration(
       const llvm::exegesis::BenchmarkCode &BenchCode,
       const llvm::exegesis::SnippetRepetitor &Repetitor,
-      unsigned int MinInstructions,
-      std::optional<int> BenchmarkProcessCPU);
+      unsigned int MinInstructions, std::optional<int> BenchmarkProcessCPU);
 
   llvm::Expected<double> benchmarkBasicBlock(
       const llvm::exegesis::BenchmarkCode &BenchCode,
