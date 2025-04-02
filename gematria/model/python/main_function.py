@@ -25,7 +25,6 @@ Typical usage:
 """
 
 from collections.abc import Iterable, Mapping, Sequence
-from contextlib import nullcontext
 import functools
 import os
 import random
@@ -443,17 +442,17 @@ _GEMATRIA_USE_SEQ2SEQ_LOSS = flags.DEFINE_bool(
 _GEMATRIA_RUN_TF_PROFILER = flags.DEFINE_bool(
     'gematria_run_tf_profiler',
     False,
-    'Whether the TensorFlow profiler is invoked or not. The profiles are'
-    ' written to --gematria_tf_profile_dir when it is set and first falls back'
-    ' to --gematria_summary_dir and then --gematria_checkpoint_dir by default'
-    ' otherwise. Running the profiler for too many steps may cause issues.',
+    'Whether the TensorFlow profiler gRPC server is started or not. When set,'
+    ' the server will listen to `gematria_tf_profiler_port` for requests for'
+    ' on-demand profiling. Requests can be sent through'
+    ' `tf.profiler.experimental.client.trace` or through the TensorBoard GUI.',
 )
-_GEMATRIA_TF_PROFILE_DIR = flags.DEFINE_string(
-    'gematria_tf_profile_dir',
-    '',
+_GEMATRIA_TF_PROFILER_PORT = flags.DEFINE_integer(
+    'gematria_tf_profiler_port',
+    6009,
     (
-        'When running under the TensorFlow profiler, this is the directory the'
-        ' collected profiles are written to.'
+        'When running under the TensorFlow profiler, this is the port the'
+        ' gRPC server listens for tracing requests from.'
     ),
 )
 
@@ -788,19 +787,6 @@ def _task_names_from_command_line_flags() -> Sequence[str]:
   return tuple(f'task_{i + 1}' for i in range(num_filters))
 
 
-def _tf_profiler_from_command_line_flags():
-  """Creates a context manager responsible for profiling graph execution."""
-  tf_profile_dir = (
-      _GEMATRIA_TF_PROFILE_DIR.value
-      or _GEMATRIA_SUMMARY_DIR.value
-      or _CHECKPOINT_DIR.value
-  )
-  if not tf_profile_dir:
-    logging.info('Nowhere to write profiles to, running without profiler.')
-    return nullcontext()
-  return profiler.experimental.Profile(logdir=tf_profile_dir)
-
-
 def run_gematria_model_from_command_line_flags(
     model_class: Type[model_base.ModelBase],
     **model_kwargs: Any,
@@ -923,26 +909,22 @@ def run_gematria_model_from_command_line_flags(
           _resume_previous_experiment_if_needed()
 
         if _GEMATRIA_RUN_TF_PROFILER.value:
-          tf_profiler = _tf_profiler_from_command_line_flags()
-        else:
-          tf_profiler = nullcontext()
+          profiler.experimental.server.start(_GEMATRIA_TF_PROFILER_PORT.value)
 
         with timer.scoped('Create training session'):
           session = _monitored_training_session_from_flags(model, is_chief)
         with timer.scoped('Running the training'):
           with session:
-            with tf_profiler:
-              randomize_expected_outputs = (
-                  _TRAINING_THROUGHPUT_SELECTION.value
-                  == io_options.ThroughputSelection.RANDOM
-              )
-              model.train(
-                  session,
-                  tuple(blocks_with_throughput),
-                  max_blocks_in_batch=_GEMATRIA_MAX_BLOCKS_IN_BATCH.value,
-                  max_instructions_in_batch=max_instructions_in_batch,
-                  num_epochs=_GEMATRIA_TRAINING_NUM_EPOCHS.value,
-                  randomize_batches=_GEMATRIA_TRAINING_RANDOMIZE_BATCHES.value,
-                  randomize_expected_outputs=randomize_expected_outputs,
-                  run_under_tf_profiler=_GEMATRIA_RUN_TF_PROFILER.value,
-              )
+            randomize_expected_outputs = (
+                _TRAINING_THROUGHPUT_SELECTION.value
+                == io_options.ThroughputSelection.RANDOM
+            )
+            model.train(
+                session,
+                tuple(blocks_with_throughput),
+                max_blocks_in_batch=_GEMATRIA_MAX_BLOCKS_IN_BATCH.value,
+                max_instructions_in_batch=max_instructions_in_batch,
+                num_epochs=_GEMATRIA_TRAINING_NUM_EPOCHS.value,
+                randomize_batches=_GEMATRIA_TRAINING_RANDOMIZE_BATCHES.value,
+                randomize_expected_outputs=randomize_expected_outputs,
+            )
