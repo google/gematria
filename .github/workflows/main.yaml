@@ -31,7 +31,7 @@ on:
 jobs:
   check-python-formatting:
     name: Python Formatting Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install Python
@@ -44,7 +44,7 @@ jobs:
         run: pyink --check --diff .
   check-cpp-formatting:
     name: C++ Formatting Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - name: Check c++ formatting
@@ -54,7 +54,7 @@ jobs:
         check-path: 'src'
   check-bazel-formatting:
     name: Bazel Formatting Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - uses: thompsonja/bazel-buildifier@v0.4.0
@@ -62,7 +62,7 @@ jobs:
         buildifier_version: v6.1.2
   check-cmake-projects:
     name: Check CMake-based projects
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: hendrikmuhs/ccache-action@v1.2.14
@@ -100,7 +100,7 @@ jobs:
           ninja llvm-granite check-llvm-tools-llvm-cm
   check-bazel:
     name: Run bazel build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       USE_BAZEL_VERSION: 6.4.0
     strategy:
