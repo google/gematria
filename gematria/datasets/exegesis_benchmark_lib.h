@@ -48,7 +48,7 @@ class ExegesisBenchmark {
   llvm::Expected<llvm::exegesis::BenchmarkCode> processAnnotatedBlock(
       std::string_view BlockHex, const ExecutionAnnotations &Annotations);
 
-  llvm::Expected<llvm::exegesis::Benchmark> benchmarkConfiguration(
+  llvm::Expected<llvm::exegesis::Benchmark> runBenchmarkForConfiguration(
       const llvm::exegesis::BenchmarkCode &BenchCode,
       const llvm::exegesis::SnippetRepetitor &Repetitor,
       unsigned int MinInstructions, std::optional<int> BenchmarkProcessCPU);

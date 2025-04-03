@@ -51,6 +51,13 @@ using namespace llvm;
 using namespace llvm::exegesis;
 
 namespace gematria {
+namespace {
+
+// The maximum number of attempts to benchmark a snippet retrying when
+// performance counters are only partially enabled before erroring out.
+constexpr unsigned kMaxBenchmarkingAttempts = 1000;
+
+}  // namespace
 
 ExegesisBenchmark::ExegesisBenchmark(LLVMState &&State)
     : ExegesisState(std::move(State)) {
@@ -341,12 +348,16 @@ Expected<BenchmarkCode> ExegesisBenchmark::processAnnotatedBlock(
   return BenchmarkConfiguration;
 }
 
-Expected<Benchmark> ExegesisBenchmark::benchmarkConfiguration(
+Expected<Benchmark> ExegesisBenchmark::runBenchmarkForConfiguration(
     const BenchmarkCode &BenchCode, const SnippetRepetitor &Repetitor,
     unsigned int MinInstructions, std::optional<int> BenchmarkProcessCPU) {
-  while (true) {
+  int benchmarking_attempts_left = kMaxBenchmarkingAttempts;
+  while (benchmarking_attempts_left > 0) {
+    --benchmarking_attempts_left;
+
     Expected<BenchmarkRunner::RunnableConfiguration> RC =
-        BenchRunner->getRunnableConfiguration(BenchCode, 5000, 0, Repetitor);
+        BenchRunner->getRunnableConfiguration(BenchCode, MinInstructions, 0,
+                                              Repetitor);
     if (!RC) return RC.takeError();
 
     std::pair<Error, Benchmark> BenchmarkResultOrErr =
@@ -360,6 +371,9 @@ Expected<Benchmark> ExegesisBenchmark::benchmarkConfiguration(
 
     return std::move(std::get<1>(BenchmarkResultOrErr));
   }
+
+  return make_error<StringError>(
+      "Hit the maximum number of benchmarking attempts", errc::io_error);
 }
 
 Expected<double> ExegesisBenchmark::benchmarkBasicBlock(
@@ -369,12 +383,12 @@ Expected<double> ExegesisBenchmark::benchmarkBasicBlock(
                                ExegesisState, BenchCode.Key.LoopRegister);
   SmallVector<Benchmark, 2> AllResults;
 
-  Expected<Benchmark> BenchmarkResultAOrErr = benchmarkConfiguration(
+  Expected<Benchmark> BenchmarkResultAOrErr = runBenchmarkForConfiguration(
       BenchCode, *SnipRepetitor, 5000, BenchmarkProcessCPU);
   if (!BenchmarkResultAOrErr) return BenchmarkResultAOrErr.takeError();
   AllResults.push_back(std::move(*BenchmarkResultAOrErr));
 
-  Expected<Benchmark> BenchmarkResultBOrErr = benchmarkConfiguration(
+  Expected<Benchmark> BenchmarkResultBOrErr = runBenchmarkForConfiguration(
       BenchCode, *SnipRepetitor, 10000, BenchmarkProcessCPU);
   if (!BenchmarkResultBOrErr) return BenchmarkResultBOrErr.takeError();
   AllResults.push_back(std::move(*BenchmarkResultBOrErr));
