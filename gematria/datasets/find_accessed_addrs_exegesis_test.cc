@@ -148,6 +148,8 @@ TEST_F(FindAccessedAddrsExegesisTest, ExegesisMultipleSameAddressError) {
   // exegesis will fail to map the address when it attempts to. We use a value
   // above the virtual address space ceiling when using five level page tables
   // to prevent test failures on newer platforms.
+  // https://docs.kernel.org/5.10/x86/x86_64/mm.html contains information on
+  // the exact virtual address space layout.
   auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
     movabsq $0x0100000000000000, %rax
     movq (%rax), %rax
