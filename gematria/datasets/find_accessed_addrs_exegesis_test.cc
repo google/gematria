@@ -144,11 +144,12 @@ TEST_F(FindAccessedAddrsExegesisTest, ExegesisZeroAddressError) {
 
 TEST_F(FindAccessedAddrsExegesisTest, ExegesisMultipleSameAddressError) {
   // Try and load memory from an address above the current user space address
-  // space ceiling (assuming five level page tables are not enabled) as the
-  // script will currently try and annotate this, but exegesis will fail
-  // to map the address when it attempts to.
+  // space ceiling as the script will currently try and annotate this, but
+  // exegesis will fail to map the address when it attempts to. We use a value
+  // above the virtual address space ceiling when using five level page tables
+  // to prevent test failures on newer platforms.
   auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
-    movabsq $0x0000800000000000, %rax
+    movabsq $0x0100000000000000, %rax
     movq (%rax), %rax
   )asm");
   ASSERT_FALSE(static_cast<bool>(AddrsOrErr));
