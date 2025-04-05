@@ -219,6 +219,13 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
     // snippet successfully and thus have all the needed memory annotations.
     if (!std::get<0>(BenchmarkResultOrErr)) break;
 
+    // If we run into an error where the perf counter has not been enabled the
+    // entire time, we can ignore it. This error can only occur after the entire
+    // snippet has executed and we do not care about performance measurements
+    // in the annotation stage.
+    if (std::get<0>(BenchmarkResultOrErr).isA<PerfCounterNotFullyEnabled>())
+      break;
+
     if (!std::get<0>(BenchmarkResultOrErr).isA<SnippetSegmentationFault>())
       return std::move(std::get<0>(BenchmarkResultOrErr));
 
