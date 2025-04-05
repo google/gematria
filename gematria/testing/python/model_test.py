@@ -118,7 +118,6 @@ class TestCase(basic_blocks_with_throughput.TestCase, tf.test.TestCase):
       max_expected_min_loss=0.2,
       log_directory=None,
       print_output_to_log=False,
-      session=None,
   ):
     """Tests training the given model.
 
@@ -138,17 +137,12 @@ class TestCase(basic_blocks_with_throughput.TestCase, tf.test.TestCase):
         are not stored.
       print_output_to_log: When True, the contents of the output tensor is
         printed to the log at each step.
-      session: An optional session to run the training in. If `session` is not
-        None, the method will run the training in it, but it will not release
-        the session at the end. If `session` is None, the function will create a
-        session just for the training, and it will release it at the end.
     """
     blocks = blocks or self.blocks_with_throughput
 
-    def _check_training(sess):
+    def _check_training():
       if log_directory is not None:
-        tf.summary.FileWriter(logdir=log_directory, graph=sess.graph)
-      sess.run(tf.global_variables_initializer())
+        tf.summary.FileWriter(logdir=log_directory)
       schedule = model.schedule_batch(blocks)
 
       # The loss at the end of the training may increase temporarily, and it is
@@ -157,15 +151,15 @@ class TestCase(basic_blocks_with_throughput.TestCase, tf.test.TestCase):
       min_mse = [math.inf] * model.num_tasks
       min_relative_mse = [math.inf] * model.num_tasks
       for epoch in range(num_epochs):
-        stats = model.train_batch(sess, schedule)
+        stats = model.train_batch(schedule)
         if print_output_to_log:
-          output = sess.run(model.output_tensor, schedule)
+          output = model(schedule)
           # The output is a 2D tensor of shape (batch_size, num_tasks). When
           # num_tasks == 1, the output is a 2D column tensor. We reshape it to
           # (num_tasks,), so that it prints on a single line. When num_tasks > 1
           # we leave the shape as is.
-          if output.shape[1] == 1:
-            output = output.reshape((-1,))
+          if output['output'].shape[1] == 1:
+            output['output'] = output['output'].reshape((-1,))
           logging.info('Output: %r', output)
         # Check basic properties.
         self.assertEqual(stats.epoch, epoch + 1)
@@ -193,12 +187,4 @@ class TestCase(basic_blocks_with_throughput.TestCase, tf.test.TestCase):
         )
       self.assertAllLess(min_relative_mse, max_expected_min_loss)
 
-    if session:
-      # If an external session was provided, just run the training in the
-      # session and assume that the owner will take care of releasing it
-      # afterwards.
-      _check_training(session)
-    else:
-      # Otherwise, create a session for this call and release it at the end.
-      with self.session() as session:
-        _check_training(session)
+    _check_training()
