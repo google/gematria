@@ -86,6 +86,10 @@ class SequenceModelBase(token_model.TokenModel, model_base.ModelBase):
   _num_tokens_per_instruction_placeholder: tf.Tensor
   _num_instructions_per_block_placeholder: tf.Tensor
 
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+    self._model = self._create_model()
+
   @abc.abstractmethod
   def _create_model(self) -> tf_keras.Model:
     """Creates the Keras model for this class.
@@ -101,35 +105,17 @@ class SequenceModelBase(token_model.TokenModel, model_base.ModelBase):
       The Keras model matching the input/output specification.
     """
 
-  def _create_tf_graph(self) -> None:
-    super()._create_tf_graph()
-    self._model = self._create_model()
-    self._token_sequence_placeholder = tf.placeholder(
-        dtype=tf.dtypes.int32,
-        shape=(None,),
-        name='SequenceModelBase.token_sequence',
-    )
-    self._num_tokens_per_instruction_placeholder = tf.placeholder(
-        dtype=tf.dtypes.int32,
-        shape=(None,),
-        name='SequenceModelBase.num_tokens_per_instruction',
-    )
-    self._num_instructions_per_block_placeholder = tf.placeholder(
-        dtype=tf.dtypes.int32,
-        shape=(None,),
-        name='SequenceModelBase.num_instructions_per_block',
-    )
-
+  def _forward(self, feed_dict):
     model_output = self._model((
-        self._token_sequence_placeholder,
-        self._num_tokens_per_instruction_placeholder,
-        self._num_instructions_per_block_placeholder,
+        feed_dict['token_sequence'],
+        feed_dict['num_tokens_per_instruction'],
+        feed_dict['num_instructions_per_block'],
     ))
 
     if self._use_deltas:
-      self._output_tensor_deltas = model_output
+      return {'output_deltas': model_output}
     else:
-      self._output_tensor = model_output
+      return {'output': model_output}
 
   # @Override
   def _start_batch(self) -> None:
@@ -151,11 +137,11 @@ class SequenceModelBase(token_model.TokenModel, model_base.ModelBase):
       batch_tokens[oov_injection_mask] = self._oov_token
 
     return {
-        self._token_sequence_placeholder: batch_tokens,
-        self._num_tokens_per_instruction_placeholder: np.array(
+        'token_sequence': batch_tokens,
+        'num_tokens_per_instruction': np.array(
             self._batch_num_tokens_per_instruction, dtype=np.int32
         ),
-        self._num_instructions_per_block_placeholder: np.array(
+        'num_instructions_per_block': np.array(
             self._batch_num_instructions_per_block, dtype=np.int32
         ),
     }
