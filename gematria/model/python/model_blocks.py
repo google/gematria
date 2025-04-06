@@ -78,8 +78,3 @@ class ResidualConnectionLayer(tf_keras.layers.Layer):
       residual_part = self._linear_transformation(residual_part)
 
     return tf.math.add(output_part, residual_part, name=self.name)
-
-
-def cast(dtype: tf.dtypes.DType) -> snt.AbstractModule:
-  """Creates a sonnet module that casts a tensor to the specified dtype."""
-  return snt.Module(build=functools.partial(tf.cast, dtype=dtype))
