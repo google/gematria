@@ -65,19 +65,5 @@ class ResidualConnectionLayerTest(tf.test.TestCase):
     self.assertNotAllClose(output_tensor, input_tensor)
 
 
-class CastTest(tf.test.TestCase):
-
-  def test_int32_to_float_cast(self):
-    input_shape = (4, 24)
-    input_dtype = tf.dtypes.int32
-    output_dtype = tf.dtypes.float32
-    input_tensor = tf.ones(input_shape, input_dtype)
-    cast = model_blocks.cast(output_dtype)
-    output_tensor = cast(input_tensor)
-
-    self.assertEqual(output_tensor.shape, input_shape)
-    self.assertEqual(output_tensor.dtype, output_dtype)
-
-
 if __name__ == '__main__':
   tf.test.main()
