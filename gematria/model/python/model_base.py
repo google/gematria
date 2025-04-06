@@ -50,7 +50,7 @@ import tf_slim.evaluation
 # simpler than what is actually accepted by TensorFlow, but the typing should be
 # sufficient for our use. Moreover, since TensorFlow and NumPy do not provide
 # type annotations, both the key and the value are reduced to typing.Any.
-FeedDict = MutableMapping[tf.Tensor, np.ndarray]
+FeedDict = MutableMapping[str, Union[np.ndarray, tf.Tensor]]
 
 # A throughput value used as a placeholder in the expected output tensors for
 # masked expected outputs.
@@ -120,7 +120,7 @@ class SaveBestCheckpoint(tf.train.SessionRunHook):
       )
 
 
-class ModelBase(metaclass=abc.ABCMeta):
+class ModelBase(tf.Module, metaclass=abc.ABCMeta):
   """Base class for Gematria basic block processing models.
 
   Provides infrastructure for building basic-block-oriented models on top of
@@ -321,16 +321,6 @@ class ModelBase(metaclass=abc.ABCMeta):
     self._decayed_learning_rate = None
     self._loss: Optional[loss_utils.LossComputation] = None
     self._delta_loss: Optional[loss_utils.LossComputation] = None
-    self._output_tensor: Optional[tf.Tensor] = None
-    self._output_tensor_deltas: Optional[tf.Tensor] = None
-    # The mask applied to outputs/expected outputs when a basic block has
-    # expected outputs only in certain tasks. Tasks where the expected output is
-    # not available are ignored in the loss computation.
-    self._output_mask: Optional[tf.Tensor] = None
-    self._output_mask_deltas: Optional[tf.Tensor] = None
-    self._expected_outputs: Optional[tf.Tensor] = None
-    self._expected_outputs_deltas: Optional[tf.Tensor] = None
-    self._loss_tensor: Optional[tf.Tensor] = None
     self._train_step: Optional[tf.Operation] = None
     self._optimizer: Union[
         tf.train.Optimizer, tf.train.SyncReplicasOptimizer
@@ -377,43 +367,6 @@ class ModelBase(metaclass=abc.ABCMeta):
 
   def initialize(self) -> None:
     """Initializes the model. Must be called before any other method."""
-    self._expected_outputs = tf.placeholder(
-        dtype=self.dtype, shape=(None, self.num_tasks), name='expected_outputs'
-    )
-    if self._create_delta_block_index:
-      self._delta_block_index_tensor = tf.placeholder(
-          _BASIC_BLOCK_INDEX_TF_DTYPE,
-          shape=(None,),
-          name='ModelBase.delta_block_index_tensor',
-      )
-    self._create_tf_graph()
-    # Check that the required tensors were created by _create_tf_graph().
-    expected_shape = (None, self.num_tasks)
-    if not self._use_deltas:
-      assert (
-          self._output_tensor is not None
-      ), 'self._output_tensor was not created by self._create_tf_graph()'
-      assert (
-          self._output_tensor_deltas is None
-      ), 'self._output_tensor_deltas was created with self._use_deltas == False'
-      assert self._output_tensor.shape.is_compatible_with(expected_shape), (
-          f'Expected shape {expected_shape}, got '
-          f'{self._output_tensor.shape.as_list()}'
-      )
-    else:
-      assert (
-          self._output_tensor_deltas is not None
-      ), 'self._output_tensor_deltas was not created by self._create_tf_graph()'
-      assert (
-          self._output_tensor is None
-      ), 'self._output_tensor was created with self._use_deltas == True'
-      assert self._output_tensor_deltas.shape.is_compatible_with(
-          expected_shape
-      ), (
-          f'Expected shape {expected_shape}, got '
-          f'{self._output_tensor_deltas.shape.as_list()}'
-      )
-    self._create_output_and_loss_tensors()
     self._create_optimizer()
     tf.summary.scalar('learning_rate', self._decayed_learning_rate)
 
@@ -446,23 +399,6 @@ class ModelBase(metaclass=abc.ABCMeta):
     return self._task_list
 
   @property
-  def output_tensor(self) -> tf.Tensor:
-    """Returns the tensor that contains the per-basic block outputs."""
-    return self._output_tensor
-
-  @property
-  def output_tensor_deltas(self) -> tf.Tensor:
-    """Returns the tensor that contains the output deltas.
-
-    This property is available only when self.use_deltas is True.
-    """
-    if not self._use_deltas:
-      raise AttributeError(
-          ModelBase._USE_DELTAS_ATTRIBUTE_ERROR_MESSAGE % 'output_tensor_deltas'
-      )
-    return self._output_tensor_deltas
-
-  @property
   def loss_type(self) -> options.LossType:
     """Returns the type of loss used by the model."""
     return self._loss_type
@@ -471,38 +407,6 @@ class ModelBase(metaclass=abc.ABCMeta):
   def loss_normalization(self) -> options.ErrorNormalization:
     """Returns the error normalization used when computing the loss."""
     return self._loss_normalization
-
-  @property
-  def loss_tensor(self) -> tf.Tensor:
-    """Returns the loss tensor."""
-    return self._loss_tensor
-
-  @property
-  def absolute_mse_tensor(self) -> tf.Tensor:
-    """Returns the absolute loss tensor."""
-    if self._loss is None:
-      raise ValueError(
-          'self._loss is None while returning absolute mse loss tensor'
-      )
-    return self._loss.mean_squared_error
-
-  @property
-  def relative_mae_tensor(self) -> tf.Tensor:
-    """Returns the relative MAE (L1 loss) tensor."""
-    if self._loss is None:
-      raise ValueError(
-          'self._loss is None while returning relative mae (L1 loss) tensor'
-      )
-    return self._loss.mean_absolute_percentage_error
-
-  @property
-  def relative_mse_tensor(self) -> tf.Tensor:
-    """Returns the relative loss tensor."""
-    if self._loss is None:
-      raise ValueError(
-          'self._loss is None while returning relative mse loss tensor'
-      )
-    return self._loss.mean_squared_percentage_error
 
   @property
   def collected_percentile_ranks(self) -> Sequence[int]:
@@ -537,6 +441,44 @@ class ModelBase(metaclass=abc.ABCMeta):
     return (ModelBase.OUTPUT_TENSOR_NAME,)
 
   @abc.abstractmethod
+  def _forward(self, feed_dict: FeedDict) -> dict[str, tf.Tensor]:
+    """Implements the forward pass of the model.
+
+    This function should be implemented in downstream models and calculate the
+    outputs of the model given the inputs specified in feed_dict.
+    """
+    pass
+
+  def __call__(self, feed_dict, train=False):
+    """Implements the non-model specific part of the forward pass.
+
+    This function wraps the _forward method and does relevant calculations
+    when working with models that use deltas.
+    """
+    if self._use_deltas:
+      output_dict = {}
+
+      if train:
+        output_dict['output_mask_deltas'] = tf.nn.embedding_lookup(
+            feed_dict['output_mask'],
+            feed_dict['delta_block_index'],
+            name='ModelBase.output_mask_deltas',
+        )
+
+      output = self._forward(feed_dict)
+
+      output_dict['output'] = tf.math.segment_sum(
+          output['output_deltas'],
+          feed_dict['delta_block_index'],
+          name=ModelBase.OUTPUT_TENSOR_NAME,
+      )
+      output_dict['output_deltas'] = output['output_deltas']
+
+      return output_dict
+    else:
+      return self._forward(feed_dict)
+
+  @abc.abstractmethod
   def _make_model_name(self) -> str:
     """Returns a model name based on its class and parameters."""
 
@@ -546,17 +488,6 @@ class ModelBase(metaclass=abc.ABCMeta):
       raise ValueError(f'Invalid task index: {task_index}')
     task_name = self.task_list[task_index]
     return f'{self.model_name}, task={task_name}'
-
-  @abc.abstractmethod
-  def _create_tf_graph(self) -> None:
-    """Creates the TensorFlow ops necessary to run the model.
-
-    This method must set up self._output_tensor when self._use_deltas is True,
-    or self._output_tensor_deltas when self._use_deltas is False.
-    """
-    # NOTE(ondrasej): Even though the method is marked as abstract, it may still
-    # appear in the super() call chain of some classes. We thus make it a no-op
-    # rather than raise NotImplementedError or other exception.
 
   def _add_percentile_summaries(
       self,
@@ -599,168 +530,6 @@ class ModelBase(metaclass=abc.ABCMeta):
     for task_idx, task_name in enumerate(self._task_list):
       summary_name = f'{error_name}_{task_name}'
       tf.summary.scalar(summary_name, error_tensor[task_idx])
-
-  def _create_output_and_loss_tensors(self) -> None:
-    """Creates the output, expected output and loss tensors.
-
-    This method is called after calling _create_tf_graph().
-    """
-    self._expected_outputs = tf.placeholder(
-        self.dtype,
-        shape=(None, self.num_tasks),
-        name='ModelBase.expected_outputs',
-    )
-    self._output_mask = tf.placeholder(
-        tf.dtypes.bool,
-        shape=(None, self.num_tasks),
-        name='ModelBase.output_mask',
-    )
-    if self._use_deltas:
-      assert self._delta_block_index_tensor is not None
-      self._expected_outputs_deltas = tf.placeholder(
-          self.dtype,
-          shape=(None, self.num_tasks),
-          name='ModelBase.expected_outputs_deltas',
-      )
-      # The mask for all instructions of a block is the same as the mask for the
-      # whole block. Instead of composing it in Python, we use embedding_lookup
-      # to stretch the per-block mask to the right shape.
-      self._output_mask_deltas = tf.nn.embedding_lookup(
-          self._output_mask,
-          self._delta_block_index_tensor,
-          name='ModelBase.output_mask_deltas',
-      )
-
-      # Tensor names are in the format "op_name:index", where "op_name" is the
-      # name of the op that produced the tensor, and "index" is the index of the
-      # output of the op. Most ops have just a single output (and terminate with
-      # ":0"), so we add an additional warning to the log in case the index is
-      # not "0" as this might cause errors from omission.
-      if self._output_tensor_deltas is None:
-        raise ValueError(
-            'ModelBase._output_tensor_deltas is None while creating output,'
-            ' expected output and loss tensors.'
-        )
-      output_deltas_name, output_deltas_index = (
-          self._output_tensor_deltas.name.split(':')
-      )
-      if output_deltas_name != ModelBase.OUTPUT_TENSOR_DELTAS_NAME:
-        logging.warning(
-            (
-                'ModelBase._output_tensor_deltas has invalid name.'
-                ' Expected %s, found %s.'
-            ),
-            ModelBase.OUTPUT_TENSOR_DELTAS_NAME,
-            output_deltas_name,
-        )
-        self._output_tensor_deltas = tf.identity(
-            self._output_tensor_deltas, ModelBase.OUTPUT_TENSOR_DELTAS_NAME
-        )
-      elif output_deltas_index != '0':
-        # NOTE(ondrasej): We can't rename the output tensor automatically,
-        # because the desired name is already taken, and the output index 0 is
-        # used by another tensor.
-        logging.warning(
-            (
-                'ModelBase._output_tensor_deltas has an unexpected index: '
-                'expected 0, found %s.'
-            ),
-            output_deltas_index,
-        )
-      self._output_tensor = tf.math.segment_sum(
-          self._output_tensor_deltas,
-          self._delta_block_index_tensor,
-          name=ModelBase.OUTPUT_TENSOR_NAME,
-      )
-    else:
-      if self._output_tensor is None:
-        raise ValueError(
-            'ModelBase._output_tensor is None while creating output,'
-            ' expected output and loss tensors.'
-        )
-      output_name, output_index = self._output_tensor.name.split(':')
-      if output_name != ModelBase.OUTPUT_TENSOR_NAME:
-        logging.warning(
-            'ModelBase._output_tensor has invalid name. Expected %s, found %s.',
-            ModelBase.OUTPUT_TENSOR_NAME,
-            self._output_tensor.name,
-        )
-        self._output_tensor = tf.identity(
-            self._output_tensor, ModelBase.OUTPUT_TENSOR_NAME
-        )
-      elif output_index != '0':
-        logging.warning(
-            (
-                'ModelBase._output_tensor has an unexpected index: expected 0,'
-                ' found %s.'
-            ),
-            output_index,
-        )
-
-    self._loss = loss_utils.LossComputation(
-        self._output_tensor,
-        self._expected_outputs,
-        self._output_mask,
-        percentile_ranks=self._collected_percentile_ranks,
-        dtype=self.dtype,
-    )
-    self._add_error_summaries('absolute_mse', self._loss.mean_squared_error)
-    self._add_error_summaries(
-        'relative_mae', self._loss.mean_absolute_percentage_error
-    )
-    self._add_error_summaries(
-        'relative_mse', self._loss.mean_squared_percentage_error
-    )
-    self._add_percentile_summaries(
-        'absolute_error',
-        self._collected_percentile_ranks,
-        self._loss.absolute_error_percentiles,
-    )
-    self._add_percentile_summaries(
-        'absolute_percentage_error',
-        self._collected_percentile_ranks,
-        self._loss.absolute_percentage_error_percentiles,
-    )
-
-    loss = self._loss
-    if self._use_deltas:
-      self._delta_loss = loss_utils.LossComputation(
-          self._output_tensor_deltas,
-          self._expected_outputs_deltas,
-          self._output_mask_deltas,
-          percentile_ranks=self._collected_percentile_ranks,
-          dtype=self.dtype,
-      )
-
-      self._add_error_summaries(
-          'absolute_mse_deltas', self._delta_loss.mean_squared_error
-      )
-      self._add_error_summaries(
-          'absolute_mae_deltas', self._delta_loss.mean_absolute_error
-      )
-      self._add_percentile_summaries(
-          'absolute_error_deltas',
-          self._collected_percentile_ranks,
-          self._delta_loss.absolute_error_percentiles,
-      )
-
-      if self._use_delta_loss:
-        loss = self._delta_loss
-
-    spearman_correlations = self._make_spearman_correlations(
-        self._expected_outputs, self._output_tensor
-    )
-    self._add_error_summaries('spearman', spearman_correlations)
-
-    self._loss_tensor_per_task = loss.loss_tensor(
-        self._loss_normalization, self._loss_type
-    )
-    self._loss_tensor = loss.loss_tensor(
-        self._loss_normalization, self._loss_type
-    )
-    self._add_error_summaries('loss', self._loss_tensor_per_task)
-    self._loss_tensor = tf.reduce_mean(self._loss_tensor_per_task)
-    tf.summary.scalar('overall_loss', self._loss_tensor)
 
   def _make_spearman_correlations(
       self, expected_outputs: tf.Tensor, output_tensor: tf.Tensor
@@ -867,12 +636,6 @@ class ModelBase(metaclass=abc.ABCMeta):
       )
       self._decayed_learning_rate = self._learning_rate
 
-    # The list of variables to optimize. By default, the list is empty which
-    # means optimize all trainable variables.
-    variables = set()
-    for variable_group in self._trained_variable_groups:
-      variables.update(self._variable_groups.get(variable_group))
-
     if self._optimizer_type == options.OptimizerType.ADAM:
       self._optimizer = tf.train.AdamOptimizer(
           learning_rate=self._decayed_learning_rate
@@ -902,21 +665,6 @@ class ModelBase(metaclass=abc.ABCMeta):
       logging.warning(
           'ModelBase._synchronous_training is True with a single worker.'
       )
-    grads_and_vars = self._optimizer.compute_gradients(
-        self._loss_tensor, var_list=list(variables) if variables else None
-    )
-    if self._grad_clip_norm:
-      if self._grad_clip_norm <= 0.0:
-        logging.warning(
-            'The gradients are clipped to zero. Please revise if this is not '
-            'intended.'
-        )
-      grads_and_vars = [
-          (self._clip_if_not_none(g), v) for g, v in grads_and_vars
-      ]
-    self._train_step = self._optimizer.apply_gradients(
-        grads_and_vars, global_step=self.global_step
-    )
 
   def get_monitored_training_session_hooks(
       self,
@@ -997,17 +745,17 @@ class ModelBase(metaclass=abc.ABCMeta):
     """
     schedule = self._make_batch_feed_dict()
     if self._create_delta_block_index:
-      schedule[self._delta_block_index_tensor] = np.array(
+      schedule['delta_block_index'] = np.array(
           self._batch_delta_block_index, dtype=_BASIC_BLOCK_INDEX_NUMPY_DTYPE
       )
     if include_expected_outputs:
-      schedule[self._expected_outputs] = np.reshape(
+      schedule['expected_outputs'] = np.reshape(
           np.array(self._batch_expected_outputs, dtype=self.numpy_dtype),
           [-1, self.num_tasks],
       )
-      schedule[self._output_mask] = np.array(self._batch_mask, dtype=bool)
+      schedule['output_mask'] = np.array(self._batch_mask, dtype=bool)
       if self._use_deltas:
-        schedule[self._expected_outputs_deltas] = np.reshape(
+        schedule['expected_outputs_deltas'] = np.reshape(
             np.array(
                 self._batch_expected_outputs_deltas, dtype=self.numpy_dtype
             ),
@@ -1340,10 +1088,6 @@ class ModelBase(metaclass=abc.ABCMeta):
         randomize_expected_outputs=False,
     )
 
-    if self._loss is None:
-      raise ValueError(
-          'ModelBase._loss is None while running continuous evaluation.'
-      )
     hooks = [
         tf_slim.evaluation.StopAfterNEvalsHook(1),
         tf_slim.evaluation.SummaryAtEndHook(summary_dir, feed_dict=schedule),
@@ -1373,19 +1117,16 @@ class ModelBase(metaclass=abc.ABCMeta):
 
   def predict(
       self,
-      sess: tf.Session,
       basic_blocks: Iterable[basic_block.BasicBlock],
       max_blocks_in_batch: Optional[int] = None,
       max_instructions_in_batch: Optional[int] = None,
   ) -> Iterable[throughput.BasicBlockWithThroughput]:
     """Predicts the inverse throughput using the model.
 
-    Assumes that sess has been initialized and that it contains the weights for
-    the model. The input sequence is iterated through only once, and the method
-    may be used with basic block sources such as tf.io.tf_record_iterator.
+    The input sequence is iterated through only once, and the method may be
+    used with basic block sources such as tf.io.tf_record_iterator.
 
     Args:
-      sess: The TensorFlow session object in which the computation is done.
       basic_blocks: The collection of basic blocks for which the inverse
         throughput is predicted.
       max_blocks_in_batch: The maximal number of basic blocks processed in a
@@ -1411,10 +1152,9 @@ class ModelBase(metaclass=abc.ABCMeta):
       with timer.scoped('ModelBase.predict - one batch'):
         schedule = self.schedule_batch(batch)
         if self._use_deltas:
-          output, output_deltas = sess.run(
-              (self._output_tensor, self._output_tensor_deltas),
-              feed_dict=schedule,
-          )
+          output_dict = self(schedule)
+          output = output_dict['output']
+          output_deltas = output_dict['output_deltas']
           output_index = 0
           for block_index, block in enumerate(batch):
             block_len = len(block.instructions)
@@ -1442,7 +1182,7 @@ class ModelBase(metaclass=abc.ABCMeta):
                 )
             )
         else:
-          output = sess.run(self._output_tensor, feed_dict=schedule)
+          output = self(schedule)['output']
           for block_index, block in enumerate(batch):
             throughputs = []
             for task_index in range(self.num_tasks):
@@ -1464,7 +1204,6 @@ class ModelBase(metaclass=abc.ABCMeta):
 
   def train(
       self,
-      monitored_session: tf.train.MonitoredSession,
       basic_block_list: Sequence[throughput.BasicBlockWithThroughput],
       num_epochs: int,
       max_blocks_in_batch: Optional[int],
@@ -1475,7 +1214,6 @@ class ModelBase(metaclass=abc.ABCMeta):
     """Runs training of the model on the given training data.
 
     Args:
-      monitored_session: The monitored training session to run the training in.
       basic_block_list: The collection of input basic blocks.
       num_epochs: The number of training steps. This value is used only for
         profiling and logging; the method uses monitored_session.should_stop()
@@ -1502,7 +1240,6 @@ class ModelBase(metaclass=abc.ABCMeta):
 
       def run_one_epoch():
         return self.train_mini_batch(
-            monitored_session,
             basic_block_list,
             max_blocks_in_batch=max_blocks_in_batch,
             max_instructions_in_batch=max_instructions_in_batch,
@@ -1531,74 +1268,116 @@ class ModelBase(metaclass=abc.ABCMeta):
         schedule = self.schedule_batch(
             batch, randomize_expected_outputs=randomize_expected_outputs
         )
-        return self.train_batch(monitored_session, schedule)
+        return self.train_batch(schedule)
 
-    with timer.scoped('ModelBase.train - one batch', num_iterations=num_epochs):
-      stats = None
-      while not monitored_session.should_stop():
-        stats = run_one_epoch()
-        logging.info('Training: %s', stats)
+    for _ in range(0, num_epochs):
+      stats = run_one_epoch()
+      logging.info('Training: %s', stats)
       return stats
+
+  def compute_loss(self, schedule: FeedDict):
+    output = self(schedule, train=True)
+    loss = loss_utils.LossComputation(
+        output['output'],
+        tf.constant(schedule['expected_outputs']),
+        tf.constant(schedule['output_mask']),
+        percentile_ranks=self._collected_percentile_ranks,
+        dtype=self.dtype,
+    )
+
+    if self._use_deltas:
+      self._delta_loss = loss_utils.LossComputation(
+          output['output_deltas'],
+          tf.constant(schedule['expected_outputs_deltas']),
+          output['output_mask_deltas'],
+          percentile_ranks=self._collected_percentile_ranks,
+          dtype=self.dtype,
+      )
+
+      if self._use_delta_loss:
+        loss = self._delta_loss
+
+    return loss
+
+  def compute_loss_tensor(self, schedule: FeedDict):
+    return tf.reduce_mean(
+        self.compute_loss(schedule).loss_tensor(
+            self._loss_normalization, self._loss_type
+        )
+    )
 
   def train_batch(
       self,
-      sess: Union[tf.Session, tf.train.MonitoredSession],
       schedule: FeedDict,
   ) -> training.TrainingEpochStats:
     """Trains a batch based on the given schedule.
 
     Args:
-      sess: The TensorFlow session the training is running in.
       schedule: A feed_dict that describes the current batch.
 
     Returns:
       The loss on the training set before the training step.
     """
     with timer.scoped('ModelBase.train_batch'):
-      # The keys in the are names of keyword arguments of the constructor of
-      # TraningEpochStats. sess.run() returns a dict that has the same keys and
-      # the values of these tensors in the training step. This dict can then be
-      # unpacked to TrainingEpochStats.__init__() as keyword arguments.
-      # NOTE(ondrasej): The loss tensors are created lazily, when they are first
-      # referenced. To be used here, the tensors need to be created (referenced)
-      # during graph creation, e.g. by adding them as TensorFlow summaries in
-      # self._create_output_and_loss_tensors().
-      stats_ops = {}
-      stats_ops['epoch'] = self.global_step
-      stats_ops['loss'] = self._loss_tensor
-      if self._loss is None:
-        raise ValueError('ModelBase._loss is None inside train_batch function')
-      stats_ops['absolute_mse'] = self._loss.mean_squared_error
-      stats_ops['relative_mae'] = self._loss.mean_absolute_percentage_error
-      stats_ops['relative_mse'] = self._loss.mean_squared_percentage_error
-      stats_ops['absolute_error_percentiles'] = (
-          self._loss.absolute_error_percentiles
-      )
-      stats_ops['relative_error_percentiles'] = (
-          self._loss.absolute_percentage_error_percentiles
-      )
-      if self._use_deltas:
-        if self._delta_loss is None:
-          raise ValueError(
-              'ModelBase._delta_loss is None inside train_batch function while'
-              ' using deltas'
-          )
-        stats_ops['absolute_delta_mse'] = self._delta_loss.mean_squared_error
-        stats_ops['absolute_delta_mae'] = self._delta_loss.mean_absolute_error
-        stats_ops['absolute_delta_error_percentiles'] = (
-            self._delta_loss.absolute_error_percentiles
+      # The keys of stats are the names of keyword arguments of the constructor
+      # of TraningEpochStats. This dict can then be unpacked to
+      # TrainingEpochStats.__init__() as keyword arguments.
+      with tf.GradientTape() as tape:
+        stats = {}
+        loss = self.compute_loss(schedule)
+        loss_tensor_per_task = loss.loss_tensor(
+            self._loss_normalization, self._loss_type
         )
-        # NOTE(ondrasej): We do not compute relative errors for deltas. Deltas
-        # are very often zero or very small, which makes the percentage error
-        # ill-defined.
-      (_, stats) = sess.run((self._train_step, stats_ops), feed_dict=schedule)
+        loss_tensor = tf.reduce_mean(loss_tensor_per_task)
+
+        # The list of variables to optimize. By default, the list is empty which
+        # means optimize all trainable variables.
+        variables = set()
+        for variable_group in self._trained_variable_groups:
+          variables.update(
+              [
+                  variable.ref()
+                  for variable in self._variable_groups.get(variable_group)
+              ]
+          )
+
+        variables = (
+            [variable.deref() for variable in variables]
+            if variables
+            else self.trainable_variables
+        )
+
+        grads = tape.gradient(loss_tensor, variables)
+        grads_and_vars = zip(grads, variables)
+      stats['loss'] = loss_tensor
+      stats['epoch'] = self.global_step
+      stats['absolute_mse'] = loss.mean_squared_error
+      stats['relative_mae'] = loss.mean_absolute_percentage_error
+      stats['relative_mse'] = loss.mean_squared_percentage_error
+      stats['absolute_error_percentiles'] = loss.absolute_error_percentiles
+      stats['relative_error_percentiles'] = (
+          loss.absolute_percentage_error_percentiles
+      )
+
+      if self._grad_clip_norm:
+        if self._grad_clip_norm <= 0.0:
+          logging.warning(
+              'The gradients are clipped to zero. Please revise if this is not '
+              'intended.'
+          )
+        grads_and_vars = [
+            (self._clip_if_not_none(g), v) for g, v in grads_and_vars
+        ]
+      self._train_step = self._optimizer.apply_gradients(
+          grads_and_vars, global_step=self.global_step
+      )
+
       return training.TrainingEpochStats(
           percentile_ranks=self._collected_percentile_ranks, **stats
       )
 
   def train_mini_batch(
       self,
-      sess: Union[tf.Session, tf.train.MonitoredSession],
       basic_blocks: Sequence[throughput.BasicBlockWithThroughput],
       max_blocks_in_batch: int,
       max_instructions_in_batch: Optional[int] = None,
@@ -1629,4 +1408,4 @@ class ModelBase(metaclass=abc.ABCMeta):
         randomize_batch=True,
         randomize_expected_outputs=randomize_expected_outputs,
     )
-    return self.train_batch(sess, train_schedule)
+    return self.train_batch(train_schedule)
