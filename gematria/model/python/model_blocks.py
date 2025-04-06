@@ -41,9 +41,10 @@ class ResidualConnectionLayer(tf_keras.layers.Layer):
   """
 
   # @Override
-  def build(
-      self, layer_input_shapes: tuple[tf.TensorShape, tf.TensorShape]
+  def __init__(
+      self, layer_input_shapes: tuple[tf.TensorShape, tf.TensorShape], **kwargs
   ) -> None:
+    super().__init__(**kwargs)
     output_shape, residual_shape = layer_input_shapes
     if output_shape.rank != 2:
       # NOTE(ondrasej): For simplicity, we require that the output has shape
@@ -77,38 +78,3 @@ class ResidualConnectionLayer(tf_keras.layers.Layer):
       residual_part = self._linear_transformation(residual_part)
 
     return tf.math.add(output_part, residual_part, name=self.name)
-
-
-def add_residual_connection(
-    output_part: tf.Tensor, residual_part: tf.Tensor, name: Optional[str] = None
-) -> tf.Tensor:
-  """Adds a residual connection to the output of a subnetwork.
-
-  When the shape of `output_part` and `residual_part` are the same, then they
-  are simply added, elementwise. If the shapes are different, the function
-  creates a learned linear transformation layer that transforms the residual
-  part to the right shape; in this case, the rank of the output part must be 2
-  and the first dimension must be the batch dimension.
-
-  Args:
-    output_part: The tensor that contains the output of the subnetwork.
-    residual_part: The input of the subnetwork.
-    name: The name of the residual connection. This name is used for the
-      tf.math.add operation that merges the two parts; if the linear
-      transformation is used, its name is f'{name}_transformation'.
-
-  Returns:
-    A tensor that contains the output of the network merged with the residual
-    connection.
-
-  Raises:
-    ValueError: If the rank of the output part is not two, including the batch
-      dimension.
-  """
-  residual_layer = ResidualConnectionLayer(name=name)
-  return residual_layer((output_part, residual_part))
-
-
-def cast(dtype: tf.dtypes.DType) -> snt.AbstractModule:
-  """Creates a sonnet module that casts a tensor to the specified dtype."""
-  return snt.Module(build=functools.partial(tf.cast, dtype=dtype))

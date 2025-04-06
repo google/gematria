@@ -27,6 +27,7 @@ from gematria.model.python import options
 import graph_nets
 import sonnet as snt
 import tensorflow.compat.v1 as tf
+import tensorflow as tf2
 import tf_keras
 
 
@@ -222,28 +223,22 @@ class GnnModelBase(model_base.ModelBase):
         shape=global_feature_shape, dtype=global_feature_dtype or self.dtype
     )
 
-    self._graph_network = None
-    self._graphs_tuple_placeholders = None
-    self._graphs_tuple_outputs = None
+    self._graph_network = self._create_graph_network_modules()
+    assert self._graph_network is not None
 
     self._num_message_passing_iterations = num_message_passing_iterations
     self._graph_module_residual_connections = graph_module_residual_connections
     self._graph_module_layer_normalization = graph_module_layer_normalization
 
   # @Override
-  def _create_tf_graph(self) -> None:
-    self._create_graph_network_resources()
-    self._graph_network = self._create_graph_network_modules()
-    assert self._graph_network is not None
-    self._graphs_tuple_placeholders = self._create_graphs_placeholders()
-    assert self._graphs_tuple_placeholders is not None
-    self._graphs_tuple_outputs = self._create_graph_network()
-    assert self._graphs_tuple_outputs is not None
-    self._create_readout_network_resources()
+  def _forward(self, feed_dict):
+    graph_tuple_outputs = self._execute_graph_network(feed_dict)
     if not self._use_deltas:
-      self._output_tensor = self._create_readout_network()
+      return {'output': self._execute_readout_network(graph_tuple_outputs)}
     else:
-      self._output_tensor_deltas = self._create_readout_network()
+      return {
+          'output_deltas': self._execute_readout_network(graph_tuple_outputs)
+      }
 
   @abc.abstractmethod
   def _create_graph_network_modules(self) -> Sequence[GraphNetworkLayer]:
@@ -276,65 +271,7 @@ class GnnModelBase(model_base.ModelBase):
         'GnnModelBase._create_graph_networkModule is abstract'
     )
 
-  def _create_graphs_placeholders(self) -> graph_nets.graphs.GraphsTuple:
-    """Creates placeholder inputs for the graph neural network.
-
-    Returns:
-      A GraphsTuple object in which all members are tf.placeholder nodes and
-      that is filled in through a feed_dict created during graph scheduling.
-    """
-    return graph_nets.graphs.GraphsTuple(
-        nodes=tf.placeholder(
-            dtype=self._graph_node_feature_spec.dtype,
-            shape=_add_batch_dimension(self._graph_node_feature_spec.shape),
-            name=GnnModelBase.NODES_TENSOR_NAME,
-        ),
-        edges=tf.placeholder(
-            dtype=self._graph_edge_feature_spec.dtype,
-            shape=_add_batch_dimension(self._graph_edge_feature_spec.shape),
-            name=GnnModelBase.EDGES_TENSOR_NAME,
-        ),
-        globals=tf.placeholder(
-            dtype=self._graph_global_feature_spec.dtype,
-            shape=_add_batch_dimension(self._graph_global_feature_spec.shape),
-            name=GnnModelBase.GLOBALS_TENSOR_NAME,
-        ),
-        receivers=tf.placeholder(
-            dtype=self._graph_index_dtype,
-            shape=(None,),
-            name=GnnModelBase.RECEIVERS_TENSOR_NAME,
-        ),
-        senders=tf.placeholder(
-            dtype=self._graph_index_dtype,
-            shape=(None,),
-            name=GnnModelBase.SENDERS_TENSOR_NAME,
-        ),
-        n_node=tf.placeholder(
-            dtype=self._graph_index_dtype,
-            shape=(None,),
-            name=GnnModelBase.NUM_NODES_TENSOR_NAME,
-        ),
-        n_edge=tf.placeholder(
-            dtype=self._graph_index_dtype,
-            shape=(None,),
-            name=GnnModelBase.NUM_EDGES_TENSOR_NAME,
-        ),
-    )
-
-  def _create_graph_network_resources(self) -> None:
-    """Creates resources (like TensorFlow ops) needed by the readout network.
-
-    Child classes can override this method to create resources (e.g. TensorFlow
-    ops) that will be needed during the creation of the graph network, but
-    that are impractical to create in self._create_graph_network_modules(), e.g.
-    to make it easy to override in child classes.
-
-    This method is called before self._create_graph_network_modules().
-
-    By default, this method is a no-op.
-    """
-
-  def _create_graph_network(self) -> graph_nets.graphs.GraphsTuple:
+  def _execute_graph_network(self, feed_dict) -> graph_nets.graphs.GraphsTuple:
     """Creates TensorFlow ops for the graph network.
 
     By default, this is done by applying the graph network module on the input
@@ -344,7 +281,7 @@ class GnnModelBase(model_base.ModelBase):
       The GraphsTuple that contains the outputs of the last application of the
       graph network module.
     """
-    graphs_tuple = self._graphs_tuple_placeholders
+    graphs_tuple = feed_dict['graph_tuple']
     for layer_index, layer in enumerate(self._graph_network):
       num_iterations = (
           layer.num_iterations or self._num_message_passing_iterations
@@ -417,23 +354,8 @@ class GnnModelBase(model_base.ModelBase):
           )
     return graphs_tuple
 
-  def _create_readout_network_resources(self) -> None:
-    """Creates resources (like TensorFlow ops) needed by the readout network.
-
-    Child classes can override this method to create resources (e.g. TensorFlow
-    ops) that will be needed during the creation of the readout network, but
-    that are impractical to create in self._create_readout_network(), e.g. to
-    make it easy to override in child classes.
-
-    This method is called after self._create_graph_network(), i.e.
-    self._graphs_tuple_output is already available, but before the call to
-    self._create_readout_network().
-
-    By default, this method is a no-op.
-    """
-
   @abc.abstractmethod
-  def _create_readout_network(self) -> tf.Tensor:
+  def _execute_readout_network(self, graph_tuple) -> tf.Tensor:
     """Creates a readout part of the network.
 
     Creates TensorFlow ops that take the output of the graph network and
@@ -451,9 +373,7 @@ class GnnModelBase(model_base.ModelBase):
   # @Override
   def _make_batch_feed_dict(self) -> model_base.FeedDict:
     graphs_tuple = self._make_batch_graphs_tuple()
-    return graph_nets.utils_tf.get_feed_dict(
-        self._graphs_tuple_placeholders, graphs_tuple
-    )
+    return {'graph_tuple': graphs_tuple}
 
   @abc.abstractmethod
   def _make_batch_graphs_tuple(self) -> graph_nets.graphs.GraphsTuple:
