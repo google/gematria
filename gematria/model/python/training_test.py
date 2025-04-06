@@ -18,7 +18,7 @@ from absl.testing import parameterized
 from gematria.model.python import training
 from gematria.testing.python import basic_blocks_with_throughput
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class TrainingEpochStatsTest(tf.test.TestCase):
@@ -442,85 +442,58 @@ class BatchesTest(
     self.assertSequenceEqual(batches, expected_batches)
 
 
+class DummyModel(tf.Module):
+  """A test model that contains some trainable variables."""
+
+  def __init__(
+      self, initial_value: int, var1_spec, var2_spec, var3_spec, var4_spec
+  ):
+    self.var1 = tf.Variable(
+        tf.cast(tf.fill(var1_spec.shape, initial_value), dtype=var1_spec.dtype),
+        name='var1',
+    )
+    self.var2 = tf.Variable(
+        tf.cast(tf.fill(var2_spec.shape, initial_value), dtype=var2_spec.dtype),
+        name='var2',
+    )
+    self.var3 = tf.Variable(
+        tf.cast(tf.fill(var3_spec.shape, initial_value), dtype=var3_spec.dtype),
+        name='var3',
+    )
+    self.var4 = tf.Variable(
+        tf.cast(tf.fill(var4_spec.shape, initial_value), dtype=var4_spec.dtype),
+        name='var4',
+    )
+
+
 class PartiallyRestoreFromCheckpointTest(tf.test.TestCase):
 
   def test_partially_restore(self):
-    checkpoint_file = os.path.join(tf.test.get_temp_dir(), 'checkpoint')
-    v1_name = 'var_1'
+    checkpoint_folder = os.path.join(self.get_temp_dir(), 'checkpoint')
     v1_spec = tf.TensorSpec((3,), dtype=tf.dtypes.int32)
 
-    v2_name = 'var_2'
     v2_spec_a = tf.TensorSpec((2, 2), dtype=tf.dtypes.float32)
     v2_spec_b = tf.TensorSpec((2, 2), dtype=tf.dtypes.int32)
 
-    v3_name = 'var_3'
     v3_spec_a = tf.TensorSpec((1, 3), dtype=tf.dtypes.float32)
     v3_spec_b = tf.TensorSpec((2, 1), dtype=tf.dtypes.float32)
 
-    v4_name = 'var_4'
     v4_spec = tf.TensorSpec((3,), dtype=tf.dtypes.int32)
-    with tf.Graph().as_default():
-      initializer = tf.initializers.constant(1)
-      v1 = tf.get_variable(
-          name=v1_name,
-          shape=v1_spec.shape,
-          dtype=v1_spec.dtype,
-          initializer=initializer,
-      )
-      v2 = tf.get_variable(
-          name=v2_name,
-          shape=v2_spec_a.shape,
-          dtype=v2_spec_a.dtype,
-          initializer=initializer,
-      )
-      v3 = tf.get_variable(
-          name=v3_name,
-          shape=v3_spec_a.shape,
-          dtype=v3_spec_a.dtype,
-          initializer=initializer,
-      )
-      saver = tf.train.Saver()
-      with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        saved_filename = saver.save(sess, checkpoint_file, global_step=0)
 
-    with tf.Graph().as_default():
-      initializer = tf.initializers.constant(2)
-      v1 = tf.get_variable(
-          name=v1_name,
-          shape=v1_spec.shape,
-          dtype=v1_spec.dtype,
-          initializer=initializer,
-      )
-      v2 = tf.get_variable(
-          name=v2_name,
-          shape=v2_spec_b.shape,
-          dtype=v2_spec_b.dtype,
-          initializer=initializer,
-      )
-      v3 = tf.get_variable(
-          name=v3_name,
-          shape=v3_spec_b.shape,
-          dtype=v3_spec_b.dtype,
-          initializer=initializer,
-      )
-      v4 = tf.get_variable(
-          name=v4_name,
-          shape=v4_spec.shape,
-          dtype=v4_spec.dtype,
-          initializer=initializer,
-      )
-      with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        training.partially_restore_from_checkpoint(saved_filename, False, sess)
+    model_a = DummyModel(1, v1_spec, v2_spec_a, v3_spec_a, v4_spec)
+    checkpoint = tf.train.Checkpoint(model_a)
+    model_a_save_path = checkpoint.save(checkpoint_folder)
 
-        v1d, v2d, v3d, v4d = sess.run((v1, v2, v3, v4))
-        self.assertAllEqual(v1d, [1, 1, 1])
-        self.assertAllEqual(v2d, [[2, 2], [2, 2]])
-        self.assertAllEqual(v3d, [[2], [2]])
-        self.assertAllEqual(v4d, [2, 2, 2])
+    model_b = DummyModel(2, v1_spec, v2_spec_b, v3_spec_b, v4_spec)
+    training.partially_restore_from_checkpoint(
+        model_a_save_path, False, model_b
+    )
+
+    self.assertAllEqual(model_b.var1, [1, 1, 1])
+    self.assertAllEqual(model_b.var2, [[2, 2], [2, 2]])
+    self.assertAllEqual(model_b.var3, [[2], [2]])
+    self.assertAllEqual(model_b.var4, [1, 1, 1])
 
 
 if __name__ == '__main__':
-  tf.disable_v2_behavior()
   tf.test.main()
