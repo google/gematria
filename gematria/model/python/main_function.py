@@ -48,6 +48,7 @@ from gematria.proto import throughput_pb2
 from gematria.utils.python import timer
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow import profiler
 
 _ACTION = flags.DEFINE_enum_class(
     'gematria_action',
@@ -435,6 +436,23 @@ _GEMATRIA_USE_SEQ2SEQ_LOSS = flags.DEFINE_bool(
         ' of each basic block; when False, the loss is computed from the'
         ' overall error of the basic block. This flag has no effect for models'
         ' that are not seq2seq.'
+    ),
+)
+
+_GEMATRIA_RUN_TF_PROFILER = flags.DEFINE_bool(
+    'gematria_run_tf_profiler',
+    False,
+    'Whether the TensorFlow profiler gRPC server is started or not. When set,'
+    ' the server will listen to `gematria_tf_profiler_port` for requests for'
+    ' on-demand profiling. Requests can be sent through'
+    ' `tf.profiler.experimental.client.trace` or through the TensorBoard GUI.',
+)
+_GEMATRIA_TF_PROFILER_PORT = flags.DEFINE_integer(
+    'gematria_tf_profiler_port',
+    6009,
+    (
+        'When running under the TensorFlow profiler, this is the port the'
+        ' gRPC server listens for tracing requests from.'
     ),
 )
 
@@ -889,6 +907,10 @@ def run_gematria_model_from_command_line_flags(
       elif _ACTION.value == model_options.Action.TRAIN:
         if is_chief:
           _resume_previous_experiment_if_needed()
+
+        if _GEMATRIA_RUN_TF_PROFILER.value:
+          profiler.experimental.server.start(_GEMATRIA_TF_PROFILER_PORT.value)
+
         with timer.scoped('Create training session'):
           session = _monitored_training_session_from_flags(model, is_chief)
         with timer.scoped('Running the training'):

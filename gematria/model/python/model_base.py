@@ -44,6 +44,7 @@ from gematria.utils.python import timer
 import numpy as np
 import scipy.stats
 import tensorflow.compat.v1 as tf
+from tensorflow import profiler
 import tf_slim.evaluation
 
 # The type used for TensorFlow feed_dict objects. The type we use here is
@@ -1536,8 +1537,11 @@ class ModelBase(metaclass=abc.ABCMeta):
     with timer.scoped('ModelBase.train - one batch', num_iterations=num_epochs):
       stats = None
       while not monitored_session.should_stop():
-        stats = run_one_epoch()
-        logging.info('Training: %s', stats)
+        with profiler.experimental.Trace(
+            'train', step_num=self.global_step, _r=1
+        ):
+          stats = run_one_epoch()
+          logging.info('Training: %s', stats)
       return stats
 
   def train_batch(
