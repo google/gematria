@@ -30,6 +30,7 @@ gematria_py_test(
         "//gematria/testing/python:model_test",
         "@graph_nets_repo//:graph_nets",
         "@sonnet_repo//sonnet",
+        "//gematria/model/python:model_blocks",
     ],
 )
 

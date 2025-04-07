@@ -91,6 +91,9 @@ class GraphNetworkLayer:
   num_iterations: Optional[int]
   layer_normalization: options.EnableFeature
   residual_connection: options.EnableFeature
+  edges_output_size: Sequence[int] = None
+  nodes_output_size: Sequence[int] = None
+  globals_output_size: Sequence[int] = None
 
 
 class GnnModelBase(model_base.ModelBase):
@@ -230,6 +233,81 @@ class GnnModelBase(model_base.ModelBase):
     self._graph_module_residual_connections = graph_module_residual_connections
     self._graph_module_layer_normalization = graph_module_layer_normalization
 
+    self._norm_layers = {}
+    self._residual_layers = {}
+    nodes_residual_shape = None
+    edges_residual_shape = None
+    gloabls_residual_shape = None
+    for layer_index, layer in enumerate(self._graph_network):
+      num_iterations = (
+          layer.num_iterations or self._num_message_passing_iterations
+      )
+      use_residual_connections = (
+          layer.residual_connection == options.EnableFeature.ALWAYS
+          or (
+              layer.residual_connection == options.EnableFeature.BY_FLAG
+              and self._graph_module_residual_connections
+          )
+      )
+      use_layer_norm = (
+          layer.layer_normalization == options.EnableFeature.ALWAYS
+          or (
+              layer.layer_normalization == options.EnableFeature.BY_FLAG
+              and self._graph_module_layer_normalization
+          )
+      )
+      for iteration in range(num_iterations):
+        nodes_tensor_shape = tf.TensorShape(layer.nodes_output_size)
+        edges_tensor_shape = tf.TensorShape(layer.edges_output_size)
+        globals_tensor_shape = tf.TensorShape(layer.globals_output_size)
+        if use_residual_connections:
+          assert nodes_residual_shape is not None
+          assert edges_residual_shape is not None
+          assert gloabls_residual_shape is not None
+          residual_op_name_base = (
+              f'residual_connection_{layer_index}_{iteration}'
+          )
+          nodes_residual_layer_name = residual_op_name_base + '_nodes'
+          edges_residual_layer_name = residual_op_name_base + '_edges'
+          globals_residual_layer_name = residual_op_name_base + '_globals'
+          self._residual_layers[nodes_residual_layer_name] = (
+              model_blocks.ResidualConnectionLayer(
+                  (nodes_tensor_shape, nodes_residual_shape),
+                  name=nodes_residual_layer_name,
+              )
+          )
+          self._residual_layers[edges_residual_layer_name] = (
+              model_blocks.ResidualConnectionLayer(
+                  (edges_tensor_shape, edges_residual_shape),
+                  name=edges_residual_layer_name,
+              )
+          )
+          self._residual_layers[globals_residual_layer_name] = (
+              model_blocks.ResidualConnectionLayer(
+                  (globals_tensor_shape, gloabls_residual_shape),
+                  name=globals_residual_layer_name,
+              )
+          )
+        nodes_residual_shape = nodes_tensor_shape
+        edges_residual_shape = edges_tensor_shape
+        gloabls_residual_shape = globals_tensor_shape
+        if use_layer_norm:
+          layer_norm_name_base = (
+              f'graph_network_layer_norm_{layer_index}_{iteration}'
+          )
+          nodes_layer_norm_name = layer_norm_name_base + '_nodes'
+          edges_layer_norm_name = layer_norm_name_base + '_edges'
+          globals_layer_norm_name = layer_norm_name_base + '_globals'
+          self._norm_layers[nodes_layer_norm_name] = (
+              tf_keras.layers.LayerNormalization(name=nodes_layer_norm_name)
+          )
+          self._norm_layers[edges_layer_norm_name] = (
+              tf_keras.layers.LayerNormalization(name=edges_layer_norm_name)
+          )
+          self._norm_layers[globals_layer_norm_name] = (
+              tf_keras.layers.LayerNormalization(name=globals_layer_norm_name)
+          )
+
   # @Override
   def _forward(self, feed_dict):
     graph_tuple_outputs = self._execute_graph_network(feed_dict)
@@ -307,21 +385,24 @@ class GnnModelBase(model_base.ModelBase):
           residual_op_name_base = (
               f'residual_connection_{layer_index}_{iteration}'
           )
+          nodes_residual_layer = self._residual_layers[
+              residual_op_name_base + '_nodes'
+          ]
+          edges_residual_layer = self._residual_layers[
+              residual_op_name_base + '_edges'
+          ]
+          globals_residual_layer = self._residual_layers[
+              residual_op_name_base + '_globals'
+          ]
           graphs_tuple = graph_nets.graphs.GraphsTuple(
-              nodes=model_blocks.add_residual_connection(
-                  output_part=graphs_tuple.nodes,
-                  residual_part=residual_input.nodes,
-                  name=residual_op_name_base + '_nodes',
+              nodes=nodes_residual_layer(
+                  (graphs_tuple.nodes, residual_input.nodes)
               ),
-              edges=model_blocks.add_residual_connection(
-                  output_part=graphs_tuple.edges,
-                  residual_part=residual_input.edges,
-                  name=residual_op_name_base + '_edges',
+              edges=edges_residual_layer(
+                  (graphs_tuple.edges, residual_input.edges)
               ),
-              globals=model_blocks.add_residual_connection(
-                  output_part=graphs_tuple.globals,
-                  residual_part=residual_input.globals,
-                  name=residual_op_name_base + '_globals',
+              globals=globals_residual_layer(
+                  (graphs_tuple.globals, residual_input.globals)
               ),
               receivers=graphs_tuple.receivers,
               senders=graphs_tuple.senders,
@@ -334,15 +415,11 @@ class GnnModelBase(model_base.ModelBase):
           layer_norm_name_base = (
               f'graph_network_layer_norm_{layer_index}_{iteration}'
           )
-          nodes_layer_norm = tf_keras.layers.LayerNormalization(
-              name=layer_norm_name_base + '_nodes'
-          )
-          edges_layer_norm = tf_keras.layers.LayerNormalization(
-              name=layer_norm_name_base + '_edges'
-          )
-          globals_layer_norm = tf_keras.layers.LayerNormalization(
-              name=layer_norm_name_base + '_globals'
-          )
+          nodes_layer_norm = self._norm_layers[layer_norm_name_base + '_nodes']
+          edges_layer_norm = self._norm_layers[layer_norm_name_base + '_edges']
+          globals_layer_norm = self._norm_layers[
+              layer_norm_name_base + '_globals'
+          ]
           graphs_tuple = graph_nets.graphs.GraphsTuple(
               nodes=nodes_layer_norm(graphs_tuple.nodes),
               edges=edges_layer_norm(graphs_tuple.edges),
