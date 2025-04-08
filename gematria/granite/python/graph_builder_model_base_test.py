@@ -29,7 +29,7 @@ from gematria.testing.python import model_test
 import graph_nets
 import numpy as np
 import sonnet as snt
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tf_keras
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
@@ -50,19 +50,17 @@ class TestGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
         address_token=tokens.ADDRESS,
         memory_token=tokens.MEMORY,
         out_of_vocabulary_behavior=out_of_vocabulary_behavior,
-        **kwargs
+        **kwargs,
     )
 
   def _make_model_name(self):
     return 'TestGraphBuilderModel'
 
   def _create_graph_network_modules(self):
-    embedding_initializers = {
-        'embeddings': tf_keras.initializers.glorot_normal(),
-    }
+    embedding_initializer = tf_keras.initializers.glorot_normal()
     mlp_initializers = {
-        'w': tf_keras.initializers.glorot_normal(),
-        'b': tf_keras.initializers.glorot_normal(),
+        'w_init': tf_keras.initializers.glorot_normal(),
+        'b_init': tf_keras.initializers.glorot_normal(),
     }
     return (
         gnn_model_base.GraphNetworkLayer(
@@ -75,16 +73,16 @@ class TestGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
                     # https://github.com/pybind/pybind11/issues/2332 is fixed.
                     vocab_size=len(graph_builder.EdgeType.__members__),
                     embed_dim=1,
-                    initializers=embedding_initializers,
+                    initializer=embedding_initializer,
                 ),
                 node_model_fn=functools.partial(
                     snt.Embed,
                     vocab_size=self._batch_graph_builder.num_node_tokens,
                     embed_dim=1,
-                    initializers=embedding_initializers,
+                    initializer=embedding_initializer,
                 ),
                 global_model_fn=functools.partial(
-                    model_blocks.cast, self.dtype
+                    model_blocks.CastLayer, self.dtype
                 ),
             ),
             num_iterations=1,
@@ -96,17 +94,17 @@ class TestGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
                 edge_model_fn=functools.partial(
                     snt.nets.MLP,
                     output_sizes=(1,),
-                    initializers=mlp_initializers,
+                    **mlp_initializers,
                 ),
                 node_model_fn=functools.partial(
                     snt.nets.MLP,
                     output_sizes=(1,),
-                    initializers=mlp_initializers,
+                    **mlp_initializers,
                 ),
                 global_model_fn=functools.partial(
                     snt.nets.MLP,
                     output_sizes=(1,),
-                    initializers=mlp_initializers,
+                    **mlp_initializers,
                 ),
                 name='network',
             ),
@@ -116,11 +114,13 @@ class TestGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
         ),
     )
 
-  def _create_readout_network(self):
+  def _execute_readout_network(self, graph_tuple, feed_dict):
     if self._use_deltas:
-      output = self._instruction_features
+      output = tf.boolean_mask(
+          graph_tuple.nodes, feed_dict['instruction_node_mask']
+      )
     else:
-      output = self._graphs_tuple_outputs.globals
+      output = graph_tuple.globals
     return tf.reshape(tensor=output, shape=[-1, 1])
 
 
@@ -140,46 +140,31 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
     model.initialize()
     schedule = model.schedule_batch(self.blocks_with_throughput)
     self.assertEqual(
-        schedule[model._graphs_tuple_placeholders.globals].shape,
+        schedule['graph_tuple'].globals.shape,
         (3, len(self.tokens)),
     )
-    self.assertEqual(
-        schedule[model._graphs_tuple_placeholders.nodes].shape, (26,)
-    )
-    self.assertAllEqual(
-        schedule[model._graphs_tuple_placeholders.edges].shape, (30,)
-    )
+    self.assertEqual(schedule['graph_tuple'].nodes.shape, (26,))
+    self.assertAllEqual(schedule['graph_tuple'].edges.shape, (30,))
 
   def test_node_token_names(self):
     model = TestGraphBuilderModel(
         tokens=self.tokens, num_message_passing_iterations=1
     )
     model.initialize()
-    # Check that the node token tensors are marked as an output tensors by the
-    # model.
-    self.assertIn(
-        token_model.TokenModel.TOKENS_TENSOR_NAME, model.output_tensor_names
-    )
-    self.assertIn(
-        TestGraphBuilderModel.SPECIAL_TOKENS_TENSOR_NAME,
-        model.output_tensor_names,
-    )
 
-    # Check the contents of the tensors.
-    with self.session() as sess:
-      token_names = sess.run(model.token_list_tensor)
-      # NOTE(ondrasej): The conversion to a tuple (or another collection) is
-      # needed - otherwise, assertAll would treat expected_token_names as
-      # a scalar array with a single string value.
-      expected_token_names = tuple(
-          b'\0'.join(token.encode('utf-8') for token in self.tokens)
-      )
-      self.assertAllEqual(expected_token_names, token_names)
+    # NOTE(ondrasej): The conversion to a tuple (or another collection) is
+    # needed - otherwise, assertAll would treat expected_token_names as
+    # a scalar array with a single string value.
+    expected_token_names = tuple(
+        b'\0'.join(token.encode('utf-8') for token in self.tokens)
+    )
+    token_names = model.token_list_tensor.numpy()
+    self.assertAllEqual(expected_token_names, token_names)
 
-      special_tokens = sess.run(model.special_tokens_tensor)
-      self.assertEqual(special_tokens.shape, (5,))
-      self.assertAllLess(special_tokens, len(self.tokens))
-      self.assertAllGreaterEqual(special_tokens, -1)
+    special_tokens = model.special_tokens_tensor.numpy()
+    self.assertEqual(special_tokens.shape, (5,))
+    self.assertAllLess(special_tokens, len(self.tokens))
+    self.assertAllGreaterEqual(special_tokens, -1)
 
   @parameterized.named_parameters(
       *model_test.LOSS_TYPES_AND_LOSS_NORMALIZATIONS
@@ -260,7 +245,7 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
     self.assertGreaterEqual(model._oov_token, 0)
 
     schedule = model.schedule_batch(self.blocks_with_throughput)
-    node_features = schedule[model._graphs_tuple_placeholders.nodes]
+    node_features = schedule['graph_tuple'].nodes
     expected_node_features = np.full_like(node_features, model._oov_token)
     self.assertAllEqual(node_features, expected_node_features)
 
@@ -286,9 +271,7 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
     num_all_elements = 0
     for _ in range(num_trials):
       schedule = model.schedule_batch(self.blocks_with_throughput)
-      oov_token_mask = (
-          schedule[model._graphs_tuple_placeholders.nodes] == model._oov_token
-      )
+      oov_token_mask = schedule['graph_tuple'].nodes == model._oov_token
       num_ones += sum(oov_token_mask)
       num_all_elements += oov_token_mask.size
 
@@ -314,13 +297,10 @@ class GraphBuilderModelBaseTest(parameterized.TestCase, model_test.TestCase):
       # not contain unknown tokens, we expect that the out-of-vocabulary
       # replacement token is never used.
       schedule = model.schedule_batch(self.blocks_with_throughput)
-      oov_token_mask = (
-          schedule[model._graphs_tuple_placeholders.nodes] == model._oov_token
-      )
+      oov_token_mask = schedule['graph_tuple'].nodes == model._oov_token
       expected_oov_token_mask = np.zeros_like(oov_token_mask)
       self.assertAllEqual(oov_token_mask, expected_oov_token_mask)
 
 
 if __name__ == '__main__':
-  tf.disable_v2_behavior()
   tf.test.main()
