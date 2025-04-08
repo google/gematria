@@ -230,9 +230,6 @@ gematria_py_test(
     name = "training_test",
     size = "small",
     srcs = ["training_test.py"],
-    tags = [
-        "manual",
-    ],
     deps = [
         ":training",
         "//gematria/testing/python:basic_blocks_with_throughput",
