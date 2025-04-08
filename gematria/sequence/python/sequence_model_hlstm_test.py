@@ -16,7 +16,7 @@ from absl.testing import parameterized
 from gematria.model.python import oov_token_behavior
 from gematria.sequence.python import sequence_model_hlstm
 from gematria.testing.python import model_test
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tf_keras
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
@@ -141,5 +141,4 @@ class SequenceModelHlstmTest(parameterized.TestCase, model_test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.disable_v2_behavior()
   tf.test.main()

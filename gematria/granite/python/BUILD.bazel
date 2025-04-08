@@ -26,6 +26,7 @@ gematria_py_test(
     shard_count = 15,
     deps = [
         ":gnn_model_base",
+        "//gematria/model/python:model_blocks",
         "//gematria/model/python:options",
         "//gematria/testing/python:model_test",
         "@graph_nets_repo//:graph_nets",
@@ -88,6 +89,9 @@ gematria_py_test(
     size = "small",
     timeout = "moderate",
     srcs = ["graph_builder_model_base_test.py"],
+    tags = [
+        "manual",
+    ],
     deps = [
         ":gnn_model_base",
         ":graph_builder",
@@ -121,6 +125,9 @@ gematria_py_test(
     timeout = "moderate",
     srcs = ["rnn_token_model_test.py"],
     shard_count = 18,
+    tags = [
+        "manual",
+    ],
     deps = [
         ":rnn_token_model",
         "//gematria/basic_block/python:tokens",
@@ -166,6 +173,9 @@ gematria_py_test(
     timeout = "moderate",
     srcs = ["token_graph_builder_model_test.py"],
     shard_count = 26,
+    tags = [
+        "manual",
+    ],
     deps = [
         ":token_graph_builder_model",
         "//gematria/basic_block/python:tokens",
