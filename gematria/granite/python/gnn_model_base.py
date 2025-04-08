@@ -312,10 +312,16 @@ class GnnModelBase(model_base.ModelBase):
   def _forward(self, feed_dict):
     graph_tuple_outputs = self._execute_graph_network(feed_dict)
     if not self._use_deltas:
-      return {'output': self._execute_readout_network(graph_tuple_outputs)}
+      return {
+          'output': self._execute_readout_network(
+              graph_tuple_outputs, feed_dict
+          )
+      }
     else:
       return {
-          'output_deltas': self._execute_readout_network(graph_tuple_outputs)
+          'output_deltas': self._execute_readout_network(
+              graph_tuple_outputs, feed_dict
+          )
       }
 
   @abc.abstractmethod

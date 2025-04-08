@@ -130,7 +130,7 @@ class TestGnnModel(gnn_model_base.GnnModelBase):
     )
 
   # @Override
-  def _execute_readout_network(self, graph_tuples) -> tf.Tensor:
+  def _execute_readout_network(self, graph_tuples, feed_dict) -> tf.Tensor:
     if self._use_deltas:
       dense_data = graph_tuples.nodes
     else:
@@ -353,7 +353,7 @@ class TestEncoderDecoderGnnModel(gnn_model_base.GnnModelBase):
     )
 
   # @Override
-  def _execute_readout_network(self, graphs_tuple) -> tf.Tensor:
+  def _execute_readout_network(self, graphs_tuple, feed_dict) -> tf.Tensor:
     if self._use_deltas:
       # We add two nodes per instruction. To get one output row per instruction
       # as expected by the model in the seq2seq mode, we drop every other row
