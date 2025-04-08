@@ -78,3 +78,13 @@ class ResidualConnectionLayer(tf_keras.layers.Layer):
       residual_part = self._linear_transformation(residual_part)
 
     return tf.math.add(output_part, residual_part, name=self.name)
+
+
+class CastLayer(tf_keras.layers.Layer):
+
+  def __init__(self, dtype, **kwargs):
+    super().__init__(**kwargs)
+    self._dtype = dtype
+
+  def call(self, input_tensor):
+    return tf.cast(input_tensor, dtype=self._dtype)
