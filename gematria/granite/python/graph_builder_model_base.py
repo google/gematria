@@ -34,12 +34,13 @@ from gematria.model.python import token_model
 import graph_nets
 import numpy as np
 import tensorflow.compat.v1 as tf
+import tensorflow as tf2
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 
 
 class GraphBuilderModelBase(
-    token_model.TokenModel, gnn_model_base.GnnModelBase
+    gnn_model_base.GnnModelBase, token_model.TokenModel
 ):
   """Base class for models usign the BasicBlockGraphBuilder graphs.
 
@@ -131,22 +132,13 @@ class GraphBuilderModelBase(
       **kwargs: Additional keyword arguments are passed to the constructor of
         the base class.
     """
-    # NOTE(ondrasej): We set the node/edge feature dtypes to int32. They are
-    # indices to the token list/edge type; an int32 should be sufficient for all
-    # our use cases and fixing the type will make it easier to move the array
-    # construction to the C++ code if needed in the future. Similarly for the
-    # graph index dtype.
-    super().__init__(
-        node_feature_shape=(),
-        node_feature_dtype=tf.dtypes.int32,
-        edge_feature_shape=(),
-        edge_feature_dtype=tf.dtypes.int32,
-        global_feature_shape=(len(tokens),),
-        global_feature_dtype=tf.dtypes.int32,
-        graph_index_dtype=tf.dtypes.int32,
+    token_model.TokenModel.__init__(
+        self,
         tokens=tokens,
-        **kwargs,
+        out_of_vocabulary_behavior=kwargs['out_of_vocabulary_behavior'],
+        dtype=kwargs['dtype'],
     )
+
     self._instruction_features = None
     self._batch_graph_builder = graph_builder.BasicBlockGraphBuilder(
         node_tokens=self._token_list,
@@ -165,39 +157,24 @@ class GraphBuilderModelBase(
     )
     self._num_annotations = len(self._annotation_names_list)
 
-  @property
-  def special_tokens_tensor(self) -> tf.Tensor:
-    """Returns the indices of special node tokens.
-
-    The returned tensor contains indices of the special tokens in the list
-    encoded in self.token_list_tensor. The indices of the special tokens are
-    stored in the following order:
-      1. immediate value node token,
-      2. floating-point immediate value node token,
-      3. address computation node token,
-      4. memory value node token,
-      5. replacement token used to replace immediate values. This index is set
-         to -1 when the model is not trained with replacement tokens.
-    """
-    return self._special_tokens_tensor
-
-  @property
-  def annotation_names_tensor(self) -> tf.Tensor:
-    return self._annotation_names_tensor
-
-  # @Override
-  @property
-  def output_tensor_names(self) -> Sequence[str]:
-    return (
-        *super().output_tensor_names,
-        GraphBuilderModelBase.SPECIAL_TOKENS_TENSOR_NAME,
-        GraphBuilderModelBase.ANNOTATION_NAMES_TENSOR_NAME,
+    # NOTE(ondrasej): We set the node/edge feature dtypes to int32. They are
+    # indices to the token list/edge type; an int32 should be sufficient for all
+    # our use cases and fixing the type will make it easier to move the array
+    # construction to the C++ code if needed in the future. Similarly for the
+    # graph index dtype.
+    gnn_model_base.GnnModelBase.__init__(
+        self,
+        node_feature_shape=(),
+        node_feature_dtype=tf.dtypes.int32,
+        edge_feature_shape=(),
+        edge_feature_dtype=tf.dtypes.int32,
+        global_feature_shape=(len(tokens),),
+        global_feature_dtype=tf.dtypes.int32,
+        graph_index_dtype=tf.dtypes.int32,
+        tokens=tokens,
+        **kwargs,
     )
 
-  # @Override
-  def _create_tf_graph(self) -> None:
-    """See base class."""
-    super()._create_tf_graph()
     special_tokens = np.array(
         (
             self._batch_graph_builder.immediate_token,
@@ -208,9 +185,9 @@ class GraphBuilderModelBase(
         ),
         dtype=np.int32,
     )
-    self._special_tokens_tensor = tf.constant(
+    self._special_tokens_tensor = tf2.constant(
         special_tokens,
-        dtype=tf.dtypes.int32,
+        dtype=tf2.dtypes.int32,
         name=GraphBuilderModelBase.SPECIAL_TOKENS_TENSOR_NAME,
     )
     annotation_names_array = np.frombuffer(
@@ -219,31 +196,18 @@ class GraphBuilderModelBase(
         ),
         dtype=np.uint8,
     )
-    self._annotation_names_tensor = tf.constant(
+    self._annotation_names_tensor = tf2.constant(
         annotation_names_array,
         name=GraphBuilderModelBase.ANNOTATION_NAMES_TENSOR_NAME,
     )
 
-  # @Override
-  def _create_graph_network_resources(self) -> None:
-    super()._create_graph_network_resources()
-    self._instruction_annotations = tf.placeholder(
-        dtype=self.dtype,
-        shape=(None, len(self._annotation_names_list)),
-        name=GraphBuilderModelBase.INSTRUCTION_ANNOTATIONS_TENSOR_NAME,
-    )
-    self._instruction_node_mask = tf.placeholder(
-        dtype=tf.dtypes.bool,
-        shape=(None,),
-        name=GraphBuilderModelBase.INSTRUCTION_NODE_MASK_TENSOR_NAME,
-    )
+  @property
+  def special_tokens_tensor(self):
+    return self._special_tokens_tensor
 
-  # @Override
-  def _create_readout_network_resources(self) -> None:
-    super()._create_readout_network_resources()
-    self._instruction_features = tf.boolean_mask(
-        self._graphs_tuple_outputs.nodes, self._instruction_node_mask
-    )
+  @property
+  def annotation_names_tensor(self):
+    return self._annotation_names_tensor
 
   # @Override
   def _start_batch(self) -> None:
@@ -253,10 +217,10 @@ class GraphBuilderModelBase(
   # @Override
   def _make_batch_feed_dict(self) -> model_base.FeedDict:
     feed_dict = super()._make_batch_feed_dict()
-    feed_dict[self._instruction_node_mask] = np.array(
+    feed_dict['instruction_node_mask'] = np.array(
         self._batch_graph_builder.instruction_node_mask, dtype=bool
     )
-    feed_dict[self._instruction_annotations] = (
+    feed_dict['instruction_annotations'] = (
         self._batch_graph_builder.instruction_annotations
     )
     return feed_dict
@@ -280,32 +244,32 @@ class GraphBuilderModelBase(
       node_features[injection_mask] = self._oov_token
     return graph_nets.graphs.GraphsTuple(
         nodes=node_features,
-        edges=np.array(
+        edges=tf2.constant(
             self._batch_graph_builder.edge_features,
-            dtype=self._graph_edge_feature_spec.dtype.as_numpy_dtype,
+            dtype=self._graph_edge_feature_spec.dtype,
         ),
         # NOTE(ondrasej): The graph globals are not normalized by the number of
         # nodes in the graph. We could do it here, but we can also do it by
         # introducing a LayerNorm layer in the first graph network module.
-        globals=np.array(
+        globals=tf2.constant(
             self._batch_graph_builder.global_features,
-            dtype=self._graph_global_feature_spec.dtype.as_numpy_dtype,
+            dtype=self._graph_global_feature_spec.dtype,
         ),
-        receivers=np.array(
+        receivers=tf2.constant(
             self._batch_graph_builder.edge_receivers,
-            dtype=self._graph_index_dtype.as_numpy_dtype,
+            dtype=self._graph_index_dtype,
         ),
-        senders=np.array(
+        senders=tf2.constant(
             self._batch_graph_builder.edge_senders,
-            dtype=self._graph_index_dtype.as_numpy_dtype,
+            dtype=self._graph_index_dtype,
         ),
-        n_node=np.array(
+        n_node=tf2.constant(
             self._batch_graph_builder.num_nodes_per_block,
-            dtype=self._graph_index_dtype.as_numpy_dtype,
+            dtype=self._graph_index_dtype,
         ),
-        n_edge=np.array(
+        n_edge=tf2.constant(
             self._batch_graph_builder.num_edges_per_block,
-            dtype=self._graph_index_dtype.as_numpy_dtype,
+            dtype=self._graph_index_dtype,
         ),
     )
 
