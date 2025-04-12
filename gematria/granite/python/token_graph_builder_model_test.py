@@ -23,7 +23,7 @@ from gematria.model.python import model_blocks
 from gematria.model.python import oov_token_behavior
 from gematria.testing.python import model_test
 from gematria.proto import throughput_pb2
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tf_keras
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
@@ -480,7 +480,11 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
       model.initialize()
     self.assertEqual(
         residual_connection_layer.call_args_list,
-        [mock.call(name='readout_residual_connections')],
+        [
+            mock.call(
+                name='readout_residual_connections', layer_input_shapes=mock.ANY
+            )
+        ],
     )
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
@@ -529,7 +533,12 @@ class TokenGraphBuilderModelTest(parameterized.TestCase, model_test.TestCase):
       model.initialize()
     self.assertEqual(
         residual_connection_layer.call_args_list,
-        [mock.call(name='task_readout_residual_connections')],
+        [
+            mock.call(
+                name='task_readout_residual_connections',
+                layer_input_shapes=mock.ANY,
+            )
+        ],
     )
     self.check_training_model(model, self.blocks_with_throughput, num_epochs=40)
 
@@ -696,5 +705,4 @@ class TokenGraphBuilderModelEsotericBlocksTest(
 
 
 if __name__ == '__main__':
-  tf.disable_v2_behavior()
   tf.test.main()
