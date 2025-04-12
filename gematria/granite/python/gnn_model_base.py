@@ -226,12 +226,14 @@ class GnnModelBase(model_base.ModelBase):
         shape=global_feature_shape, dtype=global_feature_dtype or self.dtype
     )
 
-    self._graph_network = self._create_graph_network_modules()
-    assert self._graph_network is not None
-
     self._num_message_passing_iterations = num_message_passing_iterations
     self._graph_module_residual_connections = graph_module_residual_connections
     self._graph_module_layer_normalization = graph_module_layer_normalization
+
+  def initialize(self):
+    super().initialize()
+    self._graph_network = self._create_graph_network_modules()
+    assert self._graph_network is not None
 
     self._norm_layers = {}
     self._residual_layers = {}
