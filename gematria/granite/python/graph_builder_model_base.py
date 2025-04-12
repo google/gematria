@@ -132,11 +132,21 @@ class GraphBuilderModelBase(
       **kwargs: Additional keyword arguments are passed to the constructor of
         the base class.
     """
-    token_model.TokenModel.__init__(
-        self,
+    # NOTE(ondrasej): We set the node/edge feature dtypes to int32. They are
+    # indices to the token list/edge type; an int32 should be sufficient for all
+    # our use cases and fixing the type will make it easier to move the array
+    # construction to the C++ code if needed in the future. Similarly for the
+    # graph index dtype.
+    super().__init__(
+        node_feature_shape=(),
+        node_feature_dtype=tf.dtypes.int32,
+        edge_feature_shape=(),
+        edge_feature_dtype=tf.dtypes.int32,
+        global_feature_shape=(len(tokens),),
+        global_feature_dtype=tf.dtypes.int32,
+        graph_index_dtype=tf.dtypes.int32,
         tokens=tokens,
-        out_of_vocabulary_behavior=kwargs['out_of_vocabulary_behavior'],
-        dtype=kwargs['dtype'],
+        **kwargs,
     )
 
     self._instruction_features = None
@@ -156,24 +166,6 @@ class GraphBuilderModelBase(
         self._batch_graph_builder.annotation_names
     )
     self._num_annotations = len(self._annotation_names_list)
-
-    # NOTE(ondrasej): We set the node/edge feature dtypes to int32. They are
-    # indices to the token list/edge type; an int32 should be sufficient for all
-    # our use cases and fixing the type will make it easier to move the array
-    # construction to the C++ code if needed in the future. Similarly for the
-    # graph index dtype.
-    gnn_model_base.GnnModelBase.__init__(
-        self,
-        node_feature_shape=(),
-        node_feature_dtype=tf.dtypes.int32,
-        edge_feature_shape=(),
-        edge_feature_dtype=tf.dtypes.int32,
-        global_feature_shape=(len(tokens),),
-        global_feature_dtype=tf.dtypes.int32,
-        graph_index_dtype=tf.dtypes.int32,
-        tokens=tokens,
-        **kwargs,
-    )
 
     special_tokens = np.array(
         (
@@ -220,9 +212,11 @@ class GraphBuilderModelBase(
     feed_dict['instruction_node_mask'] = np.array(
         self._batch_graph_builder.instruction_node_mask, dtype=bool
     )
+    self._instruction_node_mask = feed_dict['instruction_node_mask']
     feed_dict['instruction_annotations'] = (
         self._batch_graph_builder.instruction_annotations
     )
+    self._instruction_annotations = feed_dict['instruction_annotations']
     return feed_dict
 
   # @Override
