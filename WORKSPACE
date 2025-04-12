@@ -181,9 +181,8 @@ _pybind11_python_configure(
 
 git_repository(
     name = "sonnet_repo",
-    commit = "cd5b5fa48e15e4d020f744968f5209949ebe750f",
+    commit = "c99b49136210c30fd95bd9c6350fcc3eaf9a72f3",
     patch_args = ["-p1"],
-    patches = ["//:sonnet.patch"],
     remote = "https://github.com/deepmind/sonnet.git",
 )
 

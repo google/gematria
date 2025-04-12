@@ -28,7 +28,7 @@ from gematria.model.python import oov_token_behavior
 from gematria.model.python import token_model_flags
 from gematria.sequence.python import sequence_model_hlstm
 from gematria.utils.python import flag_utils
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 
@@ -154,7 +154,6 @@ def main(argv: Sequence[str]) -> None:
 
 
 if __name__ == '__main__':
-  tf.disable_v2_behavior()
   token_model_flags.mark_token_flags_as_required()
   token_model_flags.set_default_oov_replacement_token(tokens.UNKNOWN)
   app.run(main)
