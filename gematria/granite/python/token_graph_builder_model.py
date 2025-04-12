@@ -26,6 +26,7 @@ from gematria.model.python import options
 import graph_nets
 import sonnet as snt
 import tensorflow.compat.v1 as tf
+import tensorflow as tf2
 import tf_keras
 
 
@@ -167,6 +168,10 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
         self._node_embedding_size - self._num_annotations
     )
 
+  def initialize(self):
+    super().initialize()
+    self._create_dense_readout_network()
+
   # @Override
   def _make_model_name(self) -> str:
     # TODO(ondrasej): Use a string provided by the token feature factory as the
@@ -189,7 +194,69 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
         f'{self._task_readout_input_layer_normalization}'
     )
 
-  def _create_dense_readout_network(self, data: tf.Tensor) -> tf.Tensor:
+  def _create_dense_readout_network(self):
+    self._dense_readout_layers = []
+    for size in self._readout_layers:
+      self._dense_readout_layers.append(
+          tf_keras.layers.Dense(
+              size,
+              activation=self._readout_activation,
+              bias_initializer='glorot_normal',
+          )
+      )
+    self._task_dense_sum_layers = []
+    self._task_dense_readout_layers = []
+    for _ in range(self.num_tasks):
+      for size in self._task_readout_layers:
+        self._task_dense_readout_layers.append(
+            tf_keras.layers.Dense(
+                size,
+                activation=self._readout_activation,
+                bias_initializer='glorot_normal',
+            )
+        )
+      self._task_dense_sum_layers.append(
+          tf_keras.layers.Dense(
+              1, activation=tf_keras.activations.linear, use_bias=False
+          )
+      )
+    if self._readout_input_layer_normalization:
+      self._readout_layer_normalization_input = (
+          tf_keras.layers.LayerNormalization(
+              name='readout_input_layer_normalization'
+          )
+      )
+    if self._task_readout_input_layer_normalization:
+      self._readout_layer_normalization = tf_keras.layers.LayerNormalization(
+          name='task_readout_input_layer_normalization'
+      )
+    residual_size = self._global_embedding_size
+    if self._use_deltas:
+      residual_size = self._node_embedding_size
+    if self._readout_residual_connections:
+      if self._readout_layers:
+        self._readout_residual_layer = model_blocks.ResidualConnectionLayer(
+            name='readout_residual_connections',
+            layer_input_shapes=(
+                tf.TensorShape([None, self._readout_layers[-1]]),
+                tf.TensorShape([None, residual_size]),
+            ),
+        )
+    self._task_residual_layers = []
+    for task_index in range(self.num_tasks):
+      if self._task_readout_residual_connections:
+        if self._task_readout_layers:
+          self._task_residual_layers.append(
+              model_blocks.ResidualConnectionLayer(
+                  name='task_readout_residual_connections',
+                  layer_input_shapes=(
+                      tf2.TensorShape([None, self._task_readout_layers[-1]]),
+                      tf2.TensorShape([None, self._readout_layers[-1]]),
+                  ),
+              )
+          )
+
+  def _execute_dense_readout_network(self, data: tf.Tensor) -> tf.Tensor:
     """Creates the dense part of the readout network from `data`.
 
     Args:
@@ -200,56 +267,30 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
       A tensor of shape (None, num_tasks) that contains the output of the dense
       readout networks for all tasks.
     """
-    readout_variables = self._variable_groups[
-        TokenGraphBuilderModel.READOUT_VARIABLES
-    ]
     readout_input = data
-    for size in self._readout_layers:
-      dense = tf_keras.layers.Dense(
-          size,
-          activation=self._readout_activation,
-          bias_initializer='glorot_normal',
-      )
+    for dense in self._dense_readout_layers:
       data = dense(data)
-      readout_variables.extend(dense.trainable_weights)
     if self._readout_residual_connections:
       if self._readout_layers:
-        residual_connection_layer = model_blocks.ResidualConnectionLayer(
-            name='readout_residual_connections'
-        )
-        data = residual_connection_layer((data, readout_input))
-        readout_variables.extend(residual_connection_layer.trainable_weights)
+        data = self._readout_residual_layer((data, readout_input))
       else:
         logging.warning(
             'Readout residual connections are enabled, but the'
             ' readout network has no layers.'
         )
     if self._task_readout_input_layer_normalization:
-      layer_normalization = tf_keras.layers.LayerNormalization(
-          name='task_readout_input_layer_normalization'
-      )
-      data = layer_normalization(data)
+      data = self._readout_layer_normalization(data)
     task_outputs = []
-    task_variables = self._variable_groups[
-        TokenGraphBuilderModel.TASK_READOUT_VARIABLES
-    ]
-    for _ in range(self.num_tasks):
+    for task_index in range(self.num_tasks):
       task_data = data
-      for size in self._task_readout_layers:
-        dense = tf_keras.layers.Dense(
-            size,
-            activation=self._readout_activation,
-            bias_initializer='glorot_normal',
-        )
+      for readout_index, size in enumerate(self._task_readout_layers):
+        dense = self._task_dense_readout_layers[
+            task_index * len(self._task_readout_layers) + readout_index
+        ]
         task_data = dense(task_data)
-        task_variables.extend(dense.trainable_weights)
       if self._task_readout_residual_connections:
         if self._task_readout_layers:
-          residual_connection_layer = model_blocks.ResidualConnectionLayer(
-              name='task_readout_residual_connections'
-          )
-          task_data = residual_connection_layer((task_data, data))
-          task_variables.extend(residual_connection_layer.trainable_weights)
+          task_data = self._task_residual_layers[task_index]((task_data, data))
         else:
           logging.warning(
               'Task readout residual connections are enabled, but'
@@ -257,24 +298,21 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
           )
       # Create a linear layer that computes a weighted sum of the output of the
       # last dense layer.
-      linear_layer = tf_keras.layers.Dense(
-          1, activation=tf_keras.activations.linear, use_bias=False
-      )
+      linear_layer = self._task_dense_sum_layers[task_index]
       task_outputs.append(linear_layer(task_data))
-      task_variables.extend(linear_layer.trainable_weights)
     return tf.concat(task_outputs, axis=1)
 
-  def _create_readout_network(self) -> tf.Tensor:
+  def _execute_readout_network(self, graph_tuple, feed_dict) -> tf.Tensor:
     if self._use_deltas:
-      data = self._instruction_features
-    else:
-      data = self._graphs_tuple_outputs.globals
-    if self._readout_input_layer_normalization:
-      layer_normalization = tf_keras.layers.LayerNormalization(
-          name='readout_input_layer_normalization'
+      data = tf2.boolean_mask(
+          graph_tuple.nodes, feed_dict['instruction_node_mask']
       )
+    else:
+      data = graph_tuple.globals
+    if self._readout_input_layer_normalization:
+      layer_normalization = self._readout_layer_normalization_input
       data = layer_normalization(data)
-    return self._create_dense_readout_network(data)
+    return self._execute_dense_readout_network(data)
 
   def _create_graph_network_modules(
       self,
@@ -285,12 +323,10 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
     # correctly.
     # pytype: disable=module-attr
     mlp_initializers = {
-        'w': tf_keras.initializers.glorot_normal(),
-        'b': tf_keras.initializers.glorot_normal(),
+        'w_init': tf_keras.initializers.glorot_normal(),
+        'b_init': tf_keras.initializers.glorot_normal(),
     }
-    embedding_initializers = {
-        'embeddings': tf_keras.initializers.glorot_normal(),
-    }
+    embedding_initializer = tf_keras.initializers.glorot_normal()
     # pytype: enable=module-attr
     return (
         gnn_model_base.GraphNetworkLayer(
@@ -303,24 +339,23 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
                     # https://github.com/pybind/pybind11/issues/2332 is fixed.
                     vocab_size=len(graph_builder.EdgeType.__members__),
                     embed_dim=self._edge_embedding_size,
-                    initializers=embedding_initializers,
+                    initializer=embedding_initializer,
                 ),
                 node_model_fn=functools.partial(
                     TokenGraphBuilderModelNodeEmbed,
                     vocab_size=len(self._token_list),
                     common_embed_dim=self._common_node_embedding_size,
                     num_annotations=self._num_annotations,
-                    instruction_annotations=self._instruction_annotations,
-                    instruction_node_mask=self._instruction_node_mask,
-                    initializers=embedding_initializers,
+                    model_ref=self,
+                    initializer=embedding_initializer,
                 ),
                 global_model_fn=functools.partial(
                     snt.Sequential,
                     (
-                        model_blocks.cast(self.dtype),
+                        model_blocks.CastLayer(self.dtype),
                         snt.nets.MLP(
                             output_sizes=(self._global_embedding_size,),
-                            initializers=mlp_initializers,
+                            **mlp_initializers,
                             activation=self._update_activation,
                         ),
                     ),
@@ -336,13 +371,13 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
                 edge_model_fn=functools.partial(
                     snt.nets.MLP,
                     output_sizes=self._edge_update_layers,
-                    initializers=mlp_initializers,
+                    **mlp_initializers,
                     activation=self._update_activation,
                 ),
                 node_model_fn=functools.partial(
                     snt.nets.MLP,
                     output_sizes=self._node_update_layers,
-                    initializers=mlp_initializers,
+                    **mlp_initializers,
                     activation=self._update_activation,
                 ),
                 node_block_opt={
@@ -351,7 +386,7 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
                 global_model_fn=functools.partial(
                     snt.nets.MLP,
                     output_sizes=self._global_update_layers,
-                    initializers=mlp_initializers,
+                    **mlp_initializers,
                     activation=self._update_activation,
                 ),
                 name='network',
@@ -376,8 +411,7 @@ class TokenGraphBuilderModelNodeEmbed:
       self,
       common_embed_dim,
       num_annotations,
-      instruction_annotations,
-      instruction_node_mask,
+      model_ref,
       **kwargs,
   ) -> None:
     """Initializes node embeddings.
@@ -392,8 +426,7 @@ class TokenGraphBuilderModelNodeEmbed:
       instruction_node_mask: As in `BasicBlockGraphBuilder`.
       kwargs: Additional arguments to be passed to the internal `snt.Embed`s.
     """
-    self._instruction_annotations = instruction_annotations
-    self._instruction_node_mask = instruction_node_mask
+    self._model_ref = model_ref
 
     # The first `embed_dim - num_annotations` embedding values for all nodes.
     self._common_embed = snt.Embed(
@@ -428,9 +461,9 @@ class TokenGraphBuilderModelNodeEmbed:
             tf.tensor_scatter_nd_update(
                 extra_embeddings,
                 indices=tf.where(
-                    self._instruction_node_mask,
+                    self._model_ref._instruction_node_mask,
                 ),
-                updates=self._instruction_annotations,
+                updates=self._model_ref._instruction_annotations,
             ),
         ],
         axis=1,
