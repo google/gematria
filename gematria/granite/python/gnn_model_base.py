@@ -27,6 +27,7 @@ from gematria.model.python import options
 import graph_nets
 import sonnet as snt
 import tensorflow.compat.v1 as tf
+import tensorflow as tf2
 import tf_keras
 
 
@@ -90,6 +91,9 @@ class GraphNetworkLayer:
   num_iterations: Optional[int]
   layer_normalization: options.EnableFeature
   residual_connection: options.EnableFeature
+  edges_output_size: Sequence[int] = None
+  nodes_output_size: Sequence[int] = None
+  globals_output_size: Sequence[int] = None
 
 
 class GnnModelBase(model_base.ModelBase):
@@ -222,28 +226,105 @@ class GnnModelBase(model_base.ModelBase):
         shape=global_feature_shape, dtype=global_feature_dtype or self.dtype
     )
 
-    self._graph_network = None
-    self._graphs_tuple_placeholders = None
-    self._graphs_tuple_outputs = None
-
     self._num_message_passing_iterations = num_message_passing_iterations
     self._graph_module_residual_connections = graph_module_residual_connections
     self._graph_module_layer_normalization = graph_module_layer_normalization
 
-  # @Override
-  def _create_tf_graph(self) -> None:
-    self._create_graph_network_resources()
+  def initialize(self):
+    super().initialize()
     self._graph_network = self._create_graph_network_modules()
     assert self._graph_network is not None
-    self._graphs_tuple_placeholders = self._create_graphs_placeholders()
-    assert self._graphs_tuple_placeholders is not None
-    self._graphs_tuple_outputs = self._create_graph_network()
-    assert self._graphs_tuple_outputs is not None
-    self._create_readout_network_resources()
+
+    self._norm_layers = {}
+    self._residual_layers = {}
+    nodes_residual_shape = None
+    edges_residual_shape = None
+    gloabls_residual_shape = None
+    for layer_index, layer in enumerate(self._graph_network):
+      num_iterations = (
+          layer.num_iterations or self._num_message_passing_iterations
+      )
+      use_residual_connections = (
+          layer.residual_connection == options.EnableFeature.ALWAYS
+          or (
+              layer.residual_connection == options.EnableFeature.BY_FLAG
+              and self._graph_module_residual_connections
+          )
+      )
+      use_layer_norm = (
+          layer.layer_normalization == options.EnableFeature.ALWAYS
+          or (
+              layer.layer_normalization == options.EnableFeature.BY_FLAG
+              and self._graph_module_layer_normalization
+          )
+      )
+      for iteration in range(num_iterations):
+        nodes_tensor_shape = tf.TensorShape(layer.nodes_output_size)
+        edges_tensor_shape = tf.TensorShape(layer.edges_output_size)
+        globals_tensor_shape = tf.TensorShape(layer.globals_output_size)
+        if use_residual_connections:
+          assert nodes_residual_shape is not None
+          assert edges_residual_shape is not None
+          assert gloabls_residual_shape is not None
+          residual_op_name_base = (
+              f'residual_connection_{layer_index}_{iteration}'
+          )
+          nodes_residual_layer_name = residual_op_name_base + '_nodes'
+          edges_residual_layer_name = residual_op_name_base + '_edges'
+          globals_residual_layer_name = residual_op_name_base + '_globals'
+          self._residual_layers[nodes_residual_layer_name] = (
+              model_blocks.ResidualConnectionLayer(
+                  (nodes_tensor_shape, nodes_residual_shape),
+                  name=nodes_residual_layer_name,
+              )
+          )
+          self._residual_layers[edges_residual_layer_name] = (
+              model_blocks.ResidualConnectionLayer(
+                  (edges_tensor_shape, edges_residual_shape),
+                  name=edges_residual_layer_name,
+              )
+          )
+          self._residual_layers[globals_residual_layer_name] = (
+              model_blocks.ResidualConnectionLayer(
+                  (globals_tensor_shape, gloabls_residual_shape),
+                  name=globals_residual_layer_name,
+              )
+          )
+        nodes_residual_shape = nodes_tensor_shape
+        edges_residual_shape = edges_tensor_shape
+        gloabls_residual_shape = globals_tensor_shape
+        if use_layer_norm:
+          layer_norm_name_base = (
+              f'graph_network_layer_norm_{layer_index}_{iteration}'
+          )
+          nodes_layer_norm_name = layer_norm_name_base + '_nodes'
+          edges_layer_norm_name = layer_norm_name_base + '_edges'
+          globals_layer_norm_name = layer_norm_name_base + '_globals'
+          self._norm_layers[nodes_layer_norm_name] = (
+              tf_keras.layers.LayerNormalization(name=nodes_layer_norm_name)
+          )
+          self._norm_layers[edges_layer_norm_name] = (
+              tf_keras.layers.LayerNormalization(name=edges_layer_norm_name)
+          )
+          self._norm_layers[globals_layer_norm_name] = (
+              tf_keras.layers.LayerNormalization(name=globals_layer_norm_name)
+          )
+
+  # @Override
+  def _forward(self, feed_dict):
+    graph_tuple_outputs = self._execute_graph_network(feed_dict)
     if not self._use_deltas:
-      self._output_tensor = self._create_readout_network()
+      return {
+          'output': self._execute_readout_network(
+              graph_tuple_outputs, feed_dict
+          )
+      }
     else:
-      self._output_tensor_deltas = self._create_readout_network()
+      return {
+          'output_deltas': self._execute_readout_network(
+              graph_tuple_outputs, feed_dict
+          )
+      }
 
   @abc.abstractmethod
   def _create_graph_network_modules(self) -> Sequence[GraphNetworkLayer]:
@@ -276,65 +357,7 @@ class GnnModelBase(model_base.ModelBase):
         'GnnModelBase._create_graph_networkModule is abstract'
     )
 
-  def _create_graphs_placeholders(self) -> graph_nets.graphs.GraphsTuple:
-    """Creates placeholder inputs for the graph neural network.
-
-    Returns:
-      A GraphsTuple object in which all members are tf.placeholder nodes and
-      that is filled in through a feed_dict created during graph scheduling.
-    """
-    return graph_nets.graphs.GraphsTuple(
-        nodes=tf.placeholder(
-            dtype=self._graph_node_feature_spec.dtype,
-            shape=_add_batch_dimension(self._graph_node_feature_spec.shape),
-            name=GnnModelBase.NODES_TENSOR_NAME,
-        ),
-        edges=tf.placeholder(
-            dtype=self._graph_edge_feature_spec.dtype,
-            shape=_add_batch_dimension(self._graph_edge_feature_spec.shape),
-            name=GnnModelBase.EDGES_TENSOR_NAME,
-        ),
-        globals=tf.placeholder(
-            dtype=self._graph_global_feature_spec.dtype,
-            shape=_add_batch_dimension(self._graph_global_feature_spec.shape),
-            name=GnnModelBase.GLOBALS_TENSOR_NAME,
-        ),
-        receivers=tf.placeholder(
-            dtype=self._graph_index_dtype,
-            shape=(None,),
-            name=GnnModelBase.RECEIVERS_TENSOR_NAME,
-        ),
-        senders=tf.placeholder(
-            dtype=self._graph_index_dtype,
-            shape=(None,),
-            name=GnnModelBase.SENDERS_TENSOR_NAME,
-        ),
-        n_node=tf.placeholder(
-            dtype=self._graph_index_dtype,
-            shape=(None,),
-            name=GnnModelBase.NUM_NODES_TENSOR_NAME,
-        ),
-        n_edge=tf.placeholder(
-            dtype=self._graph_index_dtype,
-            shape=(None,),
-            name=GnnModelBase.NUM_EDGES_TENSOR_NAME,
-        ),
-    )
-
-  def _create_graph_network_resources(self) -> None:
-    """Creates resources (like TensorFlow ops) needed by the readout network.
-
-    Child classes can override this method to create resources (e.g. TensorFlow
-    ops) that will be needed during the creation of the graph network, but
-    that are impractical to create in self._create_graph_network_modules(), e.g.
-    to make it easy to override in child classes.
-
-    This method is called before self._create_graph_network_modules().
-
-    By default, this method is a no-op.
-    """
-
-  def _create_graph_network(self) -> graph_nets.graphs.GraphsTuple:
+  def _execute_graph_network(self, feed_dict) -> graph_nets.graphs.GraphsTuple:
     """Creates TensorFlow ops for the graph network.
 
     By default, this is done by applying the graph network module on the input
@@ -344,7 +367,7 @@ class GnnModelBase(model_base.ModelBase):
       The GraphsTuple that contains the outputs of the last application of the
       graph network module.
     """
-    graphs_tuple = self._graphs_tuple_placeholders
+    graphs_tuple = feed_dict['graph_tuple']
     for layer_index, layer in enumerate(self._graph_network):
       num_iterations = (
           layer.num_iterations or self._num_message_passing_iterations
@@ -370,21 +393,24 @@ class GnnModelBase(model_base.ModelBase):
           residual_op_name_base = (
               f'residual_connection_{layer_index}_{iteration}'
           )
+          nodes_residual_layer = self._residual_layers[
+              residual_op_name_base + '_nodes'
+          ]
+          edges_residual_layer = self._residual_layers[
+              residual_op_name_base + '_edges'
+          ]
+          globals_residual_layer = self._residual_layers[
+              residual_op_name_base + '_globals'
+          ]
           graphs_tuple = graph_nets.graphs.GraphsTuple(
-              nodes=model_blocks.add_residual_connection(
-                  output_part=graphs_tuple.nodes,
-                  residual_part=residual_input.nodes,
-                  name=residual_op_name_base + '_nodes',
+              nodes=nodes_residual_layer(
+                  (graphs_tuple.nodes, residual_input.nodes)
               ),
-              edges=model_blocks.add_residual_connection(
-                  output_part=graphs_tuple.edges,
-                  residual_part=residual_input.edges,
-                  name=residual_op_name_base + '_edges',
+              edges=edges_residual_layer(
+                  (graphs_tuple.edges, residual_input.edges)
               ),
-              globals=model_blocks.add_residual_connection(
-                  output_part=graphs_tuple.globals,
-                  residual_part=residual_input.globals,
-                  name=residual_op_name_base + '_globals',
+              globals=globals_residual_layer(
+                  (graphs_tuple.globals, residual_input.globals)
               ),
               receivers=graphs_tuple.receivers,
               senders=graphs_tuple.senders,
@@ -397,15 +423,11 @@ class GnnModelBase(model_base.ModelBase):
           layer_norm_name_base = (
               f'graph_network_layer_norm_{layer_index}_{iteration}'
           )
-          nodes_layer_norm = tf_keras.layers.LayerNormalization(
-              name=layer_norm_name_base + '_nodes'
-          )
-          edges_layer_norm = tf_keras.layers.LayerNormalization(
-              name=layer_norm_name_base + '_edges'
-          )
-          globals_layer_norm = tf_keras.layers.LayerNormalization(
-              name=layer_norm_name_base + '_globals'
-          )
+          nodes_layer_norm = self._norm_layers[layer_norm_name_base + '_nodes']
+          edges_layer_norm = self._norm_layers[layer_norm_name_base + '_edges']
+          globals_layer_norm = self._norm_layers[
+              layer_norm_name_base + '_globals'
+          ]
           graphs_tuple = graph_nets.graphs.GraphsTuple(
               nodes=nodes_layer_norm(graphs_tuple.nodes),
               edges=edges_layer_norm(graphs_tuple.edges),
@@ -417,23 +439,8 @@ class GnnModelBase(model_base.ModelBase):
           )
     return graphs_tuple
 
-  def _create_readout_network_resources(self) -> None:
-    """Creates resources (like TensorFlow ops) needed by the readout network.
-
-    Child classes can override this method to create resources (e.g. TensorFlow
-    ops) that will be needed during the creation of the readout network, but
-    that are impractical to create in self._create_readout_network(), e.g. to
-    make it easy to override in child classes.
-
-    This method is called after self._create_graph_network(), i.e.
-    self._graphs_tuple_output is already available, but before the call to
-    self._create_readout_network().
-
-    By default, this method is a no-op.
-    """
-
   @abc.abstractmethod
-  def _create_readout_network(self) -> tf.Tensor:
+  def _execute_readout_network(self, graph_tuple) -> tf.Tensor:
     """Creates a readout part of the network.
 
     Creates TensorFlow ops that take the output of the graph network and
@@ -451,9 +458,7 @@ class GnnModelBase(model_base.ModelBase):
   # @Override
   def _make_batch_feed_dict(self) -> model_base.FeedDict:
     graphs_tuple = self._make_batch_graphs_tuple()
-    return graph_nets.utils_tf.get_feed_dict(
-        self._graphs_tuple_placeholders, graphs_tuple
-    )
+    return {'graph_tuple': graphs_tuple}
 
   @abc.abstractmethod
   def _make_batch_graphs_tuple(self) -> graph_nets.graphs.GraphsTuple:
