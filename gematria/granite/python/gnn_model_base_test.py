@@ -229,6 +229,8 @@ class TestEncoderDecoderGnnModel(gnn_model_base.GnnModelBase):
         **kwargs,
     )
 
+  def initialize(self):
+    super().initialize()
     self._linear_layer = tf_keras.layers.Dense(
         self.num_tasks, activation='linear'
     )
@@ -476,18 +478,17 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
   def test_train_seq2num_encoder_decoder_model(
       self, loss_type, loss_normalization
   ):
+    model = TestEncoderDecoderGnnModel(
+        graph_module_layer_normalization=False,
+        loss_normalization=loss_normalization,
+        loss_type=loss_type,
+        learning_rate=0.01,
+    )
     with mock.patch(
         'tf_keras.layers.LayerNormalization',
         side_effect=tf_keras.layers.LayerNormalization,
     ) as tf_keras_layer_norm:
-      model = TestEncoderDecoderGnnModel(
-          graph_module_layer_normalization=False,
-          loss_normalization=loss_normalization,
-          loss_type=loss_type,
-          learning_rate=0.01,
-      )
-
-    model.initialize()
+      model.initialize()
     self.assertEqual(
         tf_keras_layer_norm.call_args_list,
         [
@@ -504,6 +505,14 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
   def test_train_seq2seq_encoder_decoder_model(
       self, loss_type, loss_normalization
   ):
+    model = TestEncoderDecoderGnnModel(
+        graph_module_layer_normalization=True,
+        graph_module_residual_connections=False,
+        loss_normalization=loss_normalization,
+        loss_type=loss_type,
+        use_deltas=True,
+        learning_rate=0.01,
+    )
     with (
         mock.patch(
             'tf_keras.layers.LayerNormalization',
@@ -514,16 +523,7 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
             side_effect=model_blocks.ResidualConnectionLayer,
         ) as residual_connection_layer,
     ):
-      model = TestEncoderDecoderGnnModel(
-          graph_module_layer_normalization=True,
-          graph_module_residual_connections=False,
-          loss_normalization=loss_normalization,
-          loss_type=loss_type,
-          use_deltas=True,
-          learning_rate=0.01,
-      )
-
-    model.initialize()
+      model.initialize()
     # NOTE(ondrasej): tf.math.add is called only when adding residual
     # connections. Since they are disabled in this test case, we should not see
     # any calls to this function.
@@ -563,6 +563,12 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
     self.check_training_model(model)
 
   def test_train_seq2seq_model_with_residual_connections(self):
+    model = TestEncoderDecoderGnnModel(
+        graph_module_layer_normalization=True,
+        graph_module_residual_connections=True,
+        use_deltas=True,
+        learning_rate=0.01,
+    )
     with (
         mock.patch(
             'gematria.model.python.model_blocks.ResidualConnectionLayer',
@@ -573,14 +579,7 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
             side_effect=tf_keras.layers.Dense,
         ) as tf_keras_dense,
     ):
-      model = TestEncoderDecoderGnnModel(
-          graph_module_layer_normalization=True,
-          graph_module_residual_connections=True,
-          use_deltas=True,
-          learning_rate=0.01,
-      )
-
-    model.initialize()
+      model.initialize()
     self.assertEqual(
         residual_connection_layer.call_args_list,
         [
@@ -618,6 +617,14 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
   def test_train_seq2seq_model_with_residual_connections_with_linear_transform(
       self,
   ):
+    model = TestEncoderDecoderGnnModel(
+        graph_module_layer_normalization=False,
+        graph_module_residual_connections=False,
+        decoder_residual_connection=True,
+        use_deltas=True,
+        learning_rate=0.01,
+    )
+
     with (
         mock.patch(
             'gematria.model.python.model_blocks.ResidualConnectionLayer',
@@ -628,14 +635,7 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
             side_effect=tf_keras.layers.Dense,
         ) as tf_keras_dense,
     ):
-      model = TestEncoderDecoderGnnModel(
-          graph_module_layer_normalization=False,
-          graph_module_residual_connections=False,
-          decoder_residual_connection=True,
-          use_deltas=True,
-          learning_rate=0.01,
-      )
-    model.initialize()
+      model.initialize()
     self.assertEqual(
         residual_connection_layer.call_args_list,
         [
@@ -648,22 +648,22 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
         tf_keras_dense.call_args_list,
         [
             mock.call(
-                activation=tf_keras.activations.linear,
-                name='residual_connection_2_0_nodes_transformation',
                 units=5,
+                activation=tf_keras.activations.linear,
                 use_bias=False,
+                name='residual_connection_2_0_nodes_transformation',
             ),
             mock.call(
-                activation=tf_keras.activations.linear,
-                name='residual_connection_2_0_edges_transformation',
                 units=6,
+                activation=tf_keras.activations.linear,
                 use_bias=False,
+                name='residual_connection_2_0_edges_transformation',
             ),
             mock.call(
-                activation=tf_keras.activations.linear,
-                name='residual_connection_2_0_globals_transformation',
                 units=4,
+                activation=tf_keras.activations.linear,
                 use_bias=False,
+                name='residual_connection_2_0_globals_transformation',
             ),
             mock.call(1, activation='linear'),
         ],
