@@ -136,6 +136,14 @@ class TokenModel(model_base.ModelBase):
       if self._oov_token is None:
         raise ValueError(f'Token {replacement_token} was not found in tokens.')
 
+    token_list_array = np.frombuffer(
+        b'\0'.join(token.encode('utf-8') for token in self._token_list),
+        dtype=np.uint8,
+    )
+    self._token_list_tensor = tf.constant(
+        token_list_array, name=TokenModel.TOKENS_TENSOR_NAME
+    )
+
     super().__init__(**kwargs)
 
   @property
@@ -195,16 +203,7 @@ class TokenModel(model_base.ModelBase):
           return False
     return True
 
-  def _create_tf_graph(self):
+  def _forward(self, feed_dict: model_base.FeedDict):
     """See base class."""
-    super()._create_tf_graph()
-    # Convert the token list into an array of bytes. We need to go through NumPy
-    # because tf.constant() always treats a bytes() object as a string and can't
-    # use it with any other dtype.
-    token_list_array = np.frombuffer(
-        b'\0'.join(token.encode('utf-8') for token in self._token_list),
-        dtype=np.uint8,
-    )
-    self._token_list_tensor = tf.constant(
-        token_list_array, name=TokenModel.TOKENS_TENSOR_NAME
-    )
+    del feed_dict  # Unused.
+    raise NotImplementedError()

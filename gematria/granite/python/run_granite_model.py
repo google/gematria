@@ -22,7 +22,7 @@ from gematria.model.python import main_function
 from gematria.model.python import options
 from gematria.model.python import token_model_flags
 from gematria.utils.python import flag_utils
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def main(argv):
@@ -109,5 +109,4 @@ def main(argv):
 if __name__ == '__main__':
   token_model_flags.mark_token_flags_as_required()
   token_model_flags.set_default_oov_replacement_token(tokens.UNKNOWN)
-  tf.disable_v2_behavior()
   app.run(main)
