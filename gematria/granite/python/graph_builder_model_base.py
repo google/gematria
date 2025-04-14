@@ -58,6 +58,9 @@ class GraphBuilderModelBase(
       'GraphBuilderModelBase.instruction_node_mask'
   )
 
+  # The name of the input tensor that receives the context node mask.
+  CONTEXT_NODE_MASK_TENSOR_NAME = 'GraphBuilderModelBase.context_node_mask'
+
   # The name of the input tensor that holds the instruction annotations.
   INSTRUCTION_ANNOTATIONS_TENSOR_NAME = (
       'GraphBuilderModelBase.instruction_annotations'
@@ -74,6 +77,12 @@ class GraphBuilderModelBase(
   # to collect the feature vectors of nodes corresponding to instructions for
   # further processing during readout.
   _instruction_node_mask: tf.Tensor
+
+  # A Boolean tensor placeholder that receives a mask for context nodes of the
+  # same shape as `_instruction_node_mask`. A given element is True if the
+  # corresponding node is an instruction belonging to either the back or front
+  # context. The mask is used to exclude context nodes from predictions.
+  _context_node_mask: tf.Tensor
 
   # A tensor that contains feature vectors of nodes representing instructions in
   # the order in which they are in the basic block, i.e. in the same order
@@ -237,12 +246,18 @@ class GraphBuilderModelBase(
         shape=(None,),
         name=GraphBuilderModelBase.INSTRUCTION_NODE_MASK_TENSOR_NAME,
     )
+    self._context_node_mask = tf.placeholder(
+        dtype=tf.dtypes.bool,
+        shape=(None,),
+        name=GraphBuilderModelBase.CONTEXT_NODE_MASK_TENSOR_NAME,
+    )
 
   # @Override
   def _create_readout_network_resources(self) -> None:
     super()._create_readout_network_resources()
     self._instruction_features = tf.boolean_mask(
-        self._graphs_tuple_outputs.nodes, self._instruction_node_mask
+        self._graphs_tuple_outputs.nodes,
+        self._instruction_node_mask & ~self._context_node_mask,
     )
 
   # @Override
@@ -255,6 +270,9 @@ class GraphBuilderModelBase(
     feed_dict = super()._make_batch_feed_dict()
     feed_dict[self._instruction_node_mask] = np.array(
         self._batch_graph_builder.instruction_node_mask, dtype=bool
+    )
+    feed_dict[self._context_node_mask] = np.array(
+        self._batch_graph_builder.context_node_mask, dtype=bool
     )
     feed_dict[self._instruction_annotations] = (
         self._batch_graph_builder.instruction_annotations
@@ -311,7 +329,10 @@ class GraphBuilderModelBase(
 
   # @Override
   def _add_basic_block_to_batch(self, block: basic_block.BasicBlock) -> None:
-    basic_block_was_added = self._batch_graph_builder.add_basic_block(block)
+    # Add context to the basic block graph only for seq2seq models.
+    basic_block_was_added = self._batch_graph_builder.add_basic_block(
+        block, add_context=self.use_deltas
+    )
     if not basic_block_was_added:
       # TODO(ondrasej): Better handling of blocks that can't be added to the
       # batch. For now, we just let the exception propagate out of the model and

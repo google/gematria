@@ -48,6 +48,7 @@ gematria_pybind_extension(
     srcs = ["graph_builder.cc"],
     visibility = ["//:internal_users"],
     deps = [
+        "//gematria/basic_block",
         "//gematria/granite:graph_builder",
         "//gematria/model:oov_token_behavior",
         "//gematria/proto:canonicalized_instruction_cc_proto",

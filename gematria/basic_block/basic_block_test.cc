@@ -277,7 +277,7 @@ TEST(InstructionOperandTest, Equality) {
 
 TEST(InstructionOperandTest, ToString) {
   const struct {
-    InstructionOperand opernad;
+    InstructionOperand operand;
     const char* expected_string;
   } kTestCases[] = {
       {InstructionOperand::Register("RAX"),
@@ -292,7 +292,7 @@ TEST(InstructionOperandTest, ToString) {
        "InstructionOperand.from_memory(32)"}};
 
   for (const auto& test_case : kTestCases) {
-    EXPECT_EQ(test_case.opernad.ToString(), test_case.expected_string);
+    EXPECT_EQ(test_case.operand.ToString(), test_case.expected_string);
   }
 }
 
@@ -318,7 +318,6 @@ TEST(InstructionOperandTest, AsTokenList) {
   }
 }
 
-// TODO(virajbshah): Add tests for Annotation.
 TEST(AnnotationTest, Constructor) {
   constexpr char kName[] = "cache_miss_freq";
   constexpr double kValue = 0.875;
