@@ -546,7 +546,6 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       summary_name = f'{error_name}_{task_name}'
       tf.summary.scalar(summary_name, error_tensor[task_idx])
 
-  @abc.abstractmethod
   def _add_histogram_summaries(self) -> None:
     """Adds histogram summaries for tensors.
 
@@ -554,6 +553,9 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
 
     By default, this method is a no-op.
     """
+    # NOTE(vbshah): This method is not marked as abstract as it need not be
+    # implemented by subclasses, in which case this default (no-op)
+    # implementation should be invoked.
 
   def _make_spearman_correlations(
       self, expected_outputs: tf.Tensor, output_tensor: tf.Tensor
