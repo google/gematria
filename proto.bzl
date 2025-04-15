@@ -13,8 +13,9 @@
 # limitations under the License.
 """Contains portable rules for generating protocol buffer libraries."""
 
-load("@com_google_protobuf//:protobuf.bzl", _py_proto_library = "py_proto_library")
-load("@rules_cc//cc:defs.bzl", _cc_proto_library = "cc_proto_library")
+load("@com_google_protobuf//bazel:cc_proto_library.bzl", _cc_proto_library = "cc_proto_library")
+load("@com_google_protobuf//bazel:proto_library.bzl", _proto_library = "proto_library")
+load("@com_google_protobuf//bazel:py_proto_library.bzl", _py_proto_library = "py_proto_library")
 
 def gematria_proto_library(name = None, srcs = None, deps = (), **kwargs):
     """Creates proto library target and language bindings.
@@ -41,7 +42,7 @@ def gematria_proto_library(name = None, srcs = None, deps = (), **kwargs):
     cc_name = name_base + "_cc_proto"
     py_name = name_base + "_py_pb2"
     binding_deps = [":" + name]
-    native.proto_library(
+    _proto_library(
         name = name,
         srcs = srcs,
         deps = deps,
@@ -52,10 +53,8 @@ def gematria_proto_library(name = None, srcs = None, deps = (), **kwargs):
         deps = binding_deps,
         **kwargs
     )
-    py_deps = [target[:-6] + "_py_pb2" for target in deps]
     _py_proto_library(
         name = py_name,
-        srcs = srcs,
-        deps = py_deps,
+        deps = binding_deps,
         **kwargs
     )

@@ -34,6 +34,9 @@ def _lit_test(test_file_name, data = []):
         args = [lit_file_path, "-vv"],
         main = "@llvm-project//llvm:utils/lit/lit.py",
         data = [":" + test_file_name, "lit.cfg.py", "lit.site.cfg.py"] + data,
+        deps = [
+            "@pypi//lit",
+        ],
     )
 
 def glob_lit_tests(name, test_file_exts, data = []):

@@ -26,6 +26,7 @@ gematria_py_test(
     deps = [
         ":basic_block",
         ":tokens",
+        "@pypi//absl_py",
     ],
 )
 
@@ -50,6 +51,7 @@ gematria_py_test(
         "//gematria/proto:annotation_py_pb2",
         "//gematria/proto:basic_block_py_pb2",
         "//gematria/proto:canonicalized_instruction_py_pb2",
+        "@pypi//absl_py",
     ],
 )
 
@@ -81,6 +83,7 @@ gematria_py_test(
         "//gematria/proto:basic_block_py_pb2",
         "//gematria/proto:canonicalized_instruction_py_pb2",
         "//gematria/proto:throughput_py_pb2",
+        "@pypi//absl_py",
     ],
 )
 

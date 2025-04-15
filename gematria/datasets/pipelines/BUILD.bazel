@@ -20,6 +20,8 @@ gematria_py_library(
         "//gematria/llvm/python:llvm_architecture_support",
         "//gematria/llvm/python:runfiles",
         "//gematria/proto:execution_annotation_py_pb2",
+        "@pypi//absl_py",
+        "@pypi//apache_beam",
     ],
 )
 
@@ -28,6 +30,8 @@ gematria_py_binary(
     srcs = ["compile_modules.py"],
     deps = [
         ":compile_modules_lib",
+        "@pypi//absl_py",
+        "@pypi//apache_beam",
     ],
 )
 
@@ -46,6 +50,8 @@ gematria_py_test(
     deps = [
         ":compile_modules_lib",
         "//gematria/testing/python:ir_utils",
+        "@pypi//absl_py",
+        "@pypi//apache_beam",
     ],
 )
 
@@ -60,6 +66,7 @@ gematria_py_binary(
         "//gematria/llvm/python:llvm_architecture_support",
         "//gematria/proto:execution_annotation_py_pb2",
         "//gematria/proto:throughput_py_pb2",
+        "@pypi//apache_beam",
     ],
 )
 
@@ -69,6 +76,8 @@ gematria_py_binary(
     deps = [
         ":benchmark_bbs_lib",
         ":benchmark_cpu_scheduler",
+        "@pypi//absl_py",
+        "@pypi//apache_beam",
     ],
 )
 
@@ -87,12 +96,17 @@ gematria_py_test(
         "//gematria/io/python:tfrecord",
         "//gematria/proto:execution_annotation_py_pb2",
         "//gematria/proto:throughput_py_pb2",
+        "@pypi//absl_py",
+        "@pypi//apache_beam",
     ],
 )
 
 gematria_py_library(
     name = "benchmark_cpu_scheduler",
     srcs = ["benchmark_cpu_scheduler.py"],
+    deps = [
+        "@pypi//typing_extensions",
+    ],
 )
 
 gematria_py_test(
@@ -101,5 +115,6 @@ gematria_py_test(
     srcs = ["benchmark_cpu_scheduler_test.py"],
     deps = [
         ":benchmark_cpu_scheduler",
+        "@pypi//absl_py",
     ],
 )

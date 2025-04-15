@@ -20,6 +20,8 @@ gematria_py_library(
         "//gematria/basic_block/python:throughput_protos",
         "//gematria/basic_block/python:tokens",
         "//gematria/proto:throughput_py_pb2",
+        "@pypi//absl_py",
+        "@pypi//bazel_runfiles",
     ],
 )
 
@@ -30,6 +32,7 @@ gematria_py_test(
     deps = [
         ":basic_blocks_with_throughput",
         "//gematria/proto:throughput_py_pb2",
+        "@pypi//absl_py",
     ],
 )
 
@@ -46,6 +49,7 @@ gematria_py_test(
     srcs = ["matchers_test.py"],
     deps = [
         ":matchers",
+        "@pypi//absl_py",
     ],
 )
 
@@ -67,6 +71,7 @@ gematria_py_library(
     visibility = ["//:internal_users"],
     deps = [
         "//gematria/llvm/python:runfiles",
+        "@pypi//pyarrow",
     ],
 )
 
@@ -76,5 +81,7 @@ gematria_py_test(
     srcs = ["ir_utils_test.py"],
     deps = [
         ":ir_utils",
+        "@pypi//absl_py",
+        "@pypi//pyarrow",
     ],
 )

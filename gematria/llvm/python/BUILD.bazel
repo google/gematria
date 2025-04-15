@@ -13,7 +13,6 @@ package(
 gematria_pybind_extension(
     name = "canonicalizer",
     srcs = ["canonicalizer.cc"],
-    py_deps = [":llvm_architecture_support"],
     visibility = ["//:internal_users"],
     deps = [
         "//gematria/llvm:canonicalizer",
@@ -28,6 +27,7 @@ gematria_py_test(
     deps = [
         ":canonicalizer",
         ":llvm_architecture_support",
+        "@pypi//absl_py",
     ],
 )
 
@@ -50,6 +50,7 @@ gematria_py_test(
     deps = [
         ":llvm_architecture_support",
         "//gematria/utils/python:pybind11_abseil_status",
+        "@pypi//absl_py",
     ],
 )
 
@@ -61,6 +62,7 @@ gematria_py_library(
         "@llvm-project//llvm:llvm-as",
         "@llvm-project//llvm:llvm-dis",
         "@llvm-project//llvm:opt",
+        "@pypi//bazel_runfiles",
     ],
     visibility = ["//:internal_users"],
 )
