@@ -1312,6 +1312,9 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
         )
     )
 
+  def _get_trainable_variables(self):
+    return self.trainable_variables
+
   def train_batch(
       self,
       schedule: FeedDict,
@@ -1347,10 +1350,11 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
               ]
           )
 
+        trainable_variables = self._get_trainable_variables()
         variables = (
             [variable.deref() for variable in variables]
             if variables
-            else self.trainable_variables
+            else trainable_variables
         )
 
         grads = tape.gradient(loss_tensor, variables)
