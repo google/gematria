@@ -310,6 +310,12 @@ class GnnModelBase(model_base.ModelBase):
               tf_keras.layers.LayerNormalization(name=globals_layer_norm_name)
           )
 
+  def _get_trainable_variables(self):
+    trainable_variables = list(super()._get_trainable_variables())
+    for layer in self._graph_network:
+      trainable_variables.extend(layer.module.trainable_variables)
+    return trainable_variables
+
   # @Override
   def _forward(self, feed_dict):
     graph_tuple_outputs = self._execute_graph_network(feed_dict)
