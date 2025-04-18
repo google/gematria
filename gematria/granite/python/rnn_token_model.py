@@ -19,8 +19,7 @@ information about the model.
 
 from gematria.granite.python import token_graph_builder_model
 from gematria.model.python import options
-import tensorflow.compat.v1 as tf
-import tensorflow as tf2
+import tensorflow as tf
 import tf_keras
 
 _RNN_TYPE_TO_TF = {'LSTM': tf_keras.layers.LSTM, 'GRU': tf_keras.layers.GRU}
@@ -130,7 +129,7 @@ class RnnTokenModel(token_graph_builder_model.TokenGraphBuilderModel):
       self._rnn_layer = tf_keras.layers.Bidirectional(self._rnn_layer)
 
   def _execute_readout_network(self, graph_tuple, feed_dict) -> tf.Tensor:
-    instruction_features = tf2.boolean_mask(
+    instruction_features = tf.boolean_mask(
         graph_tuple.nodes, feed_dict['instruction_node_mask']
     )
 
@@ -142,7 +141,7 @@ class RnnTokenModel(token_graph_builder_model.TokenGraphBuilderModel):
     # of the ragged tensor corresponds to one basic blocks in the batch, and it
     # contains a sequence of feature vectors of the instructions in the basic
     # block.
-    blocks_ragged = tf2.RaggedTensor.from_value_rowids(
+    blocks_ragged = tf.RaggedTensor.from_value_rowids(
         instruction_features, feed_dict['delta_block_index']
     )
 

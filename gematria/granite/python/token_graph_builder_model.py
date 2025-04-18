@@ -25,8 +25,7 @@ from gematria.model.python import model_blocks
 from gematria.model.python import options
 import graph_nets
 import sonnet as snt
-import tensorflow.compat.v1 as tf
-import tensorflow as tf2
+import tensorflow as tf
 import tf_keras
 
 
@@ -250,8 +249,8 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
               model_blocks.ResidualConnectionLayer(
                   name='task_readout_residual_connections',
                   layer_input_shapes=(
-                      tf2.TensorShape([None, self._task_readout_layers[-1]]),
-                      tf2.TensorShape([None, self._readout_layers[-1]]),
+                      tf.TensorShape([None, self._task_readout_layers[-1]]),
+                      tf.TensorShape([None, self._readout_layers[-1]]),
                   ),
               )
           )
@@ -304,7 +303,7 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
 
   def _execute_readout_network(self, graph_tuple, feed_dict) -> tf.Tensor:
     if self._use_deltas:
-      data = tf2.boolean_mask(
+      data = tf.boolean_mask(
           graph_tuple.nodes, feed_dict['instruction_node_mask']
       )
     else:
