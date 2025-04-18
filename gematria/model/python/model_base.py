@@ -120,10 +120,15 @@ class SaveBestCheckpoint(tf.train.SessionRunHook):
       )
 
 
-class OutputDict(TypedDict):
-  output: tf.Tensor | None
-  output_deltas: tf.Tensor | None
-  output_mask_deltas: tf.Tensor | None
+class OutputDict(TypedDict, total=False):
+  """Represents the outputs of executing the model.
+  
+  This class is designed to be used for typing the outputs of executing a
+  model in all of its various modes.
+  """
+  output: tf.Tensor
+  output_deltas: tf.Tensor
+  output_mask_deltas: tf.Tensor
 
 
 class ModelBase(tf.Module, metaclass=abc.ABCMeta):
