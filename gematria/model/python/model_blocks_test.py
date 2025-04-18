@@ -64,6 +64,13 @@ class ResidualConnectionLayerTest(tf.test.TestCase):
     output_tensor = residual_layer((input_tensor, residual_tensor))
     self.assertNotAllClose(output_tensor, input_tensor)
 
+  def test_cast_layer(self):
+    input_tensor = tf.constant([1, 2, 3, 4], dtype=tf.dtypes.float32)
+    cast_layer = model_blocks.CastLayer(dtype=tf.dtypes.float64)
+    output_tensor = cast_layer(input_tensor)
+    self.assertEqual(output_tensor.dtype, tf.dtypes.float64)
+    self.assertAllClose(input_tensor.numpy(), [1, 2, 3, 4])
+
 
 if __name__ == '__main__':
   tf.test.main()

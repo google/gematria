@@ -320,8 +320,8 @@ class LossComputationTest(tf.test.TestCase):
 
   def test_single_task_unknown_shape(self):
     num_tasks = 1
-    actual_output = tf.reshape(self.actual_outputs_array, (-1, 1))
-    expected_output = tf.reshape(self.expected_outputs_array, (-1, 1))
+    actual_output = tf.constant(self.actual_outputs_array)
+    expected_output = tf.constant(self.expected_outputs_array)
     mask = tf.ones_like(actual_output, tf.dtypes.bool)
     percentile_ranks = (0, 50, 75, 100)
 
