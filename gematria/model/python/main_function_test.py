@@ -426,6 +426,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
     FLAGS.gematria_use_seq2seq_loss = use_seq2seq_loss
     FLAGS.gematria_learning_rate = learning_rate
     FLAGS.gematria_training_throughput_selection = training_throughput_selection
+    FLAGS.gematria_save_checkpoint_epochs = 10
 
     main_function.run_gematria_model_from_command_line_flags(
         MockModel, dtype=tf.dtypes.float32
@@ -459,8 +460,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
     # Check that the files created by the monitored session are there.
     self._assert_file_exists('checkpoint/checkpoint')
     self._assert_file_exists('checkpoint/ckpt-1.index')
-    # TODO(boomanaiden154): Fix this
-    # self._assert_file_exists('summary/events.out.tfevents.*')
+    self._assert_file_exists('summary/events.out.tfevents.*')
 
     # Try to load the latest checkpoint with the model.
     model = TestModel(dtype=tf.dtypes.float32)
@@ -478,8 +478,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
 
     # Check the value of the global step loaded from the checkpoint. This
     # should be equal to the number of training epochs.
-    # TODO(boomanaiden154): Fix this
-    # self.assertEqual(sess.run(model.global_step), num_epochs)
+    self.assertEqual(model.global_step, num_epochs)
 
   @flagsaver.flagsaver
   def test_train_with_min_throughput(self):

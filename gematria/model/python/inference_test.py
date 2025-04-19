@@ -43,12 +43,11 @@ class TestModel(model_base.ModelBase):
   output tensors, and filling them in through the returned feed dict.
   """
 
-  def __init__(self, use_custom_output_names=False, **kwargs):
+  def __init__(self, **kwargs):
     super().__init__(**kwargs)
     self.num_visited_blocks = 0
     self.num_scheduled_instructions = 0
     self.batch_sizes = []
-    self.use_custom_output_names = use_custom_output_names
 
   def _forward(self, feed_dict):
     if not self._use_deltas:

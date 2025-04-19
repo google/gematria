@@ -33,8 +33,7 @@ from gematria.model.python import oov_token_behavior
 from gematria.model.python import token_model
 import graph_nets
 import numpy as np
-import tensorflow.compat.v1 as tf
-import tensorflow as tf2
+import tensorflow as tf
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior
 
@@ -177,9 +176,9 @@ class GraphBuilderModelBase(
         ),
         dtype=np.int32,
     )
-    self._special_tokens_tensor = tf2.constant(
+    self._special_tokens_tensor = tf.constant(
         special_tokens,
-        dtype=tf2.dtypes.int32,
+        dtype=tf.dtypes.int32,
         name=GraphBuilderModelBase.SPECIAL_TOKENS_TENSOR_NAME,
     )
     annotation_names_array = np.frombuffer(
@@ -188,7 +187,7 @@ class GraphBuilderModelBase(
         ),
         dtype=np.uint8,
     )
-    self._annotation_names_tensor = tf2.constant(
+    self._annotation_names_tensor = tf.constant(
         annotation_names_array,
         name=GraphBuilderModelBase.ANNOTATION_NAMES_TENSOR_NAME,
     )
@@ -238,30 +237,30 @@ class GraphBuilderModelBase(
       node_features[injection_mask] = self._oov_token
     return graph_nets.graphs.GraphsTuple(
         nodes=node_features,
-        edges=tf2.constant(
+        edges=tf.constant(
             self._batch_graph_builder.edge_features,
             dtype=self._graph_edge_feature_spec.dtype,
         ),
         # NOTE(ondrasej): The graph globals are not normalized by the number of
         # nodes in the graph. We could do it here, but we can also do it by
         # introducing a LayerNorm layer in the first graph network module.
-        globals=tf2.constant(
+        globals=tf.constant(
             self._batch_graph_builder.global_features,
             dtype=self._graph_global_feature_spec.dtype,
         ),
-        receivers=tf2.constant(
+        receivers=tf.constant(
             self._batch_graph_builder.edge_receivers,
             dtype=self._graph_index_dtype,
         ),
-        senders=tf2.constant(
+        senders=tf.constant(
             self._batch_graph_builder.edge_senders,
             dtype=self._graph_index_dtype,
         ),
-        n_node=tf2.constant(
+        n_node=tf.constant(
             self._batch_graph_builder.num_nodes_per_block,
             dtype=self._graph_index_dtype,
         ),
-        n_edge=tf2.constant(
+        n_edge=tf.constant(
             self._batch_graph_builder.num_edges_per_block,
             dtype=self._graph_index_dtype,
         ),
