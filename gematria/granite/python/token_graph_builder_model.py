@@ -420,9 +420,8 @@ class TokenGraphBuilderModelNodeEmbed:
         embedding vectors. The remainder of the vector is filled with
         instruction annotation.
       num_annotations: The number of annotations per instruction.
-      instruction_annotations: Tensor holding instruction level runtime
-        annotations as in `BasicBlockGraphBuilder`.
-      instruction_node_mask: As in `BasicBlockGraphBuilder`.
+      model_ref: A reference to the model to get the instruction node mask and
+        instruction annotations.
       kwargs: Additional arguments to be passed to the internal `snt.Embed`s.
     """
     self._model_ref = model_ref
