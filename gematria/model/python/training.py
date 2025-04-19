@@ -321,7 +321,10 @@ def partially_restore_from_checkpoint(
   dtypes = reader.get_variable_to_dtype_map()
 
   if load_step_from_ckpt:
-    raise NotImplementedError()
+    tf.compat.v1.assign(
+        tf.compat.v1.train.get_or_create_global_step(),
+        reader.get_tensor('global_step'),
+    )
 
   for variable in model.trainable_variables:
     # All variable names should end with ':0'; this ':0' is not used in the
