@@ -30,6 +30,7 @@
 #include "llvm/Support/Error.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetOptions.h"
+#include "llvm/TargetParser/Triple.h"
 
 namespace gematria {
 namespace {
@@ -90,7 +91,7 @@ LlvmArchitectureSupport::LlvmArchitectureSupport(std::string_view llvm_triple,
     : target_(target) {
   llvm::TargetOptions target_options;
   target_machine_.reset(target_->createTargetMachine(
-      /*TT=*/llvm_triple, /*CPU=*/cpu, /*Features=*/cpu_features,
+      /*TT=*/llvm::Triple(llvm_triple), /*CPU=*/cpu, /*Features=*/cpu_features,
       /*Options=*/target_options, /*RM=*/std::nullopt));
 
   mc_context_ = std::make_unique<llvm::MCContext>(
