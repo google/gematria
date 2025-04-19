@@ -148,9 +148,8 @@ new_git_repository(
 
 git_repository(
     # We can't use the name "pybind11_abseil" for the repository, as this would
-    # break the `sys.path` hack that we use for importing third-party Python
-    # modules. See the comment under "Python libraries" below for a detailed
-    # explanation.
+    # break the mechanism Bazel uses for importing third-party Python modules.
+    # See the comment under "Python libraries" below for a detailed explanation.
     name = "pybind11_abseil_repo",
     commit = "1caf1890443e8e303bf88850d3c27d5422903168",
     remote = "https://github.com/pybind/pybind11_abseil.git",
@@ -171,13 +170,12 @@ _pybind11_python_configure(
 
 # Python libraries
 
-# We need to manipulate sys.path to make these libraries work as if they were imported
-# through PIP or the system package manager. When adding a new Python repository here,
-# 1. the name of the repository should be different from the name used when importing it
-#    in Python, to avoid confusing the module loader; by convention, we add `_repo` at
-#    the end of the name.
-# 2. the names of the repositories must be added to the list of third-party repositories
-#    in `gematria/__init__.py` to make sure that they are added to sys.path.
+# Bazel copies the contents of these libraries' repositories to the runfiles
+# directories of targets that depend on them to make them work as if they were
+# imported through PIP or the system package manager. When adding a new Python
+# repository here, the name of the repository should be different from the name
+# used when importing it in Python, to avoid confusing the module loader; by
+# convention, we add `_repo` at the end of the name.
 
 git_repository(
     name = "sonnet_repo",
