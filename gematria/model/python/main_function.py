@@ -413,15 +413,6 @@ _GEMATRIA_NUM_TRAINING_WORKER_REPLICAS_TO_AGGREGATE = flags.DEFINE_integer(
         ' the slowest replica.'
     ),
 )
-_GRAPH_DEF_FILE = flags.DEFINE_string(
-    'gematria_graph_def_file',
-    None,
-    (
-        'When running in export graph def node, this is the name of the file to'
-        ' which the GraphDef proto for the model is written. The proto is'
-        ' stored in the text format.'
-    ),
-)
 _GEMATRIA_USE_SEQ2SEQ_LOSS = flags.DEFINE_bool(
     'gematria_use_seq2seq_loss',
     True,
@@ -810,12 +801,12 @@ def run_gematria_model_from_command_line_flags(
         # If there is a checkpoint to bootstrap from, we add an init_fn to the
         # monitored session that restores it. This init_fn is called only when an
         # actual checkpoint is not available to fully restore the model.
-        _warmstart_from_file(_WARMSTART_FILE.value)
+        _warmstart_from_file(model)
       elif _WARMSTART_DIR.value:
         # If there is a directory to bootstrap from, we find the latest checkpoint
         # in this directory and add an init_fn to the monitored session the same way
         # as with _WARMSTART_FILE above.
-        _warmstart_from_dir(_WARMSTART_DIR.value)
+        _warmstart_from_dir(model)
       randomize_expected_outputs = (
           _TRAINING_THROUGHPUT_SELECTION.value
           == io_options.ThroughputSelection.RANDOM
@@ -831,12 +822,21 @@ def run_gematria_model_from_command_line_flags(
       def checkpoint_model():
         checkpoint_manager.save()
 
-      model.train(
-          tuple(blocks_with_throughput),
-          max_blocks_in_batch=_GEMATRIA_MAX_BLOCKS_IN_BATCH.value,
-          max_instructions_in_batch=max_instructions_in_batch,
-          num_epochs=_GEMATRIA_TRAINING_NUM_EPOCHS.value,
-          randomize_batches=_GEMATRIA_TRAINING_RANDOMIZE_BATCHES.value,
-          randomize_expected_outputs=randomize_expected_outputs,
-          hooks=[(_GEMATRIA_SAVE_CHECKPOINT_EPOCHS.value, checkpoint_model)],
+      train_summary_writer = tf2.summary.create_file_writer(
+          _GEMATRIA_SUMMARY_DIR.value
       )
+
+      with train_summary_writer.as_default(), tf2.summary.record_if(
+          lambda: tf.math.equal(
+              model.global_step % _GEMATRIA_SAVE_SUMMARIES_EPOCHS, 0
+          )
+      ):
+        model.train(
+            tuple(blocks_with_throughput),
+            max_blocks_in_batch=_GEMATRIA_MAX_BLOCKS_IN_BATCH.value,
+            max_instructions_in_batch=max_instructions_in_batch,
+            num_epochs=_GEMATRIA_TRAINING_NUM_EPOCHS.value,
+            randomize_batches=_GEMATRIA_TRAINING_RANDOMIZE_BATCHES.value,
+            randomize_expected_outputs=randomize_expected_outputs,
+            hooks=[(_GEMATRIA_SAVE_CHECKPOINT_EPOCHS.value, checkpoint_model)],
+        )

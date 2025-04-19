@@ -27,12 +27,12 @@ GnnModelBase.
 
 import abc
 import collections
-from collections.abc import Iterable, MutableMapping, MutableSequence, Sequence
+from collections.abc import Iterable, MutableMapping, MutableSequence, Sequence, Callable
 import itertools
 import math
 import os
 import random
-from typing import Optional, TypeVar, Union
+from typing import Optional, TypeVar, Union, TypedDict
 
 from absl import logging
 from gematria.basic_block.python import basic_block
@@ -118,6 +118,18 @@ class SaveBestCheckpoint(tf.train.SessionRunHook):
           save_path=os.path.join(self._checkpoint_dir, 'best_models'),
           global_step=step,
       )
+
+
+class OutputDict(TypedDict, total=False):
+  """Represents the outputs of executing the model.
+
+  This class is designed to be used for typing the outputs of executing a
+  model in all of its various modes.
+  """
+
+  output: tf.Tensor
+  output_deltas: tf.Tensor
+  output_mask_deltas: tf.Tensor
 
 
 class ModelBase(tf.Module, metaclass=abc.ABCMeta):
@@ -441,42 +453,43 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
     return (ModelBase.OUTPUT_TENSOR_NAME,)
 
   @abc.abstractmethod
-  def _forward(self, feed_dict: FeedDict) -> dict[str, tf.Tensor]:
+  def _forward(self, feed_dict: FeedDict) -> OutputDict:
     """Implements the forward pass of the model.
 
     This function should be implemented in downstream models and calculate the
     outputs of the model given the inputs specified in feed_dict.
+
+    Returns:
+      A dictionary containing tensors. This should contain a key, 'output' in
+      seq2num mode and a key named 'output_deltas' in seq2seq mode.
     """
     pass
 
-  def __call__(self, feed_dict, train=False):
+  def __call__(self, feed_dict: FeedDict, train=False) -> OutputDict:
     """Implements the non-model specific part of the forward pass.
 
     This function wraps the _forward method and does relevant calculations
     when working with models that use deltas.
     """
-    if self._use_deltas:
-      output_dict = {}
-
-      if train:
-        output_dict['output_mask_deltas'] = tf.nn.embedding_lookup(
-            feed_dict['output_mask'],
-            feed_dict['delta_block_index'],
-            name='ModelBase.output_mask_deltas',
-        )
-
-      output = self._forward(feed_dict)
-
-      output_dict['output'] = tf.math.segment_sum(
-          output['output_deltas'],
-          feed_dict['delta_block_index'],
-          name=ModelBase.OUTPUT_TENSOR_NAME,
-      )
-      output_dict['output_deltas'] = output['output_deltas']
-
-      return output_dict
-    else:
+    if not self._use_deltas:
       return self._forward(feed_dict)
+
+    output = self._forward(feed_dict)
+
+    if train:
+      output['output_mask_deltas'] = tf.nn.embedding_lookup(
+          feed_dict['output_mask'],
+          feed_dict['delta_block_index'],
+          name='ModelBase.output_mask_deltas',
+      )
+
+    output['output'] = tf.math.segment_sum(
+        output['output_deltas'],
+        feed_dict['delta_block_index'],
+        name=ModelBase.OUTPUT_TENSOR_NAME,
+    )
+
+    return output
 
   @abc.abstractmethod
   def _make_model_name(self) -> str:
@@ -1151,9 +1164,9 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       batch_output_blocks = []
       with timer.scoped('ModelBase.predict - one batch'):
         schedule = self.schedule_batch(batch)
+        output_dict = self(schedule)
+        output = output_dict['output']
         if self._use_deltas:
-          output_dict = self(schedule)
-          output = output_dict['output']
           output_deltas = output_dict['output_deltas']
           output_index = 0
           for block_index, block in enumerate(batch):
@@ -1182,7 +1195,6 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
                 )
             )
         else:
-          output = self(schedule)['output']
           for block_index, block in enumerate(batch):
             throughputs = []
             for task_index in range(self.num_tasks):
@@ -1210,7 +1222,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       max_instructions_in_batch: Optional[int],
       randomize_batches: bool = True,
       randomize_expected_outputs: bool = False,
-      hooks=[],
+      hooks: Sequence[tuple[int, Callable[[], None]]] | None = None,
   ) -> Optional[training.TrainingEpochStats]:
     """Runs training of the model on the given training data.
 
@@ -1275,13 +1287,14 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
     for epoch_index in range(0, num_epochs):
       stats = run_one_epoch()
       logging.info('Training: %s', stats)
-      for hook in hooks:
-        epochs_every, hook_function = hook
-        if epoch_index % epochs_every == 0:
+      if not hooks:
+        continue
+      for epochs_every, hook_function in hooks:
+        if (epoch_index + 1) % epochs_every == 0:
           hook_function()
     return stats
 
-  def compute_loss(self, schedule: FeedDict):
+  def _compute_loss(self, schedule: FeedDict) -> loss_utils.LossComputation:
     output = self(schedule, train=True)
     loss = loss_utils.LossComputation(
         output['output'],
@@ -1307,7 +1320,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
 
   def compute_loss_tensor(self, schedule: FeedDict):
     return tf.reduce_mean(
-        self.compute_loss(schedule).loss_tensor(
+        self._compute_loss(schedule).loss_tensor(
             self._loss_normalization, self._loss_type
         )
     )
@@ -1333,7 +1346,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       # TrainingEpochStats.__init__() as keyword arguments.
       with tf.GradientTape() as tape:
         stats = {}
-        loss = self.compute_loss(schedule)
+        loss = self._compute_loss(schedule)
         loss_tensor_per_task = loss.loss_tensor(
             self._loss_normalization, self._loss_type
         )
@@ -1341,19 +1354,17 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
 
         # The list of variables to optimize. By default, the list is empty which
         # means optimize all trainable variables.
-        variables = set()
+        requested_variables = set()
         for variable_group in self._trained_variable_groups:
-          variables.update(
-              [
-                  variable.ref()
-                  for variable in self._variable_groups.get(variable_group)
-              ]
+          requested_variables.update(
+              variable.ref()
+              for variable in self._variable_groups.get(variable_group)
           )
 
         trainable_variables = self._get_trainable_variables()
         variables = (
-            [variable.deref() for variable in variables]
-            if variables
+            [variable.deref() for variable in requested_variables]
+            if requested_variables
             else trainable_variables
         )
 
