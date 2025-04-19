@@ -1195,7 +1195,6 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
                 )
             )
         else:
-          output = self(schedule)['output']
           for block_index, block in enumerate(batch):
             throughputs = []
             for task_index in range(self.num_tasks):
