@@ -81,6 +81,7 @@ class ResidualConnectionLayer(tf_keras.layers.Layer):
 
 
 class CastLayer(tf_keras.layers.Layer):
+  """Creates a keras layer to cast tensors."""
 
   def __init__(self, dtype, **kwargs):
     super().__init__(**kwargs)
