@@ -185,9 +185,6 @@ gematria_py_test(
     size = "small",
     timeout = "moderate",
     srcs = ["token_model_test.py"],
-    tags = [
-        "manual",
-    ],
     deps = [
         ":oov_token_behavior",
         ":token_model",
