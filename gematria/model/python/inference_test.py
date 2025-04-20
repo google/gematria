@@ -19,7 +19,7 @@ from gematria.model.python import model_base
 from gematria.proto import throughput_pb2
 from gematria.testing.python import model_test
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 _PrefixThroughputProto = (
     throughput_pb2.ThroughputWithSourceProto.PrefixThroughputProto
@@ -43,29 +43,17 @@ class TestModel(model_base.ModelBase):
   output tensors, and filling them in through the returned feed dict.
   """
 
-  def __init__(self, use_custom_output_names=False, **kwargs):
+  def __init__(self, **kwargs):
     super().__init__(**kwargs)
     self.num_visited_blocks = 0
     self.num_scheduled_instructions = 0
     self.batch_sizes = []
-    self.use_custom_output_names = use_custom_output_names
 
-  # @Override
-  def _create_tf_graph(self):
+  def _forward(self, feed_dict):
     if not self._use_deltas:
-      output_name = model_base.ModelBase.OUTPUT_TENSOR_NAME
-      if self.use_custom_output_names:
-        output_name = 'TestModel.output_tensor'
-      self._output_tensor = tf.placeholder(
-          self.dtype, (None, self.num_tasks), name=output_name
-      )
+      return {'output': feed_dict['output']}
     else:
-      output_deltas_name = model_base.ModelBase.OUTPUT_TENSOR_DELTAS_NAME
-      if self.use_custom_output_names:
-        output_deltas_name = 'TestModel.output_tensor_deltas'
-      self._output_tensor_deltas = tf.placeholder(
-          self.dtype, (None, self.num_tasks), name=output_deltas_name
-      )
+      return {'output_deltas': feed_dict['output_deltas']}
 
   # @Override
   def _create_optimizer(self):
@@ -102,11 +90,9 @@ class TestModel(model_base.ModelBase):
 
   # @Override
   def _make_batch_feed_dict(self):
-    output_tensor = (
-        self._output_tensor_deltas if self._use_deltas else self._output_tensor
-    )
+    output_name = 'output_deltas' if self._use_deltas else 'output'
     return {
-        output_tensor: np.array(
+        output_name: np.array(
             self._batch_collected_outputs, dtype=self.numpy_dtype
         ).reshape((-1, self.num_tasks)),
     }
@@ -126,7 +112,6 @@ class PredictForProtosTest(model_test.TestCase):
       max_blocks_in_batch,
       max_instructions_in_batch,
       expected_batch_sizes,
-      source_name=None,
   ):
     """Checks the prediction of the test model with the given batch size.
 
@@ -141,44 +126,40 @@ class PredictForProtosTest(model_test.TestCase):
         passed to model.predict().
       expected_batch_sizes: A collection of expected sizes of batches processed
         by model.predict(), verified by this method.
-      source_name: A string template used with str.format() to create throughput
-        source names in the expected data.
     """
-    with self.session() as sess:
-      # inference.predict_for_protos() modifies the protos in-place. We need to
-      # make a copy to be able to compare them with the original protos.
-      input_protos = copy.deepcopy(self.block_protos)
-      output_protos = tuple(
-          inference.predict_for_protos(
-              model,
-              sess,
-              input_protos,
-              max_blocks_in_batch=max_blocks_in_batch,
-              max_instructions_in_batch=max_instructions_in_batch,
-          )
-      )
-      self.assertSequenceEqual(model.batch_sizes, expected_batch_sizes)
-      self.assertLen(output_protos, len(self.block_protos))
-      for index, (in_proto, out_proto) in enumerate(
-          zip(self.block_protos, output_protos)
-      ):
-        # The prediction of the model is the number of calls to
-        # model._add_basic_block_to_batch(). There is one call per basic block,
-        # so we can get the expected value from the index of the basic block.
-        expected_inverse_throughputs = [*in_proto.inverse_throughputs]
-        for task_index in range(model.num_tasks):
-          expected_inverse_throughputs.append(
-              throughput_pb2.ThroughputWithSourceProto(
-                  source=model.get_source_name(task_index),
-                  inverse_throughput_cycles=(index + 1 + task_index,),
-              )
-          )
-        self.assertEqual(in_proto.basic_block, out_proto.basic_block)
-        # NOTE(ondrasej): assertSequenceEqual refuses to compare a repeated
-        # field of a proto with a native sequence type.
-        self.assertSequenceEqual(
-            tuple(out_proto.inverse_throughputs), expected_inverse_throughputs
+    # inference.predict_for_protos() modifies the protos in-place. We need to
+    # make a copy to be able to compare them with the original protos.
+    input_protos = copy.deepcopy(self.block_protos)
+    output_protos = tuple(
+        inference.predict_for_protos(
+            model,
+            input_protos,
+            max_blocks_in_batch=max_blocks_in_batch,
+            max_instructions_in_batch=max_instructions_in_batch,
         )
+    )
+    self.assertSequenceEqual(model.batch_sizes, expected_batch_sizes)
+    self.assertLen(output_protos, len(self.block_protos))
+    for index, (in_proto, out_proto) in enumerate(
+        zip(self.block_protos, output_protos)
+    ):
+      # The prediction of the model is the number of calls to
+      # model._add_basic_block_to_batch(). There is one call per basic block,
+      # so we can get the expected value from the index of the basic block.
+      expected_inverse_throughputs = [*in_proto.inverse_throughputs]
+      for task_index in range(model.num_tasks):
+        expected_inverse_throughputs.append(
+            throughput_pb2.ThroughputWithSourceProto(
+                source=model.get_source_name(task_index),
+                inverse_throughput_cycles=(index + 1 + task_index,),
+            )
+        )
+      self.assertEqual(in_proto.basic_block, out_proto.basic_block)
+      # NOTE(ondrasej): assertSequenceEqual refuses to compare a repeated
+      # field of a proto with a native sequence type.
+      self.assertSequenceEqual(
+          tuple(out_proto.inverse_throughputs), expected_inverse_throughputs
+      )
 
   def test_predict_single_batch(self):
     model = TestModel(dtype=tf.dtypes.float32)
@@ -230,43 +211,40 @@ class PredictForProtosTest(model_test.TestCase):
 
   def check_predict_deltas(self, model):
     """Checks the prediction of the model when predicting also deltas."""
-    with self.session() as sess:
-      input_protos = copy.deepcopy(self.block_protos)
-      output_protos = tuple(
-          inference.predict_for_protos(model, sess, input_protos)
-      )
-      self.assertLen(output_protos, len(self.block_protos))
+    input_protos = copy.deepcopy(self.block_protos)
+    output_protos = tuple(inference.predict_for_protos(model, input_protos))
+    self.assertLen(output_protos, len(self.block_protos))
 
-      for index, (in_proto, out_proto) in enumerate(
-          zip(self.block_protos, output_protos)
-      ):
-        # Sum up delta predictions for the model with deltas.
-        # predictions.
-        num_instructions = len(in_proto.basic_block.canonicalized_instructions)
+    for index, (in_proto, out_proto) in enumerate(
+        zip(self.block_protos, output_protos)
+    ):
+      # Sum up delta predictions for the model with deltas.
+      # predictions.
+      num_instructions = len(in_proto.basic_block.canonicalized_instructions)
 
-        # Inverse throughput on one prefix.
-        expected_throughputs = [*in_proto.inverse_throughputs]
-        for task_index in range(model.num_tasks):
-          pref_inv_throughputs = _PrefixThroughputProto(
-              inverse_throughput_cycles=(index + 1 + task_index,)
-          )
-
-          expected_throughputs.append(
-              throughput_pb2.ThroughputWithSourceProto(
-                  source=model.get_source_name(task_index),
-                  inverse_throughput_cycles=(
-                      num_instructions * (index + 1 + task_index),
-                  ),
-                  prefix_inverse_throughputs=(
-                      num_instructions * (pref_inv_throughputs,)
-                  ),
-              )
-          )
-
-        self.assertEqual(in_proto.basic_block, out_proto.basic_block)
-        self.assertSequenceEqual(
-            tuple(out_proto.inverse_throughputs), expected_throughputs
+      # Inverse throughput on one prefix.
+      expected_throughputs = [*in_proto.inverse_throughputs]
+      for task_index in range(model.num_tasks):
+        pref_inv_throughputs = _PrefixThroughputProto(
+            inverse_throughput_cycles=(index + 1 + task_index,)
         )
+
+        expected_throughputs.append(
+            throughput_pb2.ThroughputWithSourceProto(
+                source=model.get_source_name(task_index),
+                inverse_throughput_cycles=(
+                    num_instructions * (index + 1 + task_index),
+                ),
+                prefix_inverse_throughputs=(
+                    num_instructions * (pref_inv_throughputs,)
+                ),
+            )
+        )
+
+      self.assertEqual(in_proto.basic_block, out_proto.basic_block)
+      self.assertSequenceEqual(
+          tuple(out_proto.inverse_throughputs), expected_throughputs
+      )
 
   def test_predict_deltas(self):
     model = TestModel(dtype=tf.dtypes.float32, use_deltas=True)
@@ -285,5 +263,4 @@ class PredictForProtosTest(model_test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.disable_v2_behavior()
   tf.test.main()
