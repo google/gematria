@@ -300,7 +300,7 @@ def batches(
 
 
 def partially_restore_from_checkpoint(
-    checkpoint_file: str, load_global_step_from_ckpt: bool, sess: tf.Session
+    checkpoint_file: str, load_step_from_ckpt: bool, model: tf.Module
 ) -> None:
   """Partially restores a checkpoint to the current graph.
 
@@ -311,29 +311,27 @@ def partially_restore_from_checkpoint(
 
   Args:
     checkpoint_file: A checkpoint to partially restore from.
-    load_global_step_from_ckpt: If True, load global step value from the given
-      checkpoint file.
-    sess: A TensorFlow session to restore into.
+    load_step_from_ckpt: If True, load the step value from the given checkpoint
+      file.
+    model: The tf.Module object representing the model that the weights should
+      be restored into.
   """
   reader = tf.train.load_checkpoint(checkpoint_file)
   shapes = reader.get_variable_to_shape_map()
   dtypes = reader.get_variable_to_dtype_map()
 
-  if load_global_step_from_ckpt:
-    logging.info(
-        'Loading global step from checkpoint file: %s', checkpoint_file
+  if load_step_from_ckpt:
+    tf.compat.v1.assign(
+        tf.compat.v1.train.get_or_create_global_step(),
+        reader.get_tensor('global_step'),
     )
-    global_step = tf.train.get_global_step()
-    global_step.load(reader.get_tensor('global_step'), sess)
 
-  for variable in tf.get_collection(
-      tf.GraphKeys.TRAINABLE_VARIABLES, scope=None
-  ):
+  for variable in model.trainable_variables:
     # All variable names should end with ':0'; this ':0' is not used in the
     # checkpoint.
     if not variable.name.endswith(':0'):
       continue
-    variable_name = variable.name[:-2]
+    variable_name = variable.name[:-2] + '/.ATTRIBUTES/VARIABLE_VALUE'
     if variable_name not in shapes:
       logging.info('%s not found in the checkpoint', variable_name)
       continue
@@ -354,7 +352,7 @@ def partially_restore_from_checkpoint(
       )
       continue
     logging.info('Restoring %s', variable_name)
-    variable.load(reader.get_tensor(variable_name), sess)
+    variable.load(reader.get_tensor(variable_name))
 
 
 def _as_list(values: Sequence[float]) -> list[float]:
