@@ -50,9 +50,6 @@ gematria_py_test(
     size = "small",
     timeout = "moderate",
     srcs = ["loss_utils_test.py"],
-    tags = [
-        "manual",
-    ],
     deps = [
         ":loss_utils",
         ":options",
