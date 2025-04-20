@@ -27,7 +27,7 @@ GnnModelBase.
 
 import abc
 import collections
-from collections.abc import Iterable, MutableMapping, MutableSequence, Sequence
+from collections.abc import Iterable, MutableMapping, MutableSequence, Sequence, Callable
 import itertools
 import math
 import os
@@ -1222,6 +1222,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       max_instructions_in_batch: Optional[int],
       randomize_batches: bool = True,
       randomize_expected_outputs: bool = False,
+      hooks: Sequence[tuple[int, Callable[[], None]]] | None = None,
   ) -> Optional[training.TrainingEpochStats]:
     """Runs training of the model on the given training data.
 
@@ -1243,6 +1244,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       randomize_expected_outputs: Set to True to randomly select the expected
         outputs used for training from the available values. When False, it
         takes the first value from the list.
+      hooks: Hooks to run during the training process.
 
     Returns:
       The loss before the last training step. Returns None when no training was
@@ -1282,9 +1284,14 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
         )
         return self.train_batch(schedule)
 
-    for _ in range(0, num_epochs):
+    for epoch_index in range(0, num_epochs):
       stats = run_one_epoch()
       logging.info('Training: %s', stats)
+      if not hooks:
+        continue
+      for epochs_every, hook_function in hooks:
+        if (epoch_index + 1) % epochs_every == 0:
+          hook_function()
     return stats
 
   def _compute_loss(self, schedule: FeedDict) -> loss_utils.LossComputation:
