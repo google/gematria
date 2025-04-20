@@ -122,9 +122,6 @@ gematria_py_test(
     timeout = "moderate",
     srcs = ["rnn_token_model_test.py"],
     shard_count = 18,
-    tags = [
-        "manual",
-    ],
     deps = [
         ":rnn_token_model",
         "//gematria/basic_block/python:tokens",
