@@ -140,9 +140,6 @@ gematria_py_test(
     size = "small",
     timeout = "moderate",
     srcs = ["model_blocks_test.py"],
-    tags = [
-        "manual",
-    ],
     deps = [
         ":model_blocks",
     ],
