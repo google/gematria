@@ -19,11 +19,12 @@ from absl.testing import parameterized
 from gematria.granite.python import gnn_model_base
 from gematria.model.python import options
 from gematria.testing.python import model_test
+from gematria.model.python import model_blocks
 import graph_nets
 import networkx as nx
 import numpy as np
 import sonnet as snt
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tf_keras
 
 
@@ -70,8 +71,20 @@ class TestGnnModel(gnn_model_base.GnnModelBase):
         num_message_passing_iterations=8,
         **kwargs,
     )
-    self.readout_dense_layers = readout_dense_layers
+    self.readout_dense_layers = []
     self.readout_activation = readout_activation
+    for i, layer_size in enumerate(readout_dense_layers):
+      self.readout_dense_layers.append(
+          tf_keras.layers.Dense(
+              layer_size,
+              activation=self.readout_activation,
+              name=f'dense_{i}',
+              bias_initializer='glorot_normal',
+          )
+      )
+    self.linear_layer = tf_keras.layers.Dense(
+        self.num_tasks, activation='linear', use_bias=False
+    )
 
   # @Override
   def _make_model_name(self):
@@ -84,22 +97,26 @@ class TestGnnModel(gnn_model_base.GnnModelBase):
 
   # @Override
   def _make_batch_graphs_tuple(self):
-    return graph_nets.utils_np.networkxs_to_graphs_tuple(
-        self._batch_networkxs,
-        node_shape_hint=self._graph_node_feature_spec.shape,
-        edge_shape_hint=self._graph_edge_feature_spec.shape,
-        data_type_hint=self.numpy_dtype,
-    )
+    data_dicts = []
+    for networkx in self._batch_networkxs:
+      data_dicts.append(
+          graph_nets.utils_np.networkx_to_data_dict(
+              networkx,
+              node_shape_hint=self._graph_node_feature_spec.shape,
+              edge_shape_hint=self._graph_edge_feature_spec.shape,
+              data_type_hint=self.numpy_dtype,
+          )
+      )
+    return graph_nets.utils_tf.data_dicts_to_graphs_tuple(data_dicts)
 
   # @Override
   def _create_graph_network_modules(self):
     # We use a fully-connected network with the same shape in all contexts.
-    initializers = {
-        'w': tf_keras.initializers.glorot_normal(),
-        'b': tf_keras.initializers.glorot_normal(),
-    }
     mlp = functools.partial(
-        snt.nets.MLP, output_sizes=(32, 16), initializers=initializers
+        snt.nets.MLP,
+        output_sizes=(32, 16),
+        w_init=tf_keras.initializers.glorot_normal(),
+        b_init=tf_keras.initializers.glorot_normal(),
     )
     return (
         gnn_model_base.GraphNetworkLayer(
@@ -113,26 +130,17 @@ class TestGnnModel(gnn_model_base.GnnModelBase):
     )
 
   # @Override
-  def _create_readout_network(self) -> tf.Tensor:
+  def _execute_readout_network(self, graph_tuples, feed_dict) -> tf.Tensor:
     if self._use_deltas:
-      dense_data = self._graphs_tuple_outputs.nodes
+      dense_data = graph_tuples.nodes
     else:
-      dense_data = self._graphs_tuple_outputs.globals
-    for i, layer_size in enumerate(self.readout_dense_layers):
-      layer = tf_keras.layers.Dense(
-          layer_size,
-          activation=self.readout_activation,
-          name=f'dense_{i}',
-          bias_initializer='glorot_normal',
-      )
+      dense_data = graph_tuples.globals
+    for layer in self.readout_dense_layers:
       dense_data = layer(dense_data)
 
     # Create a linear layer that computes a weighted sum of the output of the
     # last dense layer.
-    linear_layer = tf_keras.layers.Dense(
-        self.num_tasks, activation='linear', use_bias=False
-    )
-    return linear_layer(dense_data)
+    return self.linear_layer(dense_data)
 
   # @Override
   def _add_basic_block_to_batch(self, block):
@@ -192,6 +200,19 @@ class TestEncoderDecoderGnnModel(gnn_model_base.GnnModelBase):
   """
 
   def __init__(self, *, decoder_residual_connection=False, **kwargs):
+    # The size of the embedding vectors. Each type of embedding vectors has a
+    # different size to catch errors from mismatched tensors.
+    self._node_embedding_size = 24
+    self._edge_embedding_size = 8
+    self._global_embedding_size = 12
+
+    # The number of tokens for nodes, edges and graphs.
+    self._num_node_types = 10
+    self._num_edge_types = 14
+    self._num_graph_types = 1
+
+    self._decoder_residual_connection = decoder_residual_connection
+
     super().__init__(
         dtype=tf.dtypes.float32,
         # The embedding table lookup module expects the values to be integers.
@@ -207,18 +228,12 @@ class TestEncoderDecoderGnnModel(gnn_model_base.GnnModelBase):
         num_message_passing_iterations=8,
         **kwargs,
     )
-    # The size of the embedding vectors. Each type of embedding vectors has a
-    # different size to catch errors from mismatched tensors.
-    self._node_embedding_size = 24
-    self._edge_embedding_size = 8
-    self._global_embedding_size = 12
 
-    # The number of tokens for nodes, edges and graphs.
-    self._num_node_types = 10
-    self._num_edge_types = 14
-    self._num_graph_types = 1
-
-    self._decoder_residual_connection = decoder_residual_connection
+  def initialize(self):
+    super().initialize()
+    self._linear_layer = tf_keras.layers.Dense(
+        self.num_tasks, activation='linear'
+    )
 
   # @Override
   def _make_model_name(self):
@@ -231,22 +246,25 @@ class TestEncoderDecoderGnnModel(gnn_model_base.GnnModelBase):
 
   # @Override
   def _make_batch_graphs_tuple(self):
-    return graph_nets.utils_np.networkxs_to_graphs_tuple(
-        self._batch_networkxs,
-        node_shape_hint=self._graph_node_feature_spec.shape,
-        edge_shape_hint=self._graph_edge_feature_spec.shape,
-        data_type_hint=self.numpy_dtype,
-    )
+    data_dicts = []
+    for networkx in self._batch_networkxs:
+      data_dicts.append(
+          graph_nets.utils_np.networkx_to_data_dict(
+              networkx,
+              node_shape_hint=self._graph_node_feature_spec.shape,
+              edge_shape_hint=self._graph_edge_feature_spec.shape,
+              data_type_hint=self.numpy_dtype,
+          )
+      )
+    return graph_nets.utils_tf.data_dicts_to_graphs_tuple(data_dicts)
 
   # @Override
   def _create_graph_network_modules(self):
     mlp_initializers = {
-        'w': tf_keras.initializers.glorot_normal(),
-        'b': tf_keras.initializers.glorot_normal(),
+        'w_init': tf_keras.initializers.glorot_normal(),
+        'b_init': tf_keras.initializers.glorot_normal(),
     }
-    embedding_initializers = {
-        'embeddings': tf_keras.initializers.glorot_normal(),
-    }
+    embedding_initializer = tf_keras.initializers.glorot_normal()
     enable_decoder_residual_connection = (
         options.EnableFeature.ALWAYS
         if self._decoder_residual_connection
@@ -259,93 +277,102 @@ class TestEncoderDecoderGnnModel(gnn_model_base.GnnModelBase):
                     snt.Embed,
                     vocab_size=self._num_edge_types,
                     embed_dim=self._edge_embedding_size,
-                    initializers=embedding_initializers,
+                    initializer=embedding_initializer,
                 ),
                 node_model_fn=functools.partial(
                     snt.Embed,
                     vocab_size=self._num_node_types,
                     embed_dim=self._node_embedding_size,
-                    initializers=embedding_initializers,
+                    initializer=embedding_initializer,
                 ),
                 global_model_fn=functools.partial(
                     snt.Embed,
                     vocab_size=self._num_graph_types,
                     embed_dim=self._global_embedding_size,
-                    initializers=embedding_initializers,
+                    initializer=embedding_initializer,
                 ),
                 name='encoder',
             ),
             num_iterations=1,
             layer_normalization=options.EnableFeature.NEVER,
             residual_connection=options.EnableFeature.NEVER,
+            edges_output_size=(None, self._edge_embedding_size),
+            nodes_output_size=(None, self._node_embedding_size),
+            globals_output_size=(None, self._global_embedding_size),
         ),
         gnn_model_base.GraphNetworkLayer(
             module=graph_nets.modules.GraphNetwork(
                 edge_model_fn=functools.partial(
                     snt.nets.MLP,
                     output_sizes=(32, self._edge_embedding_size),
-                    initializers=mlp_initializers,
+                    **mlp_initializers,
                 ),
                 node_model_fn=functools.partial(
                     snt.nets.MLP,
                     output_sizes=(32, self._node_embedding_size),
-                    initializers=mlp_initializers,
+                    **mlp_initializers,
                 ),
                 global_model_fn=functools.partial(
                     snt.nets.MLP,
                     output_sizes=(32, self._global_embedding_size),
-                    initializers=mlp_initializers,
+                    **mlp_initializers,
                 ),
                 name='graph_net',
             ),
             num_iterations=None,
             layer_normalization=options.EnableFeature.BY_FLAG,
             residual_connection=options.EnableFeature.BY_FLAG,
+            edges_output_size=(None, self._edge_embedding_size),
+            nodes_output_size=(None, self._node_embedding_size),
+            globals_output_size=(None, self._global_embedding_size),
         ),
         gnn_model_base.GraphNetworkLayer(
             module=graph_nets.modules.GraphIndependent(
                 edge_model_fn=functools.partial(
                     snt.nets.MLP,
                     output_sizes=(6,),
-                    initializers=mlp_initializers,
+                    **mlp_initializers,
                 ),
                 node_model_fn=functools.partial(
                     snt.nets.MLP,
                     output_sizes=(5,),
-                    initializers=mlp_initializers,
+                    **mlp_initializers,
                 ),
                 global_model_fn=functools.partial(
                     snt.nets.MLP,
                     output_sizes=(4,),
-                    initializers=mlp_initializers,
+                    **mlp_initializers,
                 ),
                 name='decoder',
             ),
             num_iterations=1,
             layer_normalization=options.EnableFeature.ALWAYS,
             residual_connection=enable_decoder_residual_connection,
+            edges_output_size=(None, 6),
+            nodes_output_size=(None, 5),
+            globals_output_size=(None, 4),
         ),
     )
 
   # @Override
-  def _create_readout_network(self) -> tf.Tensor:
+  def _execute_readout_network(self, graphs_tuple, feed_dict) -> tf.Tensor:
     if self._use_deltas:
       # We add two nodes per instruction. To get one output row per instruction
       # as expected by the model in the seq2seq mode, we drop every other row
       # from the feature embedding vector.
-      dense_data = self._graphs_tuple_outputs.nodes[::2]
+      dense_data = graphs_tuple.nodes[::2]
     else:
-      dense_data = self._graphs_tuple_outputs.globals
+      dense_data = graphs_tuple.globals
     # Create a linear layer that computes a weighted sum of the output of the
     # last dense layer.
-    linear_layer = tf_keras.layers.Dense(self.num_tasks, activation='linear')
-    return linear_layer(dense_data)
+    return self._linear_layer(dense_data)
 
   # @Override
   def _add_basic_block_to_batch(self, block):
     graph = nx.DiGraph(
         features=np.zeros(
-            self._graph_global_feature_spec.shape, dtype=self.numpy_dtype
+            self._graph_global_feature_spec.shape,
+            dtype=tf.dtypes.int32.as_numpy_dtype(),
         )
     )
     num_instructions = len(block.instructions)
@@ -492,14 +519,15 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
             side_effect=tf_keras.layers.LayerNormalization,
         ) as tf_keras_layer_norm,
         mock.patch(
-            'tensorflow.compat.v1.math.add', side_effect=tf.math.add
-        ) as tf_add,
+            'gematria.model.python.model_blocks.ResidualConnectionLayer',
+            side_effect=model_blocks.ResidualConnectionLayer,
+        ) as residual_connection_layer,
     ):
       model.initialize()
     # NOTE(ondrasej): tf.math.add is called only when adding residual
     # connections. Since they are disabled in this test case, we should not see
     # any calls to this function.
-    self.assertEqual(tf_add.call_args_list, [])
+    self.assertEqual(residual_connection_layer.call_args_list, [])
     self.assertEqual(
         tf_keras_layer_norm.call_args_list,
         [
@@ -543,8 +571,9 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
     )
     with (
         mock.patch(
-            'tensorflow.compat.v1.math.add', side_effect=tf.math.add
-        ) as tf_add,
+            'gematria.model.python.model_blocks.ResidualConnectionLayer',
+            side_effect=model_blocks.ResidualConnectionLayer,
+        ) as residual_connection_layer,
         mock.patch(
             'tf_keras.layers.Dense',
             side_effect=tf_keras.layers.Dense,
@@ -552,48 +581,32 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
     ):
       model.initialize()
     self.assertEqual(
-        tf_add.call_args_list,
+        residual_connection_layer.call_args_list,
         [
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_0_nodes'),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_0_edges'),
-            mock.call(
-                mock.ANY, mock.ANY, name='residual_connection_1_0_globals'
-            ),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_1_nodes'),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_1_edges'),
-            mock.call(
-                mock.ANY, mock.ANY, name='residual_connection_1_1_globals'
-            ),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_2_nodes'),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_2_edges'),
-            mock.call(
-                mock.ANY, mock.ANY, name='residual_connection_1_2_globals'
-            ),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_3_nodes'),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_3_edges'),
-            mock.call(
-                mock.ANY, mock.ANY, name='residual_connection_1_3_globals'
-            ),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_4_nodes'),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_4_edges'),
-            mock.call(
-                mock.ANY, mock.ANY, name='residual_connection_1_4_globals'
-            ),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_5_nodes'),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_5_edges'),
-            mock.call(
-                mock.ANY, mock.ANY, name='residual_connection_1_5_globals'
-            ),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_6_nodes'),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_6_edges'),
-            mock.call(
-                mock.ANY, mock.ANY, name='residual_connection_1_6_globals'
-            ),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_7_nodes'),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_1_7_edges'),
-            mock.call(
-                mock.ANY, mock.ANY, name='residual_connection_1_7_globals'
-            ),
+            mock.call(mock.ANY, name='residual_connection_1_0_nodes'),
+            mock.call(mock.ANY, name='residual_connection_1_0_edges'),
+            mock.call(mock.ANY, name='residual_connection_1_0_globals'),
+            mock.call(mock.ANY, name='residual_connection_1_1_nodes'),
+            mock.call(mock.ANY, name='residual_connection_1_1_edges'),
+            mock.call(mock.ANY, name='residual_connection_1_1_globals'),
+            mock.call(mock.ANY, name='residual_connection_1_2_nodes'),
+            mock.call(mock.ANY, name='residual_connection_1_2_edges'),
+            mock.call(mock.ANY, name='residual_connection_1_2_globals'),
+            mock.call(mock.ANY, name='residual_connection_1_3_nodes'),
+            mock.call(mock.ANY, name='residual_connection_1_3_edges'),
+            mock.call(mock.ANY, name='residual_connection_1_3_globals'),
+            mock.call(mock.ANY, name='residual_connection_1_4_nodes'),
+            mock.call(mock.ANY, name='residual_connection_1_4_edges'),
+            mock.call(mock.ANY, name='residual_connection_1_4_globals'),
+            mock.call(mock.ANY, name='residual_connection_1_5_nodes'),
+            mock.call(mock.ANY, name='residual_connection_1_5_edges'),
+            mock.call(mock.ANY, name='residual_connection_1_5_globals'),
+            mock.call(mock.ANY, name='residual_connection_1_6_nodes'),
+            mock.call(mock.ANY, name='residual_connection_1_6_edges'),
+            mock.call(mock.ANY, name='residual_connection_1_6_globals'),
+            mock.call(mock.ANY, name='residual_connection_1_7_nodes'),
+            mock.call(mock.ANY, name='residual_connection_1_7_edges'),
+            mock.call(mock.ANY, name='residual_connection_1_7_globals'),
         ],
     )
     self.assertEqual(
@@ -611,10 +624,12 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
         use_deltas=True,
         learning_rate=0.01,
     )
+
     with (
         mock.patch(
-            'tensorflow.compat.v1.math.add', side_effect=tf.math.add
-        ) as tf_add,
+            'gematria.model.python.model_blocks.ResidualConnectionLayer',
+            side_effect=model_blocks.ResidualConnectionLayer,
+        ) as residual_connection_layer,
         mock.patch(
             'tf_keras.layers.Dense',
             side_effect=tf_keras.layers.Dense,
@@ -622,35 +637,33 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
     ):
       model.initialize()
     self.assertEqual(
-        tf_add.call_args_list,
+        residual_connection_layer.call_args_list,
         [
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_2_0_nodes'),
-            mock.call(mock.ANY, mock.ANY, name='residual_connection_2_0_edges'),
-            mock.call(
-                mock.ANY, mock.ANY, name='residual_connection_2_0_globals'
-            ),
+            mock.call(mock.ANY, name='residual_connection_2_0_nodes'),
+            mock.call(mock.ANY, name='residual_connection_2_0_edges'),
+            mock.call(mock.ANY, name='residual_connection_2_0_globals'),
         ],
     )
     self.assertEqual(
         tf_keras_dense.call_args_list,
         [
             mock.call(
+                units=5,
                 activation=tf_keras.activations.linear,
+                use_bias=False,
                 name='residual_connection_2_0_nodes_transformation',
-                units=tf.Dimension(5),
-                use_bias=False,
             ),
             mock.call(
+                units=6,
                 activation=tf_keras.activations.linear,
+                use_bias=False,
                 name='residual_connection_2_0_edges_transformation',
-                units=tf.Dimension(6),
-                use_bias=False,
             ),
             mock.call(
+                units=4,
                 activation=tf_keras.activations.linear,
-                name='residual_connection_2_0_globals_transformation',
-                units=tf.Dimension(4),
                 use_bias=False,
+                name='residual_connection_2_0_globals_transformation',
             ),
             mock.call(1, activation='linear'),
         ],
@@ -662,5 +675,4 @@ class GnnModelBaseTest(parameterized.TestCase, model_test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.disable_v2_behavior()
   tf.test.main()
