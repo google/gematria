@@ -141,13 +141,13 @@ class HierarchicalLstmModel(sequence_model.SequenceModelBase):
       **kwargs: All remaining keyword args are passed to the constructor of the
         base class.
     """
-    super().__init__(**kwargs)
     self._token_embedding_size = token_embedding_size
     self._instruction_embedding_size = instruction_embedding_size
     self._block_embedding_size = block_embedding_size
     self._bidirectional = bidirectional
     self._output_layers = tuple(output_layers)
     self._task_output_layers = tuple(task_output_layers)
+    super().__init__(**kwargs)
 
   # @Override
   def _create_model(self) -> tf_keras.Model:
