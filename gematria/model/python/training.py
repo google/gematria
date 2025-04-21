@@ -22,7 +22,7 @@ from absl import logging
 from gematria.basic_block.python import basic_block
 from gematria.basic_block.python import throughput
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 @dataclasses.dataclass(frozen=True)

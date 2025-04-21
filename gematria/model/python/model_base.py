@@ -43,7 +43,7 @@ from gematria.model.python import training
 from gematria.utils.python import timer
 import numpy as np
 import scipy.stats
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tf_slim.evaluation
 
 # The type used for TensorFlow feed_dict objects. The type we use here is
@@ -75,7 +75,7 @@ class AddBasicBlockError(Exception):
   """The exception raised when adding a block to batch fails."""
 
 
-class SaveBestCheckpoint(tf.train.SessionRunHook):
+class SaveBestCheckpoint(tf.compat.v1.train.SessionRunHook):
   """A run hook that saves top N models based on error values."""
 
   def __init__(
@@ -100,8 +100,8 @@ class SaveBestCheckpoint(tf.train.SessionRunHook):
     self._saver = tf.train.Saver(max_to_keep=max_to_keep, name='relative_mae')
     self._last_eval = math.inf
 
-  def before_run(self, run_context: ...) -> tf.train.SessionRunArgs:
-    return tf.train.SessionRunArgs(
+  def before_run(self, run_context: ...) -> tf.compat.v1.train.SessionRunArgs:
+    return tf.compat.v1.train.SessionRunArgs(
         {'loss': self._error_tensor, 'global_step': self._global_step}
     )
 
@@ -328,7 +328,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
     )
     self._trained_variable_groups = tuple(trained_variable_groups or ())
 
-    self._global_step = tf.train.get_or_create_global_step()
+    self._global_step = tf.compat.v1.train.get_or_create_global_step()
 
     self._decayed_learning_rate = None
     self._loss: Optional[loss_utils.LossComputation] = None
@@ -604,45 +604,51 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
           'must be great than zero.'
       )
     if self._learning_rate_schedule == options.LearningRateScheduleType.COSINE:
-      self._decayed_learning_rate = tf.train.cosine_decay(**decay_args)
+      self._decayed_learning_rate = tf.compat.v1.train.cosine_decay(
+          **decay_args
+      )
     elif (
         self._learning_rate_schedule
         == options.LearningRateScheduleType.EXPONENTIAL
     ):
-      self._decayed_learning_rate = tf.train.exponential_decay(
+      self._decayed_learning_rate = tf.compat.v1.train.exponential_decay(
           **decay_args, **decay_rate_arg
       )
     elif (
         self._learning_rate_schedule
         == options.LearningRateScheduleType.INVERSE_TIME
     ):
-      self._decayed_learning_rate = tf.train.inverse_time_decay(
+      self._decayed_learning_rate = tf.compat.v1.train.inverse_time_decay(
           **decay_args, **decay_rate_arg
       )
     elif (
         self._learning_rate_schedule
         == options.LearningRateScheduleType.LINEAR_COSINE
     ):
-      self._decayed_learning_rate = tf.train.linear_cosine_decay(**decay_args)
+      self._decayed_learning_rate = tf.compat.v1.train.linear_cosine_decay(
+          **decay_args
+      )
     elif (
         self._learning_rate_schedule
         == options.LearningRateScheduleType.NATURAL_EXP
     ):
-      self._decayed_learning_rate = tf.train.natural_exp_decay(
+      self._decayed_learning_rate = tf.compat.v1.train.natural_exp_decay(
           **decay_args, **decay_rate_arg
       )
     elif (
         self._learning_rate_schedule
         == options.LearningRateScheduleType.NOISY_LINEAR_COSINE
     ):
-      self._decayed_learning_rate = tf.train.noisy_linear_cosine_decay(
-          **decay_args
+      self._decayed_learning_rate = (
+          tf.compat.v1.train.noisy_linear_cosine_decay(**decay_args)
       )
     elif (
         self._learning_rate_schedule
         == options.LearningRateScheduleType.POLYNOMIAL
     ):
-      self._decayed_learning_rate = tf.train.polynomial_decay(**decay_args)
+      self._decayed_learning_rate = tf.compat.v1.train.polynomial_decay(
+          **decay_args
+      )
     else:
       assert (
           self._learning_rate_schedule == options.LearningRateScheduleType.NONE
@@ -650,15 +656,15 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       self._decayed_learning_rate = self._learning_rate
 
     if self._optimizer_type == options.OptimizerType.ADAM:
-      self._optimizer = tf.train.AdamOptimizer(
+      self._optimizer = tf.compat.v1.train.AdamOptimizer(
           learning_rate=self._decayed_learning_rate
       )
     elif self._optimizer_type == options.OptimizerType.SGD:
-      self._optimizer = tf.train.GradientDescentOptimizer(
+      self._optimizer = tf.compat.v1.train.GradientDescentOptimizer(
           learning_rate=self._decayed_learning_rate
       )
     elif self._optimizer_type == options.OptimizerType.RMSPROP:
-      self._optimizer = tf.train.RMSPropOptimizer(
+      self._optimizer = tf.compat.v1.train.RMSPropOptimizer(
           learning_rate=self._decayed_learning_rate
       )
     else:
@@ -681,7 +687,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
 
   def get_monitored_training_session_hooks(
       self,
-  ) -> Sequence[tf.train.SessionRunHook]:
+  ) -> Sequence[tf.compat.v1.train.SessionRunHook]:
     """Returns hooks for a MonitoredTrainingSession required by the model."""
     hooks = []
     if isinstance(self._optimizer, tf.train.SyncReplicasOptimizer):
@@ -1063,7 +1069,9 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       tf_master: str = '',
       eval_interval_seconds: int = 60,
       max_num_evaluations: Optional[int] = None,
-      session_hooks: Optional[Sequence[tf.train.SessionRunHook]] = None,
+      session_hooks: Optional[
+          Sequence[tf.compat.v1.train.SessionRunHook]
+      ] = None,
       max_blocks_in_batch: Optional[int] = None,
       max_instructions_in_batch: Optional[int] = None,
   ) -> None:

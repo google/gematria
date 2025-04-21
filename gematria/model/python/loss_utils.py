@@ -16,7 +16,7 @@
 from collections.abc import Sequence
 
 from gematria.model.python import options
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tensorflow_probability as tfp
 
 

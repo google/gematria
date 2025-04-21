@@ -20,7 +20,7 @@ from collections.abc import Sequence
 
 from gematria.model.python import model_base
 from gematria.sequence.python import sequence_model
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tf_keras
 
 
