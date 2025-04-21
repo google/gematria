@@ -20,7 +20,7 @@ from absl import logging
 from gematria.model.python import options
 from gematria.testing.python import basic_blocks_with_throughput
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 FLAGS = flags.FLAGS
 
@@ -108,7 +108,7 @@ class TestCase(basic_blocks_with_throughput.TestCase, tf.test.TestCase):
     """
     super().setUp()
 
-    tf.random.set_random_seed(FLAGS.test_random_seed)
+    tf.random.set_seed(FLAGS.test_random_seed)
 
   def check_training_model(
       self,
