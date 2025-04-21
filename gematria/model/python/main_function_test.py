@@ -823,7 +823,7 @@ class GematriaMainFunctionTest(model_test.TestCase):
     server_thread.start()
 
     # Try sending a trace request to the TF Profiler.
-    profiler.experimental.client.trace(
+    tf.profiler.experimental.client.trace(
         service_addr=f'grpc://localhost:{tf_profiler_port}',
         logdir=summary_dir,
         duration_ms=1000,
