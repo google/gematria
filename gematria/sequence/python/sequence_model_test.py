@@ -20,7 +20,7 @@ from gematria.model.python import token_model
 from gematria.sequence.python import sequence_model
 from gematria.testing.python import model_test
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tf_keras
 
 _OutOfVocabularyTokenBehavior = oov_token_behavior.OutOfVocabularyTokenBehavior

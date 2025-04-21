@@ -16,7 +16,7 @@ from os import path
 
 from absl import logging
 from gematria.io.python import gfile_copy
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def _create_a_file_with_dirs(filename):
