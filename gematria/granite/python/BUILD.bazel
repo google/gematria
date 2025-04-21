@@ -89,6 +89,7 @@ gematria_py_test(
     size = "small",
     timeout = "moderate",
     srcs = ["graph_builder_model_base_test.py"],
+    shard_count = 25,
     deps = [
         ":gnn_model_base",
         ":graph_builder",
