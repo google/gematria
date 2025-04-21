@@ -380,7 +380,6 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
   def initialize(self) -> None:
     """Initializes the model. Must be called before any other method."""
     self._create_optimizer()
-    tf.summary.scalar('learning_rate', self._decayed_learning_rate)
 
   @property
   def use_deltas(self) -> bool:
@@ -1294,15 +1293,17 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
         )
         return self.train_batch(schedule)
 
-    for epoch_index in range(0, num_epochs):
-      stats = run_one_epoch()
-      logging.info('Training: %s', stats)
-      if not hooks:
-        continue
-      for epochs_every, hook_function in hooks:
-        if (epoch_index + 1) % epochs_every == 0:
-          hook_function()
-    return stats
+    with timer.scoped('ModelBase.train - one batch', num_iterations=num_epochs):
+      for epoch_index in range(0, num_epochs):
+        tf.summary.experimental.set_step(epoch_index)
+        stats = run_one_epoch()
+        logging.info('Training: %s', stats)
+        if not hooks:
+          continue
+        for epochs_every, hook_function in hooks:
+          if (epoch_index + 1) % epochs_every == 0:
+            hook_function()
+      return stats
 
   def _compute_loss(self, schedule: FeedDict) -> loss_utils.LossComputation:
     output = self(schedule, train=True)
@@ -1380,6 +1381,32 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
 
         grads = tape.gradient(loss_tensor, variables)
         grads_and_vars = zip(grads, variables)
+
+      # TODO(vbshah): Compute and log the number of steps per second as well.
+      tf.summary.scalar('learning_rate', self._decayed_learning_rate)
+      tf.summary.scalar('overall_loss', loss_tensor)
+
+      # TODO(vbshah): Consider writing delta loss summaries as well.
+      self._add_error_summaries('absolute_mse', loss.mean_squared_error)
+      self._add_error_summaries(
+          'relative_mae',
+          loss.mean_absolute_percentage_error,
+      )
+      self._add_error_summaries(
+          'relative_mse',
+          loss.mean_squared_percentage_error,
+      )
+      self._add_percentile_summaries(
+          'absolute_error',
+          self._collected_percentile_ranks,
+          loss.absolute_error_percentiles,
+      )
+      self._add_percentile_summaries(
+          'absolute_percentage_error',
+          self._collected_percentile_ranks,
+          loss.absolute_percentage_error_percentiles,
+      )
+
       stats['loss'] = loss_tensor
       stats['epoch'] = self.global_step
       stats['absolute_mse'] = loss.mean_squared_error
