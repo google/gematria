@@ -90,9 +90,9 @@ class GraphNetworkLayer:
   num_iterations: Optional[int]
   layer_normalization: options.EnableFeature
   residual_connection: options.EnableFeature
-  edges_output_size: Sequence[int] = None
-  nodes_output_size: Sequence[int] = None
-  globals_output_size: Sequence[int] = None
+  edges_output_size: Sequence[int] | None = None
+  nodes_output_size: Sequence[int] | None = None
+  globals_output_size: Sequence[int] | None = None
 
 
 class GnnModelBase(model_base.ModelBase):
@@ -445,7 +445,9 @@ class GnnModelBase(model_base.ModelBase):
     return graphs_tuple
 
   @abc.abstractmethod
-  def _execute_readout_network(self, graph_tuple) -> tf.Tensor:
+  def _execute_readout_network(
+      self, graph_tuple, feed_dict: model_base.FeedDict
+  ) -> tf.Tensor:
     """Creates a readout part of the network.
 
     Creates TensorFlow ops that take the output of the graph network and

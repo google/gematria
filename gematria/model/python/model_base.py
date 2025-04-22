@@ -1106,7 +1106,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
         tf_slim.evaluation.SummaryAtEndHook(summary_dir, feed_dict=schedule),
         # Save the models with the best MAPE.
         SaveBestCheckpoint(
-            error_tensor=self._loss.mean_absolute_percentage_error,
+            error_tensor=self._loss.mean_absolute_percentage_error,  # pytype: disable=attribute-error
             checkpoint_dir=os.path.join(summary_dir, 'best_models'),
             global_step=self.global_step,
         ),

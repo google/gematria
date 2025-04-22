@@ -208,14 +208,18 @@ class GraphBuilderModelBase(
   # @Override
   def _make_batch_feed_dict(self) -> model_base.FeedDict:
     feed_dict = super()._make_batch_feed_dict()
-    feed_dict['instruction_node_mask'] = np.array(
+    feed_dict['instruction_node_mask'] = tf.constant(
         self._batch_graph_builder.instruction_node_mask, dtype=bool
     )
-    self._instruction_node_mask = feed_dict['instruction_node_mask']
-    feed_dict['instruction_annotations'] = (
+    self._instruction_node_mask = tf.constant(
+        feed_dict['instruction_node_mask']
+    )
+    feed_dict['instruction_annotations'] = tf.constant(
         self._batch_graph_builder.instruction_annotations
     )
-    self._instruction_annotations = feed_dict['instruction_annotations']
+    self._instruction_annotations = tf.constant(
+        feed_dict['instruction_annotations']
+    )
     return feed_dict
 
   # @Override
