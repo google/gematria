@@ -26,8 +26,7 @@ from gematria.model.python import model_blocks
 from gematria.model.python import options
 import graph_nets
 import sonnet as snt
-import tensorflow.compat.v1 as tf
-import tensorflow as tf2
+import tensorflow as tf
 import tf_keras
 
 
