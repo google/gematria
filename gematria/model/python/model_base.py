@@ -45,12 +45,15 @@ import numpy as np
 import scipy.stats
 import tensorflow as tf
 import tf_slim.evaluation
+import graph_nets
 
 # The type used for TensorFlow feed_dict objects. The type we use here is
 # simpler than what is actually accepted by TensorFlow, but the typing should be
 # sufficient for our use. Moreover, since TensorFlow and NumPy do not provide
 # type annotations, both the key and the value are reduced to typing.Any.
-FeedDict = MutableMapping[str, Union[np.ndarray, tf.Tensor]]
+FeedDict = MutableMapping[
+    str, Union[np.ndarray, tf.Tensor, graph_nets.graphs.GraphsTuple]
+]
 
 # A throughput value used as a placeholder in the expected output tensors for
 # masked expected outputs.
@@ -82,7 +85,7 @@ class SaveBestCheckpoint(tf.compat.v1.train.SessionRunHook):
       self,
       error_tensor: tf.Tensor,
       checkpoint_dir: str,
-      global_step: int,
+      global_step: tf.Tensor,
       max_to_keep: int = 15,
   ):
     """Initializes the hook.
@@ -581,7 +584,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       )
     return tf.concat(task_correlations, axis=0)
 
-  def _clip_if_not_none(self, grad: Optional[tf.Tensor]) -> tf.Tensor:
+  def _clip_if_not_none(self, grad: Optional[tf.Tensor]) -> tf.Tensor | None:
     if grad is None:
       return grad
     return tf.clip_by_norm(grad, self._grad_clip_norm)
