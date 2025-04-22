@@ -21,7 +21,6 @@ from gematria.basic_block.python import throughput_protos
 from gematria.model.python import model_base
 from gematria.model.python import training
 from gematria.proto import throughput_pb2
-import tensorflow.compat.v1 as tf
 
 
 def _get_num_instructions_in_block_with_throughput_proto(

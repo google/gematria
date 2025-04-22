@@ -17,7 +17,7 @@ import functools
 from typing import Optional
 
 import sonnet as snt
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import tf_keras
 
 

@@ -47,8 +47,7 @@ from gematria.model.python import training
 from gematria.proto import throughput_pb2
 from gematria.utils.python import timer
 import numpy as np
-import tensorflow.compat.v1 as tf
-import tensorflow as tf2
+import tensorflow as tf
 
 _ACTION = flags.DEFINE_enum_class(
     'gematria_action',
@@ -685,7 +684,7 @@ def _restore_model_from_checkpoint(
     checkpoint_file: str, model: model_base.ModelBase
 ) -> None:
   """Restores a model from a checkpoint."""
-  checkpoint = tf2.train.Checkpoint(model)
+  checkpoint = tf.train.Checkpoint(model)
   checkpoint.restore(checkpoint_file)
 
 
@@ -720,10 +719,10 @@ def run_gematria_model_from_command_line_flags(
   """
   np.set_printoptions(edgeitems=_GEMATRIA_NUMPY_PRINT_EDGEITEMS.value)
   if _GEMATRIA_RANDOM_SEED.value >= 0:
-    tf.random.set_random_seed(_GEMATRIA_RANDOM_SEED.value)
+    tf.random.set_seed(_GEMATRIA_RANDOM_SEED.value)
     random.seed(_GEMATRIA_RANDOM_SEED.value)
   is_chief = _GEMATRIA_TRAINING_TASK.value == 0
-  dev = tf.train.replica_device_setter(
+  dev = tf.compat.v1.train.replica_device_setter(
       ps_tasks=_GEMATRIA_TRAINING_PS_TASKS.value
   )
   with tf.device(dev):
@@ -812,8 +811,8 @@ def run_gematria_model_from_command_line_flags(
           == io_options.ThroughputSelection.RANDOM
       )
 
-      checkpoint = tf2.train.Checkpoint(model)
-      checkpoint_manager = tf2.train.CheckpointManager(
+      checkpoint = tf.train.Checkpoint(model)
+      checkpoint_manager = tf.train.CheckpointManager(
           checkpoint,
           _CHECKPOINT_DIR.value,
           _GEMATRIA_CHECKPOINT_MAX_TO_KEEP.value,
@@ -822,11 +821,11 @@ def run_gematria_model_from_command_line_flags(
       def checkpoint_model():
         checkpoint_manager.save()
 
-      train_summary_writer = tf2.summary.create_file_writer(
+      train_summary_writer = tf.summary.create_file_writer(
           _GEMATRIA_SUMMARY_DIR.value
       )
 
-      with train_summary_writer.as_default(), tf2.summary.record_if(
+      with train_summary_writer.as_default(), tf.summary.record_if(
           lambda: tf.math.equal(
               model.global_step % _GEMATRIA_SAVE_SUMMARIES_EPOCHS, 0
           )
