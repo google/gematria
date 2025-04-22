@@ -826,8 +826,8 @@ def run_gematria_model_from_command_line_flags(
       )
 
       with train_summary_writer.as_default(), tf.summary.record_if(
-          lambda: tf.math.equal(
-              model.global_step % _GEMATRIA_SAVE_SUMMARIES_EPOCHS, 0
+          lambda: tf.equal(
+              model.global_step % _GEMATRIA_SAVE_SUMMARIES_EPOCHS.value, 0
           )
       ):
         model.train(
