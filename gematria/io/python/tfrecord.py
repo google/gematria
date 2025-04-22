@@ -18,7 +18,7 @@ from os import path
 from typing import Type, TypeVar
 
 from google.protobuf import message
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 Proto = TypeVar('Proto', bound=message.Message)
 
@@ -49,7 +49,7 @@ def read_protos(
     # and do what the user expects.
     filenames = (filenames,)
   for filename in filenames:
-    for raw_record in tf.io.tf_record_iterator(filename):
+    for raw_record in tf.compat.v1.io.tf_record_iterator(filename):
       yield proto_class.FromString(raw_record)
 
 

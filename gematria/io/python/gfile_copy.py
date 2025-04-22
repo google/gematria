@@ -17,7 +17,7 @@ import functools
 import multiprocessing.pool
 from os import path
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 class CopyDirError(Exception):
