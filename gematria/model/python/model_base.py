@@ -1372,7 +1372,14 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
         grads_and_vars = zip(grads, variables)
 
       # TODO(vbshah): Compute and log the number of steps per second as well.
-      tf.summary.scalar('learning_rate', self._decayed_learning_rate)
+      # NOTE(vbshah): The learning rate schedules under `tf.compat.v1.train`
+      # return callables that return the decayed learning rate in eager mode.
+      tf.summary.scalar(
+          'learning_rate',
+          self._decayed_learning_rate()
+          if callable(self._decayed_learning_rate)
+          else self._decayed_learning_rate,
+      )
       tf.summary.scalar('overall_loss', loss_tensor)
 
       # TODO(vbshah): Consider writing delta loss summaries as well.
