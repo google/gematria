@@ -30,25 +30,6 @@ import tensorflow as tf
 import tf_keras
 
 
-def _add_batch_dimension(shape: Sequence[int]) -> Sequence[Optional[int]]:
-  """Adds a batch dimension as the first dimension to a given shape.
-
-  Args:
-    shape: The shape to which the dimension is added. The size in all dimensions
-      must be at least one. Empty shape (i.e. the shape of scalar values) is
-      allowed and it will produce a 1D tensor.
-
-  Returns:
-    The shape with the batch dimension.
-
-  Raises:
-    ValueError: When the input shape is not valid.
-  """
-  if any(size <= 0 for size in shape):
-    raise ValueError('The shape may contain only positive numbers')
-  return (None, *shape)
-
-
 @dataclasses.dataclass(frozen=True)
 class GraphNetworkLayer:
   """Specifies one segment of the pipeline of the graph network.
