@@ -424,6 +424,23 @@ _GEMATRIA_USE_SEQ2SEQ_LOSS = flags.DEFINE_bool(
     ),
 )
 
+_GEMATRIA_RUN_TF_PROFILER = flags.DEFINE_bool(
+    'gematria_run_tf_profiler',
+    False,
+    'Whether the TensorFlow profiler gRPC server is started or not. When set,'
+    ' the server will listen to `gematria_tf_profiler_port` for requests for'
+    ' on-demand profiling. Requests can be sent through'
+    ' `tf.profiler.experimental.client.trace` or through the TensorBoard GUI.',
+)
+_GEMATRIA_TF_PROFILER_PORT = flags.DEFINE_integer(
+    'gematria_tf_profiler_port',
+    6009,
+    (
+        'When running under the TensorFlow profiler, this is the port the'
+        ' gRPC server listens for tracing requests from.'
+    ),
+)
+
 
 @flags.validator(
     _COLLECTED_PERCENTILE_RANKS.name,
@@ -824,6 +841,9 @@ def run_gematria_model_from_command_line_flags(
       train_summary_writer = tf.summary.create_file_writer(
           _GEMATRIA_SUMMARY_DIR.value
       )
+
+      if _GEMATRIA_RUN_TF_PROFILER.value:
+        tf.profiler.experimental.server.start(_GEMATRIA_TF_PROFILER_PORT.value)
 
       with train_summary_writer.as_default(), tf.summary.record_if(
           lambda: tf.equal(

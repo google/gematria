@@ -70,17 +70,17 @@ class TrainingEpochStats:
       [len(this.percentile_ranks), num_tasks].
   """
 
-  epoch: int
+  epoch: tf.Tensor
   loss: float
   percentile_ranks: Sequence[int]
-  absolute_mse: np.ndarray
-  relative_mae: np.ndarray
-  relative_mse: np.ndarray
-  absolute_error_percentiles: np.ndarray
-  relative_error_percentiles: np.ndarray
-  absolute_delta_mse: Optional[np.ndarray] = None
-  absolute_delta_mae: Optional[np.ndarray] = None
-  absolute_delta_error_percentiles: Optional[np.ndarray] = None
+  absolute_mse: tf.Tensor
+  relative_mae: tf.Tensor
+  relative_mse: tf.Tensor
+  absolute_error_percentiles: tf.Tensor
+  relative_error_percentiles: tf.Tensor
+  absolute_delta_mse: Optional[tf.Tensor] = None
+  absolute_delta_mae: Optional[tf.Tensor] = None
+  absolute_delta_error_percentiles: Optional[tf.Tensor] = None
 
   def __post_init__(self) -> None:
     """Validate and finalize the initialization of TrainingEpochStats.
