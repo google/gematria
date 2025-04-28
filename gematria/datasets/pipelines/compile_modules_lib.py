@@ -250,6 +250,15 @@ def get_bbs(
       files to process.
     output_file: The output file pattern to use when writing the basic blocks
       to disk.
+    remove_memory_accessing_instructions: Whether or not to remove memory
+      accessing instructions when processing/filtering basic blocks.
+    annotator_type: The annotator implementation to use to add memory
+      annotations to the basic blocks.
+    max_annotation_attempts: The maximum number of times the annotator should
+      attempt to annotate the block before giving up.
+    vocab_output_file: The output pattern for the vocabulary file.
+    skip_no_loop_register: Whether or not to omit basic blocks for which a free
+      register to use as a loop counter cannot be found.
 
   Returns:
     A function that accepts a beam pipeline and adds on all the steps needed
