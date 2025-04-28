@@ -17,6 +17,7 @@ import functools
 from os import path
 import os
 import re
+import threading
 from unittest import mock
 
 from absl import flags
@@ -768,6 +769,72 @@ class GematriaMainFunctionTest(model_test.TestCase):
       FLAGS.gematria_throughput_source_filter = ['foo', 'bar', 'baz']
       FLAGS.gematria_throughput_source_filter = ['alice', 'bob']
       FLAGS.validate_all_flags()
+
+  @flagsaver.flagsaver
+  def test_train_under_tf_profiler(self):
+    """Tests the profiling of model training using the TF Profiler.
+
+    The tests prepares training data and runs the actual training for a small
+    number of epochs under the TF Profiler. Then checks that the expected profiles
+    were recorded and stored at the expected directory.
+    """
+    num_epochs = 10
+    max_blocks_in_batch = 15
+    max_instructions_in_batch = 124
+    learning_rate = 0.321
+    randomize_batches = False
+    training_throughput_selection = io_options.ThroughputSelection.RANDOM
+    checkpoint_dir = path.join(self.work_directory.full_path, 'checkpoint')
+    summary_dir = path.join(self.work_directory.full_path, 'summary')
+    tf_profiler_port = 6009
+    use_seq2seq_loss = False  # The default is True.
+
+    model = None
+
+    def MockModel(*args, **kwargs):
+      nonlocal model
+      self.assertEqual(kwargs['learning_rate'], learning_rate)
+      model = TestModel(*args, **kwargs)
+      # Record calls to model.train(), but still call the original method.
+      mock_train = mock.MagicMock(side_effect=model.train)
+      model.train = mock_train
+      return model
+
+    FLAGS.gematria_action = model_options.Action.TRAIN
+    FLAGS.gematria_run_tf_profiler = True
+    FLAGS.gematria_tf_profiler_port = tf_profiler_port
+    FLAGS.gematria_input_file = (self.input_filename,)
+    FLAGS.gematria_checkpoint_dir = checkpoint_dir
+    FLAGS.gematria_summary_dir = summary_dir
+    FLAGS.gematria_training_num_epochs = num_epochs
+    FLAGS.gematria_training_randomize_batches = randomize_batches
+    FLAGS.gematria_max_blocks_in_batch = max_blocks_in_batch
+    FLAGS.gematria_max_instructions_in_batch = max_instructions_in_batch
+    FLAGS.gematria_use_seq2seq_loss = use_seq2seq_loss
+    FLAGS.gematria_learning_rate = learning_rate
+    FLAGS.gematria_training_throughput_selection = training_throughput_selection
+
+    # Set up a thread for the training process running the profiling server.
+    server_thread = threading.Thread(
+        target=main_function.run_gematria_model_from_command_line_flags,
+        args=(MockModel,),
+        kwargs={'dtype': tf.dtypes.float32},
+    )
+    server_thread.start()
+
+    # Try sending a trace request to the TF Profiler.
+    tf.profiler.experimental.client.trace(
+        service_addr=f'grpc://localhost:{tf_profiler_port}',
+        logdir=summary_dir,
+        duration_ms=1000,
+        num_tracing_attempts=4000,  # Keep trying until the server is ready.
+    )
+    server_thread.join()
+
+    # Check that profile has been written to the expected location.
+    self._assert_file_exists(
+        f'summary/plugins/profile/*/localhost_{tf_profiler_port}.xplane.pb'
+    )
 
 
 if __name__ == '__main__':

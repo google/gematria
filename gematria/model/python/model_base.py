@@ -45,12 +45,15 @@ import numpy as np
 import scipy.stats
 import tensorflow as tf
 import tf_slim.evaluation
+import graph_nets
 
 # The type used for TensorFlow feed_dict objects. The type we use here is
 # simpler than what is actually accepted by TensorFlow, but the typing should be
 # sufficient for our use. Moreover, since TensorFlow and NumPy do not provide
 # type annotations, both the key and the value are reduced to typing.Any.
-FeedDict = MutableMapping[str, Union[np.ndarray, tf.Tensor]]
+FeedDict = MutableMapping[
+    str, Union[np.ndarray, tf.Tensor, graph_nets.graphs.GraphsTuple]
+]
 
 # A throughput value used as a placeholder in the expected output tensors for
 # masked expected outputs.
@@ -82,7 +85,7 @@ class SaveBestCheckpoint(tf.compat.v1.train.SessionRunHook):
       self,
       error_tensor: tf.Tensor,
       checkpoint_dir: str,
-      global_step: int,
+      global_step: tf.Tensor,
       max_to_keep: int = 15,
   ):
     """Initializes the hook.
@@ -581,7 +584,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       )
     return tf.concat(task_correlations, axis=0)
 
-  def _clip_if_not_none(self, grad: Optional[tf.Tensor]) -> tf.Tensor:
+  def _clip_if_not_none(self, grad: Optional[tf.Tensor]) -> tf.Tensor | None:
     if grad is None:
       return grad
     return tf.clip_by_norm(grad, self._grad_clip_norm)
@@ -599,60 +602,49 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
         self._learning_rate_schedule != options.LearningRateScheduleType.NONE
     ) and (self._decay_steps == 0):
       raise ValueError(
-          'When a learning schedule is selected, `decay_steps` '
-          'must be great than zero.'
+          'When a learning rate schedule is selected, `gematria_decay_steps`'
+          ' must be greater than zero.'
       )
-    if self._learning_rate_schedule == options.LearningRateScheduleType.COSINE:
-      self._decayed_learning_rate = tf.compat.v1.train.cosine_decay(
-          **decay_args
-      )
-    elif (
-        self._learning_rate_schedule
-        == options.LearningRateScheduleType.EXPONENTIAL
-    ):
-      self._decayed_learning_rate = tf.compat.v1.train.exponential_decay(
-          **decay_args, **decay_rate_arg
-      )
-    elif (
-        self._learning_rate_schedule
-        == options.LearningRateScheduleType.INVERSE_TIME
-    ):
-      self._decayed_learning_rate = tf.compat.v1.train.inverse_time_decay(
-          **decay_args, **decay_rate_arg
-      )
-    elif (
-        self._learning_rate_schedule
-        == options.LearningRateScheduleType.LINEAR_COSINE
-    ):
-      self._decayed_learning_rate = tf.compat.v1.train.linear_cosine_decay(
-          **decay_args
-      )
-    elif (
-        self._learning_rate_schedule
-        == options.LearningRateScheduleType.NATURAL_EXP
-    ):
-      self._decayed_learning_rate = tf.compat.v1.train.natural_exp_decay(
-          **decay_args, **decay_rate_arg
-      )
-    elif (
-        self._learning_rate_schedule
-        == options.LearningRateScheduleType.NOISY_LINEAR_COSINE
-    ):
-      self._decayed_learning_rate = (
-          tf.compat.v1.train.noisy_linear_cosine_decay(**decay_args)
-      )
-    elif (
-        self._learning_rate_schedule
-        == options.LearningRateScheduleType.POLYNOMIAL
-    ):
-      self._decayed_learning_rate = tf.compat.v1.train.polynomial_decay(
-          **decay_args
-      )
-    else:
-      assert (
-          self._learning_rate_schedule == options.LearningRateScheduleType.NONE
-      )
-      self._decayed_learning_rate = self._learning_rate
+    match self._learning_rate_schedule:
+      case options.LearningRateScheduleType.COSINE:
+        self._decayed_learning_rate = tf.compat.v1.train.cosine_decay(
+            **decay_args
+        )
+      case options.LearningRateScheduleType.EXPONENTIAL:
+        self._decayed_learning_rate = tf.compat.v1.train.exponential_decay(
+            **decay_args, **decay_rate_arg
+        )
+      case options.LearningRateScheduleType.INVERSE_TIME:
+        self._decayed_learning_rate = tf.compat.v1.train.inverse_time_decay(
+            **decay_args, **decay_rate_arg
+        )
+      case options.LearningRateScheduleType.LINEAR_COSINE:
+        self._decayed_learning_rate = tf.compat.v1.train.linear_cosine_decay(
+            **decay_args
+        )
+      case options.LearningRateScheduleType.NATURAL_EXP:
+        self._decayed_learning_rate = tf.compat.v1.train.natural_exp_decay(
+            **decay_args, **decay_rate_arg
+        )
+      case options.LearningRateScheduleType.NOISY_LINEAR_COSINE:
+        self._decayed_learning_rate = (
+            tf.compat.v1.train.noisy_linear_cosine_decay(**decay_args)
+        )
+      case options.LearningRateScheduleType.POLYNOMIAL:
+        self._decayed_learning_rate = tf.compat.v1.train.polynomial_decay(
+            **decay_args
+        )
+      case options.LearningRateScheduleType.COSINE_RESTARTS:
+        decay_args['first_decay_steps'] = decay_args.pop('decay_steps')
+        self._decayed_learning_rate = tf.compat.v1.train.cosine_decay_restarts(
+            **decay_args
+        )
+      case _:
+        assert (
+            self._learning_rate_schedule
+            == options.LearningRateScheduleType.NONE
+        )
+        self._decayed_learning_rate = self._learning_rate
 
     if self._optimizer_type == options.OptimizerType.ADAM:
       self._optimizer = tf.compat.v1.train.AdamOptimizer(
@@ -1295,14 +1287,17 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
 
     with timer.scoped('ModelBase.train - one batch', num_iterations=num_epochs):
       for epoch_index in range(num_epochs):
-        tf.summary.experimental.set_step(epoch_index)
-        stats = run_one_epoch()
-        logging.info('Training: %s', stats)
-        if not hooks:
-          continue
-        for epochs_every, hook_function in hooks:
-          if (epoch_index + 1) % epochs_every == 0:
-            hook_function()
+        with tf.profiler.experimental.Trace(
+            'train', step_num=epoch_index, _r=1
+        ):
+          tf.summary.experimental.set_step(epoch_index)
+          stats = run_one_epoch()
+          logging.info('Training: %s', stats)
+          if not hooks:
+            continue
+          for epochs_every, hook_function in hooks:
+            if (epoch_index + 1) % epochs_every == 0:
+              hook_function()
       return stats
 
   def _compute_loss(self, schedule: FeedDict) -> loss_utils.LossComputation:
@@ -1383,7 +1378,14 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
         grads_and_vars = zip(grads, variables)
 
       # TODO(vbshah): Compute and log the number of steps per second as well.
-      tf.summary.scalar('learning_rate', self._decayed_learning_rate)
+      # NOTE(vbshah): The learning rate schedules under `tf.compat.v1.train`
+      # return callables that return the decayed learning rate in eager mode.
+      tf.summary.scalar(
+          'learning_rate',
+          self._decayed_learning_rate()
+          if callable(self._decayed_learning_rate)
+          else self._decayed_learning_rate,
+      )
       tf.summary.scalar('overall_loss', loss_tensor)
 
       # TODO(vbshah): Consider writing delta loss summaries as well.

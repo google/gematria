@@ -104,6 +104,7 @@ gematria_py_library(
         "//gematria/basic_block/python:basic_block",
         "//gematria/basic_block/python:throughput",
         "//gematria/utils/python:timer",
+        "@graph_nets_repo//:graph_nets",
     ],
 )
 
