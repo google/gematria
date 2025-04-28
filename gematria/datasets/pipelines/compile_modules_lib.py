@@ -231,13 +231,14 @@ class GetVocab(beam.DoFn):
 
 
 def get_bbs(
-    input_file_pattern: str,
+    input_file_pattern: str | None,
     output_file: str,
     remove_memory_accessing_instructions: bool,
     annotator_type: bhive_to_exegesis.AnnotatorType,
     max_annotation_attempts: int,
     vocab_output_file: str,
     skip_no_loop_register: bool,
+    input_hex_bbs_file_pattern: str | None,
 ) -> Callable[[beam.Pipeline], None]:
   """Creates a pipeline to process BBs from IR modules.
 
@@ -247,37 +248,65 @@ def get_bbs(
 
   Args:
     input_file_pattern: A grep-like pattern to use to search for the Parquet
-      files to process.
+      files to process. This cannot be used at the same time as
+      input_hex_bbs_file_pattern.
     output_file: The output file pattern to use when writing the basic blocks
       to disk.
+    remove_memory_accessing_instructions: Whether or not to remove memory
+      accessing instructions when processing/filtering basic blocks.
+    annotator_type: The annotator implementation to use to add memory
+      annotations to the basic blocks.
+    max_annotation_attempts: The maximum number of times the annotator should
+      attempt to annotate the block before giving up.
+    vocab_output_file: The output pattern for the vocabulary file.
+    skip_no_loop_register: Whether or not to omit basic blocks for which a free
+      register to use as a loop counter cannot be found.
+    input_hex_bbs_file_pattern: A grep-like file pattern to use to search for
+      text files that contain basic blocks in hex format. This cannot be used
+      at the same time as input_file_pattern.
 
   Returns:
     A function that accepts a beam pipeline and adds on all the steps needed
     to process the input IR modules.
   """
 
+  if input_file_pattern is None and input_hex_bbs_file_pattern is None:
+    raise ValueError(
+        'One of input_file_pattern or input_hex_bbs_file_pattern must be set.'
+    )
+  if input_file_pattern and input_hex_bbs_file_pattern:
+    raise ValueError(
+        'Only one of input_file_pattern or input_hex_bbs_file_pattern can be'
+        ' set.'
+    )
+
   def pipeline(root: beam.Pipeline) -> None:
-    parquet_data = root | 'Read' >> beam.io.ReadFromParquet(
-        input_file_pattern, columns=['content']
-    )
-    module_data = parquet_data | 'Load' >> beam.Map(
-        lambda parquet_row: parquet_row['content']
-    )
-    module_data_shuffled = module_data | 'Shuffle' >> beam.Reshuffle()
-    optimized_modules = module_data_shuffled | 'Optimize' >> beam.ParDo(
-        OptimizeModules(
-            ['default<O0>', 'default<O1>', 'default<O2>', 'default<O3>']
-        )
-    )
-    lowered_modules = optimized_modules | 'Lower' >> beam.ParDo(
-        LowerModulesAsm(['-O0', '-O1', '-O2', '-O3'])
-    )
-    bb_hex_values = lowered_modules | 'Get BBs' >> beam.ParDo(
-        GetBBsFromModule()
-    )
-    bb_hex_values_deduplicated = (
-        bb_hex_values | 'Deduplicate' >> DeduplicateValues()
-    )
+    if input_hex_bbs_file_pattern:
+      bb_hex_values_deduplicated = root | 'Read' >> beam.io.ReadFromText(
+          input_hex_bbs_file_pattern
+      )
+    else:
+      parquet_data = root | 'Read' >> beam.io.ReadFromParquet(
+          input_file_pattern, columns=['content']
+      )
+      module_data = parquet_data | 'Load' >> beam.Map(
+          lambda parquet_row: parquet_row['content']
+      )
+      module_data_shuffled = module_data | 'Shuffle' >> beam.Reshuffle()
+      optimized_modules = module_data_shuffled | 'Optimize' >> beam.ParDo(
+          OptimizeModules(
+              ['default<O0>', 'default<O1>', 'default<O2>', 'default<O3>']
+          )
+      )
+      lowered_modules = optimized_modules | 'Lower' >> beam.ParDo(
+          LowerModulesAsm(['-O0', '-O1', '-O2', '-O3'])
+      )
+      bb_hex_values = lowered_modules | 'Get BBs' >> beam.ParDo(
+          GetBBsFromModule()
+      )
+      bb_hex_values_deduplicated = (
+          bb_hex_values | 'Deduplicate' >> DeduplicateValues()
+      )
     processed_filtered_bbs = (
         bb_hex_values_deduplicated
         | 'Filter'
