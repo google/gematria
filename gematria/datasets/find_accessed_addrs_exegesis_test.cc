@@ -298,5 +298,15 @@ TEST_F(FindAccessedAddrsExegesisTest, AVX512XMMYMMRegisters) {
                     "YMM16")}));
 }
 
+TEST_F(FindAccessedAddrsExegesisTest, FPSWRegister) {
+  auto AddrsOrErr = FindAccessedAddrsExegesis(R"asm(
+    fnstsw
+  )asm");
+  ASSERT_TRUE(static_cast<bool>(AddrsOrErr));
+  EXPECT_THAT(AddrsOrErr->initial_registers(),
+              Not(Contains(Property(
+                  "register_name", &RegisterAndValue::register_name, "FPSW"))));
+}
+
 }  // namespace
 }  // namespace gematria
