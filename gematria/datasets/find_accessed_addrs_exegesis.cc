@@ -160,6 +160,11 @@ Expected<ExecutionAnnotations> ExegesisAnnotator::findAccessedAddrs(
       continue;
     }
 
+    // We cannot explicitly set FPSW, so skip it if it comes up.
+    if (RegisterIndex == X86::FPSW) {
+      continue;
+    }
+
     RegisterAndValue *NewRegisterValue = MemAnnotations.add_initial_registers();
     NewRegisterValue->set_register_name(
         State.getRegInfo().getName(RegisterIndex));
