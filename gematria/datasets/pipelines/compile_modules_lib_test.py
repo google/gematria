@@ -198,6 +198,45 @@ class CompileModulesTests(parameterized.TestCase):
         50,
         vocab_output_file_pattern,
         False,
+        None,
+    )
+
+    with test_pipeline.TestPipeline() as pipeline_under_test:
+      pipeline_constructor(pipeline_under_test)
+
+    block_hex_values = []
+    for annotated_block in tfrecord.read_protos(
+        [output_file_pattern + '-00000-of-00001'],
+        execution_annotation_pb2.BlockWithExecutionAnnotations,
+    ):
+      block_hex_values.append(annotated_block.block_hex)
+
+    self.assertLen(block_hex_values, 2)
+    self.assertContainsSubset(['B801000000', 'B802000000'], block_hex_values)
+
+    with open(
+        vocab_output_file_pattern + '-00000-of-00001'
+    ) as vocab_file_handle:
+      vocab_tokens = [token.strip() for token in vocab_file_handle.readlines()]
+
+    self.assertCountEqual(['_D_', '_IMMEDIATE_', 'MOV', 'EAX'], vocab_tokens)
+
+  def test_get_bbs_hex_file(self):
+    test_bb_file = self.create_tempfile()
+    output_file_dir = self.create_tempdir()
+    output_file_pattern = os.path.join(output_file_dir, 'bbs')
+    vocab_output_file_pattern = os.path.join(output_file_dir, 'bbvocab')
+    test_bb_file.write_text('B801000000\nB802000000\n')
+
+    pipeline_constructor = compile_modules_lib.get_bbs(
+        None,
+        output_file_pattern,
+        False,
+        bhive_to_exegesis.AnnotatorType.exegesis,
+        50,
+        vocab_output_file_pattern,
+        False,
+        test_bb_file.full_path,
     )
 
     with test_pipeline.TestPipeline() as pipeline_under_test:
