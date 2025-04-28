@@ -31,6 +31,7 @@ _PARQUET_FOLDER = flags.DEFINE_string(
     'parquet_folder',
     None,
     'The path to the folder containing parquet files',
+    required=True,
 )
 
 _OUTPUT_FILE = flags.DEFINE_string(
@@ -70,12 +71,6 @@ _SKIP_NO_LOOP_REGISTER = flags.DEFINE_bool(
     ' cannot be found.',
 )
 
-_INPUT_HEX_BBS_FILE_PATTERN = flags.DEFINE_string(
-    'input_hex_bbs_file_pattern',
-    None,
-    'The path to text files containing new line separated basic blocks.',
-)
-
 
 def main(argv) -> None:
   del argv  # Unused.
@@ -90,7 +85,6 @@ def main(argv) -> None:
       _MAX_ANNOTATION_ATTEMPTS.value,
       _OUTPUT_VOCAB_FILE.value,
       _SKIP_NO_LOOP_REGISTER.value,
-      _INPUT_HEX_BBS_FILE_PATTERN.value,
   )
 
   with beam.Pipeline(options=beam_options) as pipeline:
