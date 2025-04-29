@@ -67,11 +67,7 @@ class TestGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
             module=graph_nets.modules.GraphIndependent(
                 edge_model_fn=functools.partial(
                     snt.Embed,
-                    # TODO(ondrasej): Pybind11 generated enum types do not
-                    # implement the full Python enum interface. Replace this
-                    # with len(graph_builder.EdgeType) when
-                    # https://github.com/pybind/pybind11/issues/2332 is fixed.
-                    vocab_size=len(graph_builder.EdgeType.__members__),
+                    vocab_size=len(graph_builder.EdgeType),
                     embed_dim=1,
                     initializer=embedding_initializer,
                 ),

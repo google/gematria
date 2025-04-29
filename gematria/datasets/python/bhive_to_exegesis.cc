@@ -24,6 +24,7 @@
 #include "llvm/tools/llvm-exegesis/lib/TargetSelect.h"
 #include "pybind11/cast.h"
 #include "pybind11/detail/common.h"
+#include "pybind11/native_enum.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"  // IWYU pragma: keep
 #include "pybind11_abseil/import_status_module.h"
@@ -39,11 +40,12 @@ PYBIND11_MODULE(bhive_to_exegesis, m) {
 
   py::google::ImportStatusModule();
 
-  py::enum_<BHiveToExegesis::AnnotatorType>(m, "AnnotatorType")
+  py::native_enum<BHiveToExegesis::AnnotatorType>(m, "AnnotatorType")
       .value("exegesis", BHiveToExegesis::AnnotatorType::kExegesis)
       .value("fast", BHiveToExegesis::AnnotatorType::kFast)
       .value("none", BHiveToExegesis::AnnotatorType::kNone)
-      .export_values();
+      .export_values()
+      .finalize();
 
   py::class_<BHiveToExegesis>(m, "BHiveToExegesis")
       .def_static(

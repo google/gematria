@@ -22,12 +22,11 @@ from gematria.basic_block.python import tokens
 class OperandTypeTest(absltest.TestCase):
 
   def test_values(self):
-    self.assertGreaterEqual(len(basic_block.OperandType.__members__), 0)
+    self.assertGreaterEqual(len(basic_block.OperandType), 0)
 
   def test_docstring(self):
-    docstring = basic_block.OperandType.__doc__
-    for value in basic_block.OperandType.__members__:
-      self.assertIn(value, docstring)
+    for value in basic_block.OperandType:
+      self.assertNotEmpty(value.__doc__)
 
 
 class AddressTupleTest(absltest.TestCase):

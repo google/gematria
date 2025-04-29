@@ -23,6 +23,7 @@
 
 #include "pybind11/cast.h"
 #include "pybind11/detail/common.h"
+#include "pybind11/native_enum.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/pytypes.h"
 #include "pybind11/stl.h"
@@ -82,22 +83,19 @@ PYBIND11_MODULE(basic_block, m) {
   // Python code propagate to C++ code.
   py::bind_vector<std::vector<std::string>>(m, "StringList");
 
-  py::enum_<OperandType>(m, "OperandType", R"(
-      The type of the operands used in the basic blocks.
-
-      Values:
-        REGISTER: The operand is a register.
-        IMMEDIATE_VALUE: The operand is an integer immediate value. This
-          immediate value can have up to 64-bits.
-        FP_IMMEDIATE_VALUE: The operand is a floating-point immediate value.
-        ADDRESS: The operand is an address computation.
-        MEMORY: The operand is a location in the memory.)")
-      .value("UNKNOWN", OperandType::kUnknown)
-      .value("REGISTER", OperandType::kRegister)
-      .value("IMMEDIATE_VALUE", OperandType::kImmediateValue)
-      .value("FP_IMMEDIATE_VALUE", OperandType::kFpImmediateValue)
-      .value("ADDRESS", OperandType::kAddress)
-      .value("MEMORY", OperandType::kMemory);
+  py::native_enum<OperandType>(m, "OperandType")
+      .value("UNKNOWN", OperandType::kUnknown, "The operand type is unknown.")
+      .value("REGISTER", OperandType::kRegister, "The operand is a register.")
+      .value("IMMEDIATE_VALUE", OperandType::kImmediateValue,
+             "The operand is an integer immediate value. This immediate value "
+             "can have up to 64-bits.")
+      .value("FP_IMMEDIATE_VALUE", OperandType::kFpImmediateValue,
+             "The operand is a floating-point immediate value.")
+      .value("ADDRESS", OperandType::kAddress,
+             "The operand is an address computation.")
+      .value("MEMORY", OperandType::kMemory,
+             "The operand is a location in the memory.")
+      .finalize();
 
   py::class_<AddressTuple> address_tuple(m, "AddressTuple");
   address_tuple
