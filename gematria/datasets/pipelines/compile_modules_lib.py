@@ -270,19 +270,15 @@ def get_bbs(
     to process the input IR modules.
   """
 
-  if input_file_pattern is None and input_hex_bbs_file_pattern is None:
+  if (input_file_pattern is None) == (input_hex_bbs_file_pattern is None):
     raise ValueError(
-        'One of input_file_pattern or input_hex_bbs_file_pattern must be set.'
-    )
-  if input_file_pattern and input_hex_bbs_file_pattern:
-    raise ValueError(
-        'Only one of input_file_pattern or input_hex_bbs_file_pattern can be'
-        ' set.'
+        'Exactly one of input_file_pattern and input_hex_bbs_file_pattern must'
+        ' be set.'
     )
 
   def pipeline(root: beam.Pipeline) -> None:
-    if input_hex_bbs_file_pattern:
-      bb_hex_values_deduplicated = root | 'Read' >> beam.io.ReadFromText(
+    if input_hex_bbs_file_pattern is not None:
+      bb_hex_values = root | 'Read' >> beam.io.ReadFromText(
           input_hex_bbs_file_pattern
       )
     else:
@@ -304,9 +300,9 @@ def get_bbs(
       bb_hex_values = lowered_modules | 'Get BBs' >> beam.ParDo(
           GetBBsFromModule()
       )
-      bb_hex_values_deduplicated = (
-          bb_hex_values | 'Deduplicate' >> DeduplicateValues()
-      )
+    bb_hex_values_deduplicated = (
+        bb_hex_values | 'Deduplicate' >> DeduplicateValues()
+    )
     processed_filtered_bbs = (
         bb_hex_values_deduplicated
         | 'Filter'

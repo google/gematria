@@ -191,14 +191,14 @@ class CompileModulesTests(parameterized.TestCase):
     )
 
     pipeline_constructor = compile_modules_lib.get_bbs(
-        test_parquet_file.full_path,
-        output_file_pattern,
-        False,
-        annotator_type,
-        50,
-        vocab_output_file_pattern,
-        False,
-        None,
+        input_file_pattern=test_parquet_file.full_path,
+        output_file=output_file_pattern,
+        remove_memory_accessing_instructions=False,
+        annotator_type=annotator_type,
+        max_annotation_attempts=50,
+        vocab_output_file=vocab_output_file_pattern,
+        skip_no_loop_register=False,
+        input_hex_bbs_file_pattern=None,
     )
 
     with test_pipeline.TestPipeline() as pipeline_under_test:
@@ -229,14 +229,14 @@ class CompileModulesTests(parameterized.TestCase):
     test_bb_file.write_text('B801000000\nB802000000\n')
 
     pipeline_constructor = compile_modules_lib.get_bbs(
-        None,
-        output_file_pattern,
-        False,
-        bhive_to_exegesis.AnnotatorType.exegesis,
-        50,
-        vocab_output_file_pattern,
-        False,
-        test_bb_file.full_path,
+        input_file_pattern=None,
+        output_file=output_file_pattern,
+        remove_memory_accessing_instructions=False,
+        annotator_type=bhive_to_exegesis.AnnotatorType.exegesis,
+        max_annotation_attempts=50,
+        vocab_output_file=vocab_output_file_pattern,
+        skip_no_loop_register=False,
+        input_hex_bbs_file_pattern=test_bb_file.full_path,
     )
 
     with test_pipeline.TestPipeline() as pipeline_under_test:

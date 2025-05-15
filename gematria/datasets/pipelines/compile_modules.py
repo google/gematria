@@ -83,14 +83,14 @@ def main(argv) -> None:
   beam_options = pipeline_options.PipelineOptions()
 
   pipeline_constructor = compile_modules_lib.get_bbs(
-      os.path.join(_PARQUET_FOLDER.value, '*.parquet'),
-      _OUTPUT_FILE.value,
-      _REMOVE_MEMORY_ACCESSING_INSTRUCTIONS.value,
-      ANNOTATOR_MAPPING[_ANNOTATOR_TYPE.value],
-      _MAX_ANNOTATION_ATTEMPTS.value,
-      _OUTPUT_VOCAB_FILE.value,
-      _SKIP_NO_LOOP_REGISTER.value,
-      _INPUT_HEX_BBS_FILE_PATTERN.value,
+      input_file_pattern=os.path.join(_PARQUET_FOLDER.value, '*.parquet'),
+      output_file=_OUTPUT_FILE.value,
+      remove_memory_accessing_instructions=_REMOVE_MEMORY_ACCESSING_INSTRUCTIONS.value,
+      annotator_type=ANNOTATOR_MAPPING[_ANNOTATOR_TYPE.value],
+      max_annotation_attempts=_MAX_ANNOTATION_ATTEMPTS.value,
+      vocab_output_file=_OUTPUT_VOCAB_FILE.value,
+      skip_no_loop_register=_SKIP_NO_LOOP_REGISTER.value,
+      input_hex_bbs_file_pattern=_INPUT_HEX_BBS_FILE_PATTERN.value,
   )
 
   with beam.Pipeline(options=beam_options) as pipeline:
