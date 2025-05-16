@@ -191,13 +191,52 @@ class CompileModulesTests(parameterized.TestCase):
     )
 
     pipeline_constructor = compile_modules_lib.get_bbs(
-        test_parquet_file.full_path,
-        output_file_pattern,
-        False,
-        annotator_type,
-        50,
-        vocab_output_file_pattern,
-        False,
+        input_file_pattern=test_parquet_file.full_path,
+        output_file=output_file_pattern,
+        remove_memory_accessing_instructions=False,
+        annotator_type=annotator_type,
+        max_annotation_attempts=50,
+        vocab_output_file=vocab_output_file_pattern,
+        skip_no_loop_register=False,
+        input_hex_bbs_file_pattern=None,
+    )
+
+    with test_pipeline.TestPipeline() as pipeline_under_test:
+      pipeline_constructor(pipeline_under_test)
+
+    block_hex_values = []
+    for annotated_block in tfrecord.read_protos(
+        [output_file_pattern + '-00000-of-00001'],
+        execution_annotation_pb2.BlockWithExecutionAnnotations,
+    ):
+      block_hex_values.append(annotated_block.block_hex)
+
+    self.assertLen(block_hex_values, 2)
+    self.assertContainsSubset(['B801000000', 'B802000000'], block_hex_values)
+
+    with open(
+        vocab_output_file_pattern + '-00000-of-00001'
+    ) as vocab_file_handle:
+      vocab_tokens = [token.strip() for token in vocab_file_handle.readlines()]
+
+    self.assertCountEqual(['_D_', '_IMMEDIATE_', 'MOV', 'EAX'], vocab_tokens)
+
+  def test_get_bbs_hex_file(self):
+    test_bb_file = self.create_tempfile()
+    output_file_dir = self.create_tempdir()
+    output_file_pattern = os.path.join(output_file_dir, 'bbs')
+    vocab_output_file_pattern = os.path.join(output_file_dir, 'bbvocab')
+    test_bb_file.write_text('B801000000\nB802000000\n')
+
+    pipeline_constructor = compile_modules_lib.get_bbs(
+        input_file_pattern=None,
+        output_file=output_file_pattern,
+        remove_memory_accessing_instructions=False,
+        annotator_type=bhive_to_exegesis.AnnotatorType.exegesis,
+        max_annotation_attempts=50,
+        vocab_output_file=vocab_output_file_pattern,
+        skip_no_loop_register=False,
+        input_hex_bbs_file_pattern=test_bb_file.full_path,
     )
 
     with test_pipeline.TestPipeline() as pipeline_under_test:
