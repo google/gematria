@@ -60,7 +60,6 @@ FeedDict = MutableMapping[
 INVALID_THROUGHPUT_VALUE = -1
 
 _BASIC_BLOCK_INDEX_TF_DTYPE = tf.dtypes.int32
-_BASIC_BLOCK_INDEX_NUMPY_DTYPE = _BASIC_BLOCK_INDEX_TF_DTYPE.as_numpy_dtype()
 
 # A type variable that is either a basic block or block with throughput. The
 # advantage over typing.Union is that in each context, the typevar represents
@@ -335,7 +334,6 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
 
     self._decayed_learning_rate = None
     self._loss: Optional[loss_utils.LossComputation] = None
-    self._delta_loss: Optional[loss_utils.LossComputation] = None
     self._train_step: Optional[tf.Operation] = None
     self._optimizer: Union[
         tf.train.Optimizer, tf.train.SyncReplicasOptimizer
@@ -755,20 +753,20 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
     """
     schedule = self._make_batch_feed_dict()
     if self._create_delta_block_index:
-      schedule['delta_block_index'] = np.array(
-          self._batch_delta_block_index, dtype=_BASIC_BLOCK_INDEX_NUMPY_DTYPE
+      schedule['delta_block_index'] = tf.constant(
+          self._batch_delta_block_index, dtype=_BASIC_BLOCK_INDEX_TF_DTYPE
       )
     if include_expected_outputs:
-      schedule['expected_outputs'] = np.reshape(
-          np.array(self._batch_expected_outputs, dtype=self.numpy_dtype),
+      schedule['expected_outputs'] = tf.reshape(
+          tf.constant(self._batch_expected_outputs, dtype=self.dtype),
           [-1, self.num_tasks],
       )
-      schedule['output_mask'] = np.array(self._batch_mask, dtype=bool)
+      schedule['output_mask'] = tf.constant(
+          self._batch_mask, dtype=tf.dtypes.bool
+      )
       if self._use_deltas:
-        schedule['expected_outputs_deltas'] = np.reshape(
-            np.array(
-                self._batch_expected_outputs_deltas, dtype=self.numpy_dtype
-            ),
+        schedule['expected_outputs_deltas'] = tf.reshape(
+            tf.constant(self._batch_expected_outputs_deltas, dtype=self.dtype),
             [-1, self.num_tasks],
         )
 
@@ -1304,32 +1302,73 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
     output = self(schedule, train=True)
     loss = loss_utils.LossComputation(
         output['output'],
-        tf.constant(schedule['expected_outputs']),
-        tf.constant(schedule['output_mask']),
+        schedule['expected_outputs'],
+        schedule['output_mask'],
         percentile_ranks=self._collected_percentile_ranks,
         dtype=self.dtype,
+        normalization=self._loss_normalization,
+        loss_type=self._loss_type,
     )
 
     if self._use_deltas:
-      self._delta_loss = loss_utils.LossComputation(
+      delta_loss = loss_utils.LossComputation(
           output['output_deltas'],
-          tf.constant(schedule['expected_outputs_deltas']),
+          schedule['expected_outputs_deltas'],
           output['output_mask_deltas'],
           percentile_ranks=self._collected_percentile_ranks,
           dtype=self.dtype,
+          normalization=self._loss_normalization,
+          loss_type=self._loss_type,
       )
 
       if self._use_delta_loss:
-        loss = self._delta_loss
+        loss = delta_loss
 
     return loss
 
   def compute_loss_tensor(self, schedule: FeedDict):
-    return tf.reduce_mean(
-        self._compute_loss(schedule).loss_tensor(
-            self._loss_normalization, self._loss_type
+    return tf.reduce_mean(self._compute_loss(schedule).loss_tensor)
+
+  @tf.function
+  def _compute_batch_loss(
+      self, schedule: FeedDict
+  ) -> loss_utils.LossComputation:
+    with tf.GradientTape() as tape:
+      loss = self._compute_loss(schedule)
+      loss_tensor = tf.reduce_mean(loss.loss_tensor)
+
+      # The list of variables to optimize. By default, the list is empty which
+      # means optimize all trainable variables.
+      requested_variables = set()
+      for variable_group in self._trained_variable_groups:
+        requested_variables.update(
+            variable.ref()
+            for variable in self._variable_groups.get(variable_group)
         )
+
+      variables = (
+          [variable.deref() for variable in requested_variables]
+          if requested_variables
+          else self.trainable_variables
+      )
+
+      grads = tape.gradient(loss_tensor, variables)
+      grads_and_vars = zip(grads, variables)
+
+    if self._grad_clip_norm:
+      if self._grad_clip_norm <= 0.0:
+        logging.warning(
+            'The gradients are clipped to zero. Please revise if this is not '
+            'intended.'
+        )
+      grads_and_vars = [
+          (self._clip_if_not_none(g), v) for g, v in grads_and_vars
+      ]
+    self._optimizer.apply_gradients(
+        grads_and_vars, global_step=self.global_step
     )
+
+    return loss
 
   def train_batch(
       self,
@@ -1347,31 +1386,10 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       # The keys of stats are the names of keyword arguments of the constructor
       # of TraningEpochStats. This dict can then be unpacked to
       # TrainingEpochStats.__init__() as keyword arguments.
-      with tf.GradientTape() as tape:
-        stats = {}
-        loss = self._compute_loss(schedule)
-        loss_tensor_per_task = loss.loss_tensor(
-            self._loss_normalization, self._loss_type
-        )
-        loss_tensor = tf.reduce_mean(loss_tensor_per_task)
+      stats = {}
 
-        # The list of variables to optimize. By default, the list is empty which
-        # means optimize all trainable variables.
-        requested_variables = set()
-        for variable_group in self._trained_variable_groups:
-          requested_variables.update(
-              variable.ref()
-              for variable in self._variable_groups.get(variable_group)
-          )
-
-        variables = (
-            [variable.deref() for variable in requested_variables]
-            if requested_variables
-            else self.trainable_variables
-        )
-
-        grads = tape.gradient(loss_tensor, variables)
-        grads_and_vars = zip(grads, variables)
+      loss = self._compute_batch_loss(schedule)
+      loss_tensor = tf.reduce_mean(loss.loss_tensor)
 
       # TODO(vbshah): Compute and log the number of steps per second as well.
       # NOTE(vbshah): The learning rate schedules under `tf.compat.v1.train`
@@ -1413,19 +1431,6 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       stats['absolute_error_percentiles'] = loss.absolute_error_percentiles
       stats['relative_error_percentiles'] = (
           loss.absolute_percentage_error_percentiles
-      )
-
-      if self._grad_clip_norm:
-        if self._grad_clip_norm <= 0.0:
-          logging.warning(
-              'The gradients are clipped to zero. Please revise if this is not '
-              'intended.'
-          )
-        grads_and_vars = [
-            (self._clip_if_not_none(g), v) for g, v in grads_and_vars
-        ]
-      self._train_step = self._optimizer.apply_gradients(
-          grads_and_vars, global_step=self.global_step
       )
 
       return training.TrainingEpochStats(
