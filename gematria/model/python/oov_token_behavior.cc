@@ -14,6 +14,7 @@
 
 #include "gematria/model/oov_token_behavior.h"
 
+#include "pybind11/native_enum.h"
 #include "pybind11/pybind11.h"
 
 namespace gematria {
@@ -36,13 +37,14 @@ PYBIND11_MODULE(oov_token_behavior, m) {
       .def_property_readonly("replacement_token",
                              &OutOfVocabularyTokenBehavior::replacement_token);
 
-  py::enum_<OutOfVocabularyTokenBehavior::BehaviorType>(oov_token_behavior,
-                                                        "BehaviorType")
+  py::native_enum<OutOfVocabularyTokenBehavior::BehaviorType>(
+      oov_token_behavior, "BehaviorType")
       .value("RETURN_ERROR",
              OutOfVocabularyTokenBehavior::BehaviorType::kReturnError)
       .value("REPLACE_TOKEN",
              OutOfVocabularyTokenBehavior::BehaviorType::kReplaceToken)
-      .export_values();
+      .export_values()
+      .finalize();
 }
 
 }  // namespace

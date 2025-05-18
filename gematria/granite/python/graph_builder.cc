@@ -14,7 +14,6 @@
 
 #include "gematria/granite/graph_builder.h"
 
-#include <set>
 #include <string>
 #include <vector>
 
@@ -23,6 +22,7 @@
 #include "gematria/proto/canonicalized_instruction.pb.h"
 #include "pybind11/cast.h"
 #include "pybind11/detail/common.h"
+#include "pybind11/native_enum.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
 #include "pybind11_protobuf/native_proto_caster.h"
@@ -43,16 +43,17 @@ PYBIND11_MODULE(graph_builder, m) {
 
   pybind11_protobuf::ImportNativeProtoCasters();
 
-  py::enum_<NodeType>(m, "NodeType")
+  py::native_enum<NodeType>(m, "NodeType")
       .value("INSTRUCTION", NodeType::kInstruction)
       .value("REGISTER", NodeType::kRegister)
       .value("IMMEDIATE", NodeType::kImmediate)
       .value("FP_IMMEDIATE", NodeType::kFpImmediate)
       .value("ADDRESS_OPERAND", NodeType::kAddressOperand)
       .value("MEMORY_OPERAND", NodeType::kMemoryOperand)
-      .export_values();
+      .export_values()
+      .finalize();
 
-  py::enum_<EdgeType>(m, "EdgeType")
+  py::native_enum<EdgeType>(m, "EdgeType")
       .value("STRUCTURAL_DEPENDENCY", EdgeType::kStructuralDependency)
       .value("REVERSE_STRUCTURAL_DEPENDENCY",
              EdgeType::kReverseStructuralDependency)
@@ -63,7 +64,8 @@ PYBIND11_MODULE(graph_builder, m) {
       .value("ADDRESS_SEGMENT_REGISTER", EdgeType::kAddressSegmentRegister)
       .value("ADDRESS_DISPLACEMENT", EdgeType::kAddressDisplacement)
       .value("INSTRUCTION_PREFIX", EdgeType::kInstructionPrefix)
-      .export_values();
+      .export_values()
+      .finalize();
 
   py::class_<BasicBlockGraphBuilder>(m, "BasicBlockGraphBuilder")
       .def(
