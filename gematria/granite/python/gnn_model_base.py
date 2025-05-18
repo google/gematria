@@ -61,6 +61,8 @@ class GraphNetworkLayer(tf.Module):
       features computed by the layer. When both a residual connection and layer
       normalization are used, the layer normalization op is inserted after the
       residual connection.
+    extra_node_inputs: Names of extra feed_dict members that should be passed
+      to the node model.
   """
 
   # NOTE(ondrasej): This should be one of the classes defined in
@@ -74,6 +76,7 @@ class GraphNetworkLayer(tf.Module):
   edges_output_size: Sequence[int] | None = None
   nodes_output_size: Sequence[int] | None = None
   globals_output_size: Sequence[int] | None = None
+  extra_node_inputs: Sequence[str] | None = None
 
 
 class GnnModelBase(model_base.ModelBase):
@@ -209,6 +212,14 @@ class GnnModelBase(model_base.ModelBase):
     self._num_message_passing_iterations = num_message_passing_iterations
     self._graph_module_residual_connections = graph_module_residual_connections
     self._graph_module_layer_normalization = graph_module_layer_normalization
+
+  @property
+  def trainable_variables(self):
+    trainable_vars = set([var.ref() for var in super().trainable_variables])
+    for layer in self._graph_network:
+      layer_vars = [var.ref() for var in layer.module.trainable_variables]
+      trainable_vars.update(layer_vars)
+    return tuple([var.deref() for var in trainable_vars])
 
   def initialize(self):
     super().initialize()
@@ -368,7 +379,15 @@ class GnnModelBase(model_base.ModelBase):
       )
       for iteration in range(num_iterations):
         residual_input = graphs_tuple
-        graphs_tuple = layer.module(graphs_tuple)
+        extra_node_args = {}
+        if layer.extra_node_inputs is not None:
+          for extra_node_arg_name in layer.extra_node_inputs:
+            extra_node_args[extra_node_arg_name] = feed_dict[
+                extra_node_arg_name
+            ]
+        graphs_tuple = layer.module(
+            graphs_tuple, node_model_kwargs=extra_node_args
+        )
         if use_residual_connections:
           residual_op_name_base = (
               f'residual_connection_{layer_index}_{iteration}'

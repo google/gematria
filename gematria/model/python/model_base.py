@@ -60,7 +60,6 @@ FeedDict = MutableMapping[
 INVALID_THROUGHPUT_VALUE = -1
 
 _BASIC_BLOCK_INDEX_TF_DTYPE = tf.dtypes.int32
-_BASIC_BLOCK_INDEX_NUMPY_DTYPE = _BASIC_BLOCK_INDEX_TF_DTYPE.as_numpy_dtype()
 
 # A type variable that is either a basic block or block with throughput. The
 # advantage over typing.Union is that in each context, the typevar represents
@@ -335,7 +334,6 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
 
     self._decayed_learning_rate = None
     self._loss: Optional[loss_utils.LossComputation] = None
-    self._delta_loss: Optional[loss_utils.LossComputation] = None
     self._train_step: Optional[tf.Operation] = None
     self._optimizer: Union[
         tf.train.Optimizer, tf.train.SyncReplicasOptimizer
@@ -755,20 +753,20 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
     """
     schedule = self._make_batch_feed_dict()
     if self._create_delta_block_index:
-      schedule['delta_block_index'] = np.array(
-          self._batch_delta_block_index, dtype=_BASIC_BLOCK_INDEX_NUMPY_DTYPE
+      schedule['delta_block_index'] = tf.constant(
+          self._batch_delta_block_index, dtype=_BASIC_BLOCK_INDEX_TF_DTYPE
       )
     if include_expected_outputs:
-      schedule['expected_outputs'] = np.reshape(
-          np.array(self._batch_expected_outputs, dtype=self.numpy_dtype),
+      schedule['expected_outputs'] = tf.reshape(
+          tf.constant(self._batch_expected_outputs, dtype=self.dtype),
           [-1, self.num_tasks],
       )
-      schedule['output_mask'] = np.array(self._batch_mask, dtype=bool)
+      schedule['output_mask'] = tf.constant(
+          self._batch_mask, dtype=tf.dtypes.bool
+      )
       if self._use_deltas:
-        schedule['expected_outputs_deltas'] = np.reshape(
-            np.array(
-                self._batch_expected_outputs_deltas, dtype=self.numpy_dtype
-            ),
+        schedule['expected_outputs_deltas'] = tf.reshape(
+            tf.constant(self._batch_expected_outputs_deltas, dtype=self.dtype),
             [-1, self.num_tasks],
         )
 
@@ -1304,32 +1302,32 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
     output = self(schedule, train=True)
     loss = loss_utils.LossComputation(
         output['output'],
-        tf.constant(schedule['expected_outputs']),
-        tf.constant(schedule['output_mask']),
+        schedule['expected_outputs'],
+        schedule['output_mask'],
         percentile_ranks=self._collected_percentile_ranks,
         dtype=self.dtype,
+        normalization=self._loss_normalization,
+        loss_type=self._loss_type,
     )
 
     if self._use_deltas:
-      self._delta_loss = loss_utils.LossComputation(
+      delta_loss = loss_utils.LossComputation(
           output['output_deltas'],
-          tf.constant(schedule['expected_outputs_deltas']),
+          schedule['expected_outputs_deltas'],
           output['output_mask_deltas'],
           percentile_ranks=self._collected_percentile_ranks,
           dtype=self.dtype,
+          normalization=self._loss_normalization,
+          loss_type=self._loss_type,
       )
 
       if self._use_delta_loss:
-        loss = self._delta_loss
+        loss = delta_loss
 
     return loss
 
   def compute_loss_tensor(self, schedule: FeedDict):
-    return tf.reduce_mean(
-        self._compute_loss(schedule).loss_tensor(
-            self._loss_normalization, self._loss_type
-        )
-    )
+    return tf.reduce_mean(self._compute_loss(schedule).loss_tensor)
 
   def train_batch(
       self,
@@ -1350,10 +1348,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       with tf.GradientTape() as tape:
         stats = {}
         loss = self._compute_loss(schedule)
-        loss_tensor_per_task = loss.loss_tensor(
-            self._loss_normalization, self._loss_type
-        )
-        loss_tensor = tf.reduce_mean(loss_tensor_per_task)
+        loss_tensor = tf.reduce_mean(loss.loss_tensor)
 
         # The list of variables to optimize. By default, the list is empty which
         # means optimize all trainable variables.
