@@ -210,6 +210,14 @@ class GnnModelBase(model_base.ModelBase):
     self._graph_module_residual_connections = graph_module_residual_connections
     self._graph_module_layer_normalization = graph_module_layer_normalization
 
+  @property
+  def trainable_variables(self):
+    trainable_vars = set(var.ref() for var in super().trainable_variables)
+    for layer in self._graph_network:
+      layer_vars = [var.ref() for var in layer.module.trainable_variables]
+      trainable_vars.update(layer_vars)
+    return tuple(var.deref() for var in trainable_vars)
+
   def initialize(self):
     super().initialize()
     self._graph_network = self._create_graph_network_modules()
