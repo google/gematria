@@ -363,10 +363,10 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
             num_iterations=1,
             layer_normalization=options.EnableFeature.NEVER,
             residual_connection=options.EnableFeature.NEVER,
-            extra_node_inputs=[
+            extra_node_inputs=(
                 'instruction_node_mask',
                 'instruction_annotations',
-            ],
+            ),
         ),
         gnn_model_base.GraphNetworkLayer(
             module=graph_nets.modules.GraphNetwork(
