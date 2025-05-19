@@ -345,7 +345,6 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
                     vocab_size=len(self._token_list),
                     common_embed_dim=self._common_node_embedding_size,
                     num_annotations=self._num_annotations,
-                    model_ref=self,
                     initializer=embedding_initializer,
                 ),
                 global_model_fn=functools.partial(
@@ -364,6 +363,10 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
             num_iterations=1,
             layer_normalization=options.EnableFeature.NEVER,
             residual_connection=options.EnableFeature.NEVER,
+            extra_node_inputs=(
+                'instruction_node_mask',
+                'instruction_annotations',
+            ),
         ),
         gnn_model_base.GraphNetworkLayer(
             module=graph_nets.modules.GraphNetwork(
@@ -410,7 +413,6 @@ class TokenGraphBuilderModelNodeEmbed:
       self,
       common_embed_dim,
       num_annotations,
-      model_ref,
       **kwargs,
   ) -> None:
     """Initializes node embeddings.
@@ -420,11 +422,8 @@ class TokenGraphBuilderModelNodeEmbed:
         embedding vectors. The remainder of the vector is filled with
         instruction annotation.
       num_annotations: The number of annotations per instruction.
-      model_ref: A reference to the model to get the instruction node mask and
-        instruction annotations.
       kwargs: Additional arguments to be passed to the internal `snt.Embed`s.
     """
-    self._model_ref = model_ref
 
     # The first `embed_dim - num_annotations` embedding values for all nodes.
     self._common_embed = snt.Embed(
@@ -446,6 +445,8 @@ class TokenGraphBuilderModelNodeEmbed:
   def __call__(
       self,
       inputs,
+      instruction_node_mask,
+      instruction_annotations,
   ):
     if not self._extra_embed:
       return self._common_embed(inputs)
@@ -458,10 +459,8 @@ class TokenGraphBuilderModelNodeEmbed:
             common_embeddings,
             tf.tensor_scatter_nd_update(
                 extra_embeddings,
-                indices=tf.where(
-                    self._model_ref._instruction_node_mask,
-                ),
-                updates=self._model_ref._instruction_annotations,
+                indices=tf.where(instruction_node_mask),
+                updates=instruction_annotations,
             ),
         ],
         axis=1,
