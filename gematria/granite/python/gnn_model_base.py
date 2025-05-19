@@ -212,11 +212,11 @@ class GnnModelBase(model_base.ModelBase):
 
   @property
   def trainable_variables(self):
-    trainable_vars = set([var.ref() for var in super().trainable_variables])
+    trainable_vars = set(var.ref() for var in super().trainable_variables)
     for layer in self._graph_network:
       layer_vars = [var.ref() for var in layer.module.trainable_variables]
       trainable_vars.update(layer_vars)
-    return tuple([var.deref() for var in trainable_vars])
+    return tuple(var.deref() for var in trainable_vars)
 
   def initialize(self):
     super().initialize()
