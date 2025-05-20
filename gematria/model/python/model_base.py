@@ -334,7 +334,6 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
 
     self._decayed_learning_rate = None
     self._loss: Optional[loss_utils.LossComputation] = None
-    self._delta_loss: Optional[loss_utils.LossComputation] = None
     self._train_step: Optional[tf.Operation] = None
     self._optimizer: Union[
         tf.train.Optimizer, tf.train.SyncReplicasOptimizer
@@ -1301,34 +1300,26 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
 
   def _compute_loss(self, schedule: FeedDict) -> loss_utils.LossComputation:
     output = self(schedule, train=True)
-    loss = loss_utils.LossComputation(
-        output['output'],
-        schedule['expected_outputs'],
-        schedule['output_mask'],
+    maybe_deltas = (
+        '_deltas' if self._use_deltas and self._use_delta_loss else ''
+    )
+    output_mask = (
+        output['output_mask_deltas']
+        if self._use_deltas and self._use_delta_loss
+        else schedule['output_mask']
+    )
+    return loss_utils.create(
+        output[f'output{maybe_deltas}'],
+        schedule[f'expected_outputs{maybe_deltas}'],
+        output_mask,
         percentile_ranks=self._collected_percentile_ranks,
         dtype=self.dtype,
+        normalization=self._loss_normalization,
+        loss_type=self._loss_type,
     )
-
-    if self._use_deltas:
-      self._delta_loss = loss_utils.LossComputation(
-          output['output_deltas'],
-          schedule['expected_outputs_deltas'],
-          output['output_mask_deltas'],
-          percentile_ranks=self._collected_percentile_ranks,
-          dtype=self.dtype,
-      )
-
-      if self._use_delta_loss:
-        loss = self._delta_loss
-
-    return loss
 
   def compute_loss_tensor(self, schedule: FeedDict):
-    return tf.reduce_mean(
-        self._compute_loss(schedule).loss_tensor(
-            self._loss_normalization, self._loss_type
-        )
-    )
+    return tf.reduce_mean(self._compute_loss(schedule).loss_tensor)
 
   def train_batch(
       self,
@@ -1349,10 +1340,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       with tf.GradientTape() as tape:
         stats = {}
         loss = self._compute_loss(schedule)
-        loss_tensor_per_task = loss.loss_tensor(
-            self._loss_normalization, self._loss_type
-        )
-        loss_tensor = tf.reduce_mean(loss_tensor_per_task)
+        loss_tensor = tf.reduce_mean(loss.loss_tensor)
 
         # The list of variables to optimize. By default, the list is empty which
         # means optimize all trainable variables.
