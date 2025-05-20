@@ -54,7 +54,7 @@ class LossComputationTest(tf.test.TestCase):
     )
 
   def test_unscaled_loss(self):
-    loss = loss_utils.LossComputation(
+    loss = loss_utils.create(
         self.actual_outputs,
         self.expected_outputs,
         self.full_mask,
@@ -74,7 +74,7 @@ class LossComputationTest(tf.test.TestCase):
     self.assertAllEqual(percentiles, ((0,), (0,), (0.5,), (3,), (4,)))
 
   def test_percentage_loss(self):
-    loss = loss_utils.LossComputation(
+    loss = loss_utils.create(
         self.actual_outputs,
         self.expected_outputs,
         self.full_mask,
@@ -110,12 +110,12 @@ class LossComputationTest(tf.test.TestCase):
         'dtype': self.dtype,
     }
 
-    mean_absolute_error = loss_utils.LossComputation(
+    mean_absolute_error = loss_utils.create(
         **loss_params,
         normalization=options.ErrorNormalization.EXPECTED_VALUE_GREATER_THAN_ONE,
         loss_type=options.LossType.MEAN_ABSOLUTE_ERROR
     )
-    mean_squared_error = loss_utils.LossComputation(
+    mean_squared_error = loss_utils.create(
         **loss_params,
         normalization=options.ErrorNormalization.EXPECTED_VALUE_GREATER_THAN_ONE,
         loss_type=options.LossType.MEAN_SQUARED_ERROR
@@ -131,7 +131,7 @@ class LossComputationTest(tf.test.TestCase):
     )
 
   def test_with_no_percentiles(self):
-    loss = loss_utils.LossComputation(
+    loss = loss_utils.create(
         self.actual_outputs,
         self.expected_outputs,
         self.full_mask,
@@ -146,7 +146,7 @@ class LossComputationTest(tf.test.TestCase):
     self.assertEqual(self.multitask_actual_outputs.shape, (5, 2))
     self.assertEqual(self.multitask_expected_outputs.shape, (5, 2))
 
-    loss = loss_utils.LossComputation(
+    loss = loss_utils.create(
         self.multitask_actual_outputs,
         self.multitask_expected_outputs,
         self.multitask_full_mask,
@@ -202,8 +202,8 @@ class LossComputationTest(tf.test.TestCase):
         'dtype': self.dtype,
         'loss_type': options.LossType.HUBER,
     }
-    loss = loss_utils.LossComputation(**loss_params)
-    loss_percentage_normalized = loss_utils.LossComputation(
+    loss = loss_utils.create(**loss_params)
+    loss_percentage_normalized = loss_utils.create(
         **loss_params, normalization=options.ErrorNormalization.PERCENTAGE_ERROR
     )
 
@@ -254,7 +254,7 @@ class LossComputationTest(tf.test.TestCase):
   def test_unknown_shape(self):
     percentile_ranks = (0, 50, 75, 100)
 
-    loss = loss_utils.LossComputation(
+    loss = loss_utils.create(
         self.actual_outputs,
         self.expected_outputs,
         tf.ones_like(self.actual_outputs, dtype=bool),
@@ -283,7 +283,7 @@ class LossComputationTest(tf.test.TestCase):
     num_tasks = 2
     percentile_ranks = (0, 50, 75, 100)
 
-    loss = loss_utils.LossComputation(
+    loss = loss_utils.create(
         self.multitask_actual_outputs,
         self.multitask_expected_outputs,
         tf.ones_like(self.multitask_actual_outputs_array, dtype=bool),
@@ -330,7 +330,7 @@ class LossComputationTest(tf.test.TestCase):
     mask = tf.ones_like(actual_output, tf.dtypes.bool)
     percentile_ranks = (0, 50, 75, 100)
 
-    loss = loss_utils.LossComputation(
+    loss = loss_utils.create(
         actual_output,
         expected_output,
         mask,

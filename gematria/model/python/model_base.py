@@ -1300,37 +1300,29 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
 
   def _compute_loss(self, schedule: FeedDict) -> loss_utils.LossComputation:
     output = self(schedule, train=True)
-    loss = loss_utils.LossComputation(
-        output['output'],
-        schedule['expected_outputs'],
-        schedule['output_mask'],
+    maybe_deltas = (
+        '_deltas' if self._use_deltas and self._use_delta_loss else ''
+    )
+    output_mask = (
+        output['output_mask_deltas']
+        if self._use_deltas and self._use_delta_loss
+        else schedule['output_mask']
+    )
+    return loss_utils.create(
+        output[f'output{maybe_deltas}'],
+        schedule[f'expected_outputs{maybe_deltas}'],
+        output_mask,
         percentile_ranks=self._collected_percentile_ranks,
         dtype=self.dtype,
         normalization=self._loss_normalization,
         loss_type=self._loss_type,
     )
 
-    if self._use_deltas:
-      delta_loss = loss_utils.LossComputation(
-          output['output_deltas'],
-          schedule['expected_outputs_deltas'],
-          output['output_mask_deltas'],
-          percentile_ranks=self._collected_percentile_ranks,
-          dtype=self.dtype,
-          normalization=self._loss_normalization,
-          loss_type=self._loss_type,
-      )
-
-      if self._use_delta_loss:
-        loss = delta_loss
-
-    return loss
-
   def compute_loss_tensor(self, schedule: FeedDict):
     return tf.reduce_mean(self._compute_loss(schedule).loss_tensor)
 
   @tf.function
-  def _compute_batch_loss(
+  def _compute_and_apply_gradients(
       self, schedule: FeedDict
   ) -> loss_utils.LossComputation:
     with tf.GradientTape() as tape:
@@ -1388,7 +1380,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       # TrainingEpochStats.__init__() as keyword arguments.
       stats = {}
 
-      loss = self._compute_batch_loss(schedule)
+      loss = self._compute_and_apply_gradients(schedule)
       loss_tensor = tf.reduce_mean(loss.loss_tensor)
 
       # TODO(vbshah): Compute and log the number of steps per second as well.
