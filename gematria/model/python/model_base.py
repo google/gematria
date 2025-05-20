@@ -1321,6 +1321,47 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
   def compute_loss_tensor(self, schedule: FeedDict):
     return tf.reduce_mean(self._compute_loss(schedule).loss_tensor)
 
+  @tf.function
+  def _compute_and_apply_gradients(
+      self, schedule: FeedDict
+  ) -> loss_utils.LossComputation:
+    with tf.GradientTape() as tape:
+      loss = self._compute_loss(schedule)
+      loss_tensor = tf.reduce_mean(loss.loss_tensor)
+
+      # The list of variables to optimize. By default, the list is empty which
+      # means optimize all trainable variables.
+      requested_variables = set()
+      for variable_group in self._trained_variable_groups:
+        requested_variables.update(
+            variable.ref()
+            for variable in self._variable_groups.get(variable_group)
+        )
+
+      variables = (
+          [variable.deref() for variable in requested_variables]
+          if requested_variables
+          else self.trainable_variables
+      )
+
+      grads = tape.gradient(loss_tensor, variables)
+      grads_and_vars = zip(grads, variables)
+
+    if self._grad_clip_norm:
+      if self._grad_clip_norm <= 0.0:
+        logging.warning(
+            'The gradients are clipped to zero. Please revise if this is not '
+            'intended.'
+        )
+      grads_and_vars = [
+          (self._clip_if_not_none(g), v) for g, v in grads_and_vars
+      ]
+    self._optimizer.apply_gradients(
+        grads_and_vars, global_step=self.global_step
+    )
+
+    return loss
+
   def train_batch(
       self,
       schedule: FeedDict,
@@ -1337,28 +1378,10 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       # The keys of stats are the names of keyword arguments of the constructor
       # of TraningEpochStats. This dict can then be unpacked to
       # TrainingEpochStats.__init__() as keyword arguments.
-      with tf.GradientTape() as tape:
-        stats = {}
-        loss = self._compute_loss(schedule)
-        loss_tensor = tf.reduce_mean(loss.loss_tensor)
+      stats = {}
 
-        # The list of variables to optimize. By default, the list is empty which
-        # means optimize all trainable variables.
-        requested_variables = set()
-        for variable_group in self._trained_variable_groups:
-          requested_variables.update(
-              variable.ref()
-              for variable in self._variable_groups.get(variable_group)
-          )
-
-        variables = (
-            [variable.deref() for variable in requested_variables]
-            if requested_variables
-            else self.trainable_variables
-        )
-
-        grads = tape.gradient(loss_tensor, variables)
-        grads_and_vars = zip(grads, variables)
+      loss = self._compute_and_apply_gradients(schedule)
+      loss_tensor = tf.reduce_mean(loss.loss_tensor)
 
       # TODO(vbshah): Compute and log the number of steps per second as well.
       # NOTE(vbshah): The learning rate schedules under `tf.compat.v1.train`
@@ -1400,19 +1423,6 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       stats['absolute_error_percentiles'] = loss.absolute_error_percentiles
       stats['relative_error_percentiles'] = (
           loss.absolute_percentage_error_percentiles
-      )
-
-      if self._grad_clip_norm:
-        if self._grad_clip_norm <= 0.0:
-          logging.warning(
-              'The gradients are clipped to zero. Please revise if this is not '
-              'intended.'
-          )
-        grads_and_vars = [
-            (self._clip_if_not_none(g), v) for g, v in grads_and_vars
-        ]
-      self._train_step = self._optimizer.apply_gradients(
-          grads_and_vars, global_step=self.global_step
       )
 
       return training.TrainingEpochStats(
