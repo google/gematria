@@ -125,11 +125,13 @@ jobs:
         sudo rm -f /usr/bin/clang++ && \
         sudo ln -s /usr/bin/clang-19 /usr/bin/clang && \
         sudo ln -s /usr/bin/clang-19 /usr/bin/clang++
+    - name: Setup bazel output base
+      run: sudo mkdir /mnt/output_base && sudo chmod a+rw /mnt/output_base
     - name: Cache Bazel
       uses: actions/cache@v3
       with:
         path: |
-          ~/.cache/bazel
+          /mnt/output_base
         key: ${{ runner.os }}-bazel-${{ matrix.build-config }}-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}-${{ env.CURRENT_DAY }}
         restore-keys: |
           ${{ runner.os }}-bazel-${{ matrix.build-config }}-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}
@@ -142,7 +144,6 @@ jobs:
     - name: Install python deps
       run: pip3 install -r requirements.txt
     - name: Run build
-      run: bazel build -c ${{ matrix.build-config }} ...
+      run: bazel --output_base=/mnt/output_base build -c ${{ matrix.build-config }} ...
     - name: Run tests
-      run: bazel test -c ${{ matrix.build-config }} --define run_under_ci=1 --test_tag_filters="-perf_counters" --test_output=errors ...
-
+      run: bazel --output_base=/mnt/output_base test -c ${{ matrix.build-config }} --define run_under_ci=1 --test_tag_filters="-perf_counters" --test_output=errors ...
