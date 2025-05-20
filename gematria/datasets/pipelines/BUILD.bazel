@@ -49,6 +49,7 @@ gematria_py_test(
     ],
     deps = [
         ":compile_modules_lib",
+        "//gematria/proto:basic_block_py_pb2",
         "//gematria/testing/python:ir_utils",
         "@pypi//absl_py",
         "@pypi//apache_beam",

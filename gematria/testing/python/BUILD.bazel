@@ -71,6 +71,7 @@ gematria_py_library(
     visibility = ["//:internal_users"],
     deps = [
         "//gematria/llvm/python:runfiles",
+        "@pypi//pandas",
         "@pypi//pyarrow",
     ],
 )

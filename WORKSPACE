@@ -43,6 +43,12 @@ http_archive(
     urls = ["https://github.com/protocolbuffers/protobuf/archive/refs/tags/v29.4.tar.gz"],
 )
 
+git_repository(
+    name = "com_google_absl",
+    remote = "https://github.com/abseil/abseil-cpp.git",
+    commit = "fb3621f4f897824c0dbe0615fa94543df6192f30",
+)
+
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 
 protobuf_deps()
@@ -67,12 +73,6 @@ pip_parse(
 load("@pypi//:requirements.bzl", "install_deps")
 
 install_deps()
-
-git_repository(
-    name = "com_google_absl",
-    remote = "https://github.com/abseil/abseil-cpp.git",
-    tag = "20250127.1",
-)
 
 # TODO(vbshah): Add integrity checks to all of the `http_archive` repos.
 http_archive(

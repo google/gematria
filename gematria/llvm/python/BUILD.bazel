@@ -62,7 +62,9 @@ gematria_py_library(
         "@llvm-project//llvm:llvm-as",
         "@llvm-project//llvm:llvm-dis",
         "@llvm-project//llvm:opt",
-        "@pypi//bazel_runfiles",
     ],
     visibility = ["//:internal_users"],
+    deps = [
+        "@pypi//bazel_runfiles",
+    ],
 )
