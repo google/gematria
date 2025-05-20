@@ -45,8 +45,8 @@ http_archive(
 
 git_repository(
     name = "com_google_absl",
-    remote = "https://github.com/abseil/abseil-cpp.git",
     commit = "fb3621f4f897824c0dbe0615fa94543df6192f30",
+    remote = "https://github.com/abseil/abseil-cpp.git",
 )
 
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
