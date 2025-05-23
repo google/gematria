@@ -134,6 +134,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-bazel-${{ matrix.build-config }}-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}
           ${{ runner.os }}-bazel-${{ matrix.build-config }}
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
     - name: Run build
       run: bazel --output_base=/mnt/output_base build -c ${{ matrix.build-config }} ...
     - name: Run tests
