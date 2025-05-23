@@ -13,12 +13,6 @@ package(
 gematria_pybind_extension(
     name = "bhive_importer",
     srcs = ["bhive_importer.cc"],
-    py_deps = [
-        "//gematria/llvm/python:canonicalizer",
-        "//gematria/proto:basic_block_py_pb2",
-        "//gematria/proto:canonicalized_instruction_py_pb2",
-        "//gematria/proto:throughput_py_pb2",
-    ],
     visibility = ["//:internal_users"],
     deps = [
         "//gematria/basic_block:basic_block_protos",
@@ -42,6 +36,7 @@ gematria_py_test(
         "//gematria/proto:basic_block_py_pb2",
         "//gematria/proto:canonicalized_instruction_py_pb2",
         "//gematria/proto:throughput_py_pb2",
+        "@pypi//absl_py",
     ],
 )
 
@@ -54,18 +49,14 @@ gematria_py_binary(
         "//gematria/llvm/python:canonicalizer",
         "//gematria/llvm/python:llvm_architecture_support",
         "//gematria/utils/python:pybind11_abseil_status",
+        "@pypi//absl_py",
+        "@pypi//tensorflow",
     ],
 )
 
 gematria_pybind_extension(
     name = "annotating_importer",
     srcs = ["annotating_importer.cc"],
-    py_deps = [
-        "//gematria/llvm/python:canonicalizer",
-        "//gematria/proto:basic_block_py_pb2",
-        "//gematria/proto:canonicalized_instruction_py_pb2",
-        "//gematria/proto:throughput_py_pb2",
-    ],
     visibility = ["//:internal_users"],
     deps = [
         "//gematria/basic_block:basic_block_protos",
@@ -94,6 +85,8 @@ gematria_py_test(
         "//gematria/proto:basic_block_py_pb2",
         "//gematria/proto:canonicalized_instruction_py_pb2",
         "//gematria/proto:throughput_py_pb2",
+        "@pypi//absl_py",
+        "@pypi//bazel_runfiles",
     ],
 )
 
@@ -105,6 +98,8 @@ gematria_py_binary(
         "//gematria/llvm/python:canonicalizer",
         "//gematria/llvm/python:llvm_architecture_support",
         "//gematria/utils/python:pybind11_abseil_status",
+        "@pypi//absl_py",
+        "@pypi//tensorflow",
     ],
 )
 
@@ -117,6 +112,7 @@ gematria_py_binary(
         "//gematria/basic_block/python:basic_block_protos",
         "//gematria/io/python:tfrecord",
         "//gematria/proto:throughput_py_pb2",
+        "@pypi//absl_py",
     ],
 )
 
@@ -153,6 +149,8 @@ gematria_py_test(
     ],
     deps = [
         ":extract_bbs_from_obj",
+        "@pypi//absl_py",
+        "@pypi//bazel_runfiles",
     ],
 )
 
@@ -174,6 +172,7 @@ gematria_py_test(
     srcs = ["process_and_filter_bbs_test.py"],
     deps = [
         ":process_and_filter_bbs",
+        "@pypi//absl_py",
     ],
 )
 
@@ -203,6 +202,7 @@ gematria_py_test(
         ":bhive_to_exegesis",
         "//gematria/llvm/python:llvm_architecture_support",
         "//gematria/proto:execution_annotation_py_pb2",
+        "@pypi//absl_py",
     ],
 )
 
@@ -236,5 +236,6 @@ gematria_py_test(
         ":exegesis_benchmark",
         "//gematria/llvm/python:llvm_architecture_support",
         "//gematria/proto:execution_annotation_py_pb2",
+        "@pypi//absl_py",
     ],
 )
