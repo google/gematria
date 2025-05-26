@@ -1300,17 +1300,16 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
 
   def _compute_loss(self, schedule: FeedDict) -> loss_utils.LossComputation:
     output = self(schedule, train=True)
-    maybe_deltas = (
-        '_deltas' if self._use_deltas and self._use_delta_loss else ''
-    )
-    output_mask = (
-        output['output_mask_deltas']
-        if self._use_deltas and self._use_delta_loss
-        else schedule['output_mask']
-    )
+    model_output = output['output']
+    expected_outputs = schedule['expected_outputs']
+    output_mask = schedule['output_mask']
+    if self._use_deltas and self._use_delta_loss:
+      model_output = output['output_deltas']
+      expected_outputs = schedule['expected_outputs_deltas']
+      output_mask = output['output_mask_deltas']
     return loss_utils.create(
-        output[f'output{maybe_deltas}'],
-        schedule[f'expected_outputs{maybe_deltas}'],
+        model_output,
+        expected_outputs,
         output_mask,
         percentile_ranks=self._collected_percentile_ranks,
         dtype=self.dtype,
