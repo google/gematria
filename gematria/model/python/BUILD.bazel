@@ -43,6 +43,7 @@ gematria_py_library(
     ],
     deps = [
         ":options",
+        "@pypi//setuptools",
         "@pypi//tensorflow",
         "@pypi//tensorflow_probability",
         "@pypi//tf_keras",

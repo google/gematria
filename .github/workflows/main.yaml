@@ -37,7 +37,7 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
       - name: Install pyink
         run: pip3 install pyink==23.9.1
       - name: Check python formatting
@@ -137,7 +137,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
         cache: 'pip'
     - name: Run build
       run: bazel --output_base=/mnt/output_base build -c ${{ matrix.build-config }} ...

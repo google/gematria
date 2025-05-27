@@ -33,7 +33,7 @@ http_archive(
     name = "rules_python",
     integrity = "sha256-n587MAqSZOTHeZkxLOZjvl3umlbjYaH2/n7GDhvu+aM=",
     strip_prefix = "rules_python-1.4.1",
-    url = "https://github.com/bazel-contrib/rules_python/releases/download/1.4.1/rules_python-1.4.1.tar.gz",
+    urls = ["https://github.com/bazel-contrib/rules_python/releases/download/1.4.1/rules_python-1.4.1.tar.gz"],
 )
 
 http_archive(
@@ -58,23 +58,22 @@ load("@rules_python//python:repositories.bzl", "py_repositories", "python_regist
 py_repositories()
 
 python_register_toolchains(
-    name = "python_3_11",
-    python_version = "3.11",
+    name = "python_3_12",
+    python_version = "3.12",
 )
 
 load("@rules_python//python:pip.bzl", "pip_parse")
 
 pip_parse(
     name = "pypi",
-    python_interpreter_target = "@python_3_11_host//:python",
-    requirements_lock = "//:requirements_lock_3_11.txt",
+    python_interpreter_target = "@python_3_12_host//:python",
+    requirements_lock = "//:requirements_lock_3_12.txt",
 )
 
 load("@pypi//:requirements.bzl", "install_deps")
 
 install_deps()
 
-# TODO(vbshah): Add integrity checks to all of the `http_archive` repos.
 http_archive(
     name = "pybind11_bazel",
     integrity = "sha256-nfKEMwM2lYyDf7cNw0wKYlTaxSpcmDszc6jCu7eaw14=",

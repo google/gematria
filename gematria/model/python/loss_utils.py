@@ -13,6 +13,15 @@
 # limitations under the License.
 """Contains types, classes and functions for loss computation in Gematria."""
 
+# TensorFlow Probability depends on `distutils`, which is no longer included
+# with Python 3.12 and onwards. `distutils` is instead provided by `setuptools`,
+# but the `sys.path` modification enabling this is not correctly supported by
+# the `rules_python` directory structure.
+# Including `setuptools` here should allow us to continue using `tfp`.
+# TODO(vbshah): Remove this import once
+# https://github.com/bazel-contrib/rules_python/issues/2071 is resolved.
+import setuptools  # pylint: disable=unused-import
+
 from collections.abc import Sequence
 
 from gematria.model.python import options
