@@ -16,6 +16,7 @@ gematria_py_test(
     srcs = ["flag_utils_test.py"],
     deps = [
         ":flag_utils",
+        "@pypi//absl_py",
     ],
 )
 
@@ -24,6 +25,7 @@ gematria_py_library(
     srcs = ["timer.py"],
     visibility = ["//:internal_users"],
     deps = [
+        "@pypi//absl_py",
     ],
 )
 
@@ -33,6 +35,7 @@ gematria_py_test(
     srcs = ["timer_test.py"],
     deps = [
         ":timer",
+        "@pypi//absl_py",
     ],
 )
 
@@ -44,4 +47,32 @@ gematria_py_library(
         "@pybind11_abseil_repo//pybind11_abseil:status.so",
     ],
     visibility = ["//:internal_users"],
+)
+
+# The following rules bundle sonnet and graph_nets, which are brought in as
+# traditional bazel dependencies, with their PyPI dependencies for convenience.
+gematria_py_library(
+    name = "sonnet",
+    visibility = ["//:internal_users"],
+    deps = [
+        "@pypi//contextlib2",
+        "@pypi//semantic_version",
+        "@pypi//tabulate",
+        "@pypi//tensorflow",
+        "@pypi//tensorflow_probability",
+        "@pypi//tf_keras",
+        "@sonnet_repo//sonnet",
+    ],
+)
+
+gematria_py_library(
+    name = "graph_nets",
+    visibility = ["//:internal_users"],
+    deps = [
+        ":sonnet",
+        "@graph_nets_repo//:graph_nets",
+        "@pypi//networkx",
+        "@pypi//semantic_version",
+        "@pypi//six",
+    ],
 )
