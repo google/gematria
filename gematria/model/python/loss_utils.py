@@ -87,7 +87,7 @@ def _apply_loss_function(
       return tf.abs(normalized_delta)
     case options.LossType.HUBER:
       return _huber(tf.abs(normalized_delta))
-  raise ValueError('Unexpected loss type {loss_type!r}')
+  raise ValueError(f'Unexpected loss type {loss_type!r}')
 
 
 def _apply_normalization(
@@ -99,7 +99,6 @@ def _apply_normalization(
 
   Args:
     normalization: The selected normalization function.
-    num_tasks: The number of tasks used in the model.
     delta: The deltas between the actual output and the expected output.
     expected_outputs: The expected output values.
 
@@ -127,7 +126,7 @@ def _loss_tensor(
     expected_outputs: tf.Tensor,
 ) -> tf.Tensor:
   """Creates a loss tensor for the given loss type.
-  
+
   Args:
     normalization: The error normalization used in the loss tensor.
     loss_type: The loss function used in the loss tensor.
@@ -136,7 +135,7 @@ def _loss_tensor(
       expected outputs. Must have have shape (None, num_tasks).
     expected_outputs: A tensor that contains the expected outputs. Must have
       shape (None, num_tasks).
-  
+
   Returns:
     A tensor that contains the loss computed with the selected loss function
     and normalization. Has shape (num_tasks, ).
@@ -167,7 +166,7 @@ class LossComputation(tf.experimental.ExtensionType):
   absolute_error_percentiles: tf.Tensor
   absolute_percentage_error_percentiles: tf.Tensor
 
-@tf.function
+
 def create(
     output_values: tf.Tensor,
     expected_outputs: tf.Tensor,
