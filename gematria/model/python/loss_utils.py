@@ -20,93 +20,23 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 
-def _loss_tensor(
-    normalization: options.ErrorNormalization,
-    loss_type: options.LossType,
-    num_tasks: int,
-    dtype: tf.dtypes.DType,
-    delta: tf.Tensor,
-    squared_errors: tf.Tensor,
-    absolute_errors: tf.Tensor,
-    absolute_percentage_errors: tf.Tensor,
-    squared_percentage_error: tf.Tensor,
-    absolute_expected_outputs_or_one: tf.Tensor,
+def _huber(
+    normalized_absolute_errors: tf.Tensor,
 ) -> tf.Tensor:
-  """Returns a loss tensor of the given type.
-
-  Args:
-    normalization: Determines whether and how the errors in the loss tensor
-      are normalized.
-    loss_type: The type of loss.
-    num_tasks: The number of tasks for the current model. Used for validation
-      purposes.
-    dtype: The Tensorflow DType used by the model.
-    delta: The difference between the expected and actual values.
-    squared_errors: A tensor containing the squared errors.
-    absolute_errors: A tensor containing the absolute errors.
-    absolute_percentage_erros: A tensor containing the absolute percentage
-      error.
-    squared_percentage_error: A tensor containg the squared percentage error.
-    absolute_expected_outputs_or_one: A tensor containing the absolute value
-      of the expected outputs, capped to one.
-
-  Returns:
-    A tensor that contains the requested loss. When called multiple times with
-    the same arguments, this method will always return the same tensor object.
-    The returned tensor is of shape (N, T), where T is the number of tasks.
-  """
-  match loss_type:
-    case options.LossType.MEAN_SQUARED_ERROR:
-      tensor = tf.reduce_mean(
-          _apply_normalization(
-              normalization,
-              num_tasks,
-              squared_errors,
-              squared_percentage_error,
-              tf.square(delta / absolute_expected_outputs_or_one),
-          ),
-          axis=1,
-      )
-    case options.LossType.MEAN_ABSOLUTE_ERROR:
-      tensor = tf.reduce_mean(
-          _apply_normalization(
-              normalization,
-              num_tasks,
-              absolute_errors,
-              absolute_percentage_errors,
-              absolute_errors / absolute_expected_outputs_or_one,
-          ),
-          axis=1,
-      )
-    case options.LossType.HUBER:
-      absolute_errors = _apply_normalization(
-          normalization,
-          num_tasks,
-          absolute_errors,
-          absolute_percentage_errors,
-          absolute_errors / absolute_expected_outputs_or_one,
-      )
-      # The delta parameter from the Huber loss definition.
-      huber_delta = tf.constant(1.0, dtype=dtype)
-      # The expression in the quadratic part of the Huber loss expression.
-      # It is squared in the return statement below.
-      quadratic = tf.minimum(absolute_errors, huber_delta)
-      # The linear part of the Huber loss expression. This is zero when
-      # absolute_error <= huber_delta.
-      linear = absolute_errors - quadratic
-      tensor = tf.reduce_mean(
-          0.5 * tf.square(quadratic) + huber_delta * linear, axis=1
-      )
-    case _:
-      raise ValueError(f'Unexpected loss type: {loss_type}')
-  assert tensor.shape.is_compatible_with((
-      num_tasks,
-  )), f'The actual shape is {tensor.shape}'
-  return tensor
+  """Computes the Huber loss from normalized absolute errors."""
+  # The delta parameter from the Huber loss definition.
+  huber_delta = tf.constant(1.0, dtype=normalized_absolute_errors.dtype)
+  # The expression in the quadratic part of the Huber loss expression.
+  # It is squared in the return statement below.
+  quadratic = tf.minimum(normalized_absolute_errors, huber_delta)
+  # The linear part of the Huber loss expression. This is zero when
+  # absolute_error <= huber_delta.
+  linear = normalized_absolute_errors - quadratic
+  return 0.5 * tf.square(quadratic) + huber_delta * linear
 
 
 def _make_percentile_tensor(
-    values: tf.RaggedTensor,
+    values: tf.Tensor,
     num_tasks: int,
     percentile_ranks: Sequence[int],
     dtype: tf.dtypes.DType,
@@ -138,30 +68,91 @@ def _make_percentile_tensor(
         tfp.stats.percentile(task_values, percentile_ranks)
     )
     assert percentile_tensors[-1].shape.is_compatible_with((None,))
-  return tf.stack(percentile_tensors, axis=1)
+  percentile_tensor = tf.stack(percentile_tensors, axis=1)
+  assert not percentile_ranks or percentile_tensor.shape.is_compatible_with(
+      (len(percentile_ranks), num_tasks)
+  )
+  return percentile_tensor
+
+
+def _apply_loss_function(
+    loss_type: options.LossType,
+    normalized_delta: tf.Tensor,
+) -> tf.Tensor:
+  """Applies the selected loss function to normalized absolute deltas."""
+  match loss_type:
+    case options.LossType.MEAN_SQUARED_ERROR:
+      return tf.square(normalized_delta)
+    case options.LossType.MEAN_ABSOLUTE_ERROR:
+      return tf.abs(normalized_delta)
+    case options.LossType.HUBER:
+      return _huber(tf.abs(normalized_delta))
+  raise ValueError(f'Unexpected loss type {loss_type!r}')
 
 
 def _apply_normalization(
     normalization: options.ErrorNormalization,
-    num_tasks: int,
-    errors: tf.Tensor,
-    percentage_error: tf.Tensor,
-    absolute_outputs_normalized_error: tf.Tensor,
-):
-  """Returns a tensor of normalized errors."""
+    delta: tf.Tensor,
+    expected_outputs: tf.Tensor,
+) -> tf.Tensor:
+  """Applies the given error normalization function to deltas.
+
+  Args:
+    normalization: The selected normalization function.
+    delta: The deltas between the actual output and the expected output.
+    expected_outputs: The expected output values.
+
+  Returns:
+    A tensor that contains the normalized error value for each input.
+  """
   match normalization:
     case options.ErrorNormalization.NONE:
-      result = errors
+      return delta
     case options.ErrorNormalization.PERCENTAGE_ERROR:
-      result = percentage_error
+      return delta / expected_outputs
     case options.ErrorNormalization.EXPECTED_VALUE_GREATER_THAN_ONE:
-      result = absolute_outputs_normalized_error
-    case _:
-      raise NotImplementedError(f'{normalization} not implemented yet.')
-  assert result.shape.is_compatible_with(
-      (num_tasks, None)
-  ), f'Actual shape of the squared errors tensor is {result.shape}'
-  return result
+      return delta / tf.math.maximum(
+          expected_outputs,
+          tf.ones_like(expected_outputs, dtype=expected_outputs.dtype),
+      )
+  raise ValueError(f'Unknown normalization {normalization!r}')
+
+
+def _loss_tensor(
+    normalization: options.ErrorNormalization,
+    loss_type: options.LossType,
+    num_tasks: int,
+    delta: tf.Tensor,
+    expected_outputs: tf.Tensor,
+) -> tf.Tensor:
+  """Creates a loss tensor for the given loss type.
+
+  Args:
+    normalization: The error normalization used in the loss tensor.
+    loss_type: The loss function used in the loss tensor.
+    num_tasks: The number of tasks in the input data.
+    delta: A tensor that contains the absolute differences between actual and
+      expected outputs. Must have have shape (None, num_tasks).
+    expected_outputs: A tensor that contains the expected outputs. Must have
+      shape (None, num_tasks).
+
+  Returns:
+    A tensor that contains the loss computed with the selected loss function
+    and normalization. Has shape (num_tasks, ).
+  """
+  normalized_delta = _apply_normalization(
+      normalization=normalization,
+      delta=delta,
+      expected_outputs=expected_outputs,
+  )
+  normalized_delta.shape.assert_is_compatible_with((num_tasks, None))
+  loss_values = _apply_loss_function(
+      loss_type=loss_type,
+      normalized_delta=normalized_delta,
+  )
+  loss = tf.reduce_mean(loss_values, axis=1)
+  loss.shape.assert_is_compatible_with((num_tasks,))
+  return loss
 
 
 class LossComputation(tf.experimental.ExtensionType):
@@ -215,6 +206,7 @@ def create(
     )
 
   num_tasks = output_values.shape[1] or expected_outputs.shape[1]
+  assert num_tasks is not None
   if not mask.shape.is_compatible_with(output_values.shape):
     raise ValueError(
         'Expected mask.shape to be compatible with'
@@ -238,88 +230,52 @@ def create(
   )
   assert expected_outputs.shape.is_compatible_with((num_tasks, None))
 
-  delta = output_values - expected_outputs
-  assert delta.shape.is_compatible_with((num_tasks, None))
-
-  squared_errors = tf.square(delta)
-  assert squared_errors.shape.is_compatible_with((num_tasks, None))
-  absolute_errors = tf.abs(delta)
+  absolute_errors = tf.abs(output_values - expected_outputs)
   assert absolute_errors.shape.is_compatible_with((num_tasks, None))
+
   absolute_percentage_errors = absolute_errors / expected_outputs
   assert absolute_percentage_errors.shape.is_compatible_with((num_tasks, None))
-  squared_percentage_error = tf.square(absolute_percentage_errors)
-  assert squared_percentage_error.shape.is_compatible_with((num_tasks, None))
-  absolute_error_percentiles = _make_percentile_tensor(
-      absolute_errors, num_tasks, percentile_ranks, dtype
-  )
-  assert (
-      not percentile_ranks
-      or absolute_error_percentiles.shape.is_compatible_with(
-          (len(percentile_ranks), num_tasks)
-      )
-  )
-  absolute_percentage_error_percentiles = _make_percentile_tensor(
-      absolute_percentage_errors, num_tasks, percentile_ranks, dtype
-  )
-  assert (
-      not percentile_ranks
-      or absolute_percentage_error_percentiles.shape.is_compatible_with(
-          (len(percentile_ranks), num_tasks)
-      )
-  )
-  # The absolute value of expected_outputs. Contains 1.0 in place of values
-  # that are smaller than one.
-  absolute_expected_outputs_or_one = tf.math.maximum(
-      expected_outputs,
-      tf.ones_like(expected_outputs, dtype=dtype),
-  )
-  assert absolute_expected_outputs_or_one.shape.is_compatible_with(
-      (num_tasks, None)
-  )
-
-  tensor_args = {
-      'num_tasks': num_tasks,
-      'dtype': dtype,
-      'delta': delta,
-      'squared_errors': squared_errors,
-      'absolute_errors': absolute_errors,
-      'absolute_percentage_errors': absolute_percentage_errors,
-      'squared_percentage_error': squared_percentage_error,
-      'absolute_expected_outputs_or_one': absolute_expected_outputs_or_one,
-  }
-
-  mean_absolute_error = _loss_tensor(
-      options.ErrorNormalization.NONE,
-      options.LossType.MEAN_ABSOLUTE_ERROR,
-      **tensor_args,
-  )
-  mean_squared_error = _loss_tensor(
-      options.ErrorNormalization.NONE,
-      options.LossType.MEAN_SQUARED_ERROR,
-      **tensor_args,
-  )
-  mean_absolute_percentage_error = _loss_tensor(
-      options.ErrorNormalization.PERCENTAGE_ERROR,
-      options.LossType.MEAN_ABSOLUTE_ERROR,
-      **tensor_args,
-  )
-  mean_squared_percentage_error = _loss_tensor(
-      options.ErrorNormalization.PERCENTAGE_ERROR,
-      options.LossType.MEAN_SQUARED_ERROR,
-      **tensor_args,
-  )
-  loss_tensor = _loss_tensor(
-      normalization,
-      loss_type,
-      **tensor_args,
-  )
 
   return LossComputation(
-      loss_tensor,
-      mean_absolute_error,
-      mean_squared_error,
-      mean_absolute_percentage_error,
-      mean_squared_percentage_error,
-      absolute_error_percentiles,
-      absolute_percentage_error_percentiles,
+      loss_tensor=_loss_tensor(
+          normalization,
+          loss_type,
+          num_tasks,
+          absolute_errors,
+          expected_outputs,
+      ),
+      mean_absolute_error=_loss_tensor(
+          options.ErrorNormalization.NONE,
+          options.LossType.MEAN_ABSOLUTE_ERROR,
+          num_tasks,
+          absolute_errors,
+          expected_outputs,
+      ),
+      mean_squared_error=_loss_tensor(
+          options.ErrorNormalization.NONE,
+          options.LossType.MEAN_SQUARED_ERROR,
+          num_tasks,
+          absolute_errors,
+          expected_outputs,
+      ),
+      mean_absolute_percentage_error=_loss_tensor(
+          options.ErrorNormalization.PERCENTAGE_ERROR,
+          options.LossType.MEAN_ABSOLUTE_ERROR,
+          num_tasks,
+          absolute_errors,
+          expected_outputs,
+      ),
+      mean_squared_percentage_error=_loss_tensor(
+          options.ErrorNormalization.PERCENTAGE_ERROR,
+          options.LossType.MEAN_SQUARED_ERROR,
+          num_tasks,
+          absolute_errors,
+          expected_outputs,
+      ),
+      absolute_error_percentiles=_make_percentile_tensor(
+          absolute_errors, num_tasks, percentile_ranks, dtype
+      ),
+      absolute_percentage_error_percentiles=_make_percentile_tensor(
+          absolute_percentage_errors, num_tasks, percentile_ranks, dtype
+      ),
   )
