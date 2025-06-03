@@ -3,43 +3,114 @@ workspace(name = "com_google_gematria")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-SKYLIB_VERSION = "1.3.0"
+SKYLIB_VERSION = "1.7.1"
+
+SKYLIB_SHA256 = "bc283cdfcd526a52c3201279cda4bc298652efa898b10b4db0837dc51652756f"
 
 http_archive(
     name = "bazel_skylib",
-    sha256 = "74d544d96f4a5bb630d465ca8bbcfe231e3594e5aae57e1edbf17a6eb3ca2506",
+    sha256 = SKYLIB_SHA256,
     urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/{version}/bazel-skylib-{version}.tar.gz".format(version = SKYLIB_VERSION),
         "https://github.com/bazelbuild/bazel-skylib/releases/download/{version}/bazel-skylib-{version}.tar.gz".format(version = SKYLIB_VERSION),
     ],
 )
 
-git_repository(
+load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
+
+bazel_skylib_workspace()
+
+http_archive(
+    name = "platforms",
+    sha256 = "29742e87275809b5e598dc2f04d86960cc7a55b3067d97221c9abbc9926bff0f",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/platforms/releases/download/0.0.11/platforms-0.0.11.tar.gz",
+        "https://github.com/bazelbuild/platforms/releases/download/0.0.11/platforms-0.0.11.tar.gz",
+    ],
+)
+
+http_archive(
+    name = "rules_python",
+    integrity = "sha256-n587MAqSZOTHeZkxLOZjvl3umlbjYaH2/n7GDhvu+aM=",
+    strip_prefix = "rules_python-1.4.1",
+    urls = ["https://github.com/bazel-contrib/rules_python/releases/download/1.4.1/rules_python-1.4.1.tar.gz"],
+)
+
+http_archive(
     name = "com_google_protobuf",
-    remote = "https://github.com/protocolbuffers/protobuf.git",
-    tag = "v23.2",
+    integrity = "sha256-a9ncyRsX7yXCat+G23HGfsAkMdyS6Vier4LiKIkjBJY=",
+    strip_prefix = "protobuf-29.4",
+    urls = ["https://github.com/protocolbuffers/protobuf/archive/refs/tags/v29.4.tar.gz"],
+)
+
+git_repository(
+    name = "com_google_absl",
+    commit = "fb3621f4f897824c0dbe0615fa94543df6192f30",
+    remote = "https://github.com/abseil/abseil-cpp.git",
 )
 
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 
 protobuf_deps()
 
-# Required for protobuf to build.
-git_repository(
-    name = "com_google_absl",
-    remote = "https://github.com/abseil/abseil-cpp.git",
-    tag = "20230802.2",
+load("@rules_python//python:repositories.bzl", "py_repositories", "python_register_toolchains")
+
+py_repositories()
+
+python_register_toolchains(
+    name = "python_3_12",
+    python_version = "3.12",
+)
+
+load("@rules_python//python:pip.bzl", "pip_parse")
+
+pip_parse(
+    name = "pypi",
+    python_interpreter_target = "@python_3_12_host//:python",
+    requirements_lock = "//:requirements_lock_3_12.txt",
+)
+
+load("@pypi//:requirements.bzl", "install_deps")
+
+install_deps()
+
+http_archive(
+    name = "pybind11_bazel",
+    integrity = "sha256-nfKEMwM2lYyDf7cNw0wKYlTaxSpcmDszc6jCu7eaw14=",
+    strip_prefix = "pybind11_bazel-2.13.6",
+    urls = ["https://github.com/pybind/pybind11_bazel/archive/v2.13.6.zip"],
+)
+
+http_archive(
+    name = "pybind11",
+    build_file = "@pybind11_bazel//:pybind11-BUILD.bazel",
+    integrity = "sha256-GtB5JtOHmGyEugbWbsq9VNVZi3kl6rAownjs2Nl8M4U=",
+    strip_prefix = "pybind11-2.13.4",
+    urls = ["https://github.com/pybind/pybind11/archive/v2.13.4.zip"],
+)
+
+http_archive(
+    # We can't use the name "pybind11_abseil" for the repository, as this would
+    # break the `sys.path` hack that we use for importing third-party Python
+    # modules. See the comment under "Python libraries" below for a detailed
+    # explanation.
+    name = "pybind11_abseil_repo",
+    integrity = "sha256-FJaxEuhkFuLc8ohWmj57ZPNTfwsYEyIk9JImbp/3bEQ=",
+    strip_prefix = "pybind11_abseil-202402.0",
+    urls = ["https://github.com/pybind/pybind11_abseil/releases/download/v202402.0/pybind11_abseil-202402.0.tar.gz"],
 )
 
 git_repository(
-    name = "org_mizux_bazelpybind11",
-    commit = "27da411499fe62f7c0969ac2665d343ce162b6a9",
-    remote = "https://github.com/Mizux/bazel-pybind11.git",
+    name = "com_google_pybind11_protobuf",
+    commit = "f02a2b7653bc50eb5119d125842a3870db95d251",
+    remote = "https://github.com/pybind/pybind11_protobuf.git",
 )
 
-git_repository(
+http_archive(
     name = "com_google_googletest",
-    remote = "https://github.com/google/googletest.git",
-    tag = "release-1.12.1",
+    integrity = "sha256-eMZ2/GOIFSm/l7+dRZSNkFpmgz+/pTGOos10eMuY85k=",
+    strip_prefix = "googletest-1.16.0",
+    urls = ["https://github.com/google/googletest/archive/refs/tags/v1.16.0.tar.gz"],
 )
 
 # We use a patched version of google/benchmark/BUILD.bazel to keep the name
@@ -73,12 +144,6 @@ git_repository(
     tag = "v4.13.0",
 )
 
-git_repository(
-    name = "rules_proto",
-    remote = "https://github.com/bazelbuild/rules_proto.git",
-    tag = "5.3.0-21.7",
-)
-
 # We only take the `quipper` sub-package from the `perf_data_converter`
 # repository to keep things cleaner.
 git_repository(
@@ -110,62 +175,6 @@ http_archive(
     sha256 = "0a2b7a10fdce3d5ccdc6abf4f5701dca24b97efa75b00d203c50221269605476",
     strip_prefix = "boringssl-ea4425fbb276871cfec5c4e19c12796b3cd1c9ab",
     urls = ["https://github.com/google/boringssl/archive/ea4425fbb276871cfec5c4e19c12796b3cd1c9ab.tar.gz"],
-)
-
-# Python
-load("@upb//bazel:system_python.bzl", "system_python")
-
-system_python(
-    name = "system_python",
-    minimum_python_version = "3.10",
-)
-
-bind(
-    name = "python_headers",
-    actual = "@system_python//:python_headers",
-)
-
-git_repository(
-    name = "rules_python",
-    remote = "https://github.com/bazelbuild/rules_python.git",
-    tag = "0.19.0",
-)
-
-git_repository(
-    name = "pybind11_bazel",
-    commit = "b162c7c88a253e3f6b673df0c621aca27596ce6b",
-    patch_args = ["-p1"],
-    patches = ["@org_mizux_bazelpybind11//patches:pybind11_bazel.patch"],
-    remote = "https://github.com/pybind/pybind11_bazel.git",
-)
-
-new_git_repository(
-    name = "pybind11",
-    build_file = "@pybind11_bazel//:pybind11.BUILD",
-    remote = "https://github.com/pybind/pybind11.git",
-    tag = "v2.10.3",
-)
-
-git_repository(
-    # We can't use the name "pybind11_abseil" for the repository, as this would
-    # break the mechanism Bazel uses for importing third-party Python modules.
-    # See the comment under "Python libraries" below for a detailed explanation.
-    name = "pybind11_abseil_repo",
-    commit = "1caf1890443e8e303bf88850d3c27d5422903168",
-    remote = "https://github.com/pybind/pybind11_abseil.git",
-)
-
-git_repository(
-    name = "com_google_pybind11_protobuf",
-    commit = "55916e14588b3c26203d4aefbdcaa888870c29ac",
-    remote = "https://github.com/pybind/pybind11_protobuf.git",
-)
-
-load("@pybind11_bazel//:python_configure.bzl", _pybind11_python_configure = "python_configure")
-
-_pybind11_python_configure(
-    name = "local_config_python",
-    python_version = "3",
 )
 
 # Python libraries

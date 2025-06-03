@@ -1,5 +1,6 @@
-# Bazel directories.
+# Bazel files and directories.
 /bazel-*
+/MODULE.bazel.lock
 
 /compile_commands.json
 
