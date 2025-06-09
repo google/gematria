@@ -14,11 +14,11 @@
 
 #include "gematria/granite/graph_builder.h"
 
-#include <set>
 #include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "gematria/basic_block/basic_block.h"
 #include "gematria/model/oov_token_behavior.h"
 #include "gematria/proto/canonicalized_instruction.pb.h"
 #include "pybind11/cast.h"
@@ -81,10 +81,12 @@ PYBIND11_MODULE(graph_builder, m) {
           py::arg("annotation_names") = std::vector<std::string>(),
           py::arg("out_of_vocabulary_behavior"))
       .def("add_basic_block", &BasicBlockGraphBuilder::AddBasicBlock,
-           py::arg("block"))
+           py::arg("block"), py::arg("add_context") = false)
       .def("add_basic_block_from_instructions",
            &BasicBlockGraphBuilder::AddBasicBlockFromInstructions,
-           py::arg("instructions"))
+           py::arg("instructions"),
+           py::arg("preceding_context") = std::vector<Instruction>(),
+           py::arg("following_context") = std::vector<Instruction>())
       .def("reset", &BasicBlockGraphBuilder::Reset)
       .def_property_readonly("num_node_tokens",
                              &BasicBlockGraphBuilder::num_node_tokens)
@@ -99,6 +101,8 @@ PYBIND11_MODULE(graph_builder, m) {
                              &BasicBlockGraphBuilder::node_features)
       .def_property_readonly("instruction_node_mask",
                              &BasicBlockGraphBuilder::InstructionNodeMask)
+      .def_property_readonly("context_node_mask",
+                             &BasicBlockGraphBuilder::context_node_mask)
       .def_property_readonly("annotation_names",
                              &BasicBlockGraphBuilder::annotation_names)
       .def_property_readonly("instruction_annotations",

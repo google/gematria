@@ -324,9 +324,12 @@ std::ostream& operator<<(std::ostream& os, const Instruction& instruction);
 struct BasicBlock {
   BasicBlock() {}
 
-  // Initializes the basic block from a list of instructions. Needed for
-  // compatibility with the Python code.
-  explicit BasicBlock(std::vector<Instruction> instructions);
+  // Initializes the basic block from a list of instructions and optional
+  // context. Needed for compatibility with the Python code.
+  explicit BasicBlock(
+      std::vector<Instruction> instructions,
+      std::vector<Instruction> preceding_context = std::vector<Instruction>(),
+      std::vector<Instruction> following_context = std::vector<Instruction>());
 
   BasicBlock(const BasicBlock&) = default;
   BasicBlock(BasicBlock&&) = default;
@@ -346,6 +349,11 @@ struct BasicBlock {
 
   // The list of instructions in the basic block.
   std::vector<Instruction> instructions;
+
+  // The preceding and following context instructions, i.e. those preceeding and
+  // following the instructions in the basic block.
+  std::vector<Instruction> preceding_context;
+  std::vector<Instruction> following_context;
 };
 
 std::ostream& operator<<(std::ostream& os, const BasicBlock& block);

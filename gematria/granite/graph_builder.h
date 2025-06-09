@@ -91,7 +91,6 @@
 
 #include <cstddef>
 #include <ostream>
-#include <set>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -187,14 +186,24 @@ class BasicBlockGraphBuilder {
   // method encountered an unknown token and the unknown token behavior is not
   // kReplaceToken or when the basic block does not contain any instructions.
   // When this happens, the graph builder is left in the previous state, i.e. no
-  // basic block is added to it.
-  bool AddBasicBlock(const BasicBlock& block) {
+  // basic block is added to it. The basic block context is added to the graph
+  // if and only if `add_context` is true.
+  bool AddBasicBlock(const BasicBlock& block, bool add_context = false) {
+    if (add_context) {
+      return AddBasicBlockFromInstructions(
+          block.instructions, block.preceding_context, block.following_context);
+    }
     return AddBasicBlockFromInstructions(block.instructions);
   }
   // A version of AddBasicBlock that takes the list of instructions in the basic
-  // block instead of the basic block object itself.
+  // block and optionally its preceding and following contexts instead of the
+  // basic block object itself.
   bool AddBasicBlockFromInstructions(
-      const std::vector<Instruction>& instructions);
+      const std::vector<Instruction>& instructions,
+      const std::vector<Instruction>& preceding_context =
+          std::vector<Instruction>(),
+      const std::vector<Instruction>& following_context =
+          std::vector<Instruction>());
 
   // Resets the graph builder so that it can be used to create a new graph from
   // scratch.
@@ -242,6 +251,12 @@ class BasicBlockGraphBuilder {
   // Feature value of the nodes in the batch (i.e. the indices of the tokens
   // corresponding to the nodes). Corresponds to `GraphsTuple.nodes`.
   const std::vector<int>& node_features() const { return node_features_; }
+  // Whether or not the corresponding node belongs to either the preceding or
+  // following context of the basic block, and not the basic block itself. Used
+  // by the models to exclude context nodes from predictions.
+  const std::vector<bool>& context_node_mask() const {
+    return context_node_mask_;
+  }
 
   // Names of types of instruction annotations stored.
   const std::vector<std::string>& annotation_names() const {
@@ -362,24 +377,28 @@ class BasicBlockGraphBuilder {
 
   // Adds nodes and edges for a single input operand of an instruction.
   bool AddInputOperand(NodeIndex instruction_node,
-                       const InstructionOperand& operand);
+                       const InstructionOperand& operand,
+                       bool is_context = false);
   // Adds nodes and edges for a single output operand of an instruction.
   bool AddOutputOperand(NodeIndex instruction_node,
-                        const InstructionOperand& operand);
+                        const InstructionOperand& operand,
+                        bool is_context = false);
 
   // Adds dependency of a node (instruction or an address computation node) on
   // a register. Adds the register node if it doesn't exist in the graph.
   bool AddDependencyOnRegister(NodeIndex dependent_node,
                                const std::string& register_name,
-                               EdgeType edge_type);
+                               EdgeType edge_type, bool is_context = false);
 
   // Adds a new node to the batch; the feature of the node is given directly by
   // the caller.
-  NodeIndex AddNode(NodeType node_type, TokenIndex token_index);
+  NodeIndex AddNode(NodeType node_type, TokenIndex token_index,
+                    bool is_context = false);
   // Adds a new edge to the batch; the feature of the node is determined from
   // the token associated with the node. Returns kInvalidNode when the node was
   // not added.
-  NodeIndex AddNode(NodeType node_type, const std::string& token);
+  NodeIndex AddNode(NodeType node_type, const std::string& token,
+                    bool is_context = false);
   // Adds a new edge to the batch.
   void AddEdge(EdgeType edge_type, NodeIndex sender, NodeIndex receiver);
 
@@ -406,6 +425,7 @@ class BasicBlockGraphBuilder {
 
   std::vector<NodeType> node_types_;
   std::vector<TokenIndex> node_features_;
+  std::vector<bool> context_node_mask_;
 
   // Mapping from annotation type names to corresponding row index in the
   // `instruction_annotations_` matrix.
