@@ -377,10 +377,12 @@ class BasicBlockGraphBuilder {
 
   // Adds nodes and edges for a single input operand of an instruction.
   bool AddInputOperand(NodeIndex instruction_node,
-                       const InstructionOperand& operand);
+                       const InstructionOperand& operand,
+                       bool is_context = false);
   // Adds nodes and edges for a single output operand of an instruction.
   bool AddOutputOperand(NodeIndex instruction_node,
-                        const InstructionOperand& operand);
+                        const InstructionOperand& operand,
+                        bool is_context = false);
 
   // Adds dependency of a node (instruction or an address computation node) on
   // a register. Adds the register node if it doesn't exist in the graph.

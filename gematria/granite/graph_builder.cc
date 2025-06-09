@@ -246,20 +246,24 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
 
       // Add edges for input operands. And nodes too, if necessary.
       for (const InstructionOperand& operand : instruction.input_operands) {
-        if (!AddInputOperand(instruction_node, operand)) return false;
+        if (!AddInputOperand(instruction_node, operand, is_context))
+          return false;
       }
       for (const InstructionOperand& operand :
            instruction.implicit_input_operands) {
-        if (!AddInputOperand(instruction_node, operand)) return false;
+        if (!AddInputOperand(instruction_node, operand, is_context))
+          return false;
       }
 
       // Add edges and nodes for output operands.
       for (const InstructionOperand& operand : instruction.output_operands) {
-        if (!AddOutputOperand(instruction_node, operand)) return false;
+        if (!AddOutputOperand(instruction_node, operand, is_context))
+          return false;
       }
       for (const InstructionOperand& operand :
            instruction.implicit_output_operands) {
-        if (!AddOutputOperand(instruction_node, operand)) return false;
+        if (!AddOutputOperand(instruction_node, operand, is_context))
+          return false;
       }
 
       previous_instruction_node = instruction_node;
@@ -297,12 +301,12 @@ void BasicBlockGraphBuilder::Reset() {
   instruction_annotations_.clear();
 }
 
-bool BasicBlockGraphBuilder::AddInputOperand(
-    NodeIndex instruction_node, const InstructionOperand& operand) {
+bool BasicBlockGraphBuilder::AddInputOperand(NodeIndex instruction_node,
+                                             const InstructionOperand& operand,
+                                             bool is_context) {
   assert(instruction_node >= 0);
   assert(instruction_node < num_nodes());
 
-  bool is_context = context_node_mask_[instruction_node];
   switch (operand.type()) {
     case OperandType::kRegister: {
       if (!AddDependencyOnRegister(instruction_node, operand.register_name(),
@@ -375,12 +379,12 @@ bool BasicBlockGraphBuilder::AddInputOperand(
   return true;
 }
 
-bool BasicBlockGraphBuilder::AddOutputOperand(
-    NodeIndex instruction_node, const InstructionOperand& operand) {
+bool BasicBlockGraphBuilder::AddOutputOperand(NodeIndex instruction_node,
+                                              const InstructionOperand& operand,
+                                              bool is_context) {
   assert(instruction_node >= 0);
   assert(instruction_node < num_nodes());
 
-  bool is_context = context_node_mask_[instruction_node];
   switch (operand.type()) {
     case OperandType::kRegister: {
       const NodeIndex register_node =
