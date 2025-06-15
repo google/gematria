@@ -240,6 +240,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       model_name: Optional[str] = None,
       task_list: Optional[Sequence[str]] = None,
       trained_variable_groups: Optional[Iterable[str]] = None,
+      log_histogram_summaries: bool = False,
   ) -> None:
     """Creates a new model with the provided parameters.
 
@@ -298,6 +299,8 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       trained_variable_groups: The list of variable group names that are trained
         by the optimizer. Only variables in this list are touched; if the list
         is empty or None, all variables are trained.
+      log_histogram_summaries: Whether or not the model should write histogram
+        summaries for debugging purposes.
     """
     self._dtype = dtype
     self._numpy_dtype = dtype.as_numpy_dtype
@@ -320,6 +323,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
     self._grad_clip_norm = grad_clip_norm
     task_list = task_list or ('default',)
     self._task_list: Sequence[str] = task_list
+    self._log_histogram_summaries = log_histogram_summaries
 
     self._model_name = model_name
 
@@ -381,8 +385,6 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
   def initialize(self) -> None:
     """Initializes the model. Must be called before any other method."""
     self._create_optimizer()
-    self._add_histogram_summaries()
-    tf.summary.scalar('learning_rate', self._decayed_learning_rate)
 
   @property
   def use_deltas(self) -> bool:
@@ -1405,6 +1407,9 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
           else self._decayed_learning_rate,
       )
       tf.summary.scalar('overall_loss', loss_tensor)
+
+      if self._log_histogram_summaries:
+        self._add_histogram_summaries()
 
       # TODO(vbshah): Consider writing delta loss summaries as well.
       self._add_error_summaries('absolute_mse', loss.mean_squared_error)
