@@ -106,6 +106,9 @@ gematria_py_library(
     name = "benchmark_cpu_scheduler",
     srcs = ["benchmark_cpu_scheduler.py"],
     deps = [
+        # TODO(ondrasej): As of Python 3.12, we no longer need to depend on
+        # `typing_extensions` here for `override`. Consider removing this
+        # dependency and its usage.
         "@pypi//typing_extensions",
     ],
 )

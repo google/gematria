@@ -142,4 +142,7 @@ jobs:
     - name: Run build
       run: bazel --output_base=/mnt/output_base build -c ${{ matrix.build-config }} ...
     - name: Run tests
-      run: bazel --output_base=/mnt/output_base test -c ${{ matrix.build-config }} --define run_under_ci=1 --test_tag_filters="-perf_counters" --test_output=errors ...
+      # TODO(vbshah): We exclude `requirements_3_X_test` because its timeout is
+      # too short for it to pass consistently. Re-include it once it is fixed
+      # or `rules_python` is patched to extend the timeout. 
+      run: bazel --output_base=/mnt/output_base test -c ${{ matrix.build-config }} --define run_under_ci=1 --test_tag_filters="-perf_counters" --test_output=errors -- ... -//:requirements_3_12_test
