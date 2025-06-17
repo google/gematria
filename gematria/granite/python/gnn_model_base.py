@@ -61,6 +61,12 @@ class GraphNetworkLayer(tf.Module):
       features computed by the layer. When both a residual connection and layer
       normalization are used, the layer normalization op is inserted after the
       residual connection.
+    edges_output_size: The size of the final output from this layer's edge model
+      function. Required to be of the form `(None, n)`. 
+    nodes_output_size: The size of the final output from this layer's node model
+      function. Required to be of the form `(None, n)`. 
+    globals_output_size: The size of the final output from this layer's global
+      model function. Required to be of the form `(None, n)`. 
     extra_node_inputs: Names of extra feed_dict members that should be passed
       to the node model.
   """
@@ -230,7 +236,7 @@ class GnnModelBase(model_base.ModelBase):
     self._residual_layers = {}
     nodes_residual_shape = None
     edges_residual_shape = None
-    gloabls_residual_shape = None
+    globals_residual_shape = None
     for layer_index, layer in enumerate(self._graph_network):
       num_iterations = (
           layer.num_iterations or self._num_message_passing_iterations
@@ -256,7 +262,7 @@ class GnnModelBase(model_base.ModelBase):
         if use_residual_connections:
           assert nodes_residual_shape is not None
           assert edges_residual_shape is not None
-          assert gloabls_residual_shape is not None
+          assert globals_residual_shape is not None
           residual_op_name_base = (
               f'residual_connection_{layer_index}_{iteration}'
           )
@@ -277,13 +283,13 @@ class GnnModelBase(model_base.ModelBase):
           )
           self._residual_layers[globals_residual_layer_name] = (
               model_blocks.ResidualConnectionLayer(
-                  (globals_tensor_shape, gloabls_residual_shape),
+                  (globals_tensor_shape, globals_residual_shape),
                   name=globals_residual_layer_name,
               )
           )
         nodes_residual_shape = nodes_tensor_shape
         edges_residual_shape = edges_tensor_shape
-        gloabls_residual_shape = globals_tensor_shape
+        globals_residual_shape = globals_tensor_shape
         if use_layer_norm:
           layer_norm_name_base = (
               f'graph_network_layer_norm_{layer_index}_{iteration}'

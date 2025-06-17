@@ -363,6 +363,9 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
             num_iterations=1,
             layer_normalization=options.EnableFeature.NEVER,
             residual_connection=options.EnableFeature.NEVER,
+            edges_output_size=(None, self._edge_embedding_size),
+            nodes_output_size=(None, self._node_embedding_size),
+            globals_output_size=(None, self._global_embedding_size),
             extra_node_inputs=(
                 'instruction_node_mask',
                 'instruction_annotations',
@@ -396,6 +399,9 @@ class TokenGraphBuilderModel(graph_builder_model_base.GraphBuilderModelBase):
             num_iterations=None,
             layer_normalization=options.EnableFeature.BY_FLAG,
             residual_connection=options.EnableFeature.BY_FLAG,
+            edges_output_size=(None, self._edge_update_layers[-1]),
+            nodes_output_size=(None, self._node_update_layers[-1]),
+            globals_output_size=(None, self._global_update_layers[-1]),
         ),
     )
 
