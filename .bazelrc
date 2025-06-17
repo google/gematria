@@ -1,3 +1,7 @@
+# Continue using `WORKSPACE` with Bazel 7.
+# TODO(vbshah): Remove this default once `MODULE.bazel` is fully set up.
+common --noenable_bzlmod
+
 # `repo_env` is required for the LLVM bazel build.
 build \
   --copt=-Wno-parentheses \

@@ -16,6 +16,8 @@ gematria_py_library(
         ":training",
         "//gematria/basic_block/python:throughput_protos",
         "//gematria/proto:throughput_py_pb2",
+        "@pypi//absl_py",
+        "@pypi//tensorflow",
     ],
 )
 
@@ -28,6 +30,8 @@ gematria_py_test(
         ":model_base",
         "//gematria/proto:throughput_py_pb2",
         "//gematria/testing/python:model_test",
+        "@pypi//numpy",
+        "@pypi//tensorflow",
     ],
 )
 
@@ -39,6 +43,10 @@ gematria_py_library(
     ],
     deps = [
         ":options",
+        "@pypi//setuptools",
+        "@pypi//tensorflow",
+        "@pypi//tensorflow_probability",
+        "@pypi//tf_keras",
     ],
 )
 
@@ -50,6 +58,8 @@ gematria_py_test(
     deps = [
         ":loss_utils",
         ":options",
+        "@pypi//numpy",
+        "@pypi//tensorflow",
     ],
 )
 
@@ -70,6 +80,9 @@ gematria_py_library(
         "//gematria/io/python:utils",
         "//gematria/proto:throughput_py_pb2",
         "//gematria/utils/python:timer",
+        "@pypi//absl_py",
+        "@pypi//numpy",
+        "@pypi//tensorflow",
     ],
 )
 
@@ -90,6 +103,9 @@ gematria_py_test(
         "//gematria/proto:throughput_py_pb2",
         "//gematria/testing/python:matchers",
         "//gematria/testing/python:model_test",
+        "@pypi//absl_py",
+        "@pypi//numpy",
+        "@pypi//tensorflow",
     ],
 )
 
@@ -103,8 +119,12 @@ gematria_py_library(
         ":training",
         "//gematria/basic_block/python:basic_block",
         "//gematria/basic_block/python:throughput",
+        "//gematria/utils/python:graph_nets",
         "//gematria/utils/python:timer",
-        "@graph_nets_repo//:graph_nets",
+        "@pypi//numpy",
+        "@pypi//scipy",
+        "@pypi//tensorflow",
+        "@pypi//tf_slim",
     ],
 )
 
@@ -118,6 +138,9 @@ gematria_py_test(
         ":options",
         "//gematria/basic_block/python:throughput",
         "//gematria/testing/python:model_test",
+        "@pypi//numpy",
+        "@pypi//tensorflow",
+        "@pypi//tf_keras",
     ],
 )
 
@@ -126,7 +149,9 @@ gematria_py_library(
     srcs = ["model_blocks.py"],
     visibility = ["//:internal_users"],
     deps = [
-        "@sonnet_repo//sonnet",
+        "//gematria/utils/python:sonnet",
+        "@pypi//tensorflow",
+        "@pypi//tf_keras",
     ],
 )
 
@@ -137,6 +162,8 @@ gematria_py_test(
     srcs = ["model_blocks_test.py"],
     deps = [
         ":model_blocks",
+        "@pypi//numpy",
+        "@pypi//tensorflow",
     ],
 )
 
@@ -155,6 +182,7 @@ gematria_py_test(
     srcs = ["oov_token_behavior_test.py"],
     deps = [
         ":oov_token_behavior",
+        "@pypi//absl_py",
     ],
 )
 
@@ -172,6 +200,9 @@ gematria_py_library(
         ":model_base",
         ":oov_token_behavior",
         "//gematria/basic_block/python:basic_block",
+        "@pypi//absl_py",
+        "@pypi//numpy",
+        "@pypi//tensorflow",
     ],
 )
 
@@ -187,6 +218,7 @@ gematria_py_test(
         "//gematria/basic_block/python:throughput",
         "//gematria/basic_block/python:tokens",
         "//gematria/testing/python:model_test",
+        "@pypi//tensorflow",
     ],
 )
 
@@ -197,6 +229,8 @@ gematria_py_library(
     deps = [
         ":oov_token_behavior",
         "//gematria/utils/python:flag_utils",
+        "@pypi//absl_py",
+        "@pypi//tensorflow",
     ],
 )
 
@@ -206,6 +240,8 @@ gematria_py_test(
     srcs = ["token_model_flags_test.py"],
     deps = [
         ":token_model_flags",
+        "@pypi//absl_py",
+        "@pypi//tensorflow",
     ],
 )
 
@@ -218,6 +254,9 @@ gematria_py_library(
     deps = [
         "//gematria/basic_block/python:basic_block",
         "//gematria/basic_block/python:throughput",
+        "@pypi//absl_py",
+        "@pypi//numpy",
+        "@pypi//tensorflow",
     ],
 )
 
@@ -228,5 +267,8 @@ gematria_py_test(
     deps = [
         ":training",
         "//gematria/testing/python:basic_blocks_with_throughput",
+        "@pypi//absl_py",
+        "@pypi//numpy",
+        "@pypi//tensorflow",
     ],
 )

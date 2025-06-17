@@ -24,6 +24,7 @@ from apache_beam.testing import util as beam_test
 from gematria.datasets.pipelines import compile_modules_lib
 from gematria.testing.python import ir_utils
 from gematria.datasets.python import bhive_to_exegesis
+from gematria.proto import basic_block_pb2
 from gematria.proto import execution_annotation_pb2
 from gematria.io.python import tfrecord
 
