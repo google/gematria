@@ -62,11 +62,11 @@ class GraphNetworkLayer(tf.Module):
       normalization are used, the layer normalization op is inserted after the
       residual connection.
     edges_output_size: The size of the final output from this layer's edge model
-      function. Required to be of the form `(None, n)`. 
+      function. Required to be of the form `(None, n)`.
     nodes_output_size: The size of the final output from this layer's node model
-      function. Required to be of the form `(None, n)`. 
+      function. Required to be of the form `(None, n)`.
     globals_output_size: The size of the final output from this layer's global
-      model function. Required to be of the form `(None, n)`. 
+      model function. Required to be of the form `(None, n)`.
     extra_node_inputs: Names of extra feed_dict members that should be passed
       to the node model.
   """
