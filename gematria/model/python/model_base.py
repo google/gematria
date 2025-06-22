@@ -1320,7 +1320,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
   def compute_loss_tensor(self, schedule: FeedDict):
     return tf.reduce_mean(self._compute_loss(schedule).loss_tensor)
 
-  @tf.function
+  @tf.function(reduce_retracing=True)
   def _compute_and_apply_gradients(
       self, schedule: FeedDict
   ) -> loss_utils.LossComputation:

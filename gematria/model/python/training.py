@@ -174,24 +174,27 @@ class TrainingEpochStats:
   def __str__(self) -> str:
     """Converts the stats to a human-readable string."""
     parts = [
-        f'epoch: {self.epoch}, loss: {self.loss}',
+        f'epoch: {self.epoch.numpy()}, loss: {self.loss}',
         self._format_loss_string(
-            'absolute', self.absolute_mse, None, self.absolute_error_percentiles
+            'absolute',
+            self.absolute_mse.numpy(),
+            None,
+            self.absolute_error_percentiles.numpy(),
         ),
         self._format_loss_string(
             'relative',
-            self.relative_mse,
-            self.relative_mae,
-            self.relative_error_percentiles,
+            self.relative_mse.numpy(),
+            self.relative_mae.numpy(),
+            self.relative_error_percentiles.numpy(),
         ),
     ]
     if self.absolute_delta_mse is not None:
       parts.append(
           self._format_loss_string(
               'absolute delta',
-              self.absolute_delta_mse,
-              self.absolute_delta_mae,
-              self.absolute_delta_error_percentiles,
+              self.absolute_delta_mse.numpy(),
+              self.absolute_delta_mae.numpy(),
+              self.absolute_delta_error_percentiles.numpy(),
           )
       )
     return '\n'.join(parts)

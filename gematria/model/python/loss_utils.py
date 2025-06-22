@@ -84,6 +84,7 @@ def _make_percentile_tensor(
   return percentile_tensor
 
 
+@tf.autograph.experimental.do_not_convert
 def _apply_loss_function(
     loss_type: options.LossType,
     normalized_delta: tf.Tensor,
@@ -99,6 +100,7 @@ def _apply_loss_function(
   raise ValueError(f'Unexpected loss type {loss_type!r}')
 
 
+@tf.autograph.experimental.do_not_convert
 def _apply_normalization(
     normalization: options.ErrorNormalization,
     delta: tf.Tensor,
