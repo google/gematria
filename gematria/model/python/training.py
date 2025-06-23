@@ -174,27 +174,27 @@ class TrainingEpochStats:
   def __str__(self) -> str:
     """Converts the stats to a human-readable string."""
     parts = [
-        f'epoch: {self.epoch.numpy()}, loss: {self.loss}',
+        f'epoch: {_unwrap_if_tensor(self.epoch)}, loss: {self.loss}',
         self._format_loss_string(
             'absolute',
-            self.absolute_mse.numpy(),
+            _unwrap_if_tensor(self.absolute_mse),
             None,
-            self.absolute_error_percentiles.numpy(),
+            _unwrap_if_tensor(self.absolute_error_percentiles),
         ),
         self._format_loss_string(
             'relative',
-            self.relative_mse.numpy(),
-            self.relative_mae.numpy(),
-            self.relative_error_percentiles.numpy(),
+            _unwrap_if_tensor(self.relative_mse),
+            _unwrap_if_tensor(self.relative_mae),
+            _unwrap_if_tensor(self.relative_error_percentiles),
         ),
     ]
     if self.absolute_delta_mse is not None:
       parts.append(
           self._format_loss_string(
               'absolute delta',
-              self.absolute_delta_mse.numpy(),
-              self.absolute_delta_mae.numpy(),
-              self.absolute_delta_error_percentiles.numpy(),
+              _unwrap_if_tensor(self.absolute_delta_mse),
+              _unwrap_if_tensor(self.absolute_delta_mae),
+              _unwrap_if_tensor(self.absolute_delta_error_percentiles),
           )
       )
     return '\n'.join(parts)
@@ -363,3 +363,12 @@ def _as_list(values: Sequence[float]) -> list[float]:
   if isinstance(values, np.ndarray):
     return values.tolist()
   return list(values)
+
+
+def _unwrap_if_tensor(
+    maybe_tensor: tf.Tensor | Sequence[float] | float,
+) -> Sequence[float] | float:
+  """Unwraps `maybe_tensor` if it is a Tensor."""
+  if tf.is_tensor(maybe_tensor):
+    return maybe_tensor.numpy()
+  return maybe_tensor
