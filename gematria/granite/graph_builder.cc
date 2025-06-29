@@ -34,7 +34,7 @@ namespace {
 
 constexpr BasicBlockGraphBuilder::NodeIndex kInvalidNode(-1);
 constexpr BasicBlockGraphBuilder::TokenIndex kInvalidTokenIndex(-1);
-constexpr float kDefaultInstructionAnnotation(-1);
+constexpr double kDefaultInstructionAnnotation(-1);
 
 std::unordered_map<std::string, BasicBlockGraphBuilder::TokenIndex> MakeIndex(
     std::vector<std::string> items) {
@@ -173,7 +173,7 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
               : FindTokenOrDie(
                     node_tokens_,
                     out_of_vocabulary_behavior.replacement_token())) {
-  instruction_annotations_ = std::vector<std::vector<float>>();
+  instruction_annotations_ = std::vector<std::vector<double>>();
 
   // Make sure annotations are stored in a stable order as long the same
   // annotation names are used.
@@ -449,8 +449,8 @@ void BasicBlockGraphBuilder::AddInstructionAnnotations(
     const Instruction& instruction) {
   // Store the annotations for later use, using `kDefaultInstructionAnnotation`
   // as a default value wherever annotations are missing.
-  std::vector<float> row = std::vector<float>(annotation_names_.size(),
-                                              kDefaultInstructionAnnotation);
+  std::vector<double> row = std::vector<double>(annotation_names_.size(),
+                                                kDefaultInstructionAnnotation);
   for (const auto& [name, value] : instruction.instruction_annotations) {
     const auto annotation_index = annotation_name_to_idx_.find(name);
     if (annotation_index == annotation_name_to_idx_.end()) continue;

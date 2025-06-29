@@ -305,7 +305,7 @@ llvm::Error FillTensorFromStdVectorMatrix(
   auto* const tensor_data =
       interpreter->typed_input_tensor<TensorElementType>(tensor_index);
   for (int row = 0; row < input_matrix.size(); ++row) {
-    const std::vector<TensorElementType>& row_data = input_matrix[row];
+    const std::vector<InputElementType>& row_data = input_matrix[row];
     if (expected_size != row_data.size()) {
       return llvm::createStringError(
           llvm::errc::invalid_argument,
@@ -676,7 +676,7 @@ GraphBuilderModelInference::RunInference() {
 
   const std::vector<bool> instruction_node_mask =
       graph_builder_->InstructionNodeMask();
-  const std::vector<std::vector<float>>& instruction_annotations =
+  const std::vector<std::vector<double>>& instruction_annotations =
       graph_builder_->instruction_annotations();
   const std::vector<int> delta_block_index = graph_builder_->DeltaBlockIndex();
 
