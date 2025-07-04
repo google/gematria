@@ -120,7 +120,7 @@ git_repository(
     patch_args = ["-p1"],
     patches = ["@//:benchmark_build.patch"],
     remote = "https://github.com/google/benchmark.git",
-    tag = "v1.9.1",
+    commit = "c58e6d0710581e3a08d65c349664128a8d9a2461",
 )
 
 # rules_foreign_cc is required to build libpfm4 since it is originally
@@ -141,7 +141,7 @@ git_repository(
     name = "pfm",
     build_file = "@llvm-raw//utils/bazel/third_party_build:pfm.BUILD",
     remote = "https://git.code.sf.net/p/perfmon2/libpfm4",
-    tag = "v4.13.0",
+    commit = "3d77461cb966259c51f3b3e322564187f4bef7fb",
 )
 
 # We only take the `quipper` sub-package from the `perf_data_converter`
