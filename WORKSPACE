@@ -117,10 +117,10 @@ http_archive(
 # used to refer to libpfm4 and its targets consistent with other dependencies.
 git_repository(
     name = "com_github_google_benchmark",
+    commit = "c58e6d0710581e3a08d65c349664128a8d9a2461",
     patch_args = ["-p1"],
     patches = ["@//:benchmark_build.patch"],
     remote = "https://github.com/google/benchmark.git",
-    commit = "c58e6d0710581e3a08d65c349664128a8d9a2461",
 )
 
 # rules_foreign_cc is required to build libpfm4 since it is originally
@@ -140,8 +140,8 @@ rules_foreign_cc_dependencies()
 git_repository(
     name = "pfm",
     build_file = "@llvm-raw//utils/bazel/third_party_build:pfm.BUILD",
-    remote = "https://git.code.sf.net/p/perfmon2/libpfm4",
     commit = "3d77461cb966259c51f3b3e322564187f4bef7fb",
+    remote = "https://git.code.sf.net/p/perfmon2/libpfm4",
 )
 
 # We only take the `quipper` sub-package from the `perf_data_converter`
