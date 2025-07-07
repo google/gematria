@@ -84,23 +84,21 @@ def _make_percentile_tensor(
   return percentile_tensor
 
 
-@tf.autograph.experimental.do_not_convert
 def _apply_loss_function(
     loss_type: options.LossType,
     normalized_delta: tf.Tensor,
 ) -> tf.Tensor:
   """Applies the selected loss function to normalized absolute deltas."""
-  match loss_type:
-    case options.LossType.MEAN_SQUARED_ERROR:
-      return tf.square(normalized_delta)
-    case options.LossType.MEAN_ABSOLUTE_ERROR:
-      return tf.abs(normalized_delta)
-    case options.LossType.HUBER:
-      return _huber(tf.abs(normalized_delta))
-  raise ValueError(f'Unexpected loss type {loss_type!r}')
+  if loss_type == options.LossType.MEAN_SQUARED_ERROR:
+    return tf.square(normalized_delta)
+  elif loss_type == options.LossType.MEAN_ABSOLUTE_ERROR:
+    return tf.abs(normalized_delta)
+  elif loss_type == options.LossType.HUBER:
+    return _huber(tf.abs(normalized_delta))
+  else:
+    raise ValueError(f'Unexpected loss type {loss_type!r}')
 
 
-@tf.autograph.experimental.do_not_convert
 def _apply_normalization(
     normalization: options.ErrorNormalization,
     delta: tf.Tensor,
@@ -116,17 +114,20 @@ def _apply_normalization(
   Returns:
     A tensor that contains the normalized error value for each input.
   """
-  match normalization:
-    case options.ErrorNormalization.NONE:
-      return delta
-    case options.ErrorNormalization.PERCENTAGE_ERROR:
-      return delta / expected_outputs
-    case options.ErrorNormalization.EXPECTED_VALUE_GREATER_THAN_ONE:
-      return delta / tf.math.maximum(
-          expected_outputs,
-          tf.ones_like(expected_outputs, dtype=expected_outputs.dtype),
-      )
-  raise ValueError(f'Unknown normalization {normalization!r}')
+  if normalization == options.ErrorNormalization.NONE:
+    return delta
+  elif normalization == options.ErrorNormalization.PERCENTAGE_ERROR:
+    return delta / expected_outputs
+  elif (
+      normalization
+      == options.ErrorNormalization.EXPECTED_VALUE_GREATER_THAN_ONE
+  ):
+    return delta / tf.math.maximum(
+        expected_outputs,
+        tf.ones_like(expected_outputs, dtype=expected_outputs.dtype),
+    )
+  else:
+    raise ValueError(f'Unknown normalization {normalization!r}')
 
 
 def _loss_tensor(
