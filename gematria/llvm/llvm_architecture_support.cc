@@ -91,7 +91,8 @@ LlvmArchitectureSupport::LlvmArchitectureSupport(std::string_view llvm_triple,
     : target_(target) {
   llvm::TargetOptions target_options;
   target_machine_.reset(target_->createTargetMachine(
-      /*TT=*/llvm::Triple(llvm_triple), /*CPU=*/cpu, /*Features=*/cpu_features,
+      /*TT=*/llvm::Triple(llvm::Twine(llvm_triple)), /*CPU=*/cpu,
+      /*Features=*/cpu_features,
       /*Options=*/target_options, /*RM=*/std::nullopt));
 
   mc_context_ = std::make_unique<llvm::MCContext>(
