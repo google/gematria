@@ -79,9 +79,9 @@ class GraphNetworkLayer(tf.Module):
   num_iterations: Optional[int]
   layer_normalization: options.EnableFeature
   residual_connection: options.EnableFeature
-  edges_output_size: Sequence[int] | None = None
-  nodes_output_size: Sequence[int] | None = None
-  globals_output_size: Sequence[int] | None = None
+  edges_output_size: Sequence[int | None] | None = None
+  nodes_output_size: Sequence[int | None] | None = None
+  globals_output_size: Sequence[int | None] | None = None
   extra_node_inputs: Sequence[str] | None = None
 
 
