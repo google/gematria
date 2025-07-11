@@ -366,7 +366,10 @@ def _as_list(values: Sequence[float]) -> list[float]:
 
 
 def _unwrap_if_tensor(
-    maybe_tensor: tf.Tensor | Sequence[Sequence[float]] | Sequence[float] | float,
+    maybe_tensor: tf.Tensor
+    | Sequence[Sequence[float]]
+    | Sequence[float]
+    | float,
 ) -> Sequence[Sequence[float]] | Sequence[float] | float:
   """Unwraps `maybe_tensor` if it is a Tensor."""
   if tf.is_tensor(maybe_tensor):
