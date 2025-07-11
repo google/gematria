@@ -373,5 +373,5 @@ def _unwrap_if_tensor(
 ) -> Sequence[Sequence[float]] | Sequence[float] | float:
   """Unwraps `maybe_tensor` if it is a Tensor."""
   if tf.is_tensor(maybe_tensor):
-    return maybe_tensor.numpy()
+    return maybe_tensor.numpy()  # pytype: disable=attribute-error
   return maybe_tensor
