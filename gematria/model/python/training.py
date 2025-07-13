@@ -16,7 +16,7 @@
 from collections.abc import Callable, Iterable, Sequence
 import dataclasses
 import math
-from typing import Optional, TypeVar
+from typing import Optional, TypeVar, cast
 
 from absl import logging
 from gematria.basic_block.python import basic_block
@@ -373,5 +373,8 @@ def _unwrap_if_tensor(
 ) -> Sequence[Sequence[float]] | Sequence[float] | float:
   """Unwraps `maybe_tensor` if it is a Tensor."""
   if tf.is_tensor(maybe_tensor):
-    return maybe_tensor.numpy()  # pytype: disable=attribute-error
+    # We cast to tf.Tensor here to signal to pytype that we have a tensor to avoid
+    # the attribute error since not every type in the input union has the numpy
+    # attribute.
+    return cast(tf.Tensor, maybe_tensor).numpy()
   return maybe_tensor
