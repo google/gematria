@@ -485,9 +485,10 @@ void StrAppendList(std::stringstream& buffer, std::string_view list_name,
   buffer << list_name << " = [";
   bool first = true;
   for (const auto& item : items) {
-    if (!first) {
-      buffer << ",";
+    if (first) {
       first = false;
+    } else {
+      buffer << ", ";
     }
     buffer << item;
   }
