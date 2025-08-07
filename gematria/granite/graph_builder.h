@@ -91,7 +91,6 @@
 
 #include <cstddef>
 #include <ostream>
-#include <set>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -386,6 +385,10 @@ class BasicBlockGraphBuilder {
   NodeIndex AddNode(NodeType node_type, const std::string& token);
   // Adds a new edge to the batch.
   void AddEdge(EdgeType edge_type, NodeIndex sender, NodeIndex receiver);
+
+  // Updates the `instruction_annotations_` tensor with annotations from
+  // `instruction`.
+  void AddInstructionAnnotations(const Instruction& instruction);
 
   // Mapping from string node tokens to indices of embedding vectors used in
   // the models.

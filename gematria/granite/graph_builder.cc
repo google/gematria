@@ -34,6 +34,7 @@ namespace {
 
 constexpr BasicBlockGraphBuilder::NodeIndex kInvalidNode(-1);
 constexpr BasicBlockGraphBuilder::TokenIndex kInvalidTokenIndex(-1);
+constexpr float kDefaultInstructionAnnotation(-1);
 
 std::unordered_map<std::string, BasicBlockGraphBuilder::TokenIndex> MakeIndex(
     std::vector<std::string> items) {
@@ -183,7 +184,7 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
 
   // Store row indices corresponding to specific annotation names.
   int annotation_idx = 0;
-  for (auto& annotation_name : annotation_names_) {
+  for (const std::string& annotation_name : annotation_names_) {
     annotation_name_to_idx_[annotation_name] = annotation_idx;
     ++annotation_idx;
   }
@@ -198,15 +199,8 @@ BasicBlockGraphBuilder::NodeIndex BasicBlockGraphBuilder::AddInstruction(
     return kInvalidNode;
   }
 
-  // Store the annotations for later use (inclusion in embeddings), using -1
-  // as a default value wherever annotations are missing.
-  std::vector<float> row = std::vector<float>(annotation_names_.size(), -1);
-  for (const auto& [name, value] : instruction.instruction_annotations) {
-    const auto annotation_index = annotation_name_to_idx_.find(name);
-    if (annotation_index == annotation_name_to_idx_.end()) continue;
-    row[annotation_index->second] = value;
-  }
-  instruction_annotations_.push_back(row);
+  // Store instruction annotations.
+  AddInstructionAnnotations(instruction);
 
   // Add nodes for prefixes of the instruction.
   for (const std::string& prefix : instruction.prefixes) {
@@ -449,6 +443,20 @@ void BasicBlockGraphBuilder::AddEdge(EdgeType edge_type, NodeIndex sender,
   edge_senders_.push_back(sender);
   edge_receivers_.push_back(receiver);
   edge_types_.push_back(edge_type);
+}
+
+void BasicBlockGraphBuilder::AddInstructionAnnotations(
+    const Instruction& instruction) {
+  // Store the annotations for later use, using `kDefaultInstructionAnnotation`
+  // as a default value wherever annotations are missing.
+  std::vector<float> row = std::vector<float>(annotation_names_.size(),
+                                              kDefaultInstructionAnnotation);
+  for (const auto& [name, value] : instruction.instruction_annotations) {
+    const auto annotation_index = annotation_name_to_idx_.find(name);
+    if (annotation_index == annotation_name_to_idx_.end()) continue;
+    row[annotation_index->second] = value;
+  }
+  instruction_annotations_.push_back(row);
 }
 
 std::vector<int> BasicBlockGraphBuilder::EdgeFeatures() const {
