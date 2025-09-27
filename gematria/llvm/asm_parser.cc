@@ -77,7 +77,7 @@ class MCInstStreamer : public llvm::MCStreamer {
     return false;
   }
   void emitValueToAlignment(llvm::Align alignment, int64_t value,
-                            unsigned value_size,
+                            uint8_t value_size,
                             unsigned max_bytes_to_emit) override {}
   void emitZerofill(llvm::MCSection* section, llvm::MCSymbol* symbol,
                     uint64_t size, llvm::Align byte_alignment,
