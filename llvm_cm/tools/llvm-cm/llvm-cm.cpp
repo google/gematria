@@ -467,20 +467,21 @@ int main(int argc, char *argv[]) {
   std::string Error;
   const Target *TheTarget = TargetRegistry::lookupTarget(TripleName, Error);
   exitIf(!TheTarget, Error);
+  llvm::Triple TargetTriple(TripleName);
 
-  std::unique_ptr<MCRegisterInfo> MRI(TheTarget->createMCRegInfo(TripleName));
+  std::unique_ptr<MCRegisterInfo> MRI(TheTarget->createMCRegInfo(TargetTriple));
   assert(MRI && "Unable to create target register info!");
 
   MCTargetOptions MCOptions;
 
   std::unique_ptr<MCAsmInfo> AsmInfo(
-      TheTarget->createMCAsmInfo(*MRI, TripleName, MCOptions));
+      TheTarget->createMCAsmInfo(*MRI, TargetTriple, MCOptions));
   assert(AsmInfo && "Unable to create target asm info");
 
   Expected<SubtargetFeatures> FeatureVals = Obj->getFeatures();
   assert(FeatureVals && "Could not read features");
   std::unique_ptr<MCSubtargetInfo> SubInfo(TheTarget->createMCSubtargetInfo(
-      TripleName, CPU, FeatureVals->getString()));
+      TargetTriple, CPU, FeatureVals->getString()));
   assert(SubInfo && "Unable to create target subtarget info!");
 
   std::unique_ptr<MCInstrInfo> MII(TheTarget->createMCInstrInfo());
@@ -496,9 +497,9 @@ int main(int argc, char *argv[]) {
       TheTarget->createMCDisassembler(*SubInfo, Ctx));
   assert(DisAsm && "Unable to create disassembler!");
 
-  std::unique_ptr<TargetMachine> TM(
-      TheTarget->createTargetMachine(TripleName, CPU, FeatureVals->getString(),
-                                     TargetOptions(), Reloc::Model::Static));
+  std::unique_ptr<TargetMachine> TM(TheTarget->createTargetMachine(
+      TargetTriple, CPU, FeatureVals->getString(), TargetOptions(),
+      Reloc::Model::Static));
   assert(TM && "Unable to create target machine!");
 
   StringMap<SmallVector<BBFreq, 20>> BBFreqMap;
