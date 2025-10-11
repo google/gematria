@@ -465,9 +465,9 @@ int main(int argc, char *argv[]) {
 
   // Start setting up the disassembler.
   std::string Error;
-  const Target *TheTarget = TargetRegistry::lookupTarget(TripleName, Error);
-  exitIf(!TheTarget, Error);
   llvm::Triple TargetTriple(TripleName);
+  const Target *TheTarget = TargetRegistry::lookupTarget(TargetTriple, Error);
+  exitIf(!TheTarget, Error);
 
   std::unique_ptr<MCRegisterInfo> MRI(TheTarget->createMCRegInfo(TargetTriple));
   assert(MRI && "Unable to create target register info!");

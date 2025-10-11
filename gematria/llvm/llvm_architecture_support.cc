@@ -62,8 +62,8 @@ LlvmArchitectureSupport::FromTriple(std::string_view llvm_triple,
   std::string lookup_error;
   // TODO(ondrasej): Remove the std::string() conversion once it's no longer
   // needed.
-  const llvm::Target* const llvm_target =
-      llvm::TargetRegistry::lookupTarget(llvm_triple, lookup_error);
+  const llvm::Target* const llvm_target = llvm::TargetRegistry::lookupTarget(
+      llvm::Triple(llvm::StringRef(llvm_triple)), lookup_error);
   if (llvm_target == nullptr) {
     return llvm::make_error<llvm::StringError>(
         llvm::errc::not_supported,
