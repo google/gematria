@@ -26,10 +26,10 @@
 // See the "WrappedFunc" typedef for the function signature this code has. Since
 // it doesn't return we make no guarantees about preserving registers / stack
 // frame, but we do use the normal calling convention for input parameters.
-// TODO(orodley): Update to support r16-r31.
 gematria_prologue:
   mov rax, [rdi] // rax = vector_reg_width
   mov rbx, [rdi + 8] // rbx = uses_upper_vector_regs
+  mov rcx, [rdi + 16] // rcx = uses_apx_regs
   cmp rax, 0
   je set_int_registers
   cmp rax, 1
@@ -40,55 +40,64 @@ gematria_prologue:
 
 set_xmm_registers:
 .irp n, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
-  vpbroadcastq xmm\n, [rdi + 0x90 + (8 * \n)]
+  vpbroadcastq xmm\n, [rdi + 0x118 + (8 * \n)]
 .endr
   cmp rbx, 0
   je set_int_registers
 set_upper_xmm_registers:
 .irp n, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-  vpbroadcastq xmm\n, [rdi + 0x90 + (8 * \n)]
+  vpbroadcastq xmm\n, [rdi + 0x118 + (8 * \n)]
 .endr
   jmp set_int_registers
 
 set_ymm_registers:
 .irp n, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
-  vpbroadcastq ymm\n, [rdi + 0x90 + (8 * \n)]
+  vpbroadcastq ymm\n, [rdi + 0x118 + (8 * \n)]
 .endr
   cmp rbx, 0
   je set_int_registers
 .irp n, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-  vpbroadcastq ymm\n, [rdi + 0x90 + (8 * \n)]
+  vpbroadcastq ymm\n, [rdi + 0x118 + (8 * \n)]
 .endr
   jmp set_int_registers
 
 set_zmm_registers:
 .irp n, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
-  vpbroadcastq zmm\n, [rdi + 0x90 + (8 * \n)]
+  vpbroadcastq zmm\n, [rdi + 0x118 + (8 * \n)]
 .endr
   cmp rbx, 0
   je set_int_registers
 .irp n, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-  vpbroadcastq zmm\n, [rdi + 0x90 + (8 * \n)]
+  vpbroadcastq zmm\n, [rdi + 0x118 + (8 * \n)]
 .endr
 
 set_int_registers:
   mov r15, rdi
-  mov rax, [r15 + 0x10]
-  mov rbx, [r15 + 0x18]
-  mov rcx, [r15 + 0x20]
-  mov rdx, [r15 + 0x28]
-  mov rsi, [r15 + 0x30]
-  mov rdi, [r15 + 0x38]
-  mov rsp, [r15 + 0x40]
-  mov rbp, [r15 + 0x48]
-  mov r8,  [r15 + 0x50]
-  mov r9,  [r15 + 0x58]
-  mov r10, [r15 + 0x60]
-  mov r11, [r15 + 0x68]
-  mov r12, [r15 + 0x70]
-  mov r13, [r15 + 0x78]
-  mov r14, [r15 + 0x80]
-  mov r15, [r15 + 0x88]
+  // Set APX registers first if necessary, as we need to overwrite RDI as part
+  // of setting the base registers.
+  cmp rcx, 0
+  je set_base_registers
+.irp n, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
+  mov r\n, [rdi + 0x98 + (8 * \n)]
+.endr
+
+set_base_registers:
+  mov rax, [r15 + 0x18]
+  mov rbx, [r15 + 0x20]
+  mov rcx, [r15 + 0x28]
+  mov rdx, [r15 + 0x30]
+  mov rsi, [r15 + 0x38]
+  mov rdi, [r15 + 0x40]
+  mov rsp, [r15 + 0x48]
+  mov rbp, [r15 + 0x50]
+  mov r8,  [r15 + 0x58]
+  mov r9,  [r15 + 0x60]
+  mov r10, [r15 + 0x68]
+  mov r11, [r15 + 0x70]
+  mov r12, [r15 + 0x78]
+  mov r13, [r15 + 0x80]
+  mov r14, [r15 + 0x88]
+  mov r15, [r15 + 0x90]
 
 _gematria_prologue_size = . - gematria_prologue
 .size gematria_prologue, _gematria_prologue_size
