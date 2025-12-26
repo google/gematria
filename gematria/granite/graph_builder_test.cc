@@ -571,5 +571,37 @@ TEST_F(BasicBlockGraphBuilderTest, TwoNops) {
   )pb"))));
 }
 
+TEST_F(BasicBlockGraphBuilderTest, DebugString) {
+  CreateBuilder(OutOfVocabularyTokenBehavior::ReturnError());
+  ASSERT_TRUE(builder_->AddBasicBlock(BasicBlockFromProto(ParseTextProto(R"pb(
+    canonicalized_instructions: {
+      mnemonic: "LEA"
+      llvm_mnemonic: "LEA64r"
+      output_operands: { register_name: "RDI" }
+      input_operands: {
+        address: { base_register: "RBX" displacement: 8 scaling: 1 }
+      }
+    })pb"))));
+
+  const std::string expected_string =
+      "num_graphs = 1\n"
+      "num_nodes = 5\n"
+      "num_edges = 4\n"
+      "num_node_tokens = 16\n"
+      "num_nodes_per_block = [5]\n"
+      "num_edges_per_block = [4]\n"
+      "node_types = [NodeType::kInstruction, NodeType::kAddressOperand, "
+      "NodeType::kRegister, NodeType::kImmediate, NodeType::kRegister]\n"
+      "edge_senders = [2, 3, 1, 0]\n"
+      "edge_receivers = [1, 1, 0, 4]\n"
+      "edge_types = [EdgeType::kAddressBaseRegister, "
+      "EdgeType::kAddressDisplacement, EdgeType::kInputOperands, "
+      "EdgeType::kOutputOperands]\n"
+      "InstructionNodeMask = [1, 0, 0, 0, 0]\n"
+      "DeltaBlockIndex = [0]\n";
+
+  EXPECT_EQ(builder_->DebugString(), expected_string);
+}
+
 }  // namespace
 }  // namespace gematria
