@@ -66,10 +66,14 @@ class LossComputationTest(tf.test.TestCase):
     mse = loss.mean_squared_error
     mae = loss.mean_absolute_error
     percentiles = loss.absolute_error_percentiles
-    self.assertNear(float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6)
-    self.assertNear(float(mae), (3 + 0 + 0 + 4 + 0.5) / 5, 1e-6)
     self.assertNear(
-        float(loss.loss_tensor), (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5, 1e-6
+        float(tf.squeeze(mse)), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6
+    )
+    self.assertNear(float(tf.squeeze(mae)), (3 + 0 + 0 + 4 + 0.5) / 5, 1e-6)
+    self.assertNear(
+        float(tf.squeeze(loss.loss_tensor)),
+        (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5,
+        1e-6,
     )
     self.assertAllEqual(percentiles, ((0,), (0,), (0.5,), (3,), (4,)))
 
@@ -86,9 +90,12 @@ class LossComputationTest(tf.test.TestCase):
     mape = loss.mean_absolute_percentage_error
     percentiles = loss.absolute_percentage_error_percentiles
     self.assertAlmostEqual(
-        float(mspe), ((3 / 4) ** 2 + 0 + 0 + 4**2 + (0.5 / 2) ** 2) / 5
+        float(tf.squeeze(mspe)),
+        ((3 / 4) ** 2 + 0 + 0 + 4**2 + (0.5 / 2) ** 2) / 5,
     )
-    self.assertAlmostEqual(float(mape), (3 / 4 + 0 + 0 + 4 + 0.5 / 2) / 5)
+    self.assertAlmostEqual(
+        float(tf.squeeze(mape)), (3 / 4 + 0 + 0 + 4 + 0.5 / 2) / 5
+    )
     self.assertAllEqual(percentiles, ((0,), (0.5 / 2,), (0.5 / 2,), (4,)))
 
   def test_normalized_loss_when_expected_value_greater_than_one(self):
@@ -121,11 +128,11 @@ class LossComputationTest(tf.test.TestCase):
         loss_type=options.LossType.MEAN_SQUARED_ERROR
     )
     self.assertAlmostEqual(
-        float(mean_absolute_error.loss_tensor),
+        float(tf.squeeze(mean_absolute_error.loss_tensor)),
         (0.3 + 1.5 + 0.0 + 0.5 + 2.0) / 5,
     )
     self.assertAlmostEqual(
-        float(mean_squared_error.loss_tensor),
+        float(tf.squeeze(mean_squared_error.loss_tensor)),
         (0.3**2 + 1.5**2 + 0.0 + 0.5**2 + 2.0**2) / 5,
         delta=1e-6,
     )
@@ -272,10 +279,14 @@ class LossComputationTest(tf.test.TestCase):
     self.assertEqual(loss.loss_tensor.shape, (1,))
     self.assertEqual(percentiles.shape, (len(percentile_ranks), 1))
 
-    self.assertNear(float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6)
-    self.assertNear(float(mae), (3 + 0 + 0 + 4 + 0.5) / 5, 1e-6)
     self.assertNear(
-        float(loss.loss_tensor), (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5, 1e-6
+        float(tf.squeeze(mse)), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6
+    )
+    self.assertNear(float(tf.squeeze(mae)), (3 + 0 + 0 + 4 + 0.5) / 5, 1e-6)
+    self.assertNear(
+        float(tf.squeeze(loss.loss_tensor)),
+        (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5,
+        1e-6,
     )
     self.assertAllEqual(percentiles, ((0,), (0.5,), (3,), (4,)))
 
@@ -349,10 +360,14 @@ class LossComputationTest(tf.test.TestCase):
     self.assertEqual(loss.loss_tensor.shape, (num_tasks,))
     self.assertEqual(percentiles.shape, (len(percentile_ranks), num_tasks))
 
-    self.assertNear(float(mse), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6)
-    self.assertNear(float(mae), (3 + 0 + 0 + 4 + 0.5) / 5, 1e-6)
     self.assertNear(
-        float(loss.loss_tensor), (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5, 1e-6
+        float(tf.squeeze(mse)), (3**2 + 0 + 0 + 4**2 + 0.5**2) / 5, 1e-6
+    )
+    self.assertNear(float(tf.squeeze(mae)), (3 + 0 + 0 + 4 + 0.5) / 5, 1e-6)
+    self.assertNear(
+        float(tf.squeeze(loss.loss_tensor)),
+        (2.5 + 0 + 0 + 3.5 + (0.5**2) / 2) / 5,
+        1e-6,
     )
     self.assertAllEqual(percentiles, ((0,), (0.5,), (3,), (4,)))
 
