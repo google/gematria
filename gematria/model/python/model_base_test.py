@@ -359,7 +359,7 @@ class ModelBaseTest(model_test.TestCase):
       for i, prefix_throughputs in enumerate(
           inverse_throughputs.prefix_inverse_throughput_cycles
       ):
-        expected_output_delta = float(expected_output_deltas[i])
+        expected_output_delta = float(tf.squeeze(expected_output_deltas[i]))
         possible_deltas = set()
         for prefix_throughput in prefix_throughputs:
           for previous_prefix_throughput in previous_prefix_throughputs:
@@ -676,10 +676,10 @@ class ModelBaseTest(model_test.TestCase):
     )
     biases = model._variable_groups[TestModelWithVarGroups.BIAS]
     for bias in biases:
-      self.assertNotAlmostEqual(float(bias), -0.5)
+      self.assertNotAlmostEqual(float(tf.squeeze(bias)), -0.5)
     weights = model._variable_groups[TestModelWithVarGroups.WEIGHTS]
     for weight in weights:
-      self.assertNotAlmostEqual(float(weight), 0.5)
+      self.assertNotAlmostEqual(float(tf.squeeze(weight)), 0.5)
 
   def test_training_bias_only(self):
     task_list = ['foo', 'bar']
@@ -698,10 +698,10 @@ class ModelBaseTest(model_test.TestCase):
     )
     biases = model._variable_groups[TestModelWithVarGroups.BIAS]
     for bias in biases:
-      self.assertNotAlmostEqual(float(bias), -0.5)
+      self.assertNotAlmostEqual(float(tf.squeeze(bias)), -0.5)
     weights = model._variable_groups[TestModelWithVarGroups.WEIGHTS]
     for weight in weights:
-      self.assertAlmostEqual(float(weight), 0.5)
+      self.assertAlmostEqual(float(tf.squeeze(weight)), 0.5)
 
   def test_grad_clipping(self):
     task_list = ['foo', 'bar']
@@ -737,10 +737,10 @@ class ModelBaseTest(model_test.TestCase):
     )
     biases = model._variable_groups[TestModelWithVarGroups.BIAS]
     for bias in biases:
-      self.assertAlmostEqual(float(bias), -0.5)
+      self.assertAlmostEqual(float(tf.squeeze(bias)), -0.5)
     weights = model._variable_groups[TestModelWithVarGroups.WEIGHTS]
     for weight in weights:
-      self.assertNotAlmostEqual(float(weight), 0.5)
+      self.assertNotAlmostEqual(float(tf.squeeze(weight)), 0.5)
 
 
 if __name__ == '__main__':
