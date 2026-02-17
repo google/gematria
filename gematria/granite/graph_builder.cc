@@ -34,6 +34,7 @@ namespace {
 
 constexpr BasicBlockGraphBuilder::NodeIndex kInvalidNode(-1);
 constexpr BasicBlockGraphBuilder::TokenIndex kInvalidTokenIndex(-1);
+constexpr float kDefaultInstructionAnnotation(-1);
 
 std::unordered_map<std::string, BasicBlockGraphBuilder::TokenIndex> MakeIndex(
     std::vector<std::string> items) {
@@ -183,10 +184,58 @@ BasicBlockGraphBuilder::BasicBlockGraphBuilder(
 
   // Store row indices corresponding to specific annotation names.
   int annotation_idx = 0;
-  for (auto& annotation_name : annotation_names_) {
+  for (const std::string& annotation_name : annotation_names_) {
     annotation_name_to_idx_[annotation_name] = annotation_idx;
     ++annotation_idx;
   }
+}
+
+BasicBlockGraphBuilder::NodeIndex BasicBlockGraphBuilder::AddInstruction(
+    const Instruction& instruction, NodeIndex previous_instruction_node) {
+  // Add the instruction node.
+  const NodeIndex instruction_node =
+      AddNode(NodeType::kInstruction, instruction.mnemonic);
+  if (instruction_node == kInvalidNode) {
+    return kInvalidNode;
+  }
+
+  // Store instruction annotations.
+  AddInstructionAnnotations(instruction);
+
+  // Add nodes for prefixes of the instruction.
+  for (const std::string& prefix : instruction.prefixes) {
+    const NodeIndex prefix_node = AddNode(NodeType::kPrefix, prefix);
+    if (prefix_node == kInvalidNode) {
+      return kInvalidNode;
+    }
+    AddEdge(EdgeType::kInstructionPrefix, prefix_node, instruction_node);
+  }
+
+  // Add a structural dependency edge from the previous instruction.
+  if (previous_instruction_node >= 0) {
+    AddEdge(EdgeType::kStructuralDependency, previous_instruction_node,
+            instruction_node);
+  }
+
+  // Add edges for input operands. And nodes too, if necessary.
+  for (const InstructionOperand& operand : instruction.input_operands) {
+    if (!AddInputOperand(instruction_node, operand)) return kInvalidNode;
+  }
+  for (const InstructionOperand& operand :
+       instruction.implicit_input_operands) {
+    if (!AddInputOperand(instruction_node, operand)) return kInvalidNode;
+  }
+
+  // Add edges and nodes for output operands.
+  for (const InstructionOperand& operand : instruction.output_operands) {
+    if (!AddOutputOperand(instruction_node, operand)) return kInvalidNode;
+  }
+  for (const InstructionOperand& operand :
+       instruction.implicit_output_operands) {
+    if (!AddOutputOperand(instruction_node, operand)) return kInvalidNode;
+  }
+
+  return instruction_node;
 }
 
 bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
@@ -203,56 +252,11 @@ bool BasicBlockGraphBuilder::AddBasicBlockFromInstructions(
 
   NodeIndex previous_instruction_node = kInvalidNode;
   for (const Instruction& instruction : instructions) {
-    // Add the instruction node.
-    const NodeIndex instruction_node =
-        AddNode(NodeType::kInstruction, instruction.mnemonic);
+    NodeIndex instruction_node =
+        AddInstruction(instruction, previous_instruction_node);
     if (instruction_node == kInvalidNode) {
       return false;
     }
-
-    // Store the annotations for later use (inclusion in embeddings), using -1
-    // as a default value wherever annotations are missing.
-    std::vector<float> row = std::vector<float>(annotation_names_.size(), -1);
-    for (const auto& [name, value] : instruction.instruction_annotations) {
-      const auto annotation_index = annotation_name_to_idx_.find(name);
-      if (annotation_index == annotation_name_to_idx_.end()) continue;
-      row[annotation_index->second] = value;
-    }
-    instruction_annotations_.push_back(row);
-
-    // Add nodes for prefixes of the instruction.
-    for (const std::string& prefix : instruction.prefixes) {
-      const NodeIndex prefix_node = AddNode(NodeType::kPrefix, prefix);
-      if (prefix_node == kInvalidNode) {
-        return false;
-      }
-      AddEdge(EdgeType::kInstructionPrefix, prefix_node, instruction_node);
-    }
-
-    // Add a structural dependency edge from the previous instruction.
-    if (previous_instruction_node >= 0) {
-      AddEdge(EdgeType::kStructuralDependency, previous_instruction_node,
-              instruction_node);
-    }
-
-    // Add edges for input operands. And nodes too, if necessary.
-    for (const InstructionOperand& operand : instruction.input_operands) {
-      if (!AddInputOperand(instruction_node, operand)) return false;
-    }
-    for (const InstructionOperand& operand :
-         instruction.implicit_input_operands) {
-      if (!AddInputOperand(instruction_node, operand)) return false;
-    }
-
-    // Add edges and nodes for output operands.
-    for (const InstructionOperand& operand : instruction.output_operands) {
-      if (!AddOutputOperand(instruction_node, operand)) return false;
-    }
-    for (const InstructionOperand& operand :
-         instruction.implicit_output_operands) {
-      if (!AddOutputOperand(instruction_node, operand)) return false;
-    }
-
     previous_instruction_node = instruction_node;
   }
 
@@ -439,6 +443,20 @@ void BasicBlockGraphBuilder::AddEdge(EdgeType edge_type, NodeIndex sender,
   edge_senders_.push_back(sender);
   edge_receivers_.push_back(receiver);
   edge_types_.push_back(edge_type);
+}
+
+void BasicBlockGraphBuilder::AddInstructionAnnotations(
+    const Instruction& instruction) {
+  // Store the annotations for later use, using `kDefaultInstructionAnnotation`
+  // as a default value wherever annotations are missing.
+  std::vector<float> row = std::vector<float>(annotation_names_.size(),
+                                              kDefaultInstructionAnnotation);
+  for (const auto& [name, value] : instruction.instruction_annotations) {
+    const auto annotation_index = annotation_name_to_idx_.find(name);
+    if (annotation_index == annotation_name_to_idx_.end()) continue;
+    row[annotation_index->second] = value;
+  }
+  instruction_annotations_.push_back(row);
 }
 
 std::vector<int> BasicBlockGraphBuilder::EdgeFeatures() const {
