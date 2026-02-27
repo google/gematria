@@ -14,13 +14,11 @@
 
 #include "gematria/granite/graph_builder.h"
 
-#include <set>
 #include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
 #include "gematria/model/oov_token_behavior.h"
-#include "gematria/proto/canonicalized_instruction.pb.h"
 #include "pybind11/cast.h"
 #include "pybind11/detail/common.h"
 #include "pybind11/pybind11.h"
