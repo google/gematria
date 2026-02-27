@@ -240,6 +240,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       model_name: Optional[str] = None,
       task_list: Optional[Sequence[str]] = None,
       trained_variable_groups: Optional[Iterable[str]] = None,
+      log_histogram_summaries: bool = False,
   ) -> None:
     """Creates a new model with the provided parameters.
 
@@ -298,6 +299,8 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
       trained_variable_groups: The list of variable group names that are trained
         by the optimizer. Only variables in this list are touched; if the list
         is empty or None, all variables are trained.
+      log_histogram_summaries: Whether or not the model should write histogram
+        summaries for debugging purposes.
     """
     self._dtype = dtype
     self._numpy_dtype = dtype.as_numpy_dtype
@@ -320,6 +323,7 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
     self._grad_clip_norm = grad_clip_norm
     task_list = task_list or ('default',)
     self._task_list: Sequence[str] = task_list
+    self._log_histogram_summaries = log_histogram_summaries
 
     self._model_name = model_name
 
@@ -543,6 +547,17 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
     for task_idx, task_name in enumerate(self._task_list):
       summary_name = f'{error_name}_{task_name}'
       tf.summary.scalar(summary_name, error_tensor[task_idx])
+
+  def _add_histogram_summaries(self) -> None:
+    """Adds histogram summaries for tensors.
+
+    Adds code for logging histogram summaries for model-specific tensors.
+
+    By default, this method is a no-op.
+    """
+    # NOTE(vbshah): This method is not marked as abstract as it need not be
+    # implemented by subclasses, in which case this default (no-op)
+    # implementation should be invoked.
 
   def _make_spearman_correlations(
       self, expected_outputs: tf.Tensor, output_tensor: tf.Tensor
@@ -1392,6 +1407,9 @@ class ModelBase(tf.Module, metaclass=abc.ABCMeta):
           else self._decayed_learning_rate,
       )
       tf.summary.scalar('overall_loss', loss_tensor)
+
+      if self._log_histogram_summaries:
+        self._add_histogram_summaries()
 
       # TODO(vbshah): Consider writing delta loss summaries as well.
       self._add_error_summaries('absolute_mse', loss.mean_squared_error)

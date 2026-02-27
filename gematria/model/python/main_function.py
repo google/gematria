@@ -290,6 +290,11 @@ _GEMATRIA_SUMMARY_DIR = flags.DEFINE_string(
     '',
     'The directory to which the summaries from the training are stored.',
 )
+_GEMATRIA_LOG_HISTOGRAM_SUMMARIES = flags.DEFINE_bool(
+    'gematria_log_histogram_summaries',
+    False,
+    'Whether or not the model should write histogram summaries.',
+)
 _GEMATRIA_SAVE_CHECKPOINT_EPOCHS = flags.DEFINE_integer(
     'gematria_save_checkpoint_epochs',
     100,
@@ -768,6 +773,7 @@ def run_gematria_model_from_command_line_flags(
           num_training_worker_replicas=num_replicas,
           num_training_worker_replicas_to_aggregate=num_replicas_to_aggregate,
           is_chief=is_chief,
+          log_histogram_summaries=_GEMATRIA_LOG_HISTOGRAM_SUMMARIES.value,
           **model_kwargs,
       )
       model.initialize()
