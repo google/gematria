@@ -289,5 +289,27 @@ TEST_F(FindAccessedAddrsAvx512Test, UpperZmmRegister) {
       )pb"))));
 }
 
+class FindAccessedAddrsApxTest : public FindAccessedAddrsTest {
+ protected:
+  void SetUp() override {
+    if (!__builtin_cpu_supports("apxf")) {
+      GTEST_SKIP() << "Host doesn't support APX";
+    }
+
+    FindAccessedAddrsTest::SetUp();
+  }
+};
+
+TEST_F(FindAccessedAddrsApxTest, UpperGpr) {
+  EXPECT_THAT(
+      FindAccessedAddrsAsm(R"asm(
+    mov r23, [r30]
+  )asm"),
+      IsOkAndHolds(Partially(EqualsProto(R"pb(
+        accessed_blocks: 0x15000
+        initial_registers: { register_name: "R30" register_value: 0x15000 }
+      )pb"))));
+}
+
 }  // namespace
 }  // namespace gematria

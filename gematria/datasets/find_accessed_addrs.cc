@@ -180,6 +180,7 @@ RawX64Regs ToRawRegs(
   RawX64Regs raw_regs;
   raw_regs.max_vector_reg_width = VectorRegWidth::NONE;
   raw_regs.uses_upper_vector_regs = 0;
+  raw_regs.uses_apx_regs = 0;
 
   for (const RegisterAndValue& reg_and_value : regs) {
     if (reg_and_value.register_name() == "RAX") {
@@ -229,7 +230,10 @@ RawX64Regs ToRawRegs(
       }
 
       VectorRegWidth vector_width = VectorRegWidth::NONE;
-      if (absl::StartsWith(reg_and_value.register_name(), "XMM")) {
+      if (reg_and_value.register_name()[0] == 'R') {
+        raw_regs.apx_regs[number_suffix - 16] = reg_and_value.register_value();
+        raw_regs.uses_apx_regs = 1;
+      } else if (absl::StartsWith(reg_and_value.register_name(), "XMM")) {
         vector_width = VectorRegWidth::XMM;
         raw_regs.vector_regs[number_suffix] = reg_and_value.register_value();
       } else if (absl::StartsWith(reg_and_value.register_name(), "YMM")) {
