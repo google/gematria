@@ -1,3 +1,5 @@
+load(":llvm_copts.bzl", "LLVM_INCLUDE_COPT")
+
 package(
     default_visibility = ["//visibility:private"],
     features = ["layering_check"],
@@ -26,7 +28,7 @@ cc_test(
     name = "asm_parser_test",
     size = "small",
     srcs = ["asm_parser_test.cc"],
-    copts = ["-Iexternal/llvm-project/llvm"],
+    copts = [LLVM_INCLUDE_COPT],
     deps = [
         ":asm_parser",
         ":llvm_architecture_support",
@@ -45,7 +47,7 @@ cc_library(
     name = "canonicalizer",
     srcs = ["canonicalizer.cc"],
     hdrs = ["canonicalizer.h"],
-    copts = ["-Iexternal/llvm-project/llvm"],
+    copts = [LLVM_INCLUDE_COPT],
     visibility = ["//:external_users"],
     deps = [
         "//gematria/basic_block",
@@ -112,7 +114,7 @@ cc_test(
     name = "disassembler_test",
     size = "small",
     srcs = ["disassembler_test.cc"],
-    copts = ["-Iexternal/llvm-project/llvm"],
+    copts = [LLVM_INCLUDE_COPT],
     deps = [
         ":disassembler",
         ":llvm_architecture_support",

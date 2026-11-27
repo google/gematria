@@ -1,3 +1,5 @@
+load("//gematria/llvm:llvm_copts.bzl", "LLVM_INCLUDE_COPT")
+
 package(
     default_visibility = ["//visibility:private"],
     # We do not have a layering check here as protobuf currently does not
@@ -21,7 +23,7 @@ cc_test(
     name = "llvm_test",
     size = "small",
     srcs = ["llvm_test.cc"],
-    copts = ["-Iexternal/llvm-project/llvm"],
+    copts = [LLVM_INCLUDE_COPT],
     deps = [
         ":llvm",
         "@com_google_googletest//:gtest",
