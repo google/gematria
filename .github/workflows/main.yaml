@@ -28,14 +28,17 @@ on:
   repository_dispatch:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   check-python-formatting:
     name: Python Formatting Check
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
       - name: Install pyink
@@ -46,9 +49,9 @@ jobs:
     name: C++ Formatting Check
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
     - name: Check c++ formatting
-      uses: jidicula/clang-format-action@v4.14.0
+      uses: jidicula/clang-format-action@d05cecd4a1a5b7e64c22f5a468456135a43f13f6 # v4.14.0
       with:
         clang-format-version: '19'
         check-path: 'src'
@@ -56,17 +59,17 @@ jobs:
     name: Bazel Formatting Check
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v4
-    - uses: thompsonja/bazel-buildifier@v0.4.0
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+    - uses: thompsonja/bazel-buildifier@851a03879729721b9bbb4854a1779977c4718f01 # v0.4.0
       with:
         buildifier_version: v6.1.2
   check-cmake-projects:
     name: Check CMake-based projects
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: hendrikmuhs/ccache-action@v1.2.14
-      - uses: ConorMacBride/install-package@v1.1.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: hendrikmuhs/ccache-action@ed74d11c0b343532753ecead8a951bb09bb34bc9 # v1.2.14
+      - uses: ConorMacBride/install-package@3e7ad059e07782ee54fa35f827df52aae0626f30 # v1.1.0
         with:
           apt: cmake ninja-build libpthreadpool-dev
       - name: Get LLVM
@@ -105,7 +108,7 @@ jobs:
       matrix:
         build-config: [fastbuild, opt]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
     - name: Setup environment variables
       run: echo "CURRENT_DAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
     - name: Setup LLVM
@@ -127,7 +130,7 @@ jobs:
       run: |
         sudo mkdir /mnt/output_base && sudo chown $USER:$USER /mnt/output_base
     - name: Cache Bazel
-      uses: actions/cache@v3
+      uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
       with:
         path: |
           /mnt/output_base
@@ -136,7 +139,7 @@ jobs:
           ${{ runner.os }}-bazel-${{ matrix.build-config }}-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}
           ${{ runner.os }}-bazel-${{ matrix.build-config }}
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
       with:
         python-version: '3.12'
         cache: 'pip'
