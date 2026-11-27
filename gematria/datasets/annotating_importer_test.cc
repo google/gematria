@@ -39,11 +39,9 @@ namespace {
 class AnnotatingImporterTest : public ::testing::Test {
  protected:
   static constexpr std::string_view kElfObjectFilepath =
-      "com_google_gematria/gematria/testing/testdata/"
-      "simple_x86_elf_object";
+      "gematria/testing/testdata/simple_x86_elf_object";
   static constexpr std::string_view kPerfDataFilepath =
-      "com_google_gematria/gematria/testing/testdata/"
-      "simple_x86_elf_object.perf.data";
+      "gematria/testing/testdata/simple_x86_elf_object.perf.data";
   static constexpr std::string_view kSourceName = "test: skl";
 
   void SetUp() override {
@@ -60,7 +58,8 @@ class AnnotatingImporterTest : public ::testing::Test {
 };
 
 TEST_F(AnnotatingImporterTest, AnnotatedBasicBlockProtosFromBinary) {
-  std::string test_srcdir = std::string(getenv("TEST_SRCDIR")) + "/";
+  std::string test_srcdir = std::string(getenv("TEST_SRCDIR")) + "/" +
+                            std::string(getenv("TEST_WORKSPACE")) + "/";
 
   absl::StatusOr<std::vector<BasicBlockWithThroughputProto>> protos =
       x86_annotating_importer_->GetAnnotatedBasicBlockProtos(

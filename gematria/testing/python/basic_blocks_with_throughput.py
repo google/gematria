@@ -29,7 +29,7 @@ from gematria.basic_block.python import tokens
 from gematria.proto import throughput_pb2
 
 # The path to the basic blocks in text format in the resources of the test.
-_ROOT_PATH = 'com_google_gematria'
+_ROOT_PATH = os.environ.get('TEST_WORKSPACE', '_main')
 _BASIC_BLOCK_RESOURCE_PATH = os.path.join(
     _ROOT_PATH, 'gematria/testing/testdata/basic_blocks_with_throughput.pbtxt'
 )

@@ -107,12 +107,12 @@ _EXPECTED_BASIC_BLOCK_PROTO = basic_block_pb2.BasicBlockProto(
 
 
 class AnnotatingImporterTest(absltest.TestCase):
-  _ELF_OBJECT_FILEPATH = (
-      r"com_google_gematria/gematria/testing/testdata/simple_x86_elf_object"
+  _ROOT_PATH = os.environ.get("TEST_WORKSPACE", "_main")
+  _ELF_OBJECT_FILEPATH = os.path.join(
+      _ROOT_PATH, "gematria/testing/testdata/simple_x86_elf_object"
   )
-  _PERF_DATA_FILEPATH = (
-      r"com_google_gematria/gematria/testing/testdata/"
-      r"simple_x86_elf_object.perf.data"
+  _PERF_DATA_FILEPATH = os.path.join(
+      _ROOT_PATH, "gematria/testing/testdata/simple_x86_elf_object.perf.data"
   )
   _SOURCE_NAME = "test: skl"
 
