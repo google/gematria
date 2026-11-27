@@ -18,6 +18,10 @@ config.obj_root = os.path.join(
     os.getcwd(), 'gematria/datasets/extract_bbs_from_obj_tests'
 )
 config.tools_root = os.path.join(os.getcwd(), 'gematria/datasets')
-config.llvm_tools_root = os.path.join(os.getcwd(), 'external/llvm-project/llvm')
+config.llvm_tools_root = os.path.normpath(
+    os.path.join(
+        os.getcwd(), '..', os.environ['LLVM_PROJECT_WORKSPACE_NAME'], 'llvm'
+    )
+)
 
 lit_config.load_config(config, os.path.join(config.obj_root, 'lit.cfg.py'))

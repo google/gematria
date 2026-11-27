@@ -14,6 +14,9 @@
 """Contains rules for running lit tests."""
 
 load("@bazel_skylib//lib:paths.bzl", "paths")
+load("@rules_python//python:defs.bzl", "py_test")
+
+_LLVM_PROJECT_WORKSPACE_NAME = Label("@llvm-project//llvm:MC").workspace_name
 
 def _lit_test(test_file_name, data = []):
     """Runs an individual lit test.
@@ -28,12 +31,15 @@ def _lit_test(test_file_name, data = []):
     """
     lit_file_path = paths.join(native.package_name(), test_file_name)
 
-    native.py_test(
+    py_test(
         name = test_file_name + "_lit_test",
         srcs = ["@llvm-project//llvm:utils/lit/lit.py"],
         args = [lit_file_path, "-vv"],
         main = "@llvm-project//llvm:utils/lit/lit.py",
         data = [":" + test_file_name, "lit.cfg.py", "lit.site.cfg.py"] + data,
+        env = {
+            "LLVM_PROJECT_WORKSPACE_NAME": _LLVM_PROJECT_WORKSPACE_NAME,
+        },
         deps = [
             "@pypi//lit",
         ],
