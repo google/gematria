@@ -81,7 +81,7 @@ jobs:
           cd /tmp/tflite
           export CMAKE_CXX_COMPILER_LAUNCHER=ccache
           export CMAKE_C_COMPILER_LAUNCHER=ccache
-          curl https://raw.githubusercontent.com/google/ml-compiler-opt/main/buildbot/build_tflite.sh | bash
+          curl https://raw.githubusercontent.com/llvm/llvm-zorg/refs/heads/main/buildbot/google/docker/mlgo/build_tflite.sh | bash
       - name: cmake setup
         run: |
           mkdir /tmp/cmake-build
