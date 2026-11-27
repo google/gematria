@@ -27,3 +27,14 @@ build:tsan --copt=-fsanitize=thread
 build:tsan --copt=-fno-omit-frame-pointer
 build:tsan --copt=-DTHREAD_SANITIZER
 build:tsan --linkopt=-fsanitize=thread
+
+# Limit per-test thread counts to avoid threadpool oversubscription on
+# high-core-count machines when running many tests in parallel, and isolate
+# /dev/shm per sandbox to avoid PID-namespace shared memory collisions.
+test \
+  --sandbox_tmpfs_path=/dev/shm \
+  --test_env=TF_NUM_INTRAOP_THREADS=8 \
+  --test_env=TF_NUM_INTEROP_THREADS=8 \
+  --test_env=OMP_NUM_THREADS=8 \
+  --test_env=OPENBLAS_NUM_THREADS=8
+
