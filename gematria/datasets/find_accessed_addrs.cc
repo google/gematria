@@ -14,7 +14,6 @@
 
 #include "gematria/datasets/find_accessed_addrs.h"
 
-#include <bits/types/siginfo_t.h>
 #include <sched.h>
 #include <signal.h>
 #include <stdlib.h>
