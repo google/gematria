@@ -34,7 +34,7 @@ permissions:
 jobs:
   check-python-formatting:
     name: Python Formatting Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install Python
@@ -47,7 +47,7 @@ jobs:
         run: pyink --check --diff .
   check-cpp-formatting:
     name: C++ Formatting Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
     - name: Check c++ formatting
@@ -57,7 +57,7 @@ jobs:
         check-path: 'src'
   check-bazel-formatting:
     name: Bazel Formatting Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
     - uses: thompsonja/bazel-buildifier@851a03879729721b9bbb4854a1779977c4718f01 # v0.4.0
@@ -65,7 +65,7 @@ jobs:
         buildifier_version: v6.1.2
   check-cmake-projects:
     name: Check CMake-based projects
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: hendrikmuhs/ccache-action@ed74d11c0b343532753ecead8a951bb09bb34bc9 # v1.2.14
@@ -103,7 +103,7 @@ jobs:
           ninja llvm-granite check-llvm-tools-llvm-cm
   check-bazel:
     name: Run bazel build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         build-config: [fastbuild, opt]
