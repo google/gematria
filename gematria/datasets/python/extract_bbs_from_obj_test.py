@@ -17,7 +17,7 @@ from runfiles import runfiles
 import os
 from gematria.datasets.python import extract_bbs_from_obj
 
-_ROOT_PATH = 'com_google_gematria'
+_ROOT_PATH = os.environ.get('TEST_WORKSPACE', '_main')
 _OBJECT_FILE_PATH = os.path.join(
     _ROOT_PATH, 'gematria/datasets/python/extract_bbs_from_obj_test_file.o'
 )
